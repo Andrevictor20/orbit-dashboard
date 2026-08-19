@@ -1,38 +1,70 @@
+import { useEffect } from 'react';
 import { TrendingUp, Activity, HardDrive, Box } from 'lucide-react';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { StatCard } from './components/ui/StatCard';
+import { ContainerList } from './components/ui/ContainerList';
+import { useWebSocket } from './hooks/useWebSocket';
 
 function App() {
+  const { stats, isConnected } = useWebSocket('/api/docker/stats');
+
+  // Derived metrics
+  const cpuPercent = stats ? stats.cpu_usage.toFixed(1) : '0.0';
+  const memoryUsedGB = stats ? (stats.memory_used / 1024 / 1024 / 1024).toFixed(2) : '0.00';
+  const memoryTotalGB = stats ? (stats.memory_total / 1024 / 1024 / 1024).toFixed(2) : '0.00';
+  const memoryPercent = stats && stats.memory_total > 0 
+    ? ((stats.memory_used / stats.memory_total) * 100).toFixed(1)
+    : '0.0';
+
+  // Auto-login for development Phase 4
+  useEffect(() => {
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'admin' })
+    }).then(() => {
+      // Force reconnect websocket or just let it happen naturally
+    });
+  }, []);
+
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-primary tracking-tight">Orbit Dashboard</h2>
-        <p className="text-sm text-secondary mt-1">Monitor your system performance and containers in real-time</p>
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <h2 className="text-2xl font-bold text-primary tracking-tight">Orbit Dashboard</h2>
+          <p className="text-sm text-secondary mt-1">Monitor your system performance and containers in real-time</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+          <span className="text-xs font-medium text-secondary">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard 
-          title="Total Containers" 
-          value="12" 
-          trend="+2"
-          trendUp={true}
-          subText="Trending up this month"
+          title="Containers" 
+          value="Live" 
+          trend="WS"
+          trendUp={isConnected}
+          subText="Syncing from socket"
           icon={TrendingUp}
         />
         <StatCard 
           title="CPU Usage" 
-          value="24%" 
-          trend="Normal"
+          value={`${cpuPercent}%`} 
+          trend="Live"
           trendUp={true}
-          subText="Strong performance"
+          subText="System average"
           icon={Activity}
         />
         <StatCard 
           title="Memory Usage" 
-          value="3.2 GB" 
-          trend="-2.1%"
-          trendUp={false}
-          subText="Capacity needs attention"
+          value={`${memoryUsedGB} GB`} 
+          trend={`${memoryPercent}%`}
+          trendUp={parseFloat(memoryPercent) < 80}
+          subText={`${memoryTotalGB} GB Total`}
           icon={HardDrive}
         />
         <StatCard 
@@ -45,30 +77,9 @@ function App() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="shad-card p-6 min-h-[400px] lg:col-span-2 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-sm font-semibold text-primary">System Performance</h3>
-              <p className="text-xs text-secondary mt-1">Resource usage vs capacity</p>
-            </div>
-            <button className="shad-button-outline text-xs py-1.5 px-3">
-              Last 12 hrs
-            </button>
-          </div>
-          <div className="flex-1 border border-dashed shad-border rounded-md flex items-center justify-center text-secondary text-sm">
-            [Chart Area]
-          </div>
-        </div>
-
-        <div className="shad-card p-6 min-h-[400px] flex flex-col">
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-primary">Container Status</h3>
-            <p className="text-xs text-secondary mt-1">Active vs Stopped</p>
-          </div>
-          <div className="flex-1 border border-dashed shad-border rounded-md flex items-center justify-center text-secondary text-sm">
-            [Donut Chart]
-          </div>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="shad-card p-6 min-h-[400px]">
+          <ContainerList />
         </div>
       </div>
     </DashboardLayout>
