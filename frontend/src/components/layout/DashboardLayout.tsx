@@ -61,7 +61,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Terminal className="w-4 h-4 text-background" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold leading-tight">HomelabStore</span>
+              <span className="text-sm font-semibold leading-tight">Orbit</span>
               <span className="text-[10px] text-secondary leading-tight">Admin Dashboard</span>
             </div>
           </div>

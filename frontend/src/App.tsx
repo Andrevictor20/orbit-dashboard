@@ -6,7 +6,7 @@ function App() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-primary tracking-tight">Homelab Dashboard</h2>
+        <h2 className="text-2xl font-bold text-primary tracking-tight">Orbit Dashboard</h2>
         <p className="text-sm text-secondary mt-1">Monitor your system performance and containers in real-time</p>
       </div>
 
