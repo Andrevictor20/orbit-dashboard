@@ -1,8 +1,11 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import App from './App'
 
-test('renders Vite + React text', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/Get started/i);
-  expect(linkElement).toBeDefined();
-});
+describe('App', () => {
+  it('renders the dashboard header', () => {
+    render(<App />)
+    expect(screen.getByText('Homelab')).toBeDefined()
+    expect(screen.getByText('Dashboard Overview')).toBeDefined()
+  })
+})
