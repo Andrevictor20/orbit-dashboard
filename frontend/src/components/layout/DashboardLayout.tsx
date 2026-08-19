@@ -1,4 +1,33 @@
-import { Server, Activity, Settings, HardDrive, Cpu, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Box,
+  Settings,
+  Terminal,
+  Activity,
+  HardDrive,
+  Cpu,
+  Network,
+  LogOut,
+  Search,
+  Command,
+  Sun
+} from 'lucide-react';
+
+interface SidebarSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+function SidebarSection({ title, children }: SidebarSectionProps) {
+  return (
+    <div className="mb-6">
+      <h3 className="px-4 text-xs font-semibold text-secondary tracking-wider uppercase mb-2">
+        {title}
+      </h3>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -9,63 +38,86 @@ interface SidebarItemProps {
 function SidebarItem({ icon: Icon, label, active }: SidebarItemProps) {
   return (
     <button
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-        active 
-          ? 'bg-brand-primary/20 text-brand-primary border border-brand-primary/30' 
-          : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent'
+      className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-colors text-sm font-medium ${
+        active
+          ? 'bg-accent text-primary'
+          : 'text-secondary hover:text-primary hover:bg-accent'
       }`}
     >
-      <Icon className="w-5 h-5" />
-      <span className="font-medium">{label}</span>
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
     </button>
   );
 }
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <aside className="w-64 glass-panel border-y-0 border-l-0 rounded-none flex flex-col fixed h-full z-10">
-        <div className="p-6 border-b border-white/10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow-lg shadow-brand-primary/20">
-            <Server className="w-5 h-5 text-white" />
+      <aside className="w-64 border-r shad-border flex flex-col fixed h-full z-10 bg-background">
+        <div className="h-14 border-b shad-border flex items-center px-6">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+              <Terminal className="w-4 h-4 text-background" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold leading-tight">HomelabStore</span>
+              <span className="text-[10px] text-secondary leading-tight">Admin Dashboard</span>
+            </div>
           </div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-50 to-slate-400">
-            Homelab
-          </h1>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
-          <SidebarItem icon={Activity} label="Overview" active />
-          <SidebarItem icon={HardDrive} label="Containers" />
-          <SidebarItem icon={Cpu} label="System Metrics" />
-          <SidebarItem icon={Settings} label="Settings" />
-        </nav>
+        <div className="flex-1 overflow-y-auto py-6">
+          <SidebarSection title="Dashboards">
+            <SidebarItem icon={LayoutDashboard} label="Overview" active />
+            <SidebarItem icon={Activity} label="System Metrics" />
+          </SidebarSection>
 
-        <div className="p-4 border-t border-white/10">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition-colors">
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Sign Out</span>
+          <SidebarSection title="Docker">
+            <SidebarItem icon={Box} label="Containers" />
+            <SidebarItem icon={HardDrive} label="Images" />
+            <SidebarItem icon={Network} label="Networks" />
+            <SidebarItem icon={HardDrive} label="Volumes" />
+          </SidebarSection>
+          
+          <SidebarSection title="Settings">
+            <SidebarItem icon={Settings} label="Global Settings" />
+          </SidebarSection>
+        </div>
+
+        <div className="p-4 border-t shad-border mt-auto">
+          <button className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-secondary hover:text-primary hover:bg-accent transition-colors">
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 flex flex-col">
-        <header className="h-16 glass-panel border-x-0 border-t-0 rounded-none flex items-center justify-between px-8 sticky top-0 z-10">
-          <h2 className="text-lg font-medium text-slate-200">Dashboard Overview</h2>
+      <main className="flex-1 ml-64 flex flex-col min-h-screen">
+        {/* Topbar */}
+        <header className="h-14 border-b shad-border flex items-center justify-between px-6 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+          {/* Search bar simulation */}
+          <div className="flex items-center gap-2 w-96 px-3 py-1.5 rounded-md border shad-border bg-background text-secondary text-sm">
+            <Search className="w-4 h-4" />
+            <span className="flex-1">Search...</span>
+            <div className="flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded text-xs font-mono">
+              <Command className="w-3 h-3" />
+              <span>K</span>
+            </div>
+          </div>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium text-emerald-400">System Healthy</span>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center">
-              <span className="text-sm font-medium text-slate-300">AD</span>
-            </div>
+          <div className="flex items-center gap-4 text-sm font-medium">
+            <span className="text-secondary hover:text-primary cursor-pointer transition-colors">Blocks</span>
+            <span className="text-secondary hover:text-primary cursor-pointer transition-colors">Landing Page</span>
+            <span className="text-secondary hover:text-primary cursor-pointer transition-colors">GitHub</span>
+            <button className="p-2 rounded-md border shad-border hover:bg-accent transition-colors text-secondary">
+              <Sun className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
+        {/* Page Content */}
         <div className="p-8 flex-1">
           {children}
         </div>

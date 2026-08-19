@@ -1,33 +1,37 @@
-import { LucideIcon } from 'lucide-react';
+import React from 'react';
 
 interface CardProps {
   title: string;
   value: string | React.ReactNode;
-  icon: LucideIcon;
   trend?: string;
   trendUp?: boolean;
+  subText?: string;
+  icon?: React.ElementType; // Optional small icon for the subText
 }
 
-export function StatCard({ title, value, icon: Icon, trend, trendUp }: CardProps) {
+export function StatCard({ title, value, trend, trendUp, subText, icon: Icon }: CardProps) {
   return (
-    <div className="glass-card p-6 flex flex-col gap-4 relative overflow-hidden">
-      <div className="flex justify-between items-start">
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-          <Icon className="w-6 h-6 text-brand-primary" />
-        </div>
+    <div className="shad-card p-6 flex flex-col gap-2">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-sm font-medium text-secondary">{title}</h3>
         {trend && (
-          <span className={`text-sm font-medium ${trendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <div className="flex items-center px-2 py-0.5 rounded-full bg-accent border shad-border text-[11px] font-medium text-secondary">
+            <span className="mr-1">{trendUp ? '↗' : '↘'}</span>
             {trend}
-          </span>
+          </div>
         )}
       </div>
-      <div>
-        <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
-        <h3 className="text-3xl font-semibold text-slate-50 tracking-tight">{value}</h3>
+      
+      <div className="text-3xl font-bold tracking-tight text-primary">
+        {value}
       </div>
       
-      {/* Decorative background glow */}
-      <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-brand-primary/20 rounded-full blur-2xl pointer-events-none" />
+      {subText && (
+        <div className="flex items-center gap-1.5 mt-1 text-sm text-secondary">
+          <span className={trendUp ? 'text-primary' : ''}>{subText}</span>
+          {Icon && <Icon className="w-3.5 h-3.5" />}
+        </div>
+      )}
     </div>
   );
 }

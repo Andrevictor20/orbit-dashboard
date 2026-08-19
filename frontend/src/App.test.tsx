@@ -5,7 +5,7 @@ import App from './App'
 describe('App', () => {
   it('renders the dashboard header', () => {
     render(<App />)
-    expect(screen.getByText('Homelab')).toBeDefined()
-    expect(screen.getByText('Dashboard Overview')).toBeDefined()
+    expect(screen.getByText('HomelabStore')).toBeDefined()
+    expect(screen.getByText('Homelab Dashboard')).toBeDefined()
   })
 })
