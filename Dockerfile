@@ -8,7 +8,7 @@ RUN npm run build
 
 # Stage 2: Build the backend (Rust)
 # Using Debian Bookworm slim as it has better compatibility with glibc which some Rust crates prefer over musl
-FROM rust:1.85-slim-bookworm AS backend-builder
+FROM rust:slim-bookworm AS backend-builder
 # Install build dependencies (pkg-config and libssl-dev are often needed for networking crates)
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
