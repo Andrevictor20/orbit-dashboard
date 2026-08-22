@@ -19,7 +19,4 @@ export default defineConfig({
     // Warn on chunks > 600KB (recharts is ~500KB minified, that's acceptable)
     chunkSizeWarningLimit: 600,
   },
-  test: {
-    include: ['src/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
-  }
 })

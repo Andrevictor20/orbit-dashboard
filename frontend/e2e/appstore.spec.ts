@@ -2,7 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('App Store Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Bypass auth
+    // Bypass auth and setup
+    await page.route('**/api/auth/status', async route => {
+      await route.fulfill({ status: 200, json: { needs_setup: false } });
+    });
+
+    await page.route('**/api/auth/me', async route => {
+      await route.fulfill({ status: 200, json: { username: 'admin' } });
+    });
+
     await page.addInitScript(() => {
       window.localStorage.setItem('orbit_token', 'mocked_token');
     });
@@ -12,15 +20,15 @@ test.describe('App Store Flow', () => {
       await route.fulfill({
         status: 200,
         json: [
-          { id: 'app1', title: 'AdGuard Home', description: 'Network-wide ads & trackers blocking DNS server' },
-          { id: 'app2', title: 'Plex', description: 'Media server' }
+          { id: 'adguard-home', name: 'AdGuard Home', description: 'Network-wide ads & trackers blocking DNS server', icon: '', category: 'Network', store: 'Official' },
+          { id: 'plex', name: 'Plex', description: 'Media server', icon: '', category: 'Media', store: 'Official' }
         ]
       });
     });
   });
 
   test('should display apps in the store catalog', async ({ page }) => {
-    await page.goto('/store'); // Adjust if the route is different (e.g., /appstore)
+    await page.goto('/store');
 
     // Wait for the mock apps to render
     await expect(page.getByText('AdGuard Home')).toBeVisible();
@@ -30,23 +38,15 @@ test.describe('App Store Flow', () => {
   test('should open install modal or perform install action', async ({ page }) => {
     await page.goto('/store');
     
-    // Simulate install click for AdGuard Home
-    // Assuming there's a button inside the card containing "AdGuard Home"
-    const adGuardCard = page.locator(':has-text("AdGuard Home")').last();
-    const installBtn = adGuardCard.getByRole('button', { name: /install/i });
+    // Find install button on AdGuard Home card
+    const installBtn = page.locator('button').filter({ hasText: /instalar|install/i }).first();
     
     if (await installBtn.isVisible()) {
-      // Mock the install endpoint before clicking
-      await page.route('**/api/store/install', async route => {
-        await route.fulfill({ status: 200, json: { status: 'started' } });
+      await page.route('**/api/store/install/*', async route => {
+        await route.fulfill({ status: 200, json: { task_id: 'task-123', status: 'started' } });
       });
 
       await installBtn.click();
-      
-      // Expect some notification or state change (e.g., toast notification)
-      // We look for common success indicators
-      const successToast = page.getByText(/started|success|installing/i);
-      await expect(successToast).toBeVisible({ timeout: 5000 }).catch(() => {});
     }
   });
 });

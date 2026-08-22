@@ -14,11 +14,11 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:5172'; // Assuming Axum runs on 5172 by default
 
 export default function () {
-  // Try to hit a health check endpoint, or fallback to root if not found
-  const res = http.get(`${BASE_URL}/`);
+  // Hit the backend health check endpoint
+  const res = http.get(`${BASE_URL}/health`);
   
   check(res, {
-    'status is 200 or 404': (r) => r.status === 200 || r.status === 404, // Accept 404 if root is not configured in backend
+    'status is 200': (r) => r.status === 200,
   });
   
   sleep(1);

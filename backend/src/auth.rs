@@ -273,7 +273,7 @@ pub async fn change_password(
         .map(|cookie| cookie.value())
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    let token_data = decode::<Claims>(
+    let _token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(get_jwt_secret()),
         &Validation::default(),

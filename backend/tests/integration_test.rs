@@ -1,6 +1,5 @@
 use axum_test::TestServer;
 use backend::app;
-use serde_json::json;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use backend::auth::Claims;
 use std::time::{SystemTime, UNIX_EPOCH, Duration};

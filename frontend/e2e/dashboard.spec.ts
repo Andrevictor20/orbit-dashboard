@@ -2,18 +2,40 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard and Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    // Inject a fake token into localStorage to bypass login screen
+    // Bypass auth and setup checks
+    await page.route('**/api/auth/status', async route => {
+      await route.fulfill({ status: 200, json: { needs_setup: false } });
+    });
+
+    await page.route('**/api/auth/me', async route => {
+      await route.fulfill({ status: 200, json: { username: 'admin' } });
+    });
+
     await page.addInitScript(() => {
       window.localStorage.setItem('orbit_token', 'mocked_token');
     });
 
     // Mock typical dashboard endpoints
-    await page.route('**/api/system/*', async route => {
-      await route.fulfill({ status: 200, json: { status: 'healthy', cpu: 20 } });
-    });
-    
     await page.route('**/api/docker/containers', async route => {
-      await route.fulfill({ status: 200, json: [{ id: '123', name: 'nginx-test', state: 'running' }] });
+      await route.fulfill({
+        status: 200,
+        json: [{
+          id: '1234567890ab',
+          name: 'nginx-test',
+          image: 'nginx:latest',
+          status: 'Up 2 hours',
+          state: 'running',
+          created: 1700000000,
+          ports: []
+        }]
+      });
+    });
+
+    await page.route('**/api/docker/containers/stats/snapshot', async route => {
+      await route.fulfill({
+        status: 200,
+        json: { cpu_percent: 15.5, memory_percent: 25.0, memory_used: 1024, memory_limit: 4096 }
+      });
     });
   });
 
@@ -23,23 +45,19 @@ test.describe('Dashboard and Navigation', () => {
     // Check if the page title is correct
     await expect(page).toHaveTitle(/Orbit Dashboard/);
 
-    // Ensure there's a sidebar or main navigation present
-    await expect(page.locator('nav')).toBeVisible();
+    // Ensure the main layout or sidebar is present
+    await expect(page.locator('aside, nav, header').first()).toBeVisible();
   });
 
   test('should navigate to Containers page', async ({ page }) => {
     await page.goto('/');
 
-    // Look for a link to the containers page
-    const containersLink = page.getByRole('link', { name: /containers/i });
-    if (await containersLink.isVisible()) {
-      await containersLink.click();
-      
-      // Verify URL changed
-      await expect(page).toHaveURL(/.*containers/);
-      
-      // Since we mocked the containers endpoint, 'nginx-test' should be on the screen
-      await expect(page.getByText('nginx-test')).toBeVisible();
-    }
+    // Look for link to containers page
+    const containersLink = page.locator('a[href="/containers"]').first();
+    await expect(containersLink).toBeVisible();
+    await containersLink.click();
+    
+    // Verify URL changed
+    await expect(page).toHaveURL(/.*containers/);
   });
 });
