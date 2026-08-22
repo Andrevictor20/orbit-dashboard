@@ -42,10 +42,10 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 # Ensure the data directory exists
 RUN mkdir -p /app/data
 
-EXPOSE 3000
+EXPOSE 5172
 
 # Set environment variables for production
 ENV RUST_LOG=info
-ENV PORT=3000
+ENV PORT=5172
 
 CMD ["orbit-backend"]

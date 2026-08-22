@@ -6,7 +6,8 @@ services:
     restart: unless-stopped
     network_mode: bridge
     ports:
-      - "3000:3000"
+      - "5172:5172"
+      - "5173:5172"
     volumes:
       # Required to interact with the host's Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock

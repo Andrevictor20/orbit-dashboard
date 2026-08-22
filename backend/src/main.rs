@@ -14,7 +14,7 @@ async fn main() {
     tracing::info!("Orbit Dashboard Backend Starting...");
 
     let app = backend::app();
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::info!("Listening on 0.0.0.0:3000");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:5172").await.unwrap();
+    tracing::info!("Listening on 0.0.0.0:5172");
     axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await.unwrap();
 }
