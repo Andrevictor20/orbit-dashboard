@@ -17,6 +17,7 @@ services:
       - orbit_data:/app/data
     environment:
       - RUST_LOG=info
+      - JWT_SECRET=orbit_dashboard_secret_key_123
 
 volumes:
   orbit_data:
