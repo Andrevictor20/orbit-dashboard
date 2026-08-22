@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/ui/StatCard';
 import { TrendingUp, Activity, HardDrive, Box } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
+import { getFriendlyDiskName } from '../utils/format';
 import {
   AreaChart,
   Area,
@@ -29,16 +30,17 @@ export function Overview() {
     if (stats) {
       setHistory(prev => {
         const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-        
-        const memoryPercent = (stats.memory_used / stats.memory_total) * 100;
-        
-        const newData = [...prev, { time: timeStr, cpu: stats.cpu_usage, memory: memoryPercent }];
-        // Keep last 30 data points (~60 seconds at 2s interval)
-        if (newData.length > 30) {
-          return newData.slice(newData.length - 30);
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const newPoint: ChartDataPoint = {
+          time: timeStr,
+          cpu: stats.cpu_usage,
+          memory: stats.memory_total > 0 ? (stats.memory_used / stats.memory_total) * 100 : 0
+        };
+        const updated = [...prev, newPoint];
+        if (updated.length > 20) {
+          return updated.slice(updated.length - 20);
         }
-        return newData;
+        return updated;
       });
     }
   }, [stats]);
@@ -51,15 +53,15 @@ export function Overview() {
     ? ((stats.memory_used / stats.memory_total) * 100).toFixed(1)
     : '0.0';
 
-  // Deduplicate disks by name (device) to avoid double counting same physical disk
-  // mounted on multiple points (e.g. / and /home)
+  // Deduplicate and clean disks by device / physical partition
   const uniqueDisksMap = new Map<string, any>();
   if (stats) {
     stats.disks.forEach((d: any) => {
+      // Pick cleanest primary mountpoint (prefer root / or /mnt or /media over internal container sub-paths)
       if (uniqueDisksMap.has(d.name)) {
         const existing = uniqueDisksMap.get(d.name)!;
-        if (!existing.mount_point.includes(d.mount_point)) {
-          existing.mount_point += `, ${d.mount_point}`;
+        if (d.mount_point === '/' || d.mount_point.startsWith('/mnt') || d.mount_point.startsWith('/media')) {
+          existing.mount_point = d.mount_point;
         }
       } else {
         uniqueDisksMap.set(d.name, { ...d });
@@ -81,12 +83,12 @@ export function Overview() {
 
   return (
     <>
-      <div className="mb-8 flex justify-between items-end">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-primary tracking-tight">{t('dashboard.title')}</h2>
-          <p className="text-sm text-secondary mt-1">{t('dashboard.subtitle')}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">{t('dashboard.title')}</h2>
+          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">{t('dashboard.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto px-2.5 py-1 rounded-full bg-card/60 border border-border/50">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
           <span className="text-xs font-medium text-secondary">
             {isConnected ? t('dashboard.connected') : t('dashboard.disconnected')}
@@ -94,7 +96,7 @@ export function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard 
           title={t('dashboard.containers')} 
           value={t('dashboard.live')} 
@@ -145,14 +147,14 @@ export function Overview() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass-panel rounded-xl p-6 min-h-[400px] lg:col-span-2 flex flex-col">
-          <div className="mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[350px] sm:min-h-[400px] lg:col-span-2 flex flex-col">
+          <div className="mb-4 sm:mb-6">
             <h3 className="text-sm font-semibold text-primary">{t('dashboard.system_performance')}</h3>
           </div>
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 min-h-[240px] sm:min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
@@ -163,8 +165,8 @@ export function Overview() {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="time" stroke="#525252" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#525252" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
+                <XAxis dataKey="time" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} width={40} />
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
                 <Tooltip 
                   formatter={(value: any) => typeof value === 'number' ? value.toFixed(1) : value}
@@ -179,8 +181,8 @@ export function Overview() {
           </div>
         </div>
 
-        <div className="glass-panel rounded-xl p-6 min-h-[400px] flex flex-col overflow-y-auto">
-          <div className="mb-6 sticky top-0 bg-background/60 backdrop-blur-md pb-2 z-10">
+        <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[350px] sm:min-h-[400px] flex flex-col overflow-y-auto">
+          <div className="mb-4 sm:mb-6 sticky top-0 bg-background/80 backdrop-blur-md pb-2 z-10">
             <h3 className="text-sm font-semibold text-primary">{t('dashboard.storage')}</h3>
           </div>
           <div className="flex-1 flex flex-col gap-4">
@@ -189,15 +191,18 @@ export function Overview() {
                 const usedGB = (disk.used / 1024 / 1024 / 1024).toFixed(2);
                 const totalGB = (disk.total / 1024 / 1024 / 1024).toFixed(2);
                 const percent = ((disk.used / disk.total) * 100).toFixed(1);
+                const friendlyName = getFriendlyDiskName(disk.name, disk.mount_point);
                 
                 return (
-                  <div key={idx} className="bg-white/5 border border-border rounded-lg p-4">
+                  <div key={idx} className="bg-white/5 border border-border rounded-lg p-4 hover:border-primary/40 transition-colors">
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
-                        <HardDrive className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-primary text-sm truncate max-w-[120px]">{disk.name}</span>
+                        <HardDrive className="w-4 h-4 text-primary shrink-0" />
+                        <span className="font-medium text-primary text-sm truncate max-w-[160px]" title={disk.name}>
+                          {friendlyName}
+                        </span>
                       </div>
-                      <span className="text-xs font-mono text-secondary bg-card px-2 py-0.5 rounded">
+                      <span className="text-xs font-mono text-secondary bg-card px-2 py-0.5 rounded border border-border/50">
                         {disk.mount_point}
                       </span>
                     </div>
@@ -213,7 +218,7 @@ export function Overview() {
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <div className="text-right text-[10px] text-orbit-500 mt-1">
+                    <div className="text-right text-[10px] text-orbit-500 mt-1 font-mono">
                       {percent}%
                     </div>
                   </div>

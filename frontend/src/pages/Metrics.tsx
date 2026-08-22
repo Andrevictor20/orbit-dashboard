@@ -78,61 +78,61 @@ export function Metrics() {
 
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-primary tracking-tight flex items-center gap-2">
-            <Activity className="w-6 h-6 text-emerald-500" />
+          <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight flex items-center gap-2">
+            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
             Métricas do Sistema
           </h2>
-          <p className="text-sm text-secondary mt-1">Análise detalhada de performance e uso de recursos</p>
+          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Análise detalhada de performance e uso de recursos</p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="bg-card border border-border p-1 rounded-lg flex items-center shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="bg-card border border-border p-1 rounded-lg flex items-center shadow-sm overflow-x-auto max-w-full scrollbar-none">
             <button 
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${activeTab === 'overview' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               Geral
             </button>
             <button 
               onClick={() => setActiveTab('system')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${activeTab === 'system' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'system' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <Monitor className="w-3.5 h-3.5" />
               Host
             </button>
             <button 
               onClick={() => setActiveTab('containers')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${activeTab === 'containers' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <Box className="w-3.5 h-3.5" />
               Containers
             </button>
             <button 
               onClick={() => setActiveTab('orbit')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors ${activeTab === 'orbit' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'orbit' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <Rocket className="w-3.5 h-3.5" />
               Orbit
             </button>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg shadow-sm">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 bg-card border border-border rounded-lg shadow-sm">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-            <span className="text-xs font-medium text-secondary">
+            <span className="text-xs font-medium text-secondary whitespace-nowrap">
               {isConnected ? 'Real-time' : 'Desconectado'}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* CPU Panel */}
-        <div className="glass-panel rounded-xl p-6 h-[350px] flex flex-col">
-          <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-purple-500" />
+        <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col">
+          <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4 flex items-center gap-2">
+            <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
             Evolução de CPU (%)
           </h3>
           <div className="flex-1">

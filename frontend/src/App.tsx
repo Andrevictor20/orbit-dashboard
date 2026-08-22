@@ -11,6 +11,7 @@ import { Terminal } from './pages/Terminal';
 import { Metrics } from './pages/Metrics';
 import { Volumes } from './pages/Volumes';
 import { Logs } from './pages/Logs';
+import { FileManager } from './pages/FileManager';
 import { Login } from './pages/Login';
 import { Setup } from './pages/Setup';
 import { AuthProvider } from './contexts/AuthContext';
@@ -47,6 +48,7 @@ function App() {
                         <Route path="/images" element={<Images />} />
                         <Route path="/networks" element={<Networks />} />
                         <Route path="/volumes" element={<Volumes />} />
+                        <Route path="/files" element={<FileManager />} />
                         <Route path="/terminal" element={<Terminal />} />
                         <Route path="/logs" element={<Logs />} />
                         <Route path="*" element={<Navigate to="/" replace />} />

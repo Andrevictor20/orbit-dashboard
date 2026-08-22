@@ -520,64 +520,67 @@ export function ContainerDetail() {
 
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300 h-full flex flex-col">
-      <div className="flex items-center gap-4 mb-2">
-        <button 
-          onClick={() => navigate('/containers')}
-          className="p-2 bg-card border border-border rounded-md text-secondary hover:text-white hover:bg-accent transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            {container.name}
-            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-              container.state.toLowerCase() === 'running' 
-                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                : container.state.toLowerCase() === 'paused'
-                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-            }`}>
-              {container.state.toUpperCase()}
-            </span>
-          </h2>
-          <p className="text-secondary font-mono text-sm mt-1">{container.image} • {container.id.substring(0, 12)}</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate('/containers')}
+            className="p-2 bg-card border border-border rounded-md text-secondary hover:text-white hover:bg-accent transition-colors shrink-0"
+            aria-label="Voltar para containers"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3 truncate">
+              <span className="truncate">{container.name}</span>
+              <span className={`px-2 py-0.5 text-xs font-semibold rounded-full border shrink-0 ${
+                container.state.toLowerCase() === 'running' 
+                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                  : container.state.toLowerCase() === 'paused'
+                  ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                  : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+              }`}>
+                {container.state.toUpperCase()}
+              </span>
+            </h2>
+            <p className="text-secondary font-mono text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{container.image} • {container.id.substring(0, 12)}</p>
+          </div>
         </div>
         
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
           {appPort && (
             <a 
               href={`http://${window.location.hostname}:${appPort}`} 
               target="_blank" 
               rel="noreferrer"
               title="Abrir Aplicação"
-              className="px-4 py-2 bg-accent border border-border hover:bg-orbit-700 hover:text-white hover:border-orbit-600 rounded-md text-secondary font-medium text-sm flex items-center gap-2 transition-all mr-2"
+              className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-orbit-700 hover:text-white hover:border-orbit-600 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all"
             >
               <ExternalLink className="w-4 h-4" /> Abrir
             </a>
           )}
           {container.state.toLowerCase() === 'running' ? (
             <>
-              <button onClick={() => handleAction('stop')} disabled={actionLoading} className="px-4 py-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary font-medium text-sm flex items-center gap-2 transition-all">
+              <button onClick={() => handleAction('stop')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all">
                 <Square className="w-4 h-4" /> Parar
               </button>
-              <button onClick={() => handleAction('pause')} disabled={actionLoading} className="px-4 py-2 bg-accent border border-border hover:bg-amber-500/20 hover:text-amber-400 hover:border-amber-500/50 rounded-md text-secondary font-medium text-sm flex items-center gap-2 transition-all">
+              <button onClick={() => handleAction('pause')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-amber-500/20 hover:text-amber-400 hover:border-amber-500/50 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all">
                 <Pause className="w-4 h-4" /> Pausar
               </button>
-              <button onClick={() => handleAction('restart')} disabled={actionLoading} className="px-4 py-2 bg-accent border border-border hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/50 rounded-md text-secondary font-medium text-sm flex items-center gap-2 transition-all">
+              <button onClick={() => handleAction('restart')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/50 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all">
                 <RotateCw className={`w-4 h-4 ${actionLoading ? 'animate-spin' : ''}`} /> Reiniciar
               </button>
             </>
           ) : container.state.toLowerCase() === 'paused' ? (
             <>
-              <button onClick={() => handleAction('unpause')} disabled={actionLoading} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-white font-medium text-sm flex items-center gap-2 transition-all">
+              <button onClick={() => handleAction('unpause')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all">
                 <PlayCircle className="w-4 h-4" /> Retomar
               </button>
-              <button onClick={() => handleAction('stop')} disabled={actionLoading} className="px-4 py-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary font-medium text-sm flex items-center gap-2 transition-all">
+              <button onClick={() => handleAction('stop')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all">
                 <Square className="w-4 h-4" /> Parar
               </button>
             </>
           ) : (
-            <button onClick={() => handleAction('start')} disabled={actionLoading} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-white font-medium text-sm flex items-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
+            <button onClick={() => handleAction('start')} disabled={actionLoading} className="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-lg shadow-emerald-900/20">
               <Play className="w-4 h-4" /> Iniciar
             </button>
           )}
@@ -586,34 +589,35 @@ export function ContainerDetail() {
             <button 
               onClick={handleUpdate} 
               disabled={updating || actionLoading} 
-              className="px-4 py-2 bg-orbit-600 hover:bg-orbit-500 rounded-md text-white font-medium text-sm flex items-center gap-2 transition-all shadow-lg shadow-orbit-900/20 ml-2"
+              className="px-3 sm:px-4 py-2 bg-orbit-600 hover:bg-orbit-500 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-lg shadow-orbit-900/20"
             >
               <DownloadCloud className={`w-4 h-4 ${updating ? 'animate-bounce' : ''}`} /> 
               {updating ? 'Atualizando...' : 'Atualizar'}
             </button>
           )}
 
-          <div className="w-px h-8 bg-white/10 mx-2"></div>
+          <div className="w-px h-6 sm:h-8 bg-white/10 mx-1"></div>
           <button 
             onClick={confirmDeleteContainer} 
             disabled={actionLoading} 
             title="Excluir Container"
             className="p-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary transition-all"
+            aria-label="Excluir container"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      <div className="flex space-x-1 bg-card/50 border border-border rounded-lg p-1">
-        <button onClick={() => setActiveTab('overview')} className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'overview' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-secondary'}`}>
-          <Info className="w-4 h-4" /> Visão Geral
+      <div className="flex space-x-1 bg-card/50 border border-border rounded-lg p-1 overflow-x-auto scrollbar-none">
+        <button onClick={() => setActiveTab('overview')} className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 sm:gap-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'overview' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-primary'}`}>
+          <Info className="w-4 h-4 shrink-0" /> Visão Geral
         </button>
-        <button onClick={() => setActiveTab('logs')} className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-secondary'}`}>
-          <AlignLeft className="w-4 h-4" /> Logs
+        <button onClick={() => setActiveTab('logs')} className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 sm:gap-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'logs' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-primary'}`}>
+          <AlignLeft className="w-4 h-4 shrink-0" /> Logs
         </button>
-        <button onClick={() => setActiveTab('terminal')} className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'terminal' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-secondary'}`}>
-          <TerminalIcon className="w-4 h-4" /> Terminal
+        <button onClick={() => setActiveTab('terminal')} className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 sm:gap-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${activeTab === 'terminal' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-primary'}`}>
+          <TerminalIcon className="w-4 h-4 shrink-0" /> Terminal
         </button>
       </div>
 

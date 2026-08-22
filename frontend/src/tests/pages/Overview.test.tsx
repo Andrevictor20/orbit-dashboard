@@ -89,7 +89,7 @@ describe('Overview Component', () => {
     expect(screen.getByText('20.0 MB')).toBeTruthy(); // RX
     
     // Disk info
-    expect(screen.getByText('/dev/sda1')).toBeTruthy();
+    expect(screen.getByText('SSD / HD Principal')).toBeTruthy();
     expect(screen.getByText('/')).toBeTruthy();
     expect(screen.getByText('50.00 GB usado')).toBeTruthy();
   });

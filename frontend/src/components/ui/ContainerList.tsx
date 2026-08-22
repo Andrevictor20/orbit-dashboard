@@ -25,10 +25,13 @@ interface Container {
   size_root_fs?: number;
 }
 
+// Global memory cache for instantaneous tab switching (SWR)
+let globalContainerCache: Container[] | null = null;
+
 export function ContainerList() {
   const navigate = useNavigate();
-  const [containers, setContainers] = useState<Container[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [containers, setContainers] = useState<Container[]>(() => globalContainerCache || []);
+  const [loading, setLoading] = useState(() => !globalContainerCache || globalContainerCache.length === 0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
@@ -43,28 +46,47 @@ export function ContainerList() {
   const [sortBy, setSortBy] = useState<'name' | 'cpu' | 'ram' | 'disk'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  const fetchContainers = async () => {
-    setLoading(true);
+  const fetchContainers = async (showLoading = true) => {
+    if (showLoading && (!globalContainerCache || globalContainerCache.length === 0)) {
+      setLoading(true);
+    }
     try {
       const res = await fetch('/api/docker/containers');
       if (res.ok) {
         const data: Container[] = await res.json();
         
-        // Fetch stats snapshot
-        const statsRes = await fetch('/api/docker/containers/stats/snapshot');
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          const merged = data.map(c => {
-            const stat = statsData.find((s: any) => s.id.startsWith(c.id));
-            if (stat) {
-              return { ...c, cpu_percent: stat.cpu_percent, memory_used: stat.memory_used, memory_limit: stat.memory_limit };
-            }
-            return c;
+        // Update containers immediately with basic fast listing
+        setContainers(prev => {
+          const updated = data.map(c => {
+            const existing = prev.find(p => p.id === c.id);
+            return existing 
+              ? { ...c, cpu_percent: existing.cpu_percent, memory_used: existing.memory_used, memory_limit: existing.memory_limit }
+              : c;
           });
-          setContainers(merged);
-        } else {
-          setContainers(data);
-        }
+          globalContainerCache = updated;
+          return updated;
+        });
+        setLoading(false);
+
+        // Fetch CPU/RAM stats in the background without stalling the view
+        fetch('/api/docker/containers/stats/snapshot')
+          .then(r => r.ok ? r.json() : null)
+          .then(statsData => {
+            if (statsData) {
+              setContainers(prev => {
+                const merged = prev.map(c => {
+                  const stat = statsData.find((s: any) => s.id.startsWith(c.id));
+                  if (stat) {
+                    return { ...c, cpu_percent: stat.cpu_percent, memory_used: stat.memory_used, memory_limit: stat.memory_limit };
+                  }
+                  return c;
+                });
+                globalContainerCache = merged;
+                return merged;
+              });
+            }
+          })
+          .catch(() => {});
       }
     } catch (err) {
       console.error('Failed to fetch containers', err);
@@ -197,31 +219,33 @@ export function ContainerList() {
 
   return (
     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h3 className="text-xl font-bold text-primary flex items-center gap-2">
             Inventário de Containers
           </h3>
-          <p className="text-sm text-secondary mt-1">Gerencie e monitore o consumo dos serviços</p>
+          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Gerencie e monitore o consumo dos serviços</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center self-start sm:self-auto">
           <div className="flex bg-card p-1 rounded-md border border-border">
             <button 
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
+              aria-label="Visualização em grade"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
+              aria-label="Visualização em tabela"
             >
               <List className="w-4 h-4" />
             </button>
           </div>
           <button 
-            onClick={fetchContainers}
-            className="px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-md flex items-center gap-2 transition-colors text-sm font-medium border border-border"
+            onClick={() => fetchContainers(true)}
+            className="px-3 sm:px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
@@ -230,7 +254,7 @@ export function ContainerList() {
       </div>
       
       {/* Search and Sort Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-card border border-border p-3 rounded-lg shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-card border border-border p-3 rounded-lg shadow-sm">
         <div className="flex-1">
           <input
             type="text"
@@ -241,11 +265,11 @@ export function ContainerList() {
           />
         </div>
         <div className="flex gap-2 items-center">
-          <span className="text-sm text-secondary font-medium">Ordenar por:</span>
+          <span className="text-xs sm:text-sm text-secondary font-medium whitespace-nowrap">Ordenar por:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary"
+            className="bg-background border border-border rounded-md px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary flex-1 sm:flex-none"
           >
             <option value="name">Nome</option>
             <option value="cpu">CPU</option>
@@ -256,11 +280,34 @@ export function ContainerList() {
             onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
             className="px-3 py-2 bg-background border border-border rounded-md hover:bg-accent text-secondary hover:text-primary transition-colors text-sm font-medium"
             title={`Ordem ${sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}`}
+            aria-label="Alternar ordem de classificação"
           >
             {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
         </div>
       </div>
+
+      {loading && containers.length === 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pb-4">
+          {Array.from({ length: 10 }).map((_, idx) => (
+            <div key={idx} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="w-14 h-14 bg-background/80 rounded-xl border border-border shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-4 bg-background/80 rounded w-3/4" />
+                  <div className="h-3 bg-background/50 rounded w-1/2" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 py-3 border-y border-border/50">
+                <div className="h-6 bg-background/50 rounded" />
+                <div className="h-6 bg-background/50 rounded" />
+                <div className="h-6 bg-background/50 rounded" />
+              </div>
+              <div className="h-8 bg-background/50 rounded w-full" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {filteredAndSortedContainers.length === 0 && !loading && (
         <div className="flex-1 flex items-center justify-center text-secondary border border-dashed border-border rounded-lg bg-card/50">

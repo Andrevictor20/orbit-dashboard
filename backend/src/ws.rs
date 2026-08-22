@@ -216,16 +216,28 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             }
         }
 
-        // Disks (filter overlay filesystems)
+        // Disks (filter overlay, tmpfs, and internal container pseudo-mounts)
         let mut disk_stats = Vec::new();
         for disk in &disks {
             let name = disk.name().to_string_lossy().into_owned();
             let mount_point = disk.mount_point().to_string_lossy().into_owned();
             let fs_type = disk.file_system().to_string_lossy().into_owned();
 
-            if name.to_lowercase().contains("overlay")
-                || mount_point.to_lowercase().contains("overlay")
-                || fs_type.to_lowercase().contains("overlay")
+            let name_lower = name.to_lowercase();
+            let mount_lower = mount_point.to_lowercase();
+            let fs_lower = fs_type.to_lowercase();
+
+            if name_lower.contains("overlay")
+                || mount_lower.contains("overlay")
+                || fs_lower.contains("overlay")
+                || fs_lower.contains("tmpfs")
+                || fs_lower.contains("devtmpfs")
+                || fs_lower.contains("squashfs")
+                || mount_lower.starts_with("/etc/")
+                || mount_lower.starts_with("/proc")
+                || mount_lower.starts_with("/sys")
+                || mount_lower.starts_with("/dev")
+                || mount_lower == "/app/data"
             {
                 continue;
             }

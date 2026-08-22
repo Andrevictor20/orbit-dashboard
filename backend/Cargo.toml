@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 argon2 = "0.5.3"
-axum = { version = "0.8.9", features = ["ws"] }
+axum = { version = "0.8.9", features = ["ws", "multipart"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
 bollard = "0.21.1"
 dotenvy = "0.15.7"

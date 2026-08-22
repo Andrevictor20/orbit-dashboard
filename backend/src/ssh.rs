@@ -65,16 +65,26 @@ async fn handle_socket(socket: WebSocket) {
     // 2. Setup command based on Init message
     let cmd = if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
         if !is_executable_in_path("sshpass") {
-            let _ = sender.send(Message::Text("Error: sshpass not installed on host\r\n".into())).await;
+            let _ = sender.send(Message::Text("Error: sshpass not found in container image\r\n".into())).await;
             return;
         }
+
+        // Determine target SSH host (prioritize SSH_HOST env var, fallback to host.docker.internal)
+        let ssh_host = std::env::var("SSH_HOST").unwrap_or_else(|_| "host.docker.internal".to_string());
+
         let mut builder = CommandBuilder::new("sshpass");
         builder.arg("-p");
         builder.arg(pass);
         builder.arg("ssh");
         builder.arg("-o");
-        builder.arg("StrictHostKeyChecking=accept-new");
-        builder.arg(format!("{}@localhost", user));
+        builder.arg("StrictHostKeyChecking=no");
+        builder.arg("-o");
+        builder.arg("UserKnownHostsFile=/dev/null");
+        builder.arg("-o");
+        builder.arg("LogLevel=ERROR");
+        builder.arg("-o");
+        builder.arg("ConnectTimeout=10");
+        builder.arg(format!("{}@{}", user, ssh_host));
         builder
     } else {
         let _ = sender.send(Message::Text("Missing credentials for SSH\r\n".into())).await;

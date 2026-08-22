@@ -41,8 +41,9 @@ describe('DashboardLayout UI/UX', () => {
     );
 
     // Assert main content has animate-fade-in
-    const mainContent = container.querySelector('main > div.p-8');
+    const mainContent = container.querySelector('main > div.animate-fade-in');
     expect(mainContent).not.toBeNull();
     expect(mainContent?.className).toContain('animate-fade-in');
+    expect(mainContent?.className).toContain('p-3.5');
   });
 });

@@ -28,3 +28,34 @@ export function formatRAM(bytes?: number): string {
 export function formatGB(bytes: number): string {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
+
+/**
+ * Classifies a storage device and returns a user-friendly label.
+ * e.g., 'Cartão microSD', 'SSD NVMe', 'HD Externo', 'Pendrive / USB', 'Armazenamento do Sistema'
+ */
+export function getFriendlyDiskName(name?: string, mountPoint?: string): string {
+  const n = (name || '').toLowerCase();
+  const m = (mountPoint || '').toLowerCase();
+
+  if (n.includes('mmcblk') || n.includes('sdcard')) {
+    return 'Cartão microSD';
+  }
+  if (n.includes('nvme')) {
+    return 'SSD NVMe';
+  }
+  if (m.startsWith('/mnt') || m.startsWith('/media') || m.startsWith('/run/media')) {
+    const mountFolder = mountPoint?.split('/').filter(Boolean).pop();
+    return mountFolder ? `HD Externo (${mountFolder})` : 'HD / Armazenamento Externo';
+  }
+  if (n.startsWith('/dev/sd') || n.startsWith('sd')) {
+    if (m === '/' || m === '/root' || m === '/home') {
+      return 'SSD / HD Principal';
+    }
+    return 'HD / Pendrive USB';
+  }
+  if (m === '/' || m === '/root' || n === 'root' || n === '/dev/root') {
+    return 'Armazenamento do Sistema';
+  }
+  return name && !name.startsWith('/dev/') ? name : 'Armazenamento Local';
+}
+

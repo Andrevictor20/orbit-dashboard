@@ -115,25 +115,25 @@ export function Terminal() {
   }, []);
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-primary tracking-tight">{t('sidebar.terminal')}</h2>
-        <p className="text-sm text-secondary mt-1">Acesso seguro ao host do sistema</p>
+    <div className="h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-8rem)] flex flex-col animate-in fade-in zoom-in-95 duration-300">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">{t('sidebar.terminal')}</h2>
+        <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Acesso seguro ao host do sistema</p>
       </div>
 
       {connState === 'idle' || connState === 'error' ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="glass-panel p-8 rounded-xl w-full max-w-md border border-border shadow-2xl">
-            <div className="flex justify-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-card/50 flex items-center justify-center border border-border">
-                <TerminalIcon className="w-6 h-6 text-primary" />
+        <div className="flex-1 flex items-center justify-center p-2">
+          <div className="glass-panel p-5 sm:p-8 rounded-xl w-full max-w-md border border-border shadow-2xl">
+            <div className="flex justify-center mb-4 sm:mb-6">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-card/50 flex items-center justify-center border border-border">
+                <TerminalIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-center mb-2 text-primary">Conexão SSH</h3>
-            <p className="text-secondary text-sm text-center mb-6">Autentique-se com seu usuário e senha para obter acesso seguro ao sistema.</p>
+            <h3 className="text-lg sm:text-xl font-bold text-center mb-1.5 sm:mb-2 text-primary">Conexão SSH</h3>
+            <p className="text-secondary text-xs sm:text-sm text-center mb-4 sm:mb-6">Autentique-se com seu usuário e senha para obter acesso seguro ao sistema.</p>
             
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center">
+              <div className="mb-4 p-3 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs sm:text-sm text-center">
                 {errorMessage}
               </div>
             )}

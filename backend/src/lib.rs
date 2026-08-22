@@ -5,6 +5,7 @@ pub mod ssh;
 pub mod links;
 pub mod store;
 pub mod logs;
+pub mod files;
 
 use axum::{
     routing::{get, post, delete, put},
@@ -57,6 +58,28 @@ pub fn app() -> Router {
         .route("/api/store/install/status/{task_id}", get(store::install_status))
         .route("/api/store/uninstall/{id}", post(store::uninstall_app))
         .route("/api/store/update/{id}", post(store::update_app))
+        // Files & Storage routes
+        .route("/api/files/list", get(files::list_files))
+        .route("/api/files/shortcuts", get(files::get_shortcuts))
+        .route("/api/files/storages", get(files::list_storages))
+        .route("/api/files/storages/unmount", post(files::unmount_storage))
+        .route("/api/files/cloud/providers", get(files::list_cloud_providers))
+        .route("/api/files/cloud/connect", post(files::connect_cloud))
+        .route("/api/files/cloud/accounts", get(files::list_cloud_accounts))
+        .route("/api/files/cloud/accounts/{id}", delete(files::disconnect_cloud))
+        .route("/api/files/mkdir", post(files::mkdir))
+        .route("/api/files/create", post(files::create_file))
+        .route("/api/files/rename", put(files::rename_file))
+        .route("/api/files/copy", post(files::copy_file))
+        .route("/api/files/move", post(files::move_file))
+        .route("/api/files/delete", post(files::delete_files))
+        .route("/api/files/download", get(files::download_file))
+        .route("/api/files/archive", get(files::archive_folder))
+        .route("/api/files/upload", post(files::upload_files))
+        .route("/api/files/stream", get(files::stream_media))
+        .route("/api/files/subtitles", get(files::get_subtitles))
+        .route("/api/files/content", get(files::get_file_content).put(files::update_file_content))
+        .route("/api/files/raw", get(files::get_raw_file))
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state.clone());
 

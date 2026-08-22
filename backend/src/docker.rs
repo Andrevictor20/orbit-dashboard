@@ -105,7 +105,7 @@ pub async fn list_containers(
 ) -> impl IntoResponse {
     let mut options = bollard::query_parameters::ListContainersOptions::default();
     options.all = true;
-    options.size = true;
+    options.size = false; // Fast listing without slow synchronous filesystem scans
 
     match state.docker.list_containers(Some(options)).await {
         Ok(containers) => {
@@ -145,18 +145,19 @@ pub async fn snapshot_stats(
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to list").into_response(),
     };
 
-    let mut snapshots = Vec::new();
-
-    for c in containers {
-        if let Some(id) = c.id {
+    let futures = containers.into_iter().filter_map(|c| {
+        let id = c.id?;
+        let docker = state.docker.clone();
+        Some(async move {
             let stats_options = bollard::query_parameters::StatsOptions {
                 stream: false,
                 ..Default::default()
             };
+            let mut stream = docker.stats(&id, Some(stats_options));
             
-            let mut stream = state.docker.stats(&id, Some(stats_options));
-            if let Some(Ok(stats)) = stream.next().await {
-                // Calculate CPU %
+            // Timeout after 2 seconds per container to avoid blocking the whole pipeline
+            let stat_result = tokio::time::timeout(std::time::Duration::from_millis(2000), stream.next()).await;
+            if let Ok(Some(Ok(stats))) = stat_result {
                 let mut cpu_percent = 0.0;
                 
                 if let (Some(cpu), Some(precpu)) = (stats.cpu_stats, stats.precpu_stats) {
@@ -181,15 +182,20 @@ pub async fn snapshot_stats(
                 let memory_used = stats.memory_stats.as_ref().and_then(|m| m.usage).unwrap_or(0);
                 let memory_limit = stats.memory_stats.as_ref().and_then(|m| m.limit).unwrap_or(0);
 
-                snapshots.push(ContainerSnapshot {
+                Some(ContainerSnapshot {
                     id: id.chars().take(12).collect(),
                     cpu_percent,
                     memory_used,
                     memory_limit,
-                });
+                })
+            } else {
+                None
             }
-        }
-    }
+        })
+    });
+
+    let results = futures::future::join_all(futures).await;
+    let snapshots: Vec<ContainerSnapshot> = results.into_iter().flatten().collect();
 
     (StatusCode::OK, Json(snapshots)).into_response()
 }

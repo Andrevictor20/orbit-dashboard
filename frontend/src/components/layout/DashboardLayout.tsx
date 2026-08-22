@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   LayoutDashboard, 
@@ -14,8 +14,10 @@ import {
   Palette,
   Package,
   Menu,
+  X,
   FileText,
-  Loader2
+  Loader2,
+  FolderOpen
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
@@ -48,15 +50,17 @@ interface SidebarItemProps {
   label: string;
   to: string;
   isCollapsed?: boolean;
+  onClick?: () => void;
 }
 
-function SidebarItem({ icon: Icon, label, to, isCollapsed }: SidebarItemProps) {
+function SidebarItem({ icon: Icon, label, to, isCollapsed, onClick }: SidebarItemProps) {
   return (
     <NavLink
       to={to}
+      onClick={onClick}
       title={isCollapsed ? label : undefined}
       className={({ isActive }) =>
-        `w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-4'} py-2 rounded-md transition-all duration-200 text-sm font-medium active:scale-[0.98] ${
+        `w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-4'} py-2.5 rounded-md transition-all duration-200 text-sm font-medium active:scale-[0.98] ${
           isActive
             ? 'bg-accent text-primary'
             : 'text-secondary hover:text-primary hover:bg-accent/80'
@@ -74,9 +78,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
   const { theme, setTheme, color, setColor } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { taskId, appName, task, maximize } = useInstall();
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -88,57 +99,83 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
-      <aside className={`border-r shad-border flex flex-col fixed h-full z-20 bg-background transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-16'}`}>
-        <div className={`h-14 border-b shad-border flex items-center ${isSidebarOpen ? 'justify-between px-4' : 'justify-center px-0'}`}>
-          {isSidebarOpen && (
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className="w-6 h-6 rounded flex items-center justify-center overflow-hidden shrink-0">
-                <img src="/favicon.jpg" alt="Orbit Logo" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold leading-tight">Orbit</span>
-                <span className="text-[10px] text-secondary leading-tight">Admin Dashboard</span>
-              </div>
+    <div className="min-h-screen flex bg-background relative overflow-x-hidden">
+      {/* Mobile Backdrop Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity animate-in fade-in"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar (Responsive Drawer on Mobile, Collapsible on Desktop) */}
+      <aside 
+        className={`border-r shad-border flex flex-col fixed inset-y-0 left-0 z-50 bg-background transition-all duration-300 ${
+          // Mobile state: off-canvas drawer
+          isMobileMenuOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
+        } md:translate-x-0 ${
+          // Desktop state: 64 or 16
+          isSidebarOpen ? 'md:w-64' : 'md:w-16'
+        }`}
+      >
+        <div className={`h-14 border-b shad-border flex items-center justify-between px-4`}>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-6 h-6 rounded flex items-center justify-center overflow-hidden shrink-0">
+              <img src="/favicon.jpg" alt="Orbit Logo" className="w-full h-full object-cover" />
             </div>
-          )}
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-secondary hover:text-primary transition-all duration-200 rounded-md hover:bg-accent active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none">
-            <Menu className="w-5 h-5" />
+            <div className={`flex flex-col ${(isSidebarOpen || isMobileMenuOpen) ? 'block' : 'hidden md:hidden'}`}>
+              <span className="text-sm font-semibold leading-tight">Orbit</span>
+              <span className="text-[10px] text-secondary leading-tight">Admin Dashboard</span>
+            </div>
+          </div>
+          
+          {/* Close button on mobile, Collapse button on desktop */}
+          <button 
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setIsMobileMenuOpen(false);
+              } else {
+                setIsSidebarOpen(!isSidebarOpen);
+              }
+            }} 
+            className="p-2 text-secondary hover:text-primary transition-all duration-200 rounded-md hover:bg-accent active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+            aria-label="Alternar menu lateral"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5 md:hidden" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
         
         <div className="flex-1 overflow-y-auto py-6 px-2">
-          <SidebarSection title={t('sidebar.dashboards')} isCollapsed={!isSidebarOpen}>
-            <SidebarItem icon={LayoutDashboard} label={t('sidebar.overview')} to="/" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={FileText} label="System Logs" to="/logs" isCollapsed={!isSidebarOpen} />
+          <SidebarSection title={t('sidebar.dashboards')} isCollapsed={!isSidebarOpen && !isMobileMenuOpen}>
+            <SidebarItem icon={LayoutDashboard} label={t('sidebar.overview')} to="/" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={FolderOpen} label="Arquivos" to="/files" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={FileText} label="System Logs" to="/logs" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
           </SidebarSection>
 
-          <SidebarSection title={t('sidebar.docker')} isCollapsed={!isSidebarOpen}>
-            <SidebarItem icon={Package} label="App Store" to="/store" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={Box} label={t('sidebar.containers')} to="/containers" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={Network} label={t('sidebar.networks')} to="/networks" isCollapsed={!isSidebarOpen} />
-            <SidebarItem icon={HardDrive} label={t('sidebar.volumes')} to="/volumes" isCollapsed={!isSidebarOpen} />
+          <SidebarSection title={t('sidebar.docker')} isCollapsed={!isSidebarOpen && !isMobileMenuOpen}>
+            <SidebarItem icon={Package} label="App Store" to="/store" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={Box} label={t('sidebar.containers')} to="/containers" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={Network} label={t('sidebar.networks')} to="/networks" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={HardDrive} label={t('sidebar.volumes')} to="/volumes" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
           </SidebarSection>
-          
-
         </div>
 
         <div className="p-4 border-t shad-border mt-auto flex flex-col gap-2">
           {taskId && (
             <button
               onClick={maximize}
-              className={`w-full flex items-center ${!isSidebarOpen ? 'justify-center px-0' : 'justify-between px-4'} py-2 rounded-md text-sm font-medium bg-orbit-500/10 text-orbit-400 hover:bg-orbit-500/20 transition-all duration-200 active:scale-[0.98] border border-orbit-500/20 focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none`}
-              title={!isSidebarOpen ? `Instalando ${appName}...` : undefined}
+              className={`w-full flex items-center ${(!isSidebarOpen && !isMobileMenuOpen) ? 'justify-center px-0' : 'justify-between px-4'} py-2 rounded-md text-sm font-medium bg-orbit-500/10 text-orbit-400 hover:bg-orbit-500/20 transition-all duration-200 active:scale-[0.98] border border-orbit-500/20 focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none`}
+              title={(!isSidebarOpen && !isMobileMenuOpen) ? `Instalando ${appName}...` : undefined}
             >
               <div className="flex items-center gap-3">
                 <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
-                {isSidebarOpen && <span className="truncate max-w-[120px] text-left">{appName}</span>}
+                {(isSidebarOpen || isMobileMenuOpen) && <span className="truncate max-w-[120px] text-left">{appName}</span>}
               </div>
-              {isSidebarOpen && task && (
+              {(isSidebarOpen || isMobileMenuOpen) && task && (
                 <span className="text-xs font-bold">{task.progress}%</span>
               )}
             </button>
@@ -146,27 +183,47 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <button 
             onClick={handleLogout}
-            title={!isSidebarOpen ? t('sidebar.sign_out') : undefined}
-            className={`w-full flex items-center ${!isSidebarOpen ? 'justify-center px-0' : 'gap-3 px-4'} py-2 rounded-md text-sm font-medium text-secondary hover:text-primary hover:bg-accent hover:text-rose-400 transition-all duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none`}
+            title={(!isSidebarOpen && !isMobileMenuOpen) ? t('sidebar.sign_out') : undefined}
+            className={`w-full flex items-center ${(!isSidebarOpen && !isMobileMenuOpen) ? 'justify-center px-0' : 'gap-3 px-4'} py-2 rounded-md text-sm font-medium text-secondary hover:text-primary hover:bg-accent hover:text-rose-400 transition-all duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            {isSidebarOpen && <span>{t('sidebar.sign_out')}</span>}
+            {(isSidebarOpen || isMobileMenuOpen) && <span>{t('sidebar.sign_out')}</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      {/* Main Content Area */}
+      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full min-w-0 ${
+        isSidebarOpen ? 'md:ml-64' : 'md:ml-16'
+      }`}>
         {/* Topbar */}
-        <header className="h-14 border-b shad-border flex items-center justify-end px-6 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-          
-          <div className="flex items-center gap-4 text-sm font-medium">
-            <div className="flex items-center gap-2 mr-2">
-              <Palette className="w-4 h-4 text-secondary" />
+        <header className="h-14 border-b shad-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 bg-background/95 backdrop-blur-sm">
+          {/* Mobile Hamburger Menu Toggle */}
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 -ml-2 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors active:scale-95"
+              aria-label="Abrir menu de navegação"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <img src="/favicon.jpg" alt="Orbit Logo" className="w-5 h-5 rounded object-cover" />
+              <span className="text-sm font-bold tracking-tight">Orbit</span>
+            </div>
+          </div>
+
+          <div className="hidden md:block" />
+
+          {/* Right Controls */}
+          <div className="flex items-center gap-2 sm:gap-4 text-sm font-medium">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary shrink-0" />
               <select 
                 value={color} 
                 onChange={(e) => setColor(e.target.value as any)}
-                className="bg-background border shad-border text-secondary text-xs rounded-md py-1 px-2 outline-none transition-colors duration-200 focus:border-orbit-500 focus-visible:ring-2 focus-visible:ring-orbit-500/50"
+                className="bg-background border shad-border text-secondary text-xs rounded-md py-1 px-1.5 sm:px-2 outline-none transition-colors duration-200 focus:border-orbit-500 focus-visible:ring-2 focus-visible:ring-orbit-500/50 cursor-pointer"
+                aria-label="Selecionar tema de cores"
               >
                 <option value="zinc">Zinc</option>
                 <option value="rose">Rose</option>
@@ -176,27 +233,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <option value="tokyonight">Tokyo Night</option>
               </select>
             </div>
-            <button onClick={toggleLanguage} className="text-xs font-bold text-secondary hover:text-primary transition-all duration-200 active:scale-[0.95]">
+            <button 
+              onClick={toggleLanguage} 
+              className="text-xs font-bold text-secondary hover:text-primary transition-all duration-200 active:scale-[0.95] px-1.5 py-1 rounded hover:bg-accent"
+              aria-label="Alternar idioma"
+            >
               {i18n.language === 'pt' ? 'PT-BR' : 'EN'}
             </button>
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              aria-label="Alternar modo claro/escuro"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <div className="h-6 w-px bg-border mx-2"></div>
+            <div className="h-5 sm:h-6 w-px bg-border mx-1 sm:mx-2"></div>
             <button
               onClick={() => setIsProfileModalOpen(true)}
-              className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-orbit-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-orbit-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500"
+              aria-label="Abrir perfil"
             >
               <img src="/favicon.jpg" alt="Profile" className="w-full h-full object-cover" />
             </button>
           </div>
         </header>
 
-        {/* Page Content */}
-        <div className="p-8 flex-1 animate-fade-in">
+        {/* Page Content with fluid responsive padding */}
+        <div className="p-3.5 sm:p-6 lg:p-8 flex-1 overflow-x-hidden animate-fade-in w-full min-w-0">
           {children}
         </div>
       </main>
@@ -206,3 +269,4 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
