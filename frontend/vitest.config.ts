@@ -6,5 +6,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // Exclude Playwright E2E and Pact contract tests — they run in their own separate runners
+    exclude: [
+      'e2e/**',
+      'tests/contract/**',
+      'node_modules/**',
+    ],
   },
 });

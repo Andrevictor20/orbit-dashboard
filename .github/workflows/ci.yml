@@ -24,6 +24,10 @@ jobs:
       run: cargo install cargo-audit && cd backend && cargo audit --ignore RUSTSEC-2023-0071
     - name: Run tests
       run: cd backend && cargo test
+    - name: Setup Node (for npx wait-on)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
     - name: Install k6
       run: |
         sudo gpg -k
