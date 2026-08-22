@@ -5,9 +5,10 @@ pub mod ssh;
 pub mod links;
 pub mod store;
 pub mod logs;
+pub mod system;
 
 use axum::{
-    routing::{get, post, delete},
+    routing::{get, post, delete, put},
     Router,
     http::Method,
 };
@@ -57,12 +58,16 @@ pub fn app() -> Router {
         .route("/api/store/install/status/{task_id}", get(store::install_status))
         .route("/api/store/uninstall/{id}", post(store::uninstall_app))
         .route("/api/store/update/{id}", post(store::update_app))
+        .route("/api/system/update", post(system::update_orbit))
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state.clone());
 
     Router::new()
         .route("/health", get(|| async { StatusCode::OK }))
         .route("/api/auth/login", post(auth::login))
+        .route("/api/auth/status", get(auth::status))
+        .route("/api/auth/setup", post(auth::setup))
+        .route("/api/auth/password", put(auth::change_password))
         .route("/api/auth/me", get(auth::me))
         .route("/api/logs", get(logs::get_logs))
         .merge(protected_routes)

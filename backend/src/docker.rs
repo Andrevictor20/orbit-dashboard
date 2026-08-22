@@ -54,6 +54,23 @@ fn valid_env_entry(entry: &str) -> bool {
         && key.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
+pub fn calculate_cpu_percent(
+    cpu_usage_total: f64,
+    precpu_usage_total: f64,
+    system_cpu_usage: f64,
+    presystem_cpu_usage: f64,
+    online_cpus: f64,
+) -> f64 {
+    let cpu_delta = cpu_usage_total - precpu_usage_total;
+    let system_delta = system_cpu_usage - presystem_cpu_usage;
+    
+    if system_delta > 0.0 && cpu_delta > 0.0 {
+        (cpu_delta / system_delta) * online_cpus * 100.0
+    } else {
+        0.0
+    }
+}
+
 #[derive(Serialize)]
 pub struct ContainerSnapshot {
     pub id: String,
@@ -145,16 +162,20 @@ pub async fn snapshot_stats(
                 if let (Some(cpu), Some(precpu)) = (stats.cpu_stats, stats.precpu_stats) {
                     let cpu_usage_total = cpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
                     let precpu_usage_total = precpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
-                    let cpu_delta = cpu_usage_total - precpu_usage_total;
-                    let system_delta = cpu.system_cpu_usage.unwrap_or(0) as f64 - precpu.system_cpu_usage.unwrap_or(0) as f64;
+                    let system_cpu_usage = cpu.system_cpu_usage.unwrap_or(0) as f64;
+                    let presystem_cpu_usage = precpu.system_cpu_usage.unwrap_or(0) as f64;
                     
                     let online_cpus = cpu.online_cpus.unwrap_or(
                         cpu.cpu_usage.as_ref().and_then(|u| u.percpu_usage.as_ref()).map(|v| v.len()).unwrap_or(1) as u32
                     ) as f64;
 
-                    if system_delta > 0.0 && cpu_delta > 0.0 {
-                        cpu_percent = (cpu_delta / system_delta) * online_cpus * 100.0;
-                    }
+                    cpu_percent = calculate_cpu_percent(
+                        cpu_usage_total,
+                        precpu_usage_total,
+                        system_cpu_usage,
+                        presystem_cpu_usage,
+                        online_cpus,
+                    );
                 }
 
                 let memory_used = stats.memory_stats.as_ref().and_then(|m| m.usage).unwrap_or(0);
@@ -680,5 +701,21 @@ mod tests {
         assert!(!valid_env_entry("123KEY=value")); // Starts with digit
         assert!(!valid_env_entry("KEY-1=value")); // Invalid char in key
         assert!(!valid_env_entry("NO_EQUALS")); // Missing =
+    }
+
+    #[test]
+    fn test_calculate_cpu_percent() {
+        // Normal case
+        let pct = calculate_cpu_percent(200.0, 100.0, 1000.0, 500.0, 2.0);
+        assert_eq!(pct, 40.0);
+
+        // Negative CPU delta
+        assert_eq!(calculate_cpu_percent(100.0, 200.0, 1000.0, 500.0, 2.0), 0.0);
+
+        // Zero system delta
+        assert_eq!(calculate_cpu_percent(200.0, 100.0, 500.0, 500.0, 2.0), 0.0);
+        
+        // Zero CPU delta
+        assert_eq!(calculate_cpu_percent(100.0, 100.0, 1000.0, 500.0, 2.0), 0.0);
     }
 }

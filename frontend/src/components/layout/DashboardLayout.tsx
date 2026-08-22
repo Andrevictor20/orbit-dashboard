@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
 import { useTheme } from '../ThemeProvider';
 import { InstallProgressModal } from '../InstallProgressModal';
+import { ProfileModal } from '../ProfileModal';
 
 interface SidebarSectionProps {
   title: string;
@@ -74,6 +75,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme, color, setColor } = useTheme();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { taskId, appName, task, maximize } = useInstall();
 
   const handleLogout = () => {
@@ -183,6 +185,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+            <div className="h-6 w-px bg-border mx-2"></div>
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-orbit-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500"
+            >
+              <img src="/favicon.jpg" alt="Profile" className="w-full h-full object-cover" />
+            </button>
           </div>
         </header>
 
@@ -193,6 +202,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <InstallProgressModal />
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
     </div>
   );
 }

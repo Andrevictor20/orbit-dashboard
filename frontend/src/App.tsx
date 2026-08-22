@@ -12,6 +12,7 @@ import { Metrics } from './pages/Metrics';
 import { Volumes } from './pages/Volumes';
 import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
+import { Setup } from './pages/Setup';
 import { AuthProvider } from './contexts/AuthContext';
 import { InstallProvider } from './contexts/InstallContext';
 import { StatsProvider } from './contexts/StatsContext';
@@ -27,6 +28,7 @@ function App() {
           <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/setup" element={<Setup />} />
             
             {/* Protected Dashboard Routes */}
             <Route 

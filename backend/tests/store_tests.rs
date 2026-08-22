@@ -1,18 +1,38 @@
 use axum_test::TestServer;
 use backend::app;
 use serde_json::json;
+use jsonwebtoken::{encode, Header, EncodingKey};
+use backend::auth::Claims;
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
+
+fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
+    let expiration = SystemTime::now()
+        .checked_add(Duration::from_secs(3600))
+        .unwrap()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as usize;
+
+    let claims = Claims {
+        sub: "admin".to_string(),
+        exp: expiration,
+    };
+    
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(b"super_secret"),
+    ).unwrap();
+    
+    axum_extra::extract::cookie::Cookie::new("auth_token", token)
+}
 
 #[tokio::test]
 async fn test_store_endpoints_exist() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let server = TestServer::new(app());
     
-    // Login to get the cookie
-    let login_response = server.post("/api/auth/login")
-        .json(&json!({"username": "admin", "password": "admin"}))
-        .await;
-    
-    login_response.assert_status_ok();
-    let auth_cookie = login_response.cookie("auth_token");
+    let auth_cookie = get_test_cookie();
     
     // 1. GET /api/store/apps
     let response = server.get("/api/store/apps")

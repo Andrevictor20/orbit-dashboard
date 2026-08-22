@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsSetup: boolean;
   login: (token: string) => void;
   logout: () => void;
 }
@@ -12,28 +13,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [needsSetup, setNeedsSetup] = useState<boolean>(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('orbit_token');
-    if (!token) {
-      setIsAuthenticated(false);
-      setIsLoading(false);
-      return;
-    }
-
-    fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        if (res.ok) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          localStorage.removeItem('orbit_token');
+    // Primeiro verificamos se o backend precisa de setup (First Boot)
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.needs_setup) {
+          setNeedsSetup(true);
+          setIsLoading(false);
+          return;
         }
+
+        // Se não precisa de setup, checa autenticação normal
+        const token = localStorage.getItem('orbit_token');
+        if (!token) {
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+
+        fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => {
+            if (res.ok) {
+              setIsAuthenticated(true);
+            } else {
+              setIsAuthenticated(false);
+              localStorage.removeItem('orbit_token');
+            }
+          })
+          .catch(() => setIsAuthenticated(false))
+          .finally(() => setIsLoading(false));
       })
-      .catch(() => setIsAuthenticated(false))
-      .finally(() => setIsLoading(false));
+      .catch(() => {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+      });
   }, []);
 
   const login = (token: string) => {
@@ -48,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, needsSetup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

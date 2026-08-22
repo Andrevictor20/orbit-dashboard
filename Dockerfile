@@ -36,6 +36,10 @@ WORKDIR /app
 # Copy the compiled backend binary
 COPY --from=backend-builder /app/backend/target/release/backend /usr/local/bin/orbit-backend
 
+# Install Docker CLI & Compose from the official image
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/
+COPY --from=docker:cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/
+
 # Copy the built frontend into the public directory (where ServeDir expects it)
 COPY --from=frontend-builder /app/frontend/dist ./public
 

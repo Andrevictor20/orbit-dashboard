@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsSetup } = useAuth();
 
   if (isLoading) {
     return (
@@ -11,6 +11,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <div className="w-8 h-8 rounded-full border-2 border-orbit-500 border-t-transparent animate-spin"></div>
       </div>
     );
+  }
+
+  if (needsSetup) {
+    return <Navigate to="/setup" replace />;
   }
 
   if (!isAuthenticated) {

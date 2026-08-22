@@ -35,7 +35,7 @@ jobs:
       run: |
         cd backend
         cargo run &
-        sleep 10
+        npx wait-on tcp:5172
         k6 run load-tests/smoke_test.js
   test-frontend:
     runs-on: ubuntu-latest
@@ -55,13 +55,36 @@ jobs:
       run: cd frontend && npm audit --audit-level=high
     - name: Install Playwright Browsers
       run: cd frontend && npx playwright install --with-deps
+    - name: Setup Rust for Backend API
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: backend
     - name: Run E2E tests
-      run: cd frontend && npm run test:e2e
+      run: |
+        cd backend && cargo run &
+        npx wait-on tcp:5172
+        cd frontend && npm run test:e2e
 
   test-security-dast:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Setup Node for wait-on
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: backend
+    - name: Start Backend API
+      run: |
+        cd backend && cargo run &
+        npx wait-on tcp:5172
     - name: Run OWASP ZAP API Scan
       uses: zaproxy/action-api-scan@v0.8.0
       with:
@@ -84,7 +107,7 @@ jobs:
     - name: Install cargo-mutants
       run: cargo install cargo-mutants
     - name: Run Mutation Testing
-      run: cd backend && cargo mutants --no-shuffle || true # Prevent failing the whole build initially
+      run: cd backend && cargo mutants --no-shuffle --exclude src/main.rs || true # Prevent failing the whole build initially
 
   test-visual:
     runs-on: ubuntu-latest
@@ -97,5 +120,14 @@ jobs:
       run: cd frontend && npm install
     - name: Install Playwright Browsers
       run: cd frontend && npx playwright install --with-deps
+    - name: Setup Rust for Backend API
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: backend
     - name: Run Visual Regression Tests
-      run: cd frontend && npm run test:visual:ci
+      run: |
+        cd backend && cargo run &
+        npx wait-on tcp:5172
+        cd frontend && npm run test:visual:ci

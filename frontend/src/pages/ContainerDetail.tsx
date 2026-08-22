@@ -670,11 +670,13 @@ export function ContainerDetail() {
                     <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}MB`} />
                     <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px' }}
-                      itemStyle={{ color: '#d4d4d4' }}
+                      formatter={(value: any) => typeof value === 'number' ? value.toFixed(1) : value}
+                      contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}
+                      itemStyle={{ color: '#d4d4d4', fontWeight: 600 }}
+                      labelStyle={{ color: '#a3a3a3', marginBottom: '4px' }}
                     />
-                    <Area yAxisId="left" type="monotone" dataKey="cpu" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorCpuC)" name="CPU (%)" />
-                    <Area yAxisId="right" type="monotone" dataKey="memory" stroke="#10b981" fillOpacity={1} fill="url(#colorMemoryC)" name="RAM (MB)" />
+                    <Area yAxisId="left" type="monotone" dataKey="cpu" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorCpuC)" name="CPU (%)" />
+                    <Area yAxisId="right" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorMemoryC)" name="RAM (MB)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

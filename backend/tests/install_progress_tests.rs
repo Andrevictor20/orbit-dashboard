@@ -1,24 +1,42 @@
-// GREEN PHASE: Tests for async install with progress tracking
 use axum_test::TestServer;
 use backend::app;
 use serde_json::Value;
+use jsonwebtoken::{encode, Header, EncodingKey};
+use backend::auth::Claims;
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 
 fn make_server() -> TestServer {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     TestServer::new(app())
+}
+
+fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
+    let expiration = SystemTime::now()
+        .checked_add(Duration::from_secs(3600))
+        .unwrap()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as usize;
+
+    let claims = Claims {
+        sub: "admin".to_string(),
+        exp: expiration,
+    };
+    
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(b"super_secret"),
+    ).unwrap();
+    
+    axum_extra::extract::cookie::Cookie::new("auth_token", token)
 }
 
 /// Install should return 202 Accepted with task_id (not 200 = old blocking behavior)
 #[tokio::test]
 async fn test_install_returns_task_id() {
     let server = make_server();
-
-    // Login to get session cookie
-    let login = server
-        .post("/api/auth/login")
-        .json(&serde_json::json!({"username": "admin", "password": "admin"}))
-        .await;
-    login.assert_status_ok();
-    let auth_cookie = login.cookie("auth_token");
+    let auth_cookie = get_test_cookie();
 
     let response = server
         .post("/api/store/install/nodered")
@@ -42,12 +60,7 @@ async fn test_install_returns_task_id() {
 #[tokio::test]
 async fn test_install_status_has_required_fields() {
     let server = make_server();
-
-    let login = server
-        .post("/api/auth/login")
-        .json(&serde_json::json!({"username": "admin", "password": "admin"}))
-        .await;
-    let auth_cookie = login.cookie("auth_token");
+    let auth_cookie = get_test_cookie();
 
     let install_response = server
         .post("/api/store/install/nodered")
@@ -83,12 +96,7 @@ async fn test_install_status_has_required_fields() {
 #[tokio::test]
 async fn test_install_status_not_found() {
     let server = make_server();
-
-    let login = server
-        .post("/api/auth/login")
-        .json(&serde_json::json!({"username": "admin", "password": "admin"}))
-        .await;
-    let auth_cookie = login.cookie("auth_token");
+    let auth_cookie = get_test_cookie();
 
     let response = server
         .get("/api/store/install/status/nonexistent-task-id-abc123")

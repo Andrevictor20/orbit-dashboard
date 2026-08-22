@@ -18,6 +18,7 @@ services:
     environment:
       - RUST_LOG=info
       - JWT_SECRET=orbit_dashboard_secret_key_123
+      - HOST_PROJECT_PATH=${HOST_PROJECT_PATH:-/home/andrevmp/Downloads/Orbit}
 
 volumes:
   orbit_data:

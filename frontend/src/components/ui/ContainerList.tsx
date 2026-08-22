@@ -279,7 +279,16 @@ export function ContainerList() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 bg-background rounded-xl flex items-center justify-center border border-border shadow-inner">
-                    <img src={getIconForImage(c.image)} alt={c.name} className="w-10 h-10 object-contain drop-shadow-md" />
+                    <img 
+                      src={getIconForImage(c.image, c.name)} 
+                      alt={c.name} 
+                      onError={(e) => {
+                        if (!e.currentTarget.src.endsWith('docker.png')) {
+                          e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+                        }
+                      }}
+                      className="w-10 h-10 object-contain drop-shadow-md" 
+                    />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-semibold text-primary truncate w-32">{c.name}</span>
@@ -408,7 +417,16 @@ export function ContainerList() {
               {filteredAndSortedContainers.map((c) => (
                 <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-white/5 transition-colors cursor-pointer">
                   <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
-                    <img src={getIconForImage(c.image)} alt="" className="w-6 h-6 object-contain drop-shadow-sm" />
+                    <img 
+                      src={getIconForImage(c.image, c.name)} 
+                      alt="" 
+                      onError={(e) => {
+                        if (!e.currentTarget.src.endsWith('docker.png')) {
+                          e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+                        }
+                      }}
+                      className="w-6 h-6 object-contain drop-shadow-sm" 
+                    />
                     {c.name}
                   </td>
                   <td className="px-4 py-4">
