@@ -20,6 +20,6 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
   },
   test: {
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'e2e/**'],
+    include: ['src/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
   }
 })
