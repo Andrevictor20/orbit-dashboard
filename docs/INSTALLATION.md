@@ -1,0 +1,118 @@
+# 📦 Guia de Instalação e Implantação do Orbit Dashboard
+
+O Orbit foi projetado para oferecer uma experiência **Zero-Config**: não requer banco de dados externo, nem arquivos `.env` complexos.
+
+---
+
+## 🐳 Método 1: Instalação via Docker Compose (Recomendado)
+
+Esta é a forma mais simples e recomendada para produção (servidores Linux, VPS, Homelabs ou Raspberry Pi 4/5).
+
+### 1. Crie o arquivo `docker-compose.yml`
+
+```yaml
+services:
+  orbit:
+    image: ghcr.io/andrevictor20/orbit-dashboard:latest
+    container_name: orbit
+    restart: unless-stopped
+    ports:
+      - "5172:5172"
+    volumes:
+      # Permite ao Orbit gerenciar seus contêineres Docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistência de dados locais, links e credenciais
+      - orbit_data:/app/data
+
+  # Opcional: Atualização automática via Watchtower
+  watchtower:
+    image: containrrr/watchtower
+    container_name: orbit-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup orbit
+    depends_on:
+      - orbit
+
+volumes:
+  orbit_data:
+```
+
+### 2. Inicie o Serviço
+
+Execute no terminal:
+
+```bash
+docker compose up -d
+```
+
+### 3. Acesse o Dashboard
+Abra seu navegador em:
+```
+http://<IP-DO-SEU-SERVIDOR>:5172
+```
+Na primeira inicialização, você será direcionado para o assistente de configuração para definir seu usuário e senha de administrador.
+
+---
+
+## 🛠️ Método 2: Compilação Manual a partir do Código-Fonte
+
+Caso prefira rodar o Orbit diretamente no host sem Docker:
+
+### Pré-requisitos
+- **Rust Toolchain:** `rustc` e `cargo` instalados ([rustup.rs](https://rustup.rs/))
+- **Node.js:** Versão 20 ou superior e `npm`
+- **Docker Engine:** Instalado e em execução com acesso ao socket `/var/run/docker.sock`
+
+### Passos de Compilação
+
+1. **Clone o Repositório:**
+   ```bash
+   git clone https://github.com/Andrevictor20/orbit-dashboard.git
+   cd orbit-dashboard
+   ```
+
+2. **Compile o Frontend (SPA):**
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   cd ..
+   ```
+
+3. **Copie os arquivos estáticos para o Backend:**
+   ```bash
+   mkdir -p backend/public
+   cp -r frontend/dist/* backend/public/
+   ```
+
+4. **Inicie o Backend em Rust:**
+   ```bash
+   cd backend
+   cargo run --release
+   ```
+
+5. **Acesso:**
+   Acesse `http://localhost:5172` no seu navegador.
+
+---
+
+## 💻 Ambiente de Desenvolvimento (Hot Reloading)
+
+Para contribuir com o código e ter Hot Module Replacement (HMR):
+
+1. **Terminal 1 - Iniciar a API Rust:**
+   ```bash
+   cd backend
+   cargo run
+   # A API iniciará em http://localhost:5172
+   ```
+
+2. **Terminal 2 - Iniciar o Servidor Vite com Proxy:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   # O Frontend iniciará em http://localhost:5173 com proxy automático para a porta 5172
+   ```
