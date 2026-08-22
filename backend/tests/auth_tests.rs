@@ -1,12 +1,6 @@
-use axum::{
-    body::Body,
-    http::{Request, StatusCode},
-    routing::{get, post},
-    Router,
-};
-use tower::ServiceExt;
+use axum_test::TestServer;
+use backend::app;
 use serde_json::json;
-use http_body_util::BodyExt; // for collecting body bytes in test
 
 // We will test 3 scenarios:
 // 1. Invalid login
@@ -15,41 +9,23 @@ use http_body_util::BodyExt; // for collecting body bytes in test
 
 #[tokio::test]
 async fn test_invalid_login() {
-    let app = backend::app(); // Assuming we export the router factory
+    let server = TestServer::new(app());
 
-    let body = serde_json::to_vec(&json!({
-        "password": "wrong_password"
-    })).unwrap();
+    let response = server.post("/api/auth/login")
+        .json(&json!({
+            "username": "wrong_user",
+            "password": "wrong_password"
+        }))
+        .await;
 
-    let response = app
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/api/login")
-                .header("content-type", "application/json")
-                .body(Body::from(body))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    response.assert_status_unauthorized();
 }
 
 #[tokio::test]
 async fn test_protected_route_without_token() {
-    let app = backend::app();
+    let server = TestServer::new(app());
 
-    let response = app
-        .oneshot(
-            Request::builder()
-                .method("GET")
-                .uri("/api/docker/containers") // A protected route we'll implement later
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+    let response = server.get("/api/docker/containers").await;
 
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    response.assert_status_unauthorized();
 }

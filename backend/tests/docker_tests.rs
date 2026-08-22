@@ -16,7 +16,7 @@ fn get_valid_token() -> String {
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(b"super_secret_key_change_me_in_prod"),
+        &EncodingKey::from_secret(backend::auth::get_jwt_secret()),
     ).unwrap()
 }
 

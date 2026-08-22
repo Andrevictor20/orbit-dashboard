@@ -1,0 +1,41 @@
+# Agentes e Conhecimentos IA
+.agents/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+brain/
+
+# Ambientes e Variáveis Sensíveis
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+
+# Diretórios que não devem subir (Mencionado pelo usuário)
+CasaOS-main/
+
+# Backend (Rust)
+backend/target/
+backend/Cargo.lock
+backend/data/
+**/*.rs.bk
+
+# Frontend (Node/Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.eslintcache
+frontend/*.log
+
+# IDEs e OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

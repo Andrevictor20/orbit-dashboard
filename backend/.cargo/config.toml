@@ -1,0 +1,2 @@
+[env]
+JWT_SECRET = "test_secret_for_tests"
