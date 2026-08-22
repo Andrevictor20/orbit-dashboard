@@ -18,8 +18,10 @@ CasaOS-main/
 
 # Backend (Rust)
 backend/target/
-backend/Cargo.lock
+# NOTE: Cargo.lock IS committed for binary crates (reproducible builds on Pi/CI)
+# backend/Cargo.lock  ← intentionally NOT ignored
 backend/data/
+backend/mutants.out/
 **/*.rs.bk
 
 # Frontend (Node/Vite)
