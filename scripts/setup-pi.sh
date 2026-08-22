@@ -32,26 +32,9 @@ cd "$INSTALL_DIR"
 echo "📥 Downloading docker-compose.yml..."
 curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/docker-compose.yml" -o docker-compose.yml
 
-# ── 4. Create .env if it doesn't exist ───────────────────────────────────────
-if [ ! -f .env ]; then
-  echo ""
-  echo "⚙️  Creating .env file..."
-  echo "   (You can edit ${INSTALL_DIR}/.env at any time to change credentials)"
-  echo ""
-
-  JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || cat /proc/sys/kernel/random/uuid | tr -d '-')
-
-  cat > .env << ENV_EOF
-# Orbit Dashboard — Production Environment
-ORBIT_USERNAME=admin
-ORBIT_PASSWORD=changeme_replace_this
-JWT_SECRET=${JWT_SECRET}
-HOST_PROJECT_PATH=${INSTALL_DIR}
-ENV_EOF
-
-  echo "✅ .env created at ${INSTALL_DIR}/.env"
-  echo "   ⚠️  Change ORBIT_PASSWORD before going live!"
-fi
+# ── 4. Removed .env generation ─────────────────────────────────────────────────
+# The Orbit backend now automatically generates its own secure JWT_SECRET
+# and stores it in the SQLite data volume. No .env configuration is needed!
 
 # ── 5. Login to ghcr.io (public image, anonymous pull works for public repos) ─
 echo ""

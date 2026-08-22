@@ -5,7 +5,6 @@ pub mod ssh;
 pub mod links;
 pub mod store;
 pub mod logs;
-pub mod system;
 
 use axum::{
     routing::{get, post, delete, put},
@@ -58,7 +57,8 @@ pub fn app() -> Router {
         .route("/api/store/install/status/{task_id}", get(store::install_status))
         .route("/api/store/uninstall/{id}", post(store::uninstall_app))
         .route("/api/store/update/{id}", post(store::update_app))
-        .route("/api/system/update", post(system::update_orbit))
+        .route("/api/system/logs", get(logs::get_orbit_logs))
+        .route("/api/system/stats", get(docker::get_system_stats))
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state.clone());
 
