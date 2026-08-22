@@ -1,6 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { useWebSocket } from '../../hooks/useWebSocket';
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+// Fix global typing for test mock
+declare const global: any;
 
 describe('useWebSocket Hook', () => {
   let mockWebSocket: any;

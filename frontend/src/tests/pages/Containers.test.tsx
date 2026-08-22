@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Containers } from '../../pages/Containers';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+declare const global: any;
 import { MemoryRouter } from 'react-router-dom';
 
 describe('Containers list component', () => {

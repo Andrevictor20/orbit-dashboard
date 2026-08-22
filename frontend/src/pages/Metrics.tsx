@@ -30,10 +30,6 @@ export function Metrics() {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
         
-        const memoryPercent = (stats.memory_used / stats.memory_total) * 100;
-        const dockerMemoryPercent = (stats.docker_memory / stats.memory_total) * 100;
-        const orbitMemoryPercent = (stats.orbit_memory / stats.memory_total) * 100;
-        
         const txMB = stats.network_tx / 1024 / 1024;
         const rxMB = stats.network_rx / 1024 / 1024;
         const dTxMB = stats.docker_tx / 1024 / 1024;
@@ -60,11 +56,11 @@ export function Metrics() {
     }
   }, [stats]);
 
-  const formatDecimal = (val: number) => val.toFixed(2);
-  const formatPercentage = (val: number) => `${val.toFixed(2)}%`;
-  const formatMB = (val: number) => `${val.toFixed(2)} MB`;
+  const formatDecimal = (val: any) => val.toFixed(2);
+  const formatPercentage = (val: any) => `${val.toFixed(2)}%`;
+  const formatMB = (val: any) => `${val.toFixed(2)} MB`;
   
-  const formatBytes = (bytes: number) => {
+  const formatBytes = (bytes: any) => {
     if (bytes === 0 || isNaN(bytes)) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -72,7 +68,7 @@ export function Metrics() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatBytesAxis = (bytes: number) => {
+  const formatBytesAxis = (bytes: any) => {
     if (bytes === 0 || isNaN(bytes)) return '0';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
