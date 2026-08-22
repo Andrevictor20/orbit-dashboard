@@ -23,9 +23,8 @@ services:
     environment:
       - RUST_LOG=info
       - JWT_SECRET=${JWT_SECRET:-orbit_dashboard_secret_key_123}
-      - ORBIT_USERNAME=${ORBIT_USERNAME:-admin}
-      - ORBIT_PASSWORD=${ORBIT_PASSWORD:-changeme}
       - HOST_PROJECT_PATH=${HOST_PROJECT_PATH:-/home/pi/orbit}
+      # Note: username & password are set on the first-run Setup screen in the app
 
   # ------------------------------------------------------------------
   # Watchtower: monitors ghcr.io for new :latest and auto-updates orbit
