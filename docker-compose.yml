@@ -5,6 +5,8 @@ services:
     container_name: orbit-dashboard
     restart: unless-stopped
     network_mode: bridge
+    privileged: true
+    pid: host
     ports:
       - "5172:5172"
       - "5173:5172"
