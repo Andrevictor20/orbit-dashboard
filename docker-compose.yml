@@ -1,7 +1,12 @@
 services:
   orbit:
-    build: .
-    image: orbit-dashboard:latest
+    # On the Raspberry Pi, pull the pre-built image from ghcr.io.
+    # For local development you can override with: docker compose up --build
+    image: ghcr.io/andrevictor20/orbit-dashboard:latest
+    build:
+      context: .
+      # `build` is ignored when pulling the remote image; it's here so
+      # local `docker compose up --build` still works for development.
     container_name: orbit-dashboard
     restart: unless-stopped
     network_mode: bridge
@@ -17,8 +22,29 @@ services:
       - orbit_data:/app/data
     environment:
       - RUST_LOG=info
-      - JWT_SECRET=orbit_dashboard_secret_key_123
-      - HOST_PROJECT_PATH=${HOST_PROJECT_PATH:-/home/andrevmp/Downloads/Orbit}
+      - JWT_SECRET=${JWT_SECRET:-orbit_dashboard_secret_key_123}
+      - ORBIT_USERNAME=${ORBIT_USERNAME:-admin}
+      - ORBIT_PASSWORD=${ORBIT_PASSWORD:-changeme}
+      - HOST_PROJECT_PATH=${HOST_PROJECT_PATH:-/home/pi/orbit}
+
+  # ------------------------------------------------------------------
+  # Watchtower: monitors ghcr.io for new :latest and auto-updates orbit
+  # Checks every 5 minutes. Remove this service if you prefer manual updates.
+  # ------------------------------------------------------------------
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: orbit-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount Docker config so Watchtower can pull from ghcr.io (authenticated)
+      - /root/.docker/config.json:/config.json:ro
+    environment:
+      - WATCHTOWER_CLEANUP=true          # Remove old images after update
+      - WATCHTOWER_POLL_INTERVAL=300     # Check every 5 minutes
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_SCOPE=orbit           # Only watch containers with this label
+    command: orbit-dashboard             # Only watch the orbit container
 
 volumes:
   orbit_data:
