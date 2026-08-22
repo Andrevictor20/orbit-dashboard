@@ -1,0 +1,34 @@
+name: Mutation Testing
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0' # Weekly on Sunday at 03:00 UTC
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-mutation:
+    name: Backend Mutation Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Install cargo-binstall & cargo-mutants
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall --no-confirm cargo-mutants
+
+      - name: Run Mutation Testing
+        run: |
+          cd backend
+          cargo mutants --no-shuffle --exclude src/main.rs || true

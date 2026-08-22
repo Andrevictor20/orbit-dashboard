@@ -11,131 +11,127 @@ env:
 
 jobs:
   test-backend:
+    name: Backend Tests & SAST
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache dependencies
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: backend
-    - name: Run SAST (Cargo Audit)
-      run: cargo install cargo-audit && cd backend && cargo audit --ignore RUSTSEC-2023-0071
-    - name: Run tests
-      run: cd backend && cargo test
-    - name: Setup Node (for npx wait-on)
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-    - name: Install k6
-      run: |
-        sudo gpg -k
-        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-        sudo apt-get update
-        sudo apt-get install k6
-    - name: Run Smoke Load Test
-      run: |
-        cd backend
-        cargo run &
-        npx --yes wait-on tcp:5172
-        k6 run load-tests/smoke_test.js
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Run SAST (Cargo Audit)
+        uses: rustsec/audit-check@v1.4.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          warn-on-unmaintained: false
+          ignore: ["RUSTSEC-2023-0071"]
+
+      - name: Run Backend Tests
+        run: cd backend && cargo test
+
+      - name: Setup Node (for wait-on)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run Smoke Load Test
+        run: |
+          cd backend
+          cargo run &
+          npx --yes wait-on tcp:5172
+          k6 run load-tests/smoke_test.js
+
   test-frontend:
+    name: Frontend Tests, E2E & Visual
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
-    - name: Install dependencies
-      run: cd frontend && npm install
-    - name: Run tests
-      run: cd frontend && npm run test
-    - name: Run SAST (npm audit)
-      run: cd frontend && npm audit --audit-level=high
-    - name: Install Playwright Browsers
-      run: cd frontend && npx playwright install --with-deps
-    - name: Setup Rust for Backend API
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache Rust dependencies
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: backend
-    - name: Run E2E tests
-      run: |
-        cd backend && cargo run &
-        npx --yes wait-on tcp:5172
-        cd frontend && npm run test:e2e
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: cd frontend && npm ci
+
+      - name: Run Unit Tests
+        run: cd frontend && npm run test
+
+      - name: Run SAST (npm audit)
+        run: cd frontend && npm audit --audit-level=high
+
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright Browsers & OS Deps
+        run: cd frontend && npx playwright install --with-deps
+
+      - name: Setup Rust for Backend API
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Run E2E & Visual Tests
+        run: |
+          cd backend && cargo run &
+          npx --yes wait-on tcp:5172
+          cd frontend
+          npm run test:e2e
+          npm run test:visual:ci
 
   test-security-dast:
+    name: Security DAST (OWASP ZAP)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
       actions: write
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Node for wait-on
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache Rust
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: backend
-    - name: Start Backend API
-      run: |
-        cd backend && cargo run &
-        npx --yes wait-on tcp:5172
-    - name: Run OWASP ZAP API Scan
-      uses: zaproxy/action-api-scan@v0.10.0
-      with:
-        target: 'http://localhost:5172'
-        format: openapi
-        docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
-        issue_title: 'ZAP Security Report'
-        artifact_name: 'zapresults'
-        fail_action: false
+      - uses: actions/checkout@v4
 
-  test-mutation:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: backend
-    - name: Install cargo-mutants
-      run: cargo install cargo-mutants
-    - name: Run Mutation Testing
-      run: cd backend && cargo mutants --no-shuffle --exclude src/main.rs || true # Prevent failing the whole build initially
+      - name: Setup Node for wait-on
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-  test-visual:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    - name: Install dependencies
-      run: cd frontend && npm install
-    - name: Install Playwright Browsers
-      run: cd frontend && npx playwright install --with-deps
-    - name: Setup Rust for Backend API
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache Rust
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: backend
-    - name: Run Visual Regression Tests
-      run: |
-        cd backend && cargo run &
-        npx --yes wait-on tcp:5172
-        cd frontend && npm run test:visual:ci
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Start Backend API
+        run: |
+          cd backend && cargo run &
+          npx --yes wait-on tcp:5172
+
+      - name: Run OWASP ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.10.0
+        with:
+          target: 'http://localhost:5172'
+          format: openapi
+          docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
+          issue_title: 'ZAP Security Report'
+          artifact_name: 'zapresults'
+          fail_action: false
+
