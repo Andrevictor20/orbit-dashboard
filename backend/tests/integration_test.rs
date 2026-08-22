@@ -24,7 +24,7 @@ async fn test_delete_container_endpoint_mapping() {
     let server = TestServer::new(app());
     
     // First, login to get the cookie
-    let mut login_response = server.post("/api/auth/login")
+    let login_response = server.post("/api/auth/login")
         .json(&json!({"username": "admin", "password": "admin"}))
         .await;
     

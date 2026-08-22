@@ -114,7 +114,7 @@ async fn handle_socket(socket: WebSocket) {
         Ok(r) => r,
         Err(_) => return,
     };
-    let mut writer = match pair.master.take_writer() {
+    let writer = match pair.master.take_writer() {
         Ok(w) => w,
         Err(_) => return,
     };

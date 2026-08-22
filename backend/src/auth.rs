@@ -1,7 +1,6 @@
 use axum::{
-    extract::State,
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::Response,
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
@@ -169,4 +168,38 @@ pub async fn me(jar: CookieJar) -> Result<Json<serde_json::Value>, StatusCode> {
         &Validation::default(),
     ).map(|_| Json(serde_json::json!({ "authenticated": true })))
      .map_err(|_| StatusCode::UNAUTHORIZED)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rate_limiter() {
+        let ip = "192.168.1.100";
+        // Attempt 1 to 4 should pass
+        for _ in 0..4 {
+            assert!(check_rate_limit(ip));
+            record_failed_attempt(ip);
+        }
+        // Attempt 5 should lock
+        assert!(check_rate_limit(ip));
+        record_failed_attempt(ip);
+        // Attempt 6 should fail
+        assert!(!check_rate_limit(ip));
+        
+        // Clear attempts should restore access
+        clear_attempts(ip);
+        assert!(check_rate_limit(ip));
+    }
+
+    #[test]
+    fn test_jwt_claims_struct() {
+        let claims = Claims {
+            sub: "admin".to_string(),
+            exp: 10000,
+        };
+        assert_eq!(claims.sub, "admin");
+        assert_eq!(claims.exp, 10000);
+    }
 }

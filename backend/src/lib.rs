@@ -15,7 +15,7 @@ use axum::http::StatusCode;
 use std::sync::Arc;
 use bollard::Docker;
 use tower_http::set_header::SetResponseHeaderLayer;
-use tower_http::cors::{CorsLayer, AllowOrigin, Any};
+use tower_http::cors::{CorsLayer, AllowOrigin};
 use tower_http::services::{ServeDir, ServeFile};
 use axum::http::{header, HeaderValue, HeaderName};
 

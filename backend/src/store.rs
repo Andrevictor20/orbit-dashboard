@@ -546,6 +546,7 @@ pub struct InstallTask {
 static INSTALL_TASKS: Lazy<RwLock<HashMap<String, InstallTask>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct PortMapping {
     host: u16,
     container: u16,
@@ -553,20 +554,23 @@ pub struct PortMapping {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct VolumeMapping {
     host: String,
     container: String,
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct CustomInstallPayload {
     env: Option<HashMap<String, String>>,
     ports: Option<Vec<PortMapping>>,
     volumes: Option<Vec<VolumeMapping>>,
 }
 
-pub async fn install_custom_app(Path(id): Path<String>, Json(payload): Json<CustomInstallPayload>) -> impl IntoResponse {
-    let app = {
+pub async fn install_custom_app(
+    Path(id): Path<String>, Json(_payload): Json<CustomInstallPayload>) -> impl IntoResponse {
+    let _app = {
         let cache = APPS_CACHE.read().unwrap();
         match cache.iter().find(|a| a.id == id) {
             Some(a) => a.clone(),

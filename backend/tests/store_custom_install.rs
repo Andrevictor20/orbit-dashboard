@@ -7,7 +7,7 @@ async fn test_custom_install_and_progress() {
     let server = TestServer::new(app());
     
     // Login to get the cookie
-    let mut login_response = server.post("/api/auth/login")
+    let login_response = server.post("/api/auth/login")
         .json(&json!({"username": "admin", "password": "admin"}))
         .await;
     

@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Orbit Dashboard API
+  description: Orbit is a modern, lightweight dashboard and application manager. This API manages system services, Docker containers, and the App Store.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5172
+    description: Local Development Server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Healthcheck
+      security: []
+      responses:
+        '200':
+          description: OK
+  /api/auth/login:
+    post:
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+  /api/auth/me:
+    get:
+      summary: Get Current User
+      responses:
+        '200':
+          description: User object
+  /api/docker/containers:
+    get:
+      summary: List Docker Containers
+      responses:
+        '200':
+          description: Array of containers
+  /api/docker/images:
+    get:
+      summary: List Docker Images
+      responses:
+        '200':
+          description: Array of images
+  /api/docker/volumes:
+    get:
+      summary: List Docker Volumes
+      responses:
+        '200':
+          description: Array of volumes
+  /api/store/apps:
+    get:
+      summary: List Store Apps
+      responses:
+        '200':
+          description: Array of store apps

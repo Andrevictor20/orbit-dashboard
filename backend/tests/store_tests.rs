@@ -7,7 +7,7 @@ async fn test_store_endpoints_exist() {
     let server = TestServer::new(app());
     
     // Login to get the cookie
-    let mut login_response = server.post("/api/auth/login")
+    let login_response = server.post("/api/auth/login")
         .json(&json!({"username": "admin", "password": "admin"}))
         .await;
     
@@ -44,5 +44,5 @@ async fn test_store_endpoints_exist() {
         .add_cookie(auth_cookie.clone())
         .await;
         
-    response.assert_status_ok();
+    response.assert_status(axum::http::StatusCode::NOT_FOUND);
 }

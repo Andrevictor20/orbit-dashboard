@@ -4,7 +4,6 @@ use axum::{
 };
 use tower::ServiceExt;
 use http_body_util::BodyExt; // For testing response bodies
-use axum_extra::extract::cookie::Cookie;
 
 // We need a helper to get a valid token to bypass auth.
 fn get_valid_token() -> String {
