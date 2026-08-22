@@ -12,6 +12,9 @@ services:
       # Required to interact with the host's Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
       # Required for persistent Orbit data (SQLite DB, logs, store cache)
-      - ./orbit-data:/app/data
+      - orbit_data:/app/data
     environment:
       - RUST_LOG=info
+
+volumes:
+  orbit_data:
