@@ -1,12 +1,14 @@
 name: CD — Build & Publish Docker Image
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI" ]   # Must match the `name:` field in ci.yml exactly
+    types: [ completed ]
     branches: [ "main" ]
 
 # Prevent concurrent deploys (e.g. two pushes in a row)
 concurrency:
-  group: cd-${{ github.ref }}
+  group: cd-${{ github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -15,15 +17,14 @@ env:
 
 jobs:
   # ------------------------------------------------------------------
-  # Build multi-arch image and push to ghcr.io (only on CI green)
+  # Build multi-arch image and push to ghcr.io
   # Watchtower on the Pi will detect the new :latest and auto-update
   # ------------------------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
-    # Only run after the CI workflow succeeds on the same commit
-    # Since ci.yml also triggers on push to main, we wait for it via
-    # workflow_run. See: needs is not used here because cd.yml is a
-    # separate workflow — we gate via the on.workflow_run trigger above.
+    # workflow_run fires for ALL conclusions (success, failure, cancelled).
+    # This guard ensures the image is ONLY published when CI is green.
+    if: github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: write
@@ -34,6 +35,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Checkout the exact commit that the CI tested and approved
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       # QEMU lets the x86 runner emulate ARM64 for the cross-build
       - name: Set up QEMU
