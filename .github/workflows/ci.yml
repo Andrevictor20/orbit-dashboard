@@ -69,6 +69,8 @@ jobs:
 
   test-security-dast:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
     - uses: actions/checkout@v4
     - name: Setup Node for wait-on

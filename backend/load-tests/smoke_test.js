@@ -11,7 +11,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000'; // Assuming Axum runs on 3000 by default
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:5172'; // Assuming Axum runs on 5172 by default
 
 export default function () {
   // Try to hit a health check endpoint, or fallback to root if not found
