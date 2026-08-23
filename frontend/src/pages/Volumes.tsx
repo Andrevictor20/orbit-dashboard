@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HardDrive, Trash2, ShieldAlert, Search, ArrowUpDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useTasks } from '../contexts/InstallContext';
+import { formatBytes } from '../utils/format';
 import toast from 'react-hot-toast';
 
 interface VolumeData {
@@ -18,6 +20,7 @@ type SortOption = 'name' | 'status' | 'driver';
 
 export function Volumes() {
   const { t } = useTranslation();
+  const { startTask } = useTasks();
   const [volumes, setVolumes] = useState<VolumeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +31,7 @@ export function Volumes() {
     isOpen: boolean;
     title: string;
     message: string;
+    children?: React.ReactNode;
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -58,28 +62,80 @@ export function Volumes() {
   }, []);
 
   const confirmPrune = () => {
+    const unusedVolumes = volumes.filter(v => !v.in_use);
+
+    if (unusedVolumes.length === 0) {
+      setConfirmAction({
+        isOpen: true,
+        title: 'Nenhum Volume Não Utilizado',
+        message: 'Todos os volumes listados estão em uso por containers ativos. Nenhum volume será removido.',
+        children: (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+            Dica: Para remover um volume, pare e remova o container associado a ele primeiro.
+          </div>
+        ),
+        onConfirm: () => {}
+      });
+      return;
+    }
+
     setConfirmAction({
       isOpen: true,
       title: 'Limpar Volumes Não Utilizados',
-      message: 'Tem certeza que deseja remover todos os volumes não utilizados? Esta ação é irreversível e liberará espaço em disco.',
-      onConfirm: async () => {
-        const loadingToast = toast.loading('Removendo volumes...');
-        try {
-          const token = localStorage.getItem('orbit_token');
-          const res = await fetch('/api/docker/volumes/prune', { 
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            toast.success('Volumes não utilizados removidos!', { id: loadingToast });
+      message: `Tem certeza que deseja remover permanentemente os ${unusedVolumes.length} volumes não utilizados? Esta ação liberará espaço em disco.`,
+      children: (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-secondary font-medium">
+            <span>Volumes que serão excluídos:</span>
+            <span className="font-bold text-rose-400">{unusedVolumes.length} volume(s)</span>
+          </div>
+          <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
+            {unusedVolumes.map(v => (
+              <div key={v.name} className="flex items-center gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
+                <HardDrive className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                <span className="truncate flex-1" title={v.name}>{v.name}</span>
+                <span className="text-[10px] text-secondary px-1.5 py-0.5 rounded bg-accent shrink-0">{v.driver}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      onConfirm: () => {
+        startTask({
+          type: 'prune_volumes',
+          title: 'Limpeza de Volumes Docker',
+          destinationUrl: '/volumes',
+          initialLogs: [
+            `[INFO] Iniciando limpeza de ${unusedVolumes.length} volume(s) não utilizado(s)...`,
+            ...unusedVolumes.map(v => `[PRUNE] Marcado para remoção: ${v.name}`)
+          ],
+          runner: async (helpers) => {
+            helpers.setProgress(20);
+            helpers.setStatus('running');
+            const token = localStorage.getItem('orbit_token');
+            const res = await fetch('/api/docker/volumes/prune', { 
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            helpers.setProgress(75);
+            if (!res.ok) {
+              const err = await res.text();
+              throw new Error(err || 'Falha ao remover volumes no Docker daemon');
+            }
+            const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
+            const deleted: string[] = data?.deleted || [];
+            const spaceReclaimed: number = data?.space_reclaimed || 0;
+            
+            helpers.addLog(`[INFO] Volumes removidos pelo Docker: ${deleted.length}`);
+            deleted.forEach(name => helpers.addLog(`[SUCCESS] Volume removido: ${name}`));
+            if (spaceReclaimed > 0) {
+              helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
+            }
+            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedVolumes.length} volume(s) removido(s).`);
+            toast.success('Volumes não utilizados removidos com sucesso!');
             fetchVolumes();
-          } else {
-            toast.error('Erro ao remover volumes.', { id: loadingToast });
           }
-        } catch (e) {
-          console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
-        }
+        });
       }
     });
   };
@@ -359,6 +415,7 @@ export function Volumes() {
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
         confirmText="Sim, excluir"
+        children={confirmAction.children}
       />
     </div>
   );

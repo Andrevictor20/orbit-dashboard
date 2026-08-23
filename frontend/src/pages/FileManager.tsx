@@ -41,6 +41,7 @@ import { PdfViewerModal } from '../components/files/PdfViewerModal';
 import { CloudConnectModal } from '../components/files/CloudConnectModal';
 import { FileOperationsModal } from '../components/files/FileOperationsModal';
 import type { OperationType } from '../components/files/FileOperationsModal';
+import { useTasks } from '../contexts/InstallContext';
 
 export interface MountItem {
   name: string;
@@ -59,6 +60,7 @@ interface CloudAccount {
 }
 
 export function FileManager() {
+  const { startTask } = useTasks();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPath = searchParams.get('path');
   const [currentPath, setCurrentPath] = useState<string>(urlPath || '/');
@@ -193,18 +195,37 @@ export function FileManager() {
   // Upload handler
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
+    const filesArray = Array.from(e.target.files);
     const formData = new FormData();
-    for (let i = 0; i < e.target.files.length; i++) {
-      formData.append('files', e.target.files[i]);
-    }
+    filesArray.forEach(file => formData.append('files', file));
 
-    try {
-      await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-        method: 'POST',
-        body: formData,
-      });
-      loadFiles(currentPath);
-    } catch {}
+    startTask({
+      type: 'file_upload',
+      title: `Upload de ${filesArray.length} arquivo(s)`,
+      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
+      initialLogs: [
+        `[INFO] Iniciando upload de ${filesArray.length} arquivo(s) para ${currentPath}...`,
+        ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatSize(f.size)})`)
+      ],
+      runner: async (helpers) => {
+        helpers.setProgress(30);
+        helpers.setStatus('running');
+        const token = localStorage.getItem('orbit_token');
+        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        helpers.setProgress(85);
+        if (!res.ok) {
+          throw new Error('Falha no upload dos arquivos.');
+        }
+        filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
+        helpers.setDone(`Upload concluído com sucesso em ${currentPath}!`);
+        toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
+        loadFiles(currentPath);
+      }
+    });
   };
 
   // Drag & drop upload handler
@@ -212,48 +233,107 @@ export function FileManager() {
     e.preventDefault();
     setIsDraggingOver(false);
     if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
-
+    const filesArray = Array.from(e.dataTransfer.files);
     const formData = new FormData();
-    for (let i = 0; i < e.dataTransfer.files.length; i++) {
-      formData.append('files', e.dataTransfer.files[i]);
-    }
+    filesArray.forEach(file => formData.append('files', file));
 
-    try {
-      await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-        method: 'POST',
-        body: formData,
-      });
-      loadFiles(currentPath);
-    } catch {}
+    startTask({
+      type: 'file_upload',
+      title: `Upload de ${filesArray.length} arquivo(s)`,
+      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
+      initialLogs: [
+        `[INFO] Iniciando upload via arrastar e soltar para ${currentPath}...`,
+        ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatSize(f.size)})`)
+      ],
+      runner: async (helpers) => {
+        helpers.setProgress(30);
+        helpers.setStatus('running');
+        const token = localStorage.getItem('orbit_token');
+        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        helpers.setProgress(85);
+        if (!res.ok) {
+          throw new Error('Falha no upload dos arquivos.');
+        }
+        filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
+        helpers.setDone(`Upload concluído com sucesso em ${currentPath}!`);
+        toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
+        loadFiles(currentPath);
+      }
+    });
   };
 
   // Clipboard operations (Copy, Cut, Paste)
   const handleCopy = (items: FileItem[]) => {
     setClipboard({ items, action: 'copy' });
+    toast.success(`${items.length} item(s) copiado(s)`);
   };
 
   const handleCut = (items: FileItem[]) => {
     setClipboard({ items, action: 'cut' });
+    toast.success(`${items.length} item(s) recortado(s)`);
   };
 
   const handlePaste = async () => {
     if (!clipboard || clipboard.items.length === 0) return;
+    const items = [...clipboard.items];
+    const isCopy = clipboard.action === 'copy';
+    const actionName = isCopy ? 'Cópia' : 'Movimentação';
+    const taskType = isCopy ? 'file_copy' : 'file_move';
 
-    for (const item of clipboard.items) {
-      const dest = `${currentPath === '/' ? '' : currentPath}/${item.name}`;
-      const endpoint = clipboard.action === 'copy' ? '/api/files/copy' : '/api/files/move';
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: item.path,
-          destination: dest,
-        }),
-      });
+    if (!isCopy) {
+      setClipboard(null);
     }
 
-    if (clipboard.action === 'cut') setClipboard(null);
-    loadFiles(currentPath);
+    startTask({
+      type: taskType,
+      title: `${actionName} de ${items.length} item(s)`,
+      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
+      initialLogs: [
+        `[INFO] Iniciando ${actionName.toLowerCase()} de ${items.length} item(s) para ${currentPath}...`,
+        ...items.map(it => `[FILE] ${it.name} (${it.path})`)
+      ],
+      runner: async (helpers) => {
+        helpers.setStatus('running');
+        const token = localStorage.getItem('orbit_token');
+        let completed = 0;
+
+        for (const item of items) {
+          const dest = `${currentPath === '/' ? '' : currentPath}/${item.name}`;
+          const endpoint = isCopy ? '/api/files/copy' : '/api/files/move';
+          helpers.addLog(`[INFO] Processando: ${item.name} -> ${dest}`);
+          
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({
+              source: item.path,
+              destination: dest,
+            }),
+          });
+
+          if (!res.ok) {
+            const err = await res.text();
+            helpers.addLog(`[ERROR] Falha ao processar ${item.name}: ${err}`);
+          } else {
+            helpers.addLog(`[SUCCESS] ${isCopy ? 'Copiado' : 'Movido'}: ${item.name}`);
+          }
+
+          completed++;
+          helpers.setProgress(Math.round((completed / items.length) * 100));
+        }
+
+        helpers.setDone(`${actionName} concluída com sucesso!`);
+        toast.success(`${actionName} finalizada!`);
+        loadFiles(currentPath);
+      }
+    });
   };
 
   // Download handler

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FileManager } from '../../pages/FileManager';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
@@ -130,8 +130,10 @@ describe('FileManager Page Component', () => {
     const searchInput = screen.getByPlaceholderText(/search|pesquisar|buscar/i);
     fireEvent.change(searchInput, { target: { value: 'video' } });
 
-    expect(screen.getByText('video.mkv')).toBeTruthy();
-    expect(screen.queryByText('notes.txt')).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByText('video.mkv')).toBeTruthy();
+      expect(screen.queryByText('notes.txt')).toBeNull();
+    });
   });
 
   it('toggles view mode between grid and list', async () => {

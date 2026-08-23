@@ -17,7 +17,9 @@ import {
   X,
   FileText,
   Loader2,
-  FolderOpen
+  FolderOpen,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
@@ -82,7 +84,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const { taskId, appName, task, maximize } = useInstall();
+  const { appName, task, maximize } = useInstall();
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -165,18 +167,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="p-4 border-t shad-border mt-auto flex flex-col gap-2">
-          {taskId && (
+          {task && (
             <button
-              onClick={maximize}
-              className={`w-full flex items-center ${(!isSidebarOpen && !isMobileMenuOpen) ? 'justify-center px-0' : 'justify-between px-4'} py-2 rounded-md text-sm font-medium bg-orbit-500/10 text-orbit-400 hover:bg-orbit-500/20 transition-all duration-200 active:scale-[0.98] border border-orbit-500/20 focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none`}
-              title={(!isSidebarOpen && !isMobileMenuOpen) ? `Instalando ${appName}...` : undefined}
+              onClick={() => maximize(task.id)}
+              className={`w-full flex items-center ${(!isSidebarOpen && !isMobileMenuOpen) ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] border focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none ${
+                task.status === 'error'
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
+                  : task.status === 'done'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                  : 'bg-orbit-500/10 text-orbit-400 border-orbit-500/20 hover:bg-orbit-500/20'
+              }`}
+              title={(!isSidebarOpen && !isMobileMenuOpen) ? `${task.title || appName} (${task.progress}%)` : undefined}
             >
-              <div className="flex items-center gap-3">
-                <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
-                {(isSidebarOpen || isMobileMenuOpen) && <span className="truncate max-w-[120px] text-left">{appName}</span>}
+              <div className="flex items-center gap-2.5 min-w-0">
+                {task.status === 'error' ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                ) : task.status === 'done' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : (
+                  <Loader2 className="w-4 h-4 shrink-0 animate-spin text-orbit-400" />
+                )}
+                {(isSidebarOpen || isMobileMenuOpen) && (
+                  <span className="truncate max-w-[120px] text-left">
+                    {task.title || appName}
+                  </span>
+                )}
               </div>
-              {(isSidebarOpen || isMobileMenuOpen) && task && (
-                <span className="text-xs font-bold">{task.progress}%</span>
+              {(isSidebarOpen || isMobileMenuOpen) && (
+                <span className="text-xs font-bold tabular-nums shrink-0 ml-1">{task.progress}%</span>
               )}
             </button>
           )}

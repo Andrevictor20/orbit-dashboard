@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Network, Server, Trash2, AlertCircle, Search, ArrowUpDown, CheckCircle2 } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useTasks } from '../contexts/InstallContext';
 import toast from 'react-hot-toast';
 
 interface NetworkInfo {
@@ -15,6 +16,7 @@ type StatusFilter = 'all' | 'used' | 'unused';
 type SortOption = 'status' | 'name' | 'driver';
 
 export function Networks() {
+  const { startTask } = useTasks();
   const [networks, setNetworks] = useState<NetworkInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +27,7 @@ export function Networks() {
     isOpen: boolean;
     title: string;
     message: string;
+    children?: React.ReactNode;
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -83,29 +86,81 @@ export function Networks() {
   };
 
   const confirmPruneNetworks = () => {
+    const unusedNetworks = networks.filter(n => !n.in_use);
+
+    if (unusedNetworks.length === 0) {
+      setConfirmAction({
+        isOpen: true,
+        title: 'Nenhuma Rede Não Utilizada',
+        message: 'Todas as redes Docker existentes estão em uso por containers. Nenhuma rede será removida.',
+        children: (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+            Dica: Redes padrão como bridge e host não são removidas pelo comando de limpeza.
+          </div>
+        ),
+        onConfirm: () => {}
+      });
+      return;
+    }
+
     setConfirmAction({
       isOpen: true,
       title: 'Limpar Redes Não Utilizadas',
-      message: 'Tem certeza que deseja remover TODAS as redes não utilizadas? Esta ação não pode ser desfeita.',
-      onConfirm: async () => {
-        const loadingToast = toast.loading('Limpando redes...');
-        try {
-          const token = localStorage.getItem('orbit_token');
-          const res = await fetch('/api/docker/networks/prune', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            toast.success('Redes não utilizadas foram removidas!', { id: loadingToast });
+      message: `Tem certeza que deseja remover as ${unusedNetworks.length} redes não utilizadas abaixo? Esta ação não pode ser desfeita.`,
+      children: (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-secondary font-medium">
+            <span>Redes que serão removidas:</span>
+            <span className="font-bold text-rose-400">{unusedNetworks.length} rede(s)</span>
+          </div>
+          <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
+            {unusedNetworks.map(net => (
+              <div key={net.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Network className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                  <span className="truncate font-semibold" title={net.name}>{net.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-secondary px-1.5 py-0.5 rounded bg-accent">{net.driver}</span>
+                  <span className="text-[10px] text-secondary font-mono">({net.id.substring(0, 10)})</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      onConfirm: () => {
+        startTask({
+          type: 'prune_networks',
+          title: 'Limpeza de Redes Docker',
+          destinationUrl: '/networks',
+          initialLogs: [
+            `[INFO] Iniciando limpeza de ${unusedNetworks.length} rede(s) não utilizada(s)...`,
+            ...unusedNetworks.map(n => `[PRUNE] Marcada para remoção: ${n.name} (${n.driver})`)
+          ],
+          runner: async (helpers) => {
+            helpers.setProgress(20);
+            helpers.setStatus('running');
+            const token = localStorage.getItem('orbit_token');
+            const res = await fetch('/api/docker/networks/prune', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            helpers.setProgress(80);
+            if (!res.ok) {
+              const err = await res.text();
+              throw new Error(err || 'Falha ao comunicar com o Docker daemon para prune.');
+            }
+            const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
+            const deleted: string[] = data?.deleted || [];
+
+            helpers.addLog(`[INFO] Redes removidas pelo Docker: ${deleted.length}`);
+            deleted.forEach(name => helpers.addLog(`[SUCCESS] Rede removida: ${name}`));
+            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedNetworks.length} rede(s) removida(s).`);
+            toast.success('Redes não utilizadas removidas com sucesso!');
             fetchNetworks();
-          } else {
-            const err = await res.text();
-            toast.error(`Erro ao limpar redes: ${err}`, { id: loadingToast });
           }
-        } catch (e) {
-          console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
-        }
+        });
       }
     });
   };
@@ -346,6 +401,7 @@ export function Networks() {
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
         confirmText="Sim, continuar"
+        children={confirmAction.children}
       />
     </div>
   );

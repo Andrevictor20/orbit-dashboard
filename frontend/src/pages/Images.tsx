@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Package, Trash2, HardDrive, ShieldAlert, Search, ArrowUpDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useTasks } from '../contexts/InstallContext';
+import { formatBytes } from '../utils/format';
 import toast from 'react-hot-toast';
 
 interface ImageInfo {
@@ -15,6 +17,7 @@ type StatusFilter = 'all' | 'used' | 'unused';
 type SortOption = 'size_desc' | 'size_asc' | 'name' | 'status';
 
 export function Images() {
+  const { startTask } = useTasks();
   const [images, setImages] = useState<ImageInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +28,7 @@ export function Images() {
     isOpen: boolean;
     title: string;
     message: string;
+    children?: React.ReactNode;
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -55,28 +59,91 @@ export function Images() {
   };
 
   const confirmPrune = () => {
+    const unusedImages = images.filter(img => !img.in_use);
+
+    if (unusedImages.length === 0) {
+      setConfirmAction({
+        isOpen: true,
+        title: 'Nenhuma Imagem Não Utilizada',
+        message: 'Todas as imagens listadas estão vinculadas a containers existentes. Nenhuma imagem será removida.',
+        children: (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+            Dica: Para remover uma imagem, pare e remova os containers que utilizam essa imagem primeiro.
+          </div>
+        ),
+        onConfirm: () => {}
+      });
+      return;
+    }
+
+    const totalUnusedSize = unusedImages.reduce((acc, img) => acc + (img.size || 0), 0);
+
     setConfirmAction({
       isOpen: true,
       title: 'Limpar Imagens Não Utilizadas',
-      message: 'Tem certeza que deseja remover TODAS as imagens não utilizadas (dangling)? Esta ação não pode ser desfeita e liberará espaço em disco.',
-      onConfirm: async () => {
-        const loadingToast = toast.loading('Removendo imagens...');
-        try {
-          const token = localStorage.getItem('orbit_token');
-          const res = await fetch('/api/docker/images/prune', { 
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            toast.success('Imagens limpas com sucesso!', { id: loadingToast });
+      message: `Tem certeza que deseja remover permanentemente as ${unusedImages.length} imagens não utilizadas (dangling/órfãs)? Esta ação liberará aproximadamente ${formatBytes(totalUnusedSize)} de espaço em disco.`,
+      children: (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-secondary font-medium">
+            <span>Imagens que serão excluídas:</span>
+            <span className="font-bold text-rose-400">{unusedImages.length} imagem(ns) (~{formatBytes(totalUnusedSize)})</span>
+          </div>
+          <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
+            {unusedImages.map(img => {
+              const primaryTag = img.tags && img.tags.length > 0 ? img.tags[0] : '<sem tag>';
+              return (
+                <div key={img.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                    <span className="truncate" title={primaryTag}>{primaryTag}</span>
+                    <span className="text-[10px] text-secondary">({img.id})</span>
+                  </div>
+                  <span className="text-[11px] text-primary font-semibold shrink-0">{formatBytes(img.size)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ),
+      onConfirm: () => {
+        startTask({
+          type: 'prune_images',
+          title: 'Limpeza de Imagens Docker',
+          destinationUrl: '/images',
+          initialLogs: [
+            `[INFO] Iniciando limpeza de ${unusedImages.length} imagem(ns) não utilizada(s)...`,
+            ...unusedImages.map(img => `[PRUNE] Marcada para remoção: ${img.tags?.[0] || img.id} (${formatBytes(img.size)})`)
+          ],
+          runner: async (helpers) => {
+            helpers.setProgress(25);
+            helpers.setStatus('running');
+            const token = localStorage.getItem('orbit_token');
+            const res = await fetch('/api/docker/images/prune', { 
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            helpers.setProgress(80);
+            if (!res.ok) {
+              const err = await res.text();
+              throw new Error(err || 'Falha ao comunicar com o Docker daemon para prune.');
+            }
+            const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
+            const deleted: string[] = data?.deleted || [];
+            const spaceReclaimed: number = data?.space_reclaimed || 0;
+
+            helpers.addLog(`[INFO] Camadas/Imagens removidas pelo Docker: ${deleted.length}`);
+            deleted.slice(0, 15).forEach(id => helpers.addLog(`[SUCCESS] Imagem removida: ${id}`));
+            if (deleted.length > 15) {
+              helpers.addLog(`[INFO] ... e mais ${deleted.length - 15} imagens/camadas removidas.`);
+            }
+            if (spaceReclaimed > 0) {
+              helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
+            }
+            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedImages.length} imagem(ns) removida(s).`);
+            toast.success('Imagens limpas com sucesso!');
             fetchImages();
-          } else {
-            toast.error('Erro ao limpar imagens.', { id: loadingToast });
           }
-        } catch (e) {
-          console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
-        }
+        });
       }
     });
   };
@@ -379,6 +446,7 @@ export function Images() {
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
         confirmText="Sim, excluir"
+        children={confirmAction.children}
       />
     </div>
   );

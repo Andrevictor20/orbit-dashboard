@@ -408,8 +408,16 @@ pub async fn prune_volumes(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     match state.docker.prune_volumes(None::<bollard::query_parameters::PruneVolumesOptions>).await {
-        Ok(_) => (StatusCode::OK, "Volumes pruned successfully").into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(res) => {
+            let deleted = res.volumes_deleted.unwrap_or_default();
+            let space_reclaimed = res.space_reclaimed.unwrap_or(0);
+            (StatusCode::OK, Json(serde_json::json!({
+                "deleted": deleted,
+                "space_reclaimed": space_reclaimed,
+                "message": "Volumes pruned successfully"
+            }))).into_response()
+        },
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
     }
 }
 
@@ -417,8 +425,20 @@ pub async fn prune_images(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     match state.docker.prune_images(None::<bollard::query_parameters::PruneImagesOptions>).await {
-        Ok(_) => (StatusCode::OK, "Images pruned successfully").into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(res) => {
+            let deleted: Vec<String> = res.images_deleted
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|item| item.deleted.or(item.untagged))
+                .collect();
+            let space_reclaimed = res.space_reclaimed.unwrap_or(0);
+            (StatusCode::OK, Json(serde_json::json!({
+                "deleted": deleted,
+                "space_reclaimed": space_reclaimed,
+                "message": "Images pruned successfully"
+            }))).into_response()
+        },
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
     }
 }
 
@@ -800,8 +820,14 @@ pub async fn prune_networks(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     match state.docker.prune_networks(None::<bollard::query_parameters::PruneNetworksOptions>).await {
-        Ok(_) => (StatusCode::OK, "Networks pruned successfully").into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(res) => {
+            let deleted = res.networks_deleted.unwrap_or_default();
+            (StatusCode::OK, Json(serde_json::json!({
+                "deleted": deleted,
+                "message": "Networks pruned successfully"
+            }))).into_response()
+        },
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
     }
 }
 
