@@ -26,38 +26,24 @@ pub struct AppStoreItem {
 
 static APPS_CACHE: RwLock<Vec<AppStoreItem>> = RwLock::new(Vec::new());
 
-const REPOSITORIES: &[&str] = &[
-    "https://github.com/IceWhaleTech/CasaOS-AppStore/archive/refs/heads/main.zip",
-    "https://github.com/WisdomSky/CasaOS-Coolstore/archive/refs/heads/main.zip",
-    "https://github.com/CP0204/CasaOS-AppStore-Play/archive/refs/heads/main.zip",
-    "https://github.com/bigbeartechworld/big-bear-casaos/archive/refs/heads/master.zip",
-    "https://github.com/mariosemes/CasaOS-AppStore-Community/archive/refs/heads/main.zip",
-    "https://github.com/mr-manuel/CasaOS-HomeAutomation-AppStore/archive/refs/heads/main.zip",
+const REPOSITORIES: &[(&str, &str)] = &[
+    ("official", "https://github.com/IceWhaleTech/CasaOS-AppStore/archive/refs/heads/main.zip"),
+    ("linuxserver", "https://casaos-appstore.paodayag.dev/linuxserver.zip"),
+    ("bigbear", "https://github.com/bigbeartechworld/big-bear-casaos/archive/refs/heads/master.zip"),
+    ("play", "https://github.com/CP0204/CasaOS-AppStore-Play/archive/refs/heads/main.zip"),
+    ("edge", "https://paodayag.dev/casaos-appstore-edge.zip"),
+    ("coolstore", "https://github.com/WisdomSky/CasaOS-Coolstore/archive/refs/heads/main.zip"),
+    ("homeautomation", "https://github.com/mr-manuel/CasaOS-HomeAutomation-AppStore/archive/refs/heads/master.zip"),
 ];
 
 pub async fn sync_repositories() {
     let mut all_apps = Vec::new();
 
-    for repo_url in REPOSITORIES {
-        let store_name = if repo_url.contains("CasaOS-AppStore") {
-            "official"
-        } else if repo_url.contains("CasaOS-Coolstore") {
-            "coolstore"
-        } else if repo_url.contains("AppStore-Play") {
-            "play"
-        } else if repo_url.contains("big-bear-casaos") {
-            "bigbear"
-        } else if repo_url.contains("mariosemes") {
-            "mariosemes"
-        } else if repo_url.contains("mr-manuel") {
-            "mr-manuel"
-        } else {
-            "community"
-        };
+    for &(store_name, repo_url) in REPOSITORIES {
         tracing::info!("Syncing repository: {} ({})", repo_url, store_name);
         
         let client = reqwest::Client::new();
-        let res = match client.get(*repo_url).send().await {
+        let res = match client.get(repo_url).send().await {
             Ok(r) => r,
             Err(e) => {
                 tracing::warn!("Failed to download {}: {}", repo_url, e);
@@ -82,8 +68,6 @@ pub async fn sync_repositories() {
             }
         };
 
-        // Parse compose files directly from memory or write them to disk?
-        // Since we need them for installation, let's keep them in memory for the cache.
         for i in 0..archive.len() {
             let mut file = match archive.by_index(i) {
                 Ok(f) => f,
@@ -91,10 +75,15 @@ pub async fn sync_repositories() {
             };
 
             let name = file.name().to_string();
-            if name.contains("/Apps/") && name.ends_with("docker-compose.yml") {
+            let is_compose = (name.ends_with("docker-compose.yml") 
+                || name.ends_with("docker-compose.yaml") 
+                || name.ends_with("compose.yml") 
+                || name.ends_with("compose.yaml"))
+                && !name.contains("__MACOSX");
+
+            if is_compose {
                 let mut contents = String::new();
                 if file.read_to_string(&mut contents).is_ok() {
-                    // Ignore parsing errors for individual apps, just skip them
                     if let Ok(item) = parse_casaos_compose(&contents, store_name) {
                         all_apps.push(item);
                     }
@@ -121,8 +110,6 @@ pub async fn sync_repositories() {
 fn parse_casaos_compose(compose_yaml: &str, store_name: &str) -> Result<AppStoreItem, Box<dyn std::error::Error>> {
     let parsed: Value = serde_yaml::from_str(compose_yaml)?;
     
-    let x_casaos = parsed.get("x-casaos").ok_or("Missing x-casaos")?;
-    
     // Helper to get string from CasaOS translation maps (en_US, custom, or first available)
     let get_translated_string = |v: &Value| -> Option<String> {
         if let Some(s) = v.as_str() {
@@ -142,24 +129,41 @@ fn parse_casaos_compose(compose_yaml: &str, store_name: &str) -> Result<AppStore
         }
     };
 
-    let name = x_casaos.get("title")
-        .and_then(get_translated_string)
-        .unwrap_or_else(|| "Unknown App".to_string());
+    let x_casaos = parsed.get("x-casaos");
 
-    let description = x_casaos.get("tagline")
+    let name = x_casaos
+        .and_then(|x| x.get("title"))
         .and_then(get_translated_string)
-        .unwrap_or_else(|| "".to_string());
+        .or_else(|| {
+            parsed.get("name").and_then(|n| n.as_str()).map(|s| s.to_string())
+        })
+        .or_else(|| {
+            parsed.get("services")
+                .and_then(|s| s.as_mapping())
+                .and_then(|m| m.keys().next())
+                .and_then(|k| k.as_str())
+                .map(|s| s.to_string())
+        })
+        .unwrap_or_else(|| "App".to_string());
 
-    let icon = x_casaos.get("icon")
+    let description = x_casaos
+        .and_then(|x| x.get("tagline").or_else(|| x.get("description")))
         .and_then(get_translated_string)
-        .unwrap_or_else(|| "".to_string());
+        .unwrap_or_default();
 
-    let category = x_casaos.get("category")
+    let icon = x_casaos
+        .and_then(|x| x.get("icon"))
+        .and_then(get_translated_string)
+        .unwrap_or_default();
+
+    let category = x_casaos
+        .and_then(|x| x.get("category"))
         .and_then(|v| v.as_str())
-        .unwrap_or("Other")
+        .unwrap_or("Utilities")
         .to_string();
 
-    let original_id = x_casaos.get("store_app_id")
+    let original_id = x_casaos
+        .and_then(|x| x.get("store_app_id"))
         .and_then(|v| v.as_str())
         .unwrap_or_else(|| name.as_str())
         .to_string()
@@ -677,8 +681,10 @@ services:
     image: alpine:latest
 "#;
         let result = parse_casaos_compose(yaml, "official");
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Missing x-casaos");
+        assert!(result.is_ok());
+        let item = result.unwrap();
+        assert_eq!(item.name, "testapp");
+        assert_eq!(item.id, "official-testapp");
     }
 
     #[test]

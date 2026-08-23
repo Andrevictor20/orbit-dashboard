@@ -22,6 +22,8 @@ pub struct PortInfo {
     pub typ: String,
 }
 
+use std::collections::HashMap;
+
 #[derive(Serialize)]
 pub struct ContainerInfo {
     pub id: String,
@@ -30,6 +32,7 @@ pub struct ContainerInfo {
     pub state: String,
     pub status: String,
     pub ports: Vec<PortInfo>,
+    pub labels: HashMap<String, String>,
     pub size_rw: Option<i64>,
     pub size_root_fs: Option<i64>,
 }
@@ -111,20 +114,38 @@ pub async fn list_containers(
         Ok(containers) => {
             let info: Vec<ContainerInfo> = containers
                 .into_iter()
-                .map(|c| ContainerInfo {
-                    id: c.id.unwrap_or_default().chars().take(12).collect(),
-                    name: c.names.unwrap_or_default().first().unwrap_or(&"".to_string()).replace("/", ""),
-                    image: c.image.unwrap_or_default(),
-                    state: c.state.map(|s| s.to_string()).unwrap_or_default(),
-                    status: c.status.unwrap_or_default(),
-                    ports: c.ports.unwrap_or_default().into_iter().map(|p| PortInfo {
-                        ip: p.ip,
-                        private_port: p.private_port,
-                        public_port: p.public_port,
-                        typ: p.typ.map(|t| t.to_string()).unwrap_or_else(|| "tcp".to_string()),
-                    }).collect(),
-                    size_rw: c.size_rw,
-                    size_root_fs: c.size_root_fs,
+                .map(|c| {
+                    let name = c.names
+                        .as_ref()
+                        .and_then(|names| names.first())
+                        .map(|n| n.trim_start_matches('/').to_string())
+                        .filter(|n| !n.is_empty())
+                        .unwrap_or_else(|| {
+                            c.labels
+                                .as_ref()
+                                .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.casaos.app.name")))
+                                .cloned()
+                                .unwrap_or_else(|| c.id.as_deref().unwrap_or("unknown").chars().take(12).collect())
+                        });
+
+                    let labels = c.labels.unwrap_or_default();
+
+                    ContainerInfo {
+                        id: c.id.unwrap_or_default().chars().take(12).collect(),
+                        name,
+                        image: c.image.unwrap_or_default(),
+                        state: c.state.map(|s| s.to_string()).unwrap_or_default(),
+                        status: c.status.unwrap_or_default(),
+                        ports: c.ports.unwrap_or_default().into_iter().map(|p| PortInfo {
+                            ip: p.ip,
+                            private_port: p.private_port,
+                            public_port: p.public_port,
+                            typ: p.typ.map(|t| t.to_string()).unwrap_or_else(|| "tcp".to_string()),
+                        }).collect(),
+                        labels,
+                        size_rw: c.size_rw,
+                        size_root_fs: c.size_root_fs,
+                    }
                 })
                 .collect();
             (StatusCode::OK, Json(info)).into_response()

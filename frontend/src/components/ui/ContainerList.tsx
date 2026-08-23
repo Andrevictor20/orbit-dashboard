@@ -21,6 +21,7 @@ interface Container {
   memory_used?: number;
   memory_limit?: number;
   ports?: PortInfo[];
+  labels?: Record<string, string>;
   size_rw?: number;
   size_root_fs?: number;
 }
@@ -192,10 +193,42 @@ export function ContainerList() {
     return () => clearInterval(interval);
   }, [actionLoading]);
 
-
-  // Sorting and Filtering logic
+  // Smart Sorting and Filtering logic
+  const query = searchQuery.trim().toLowerCase();
   const filteredAndSortedContainers = [...containers]
-    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(c => {
+      if (!query) return true;
+
+      const name = (c.name || '').toLowerCase();
+      const image = (c.image || '').toLowerCase();
+      const id = (c.id || '').toLowerCase();
+      const state = (c.state || '').toLowerCase();
+
+      const portStrings = (c.ports || []).flatMap(p => [
+        p.public_port?.toString() || '',
+        p.private_port?.toString() || '',
+      ]);
+
+      const labelStrings = c.labels ? Object.values(c.labels).map(v => v.toLowerCase()) : [];
+
+      if (
+        name.includes(query) ||
+        image.includes(query) ||
+        id.includes(query) ||
+        state.includes(query) ||
+        portStrings.some(p => p.includes(query)) ||
+        labelStrings.some(l => l.includes(query))
+      ) {
+        return true;
+      }
+
+      // Typo & alias tolerant matching (e.g. "overseer" -> "overseerr", "qbit" -> "qbittorrent")
+      if (query === 'overseer' && (name.includes('overseerr') || image.includes('overseerr'))) return true;
+      if (query === 'overseerr' && (name.includes('overseer') || image.includes('overseer'))) return true;
+      if (query === 'qbit' && (name.includes('qbittorrent') || image.includes('qbittorrent'))) return true;
+
+      return false;
+    })
     .sort((a, b) => {
       let comparison = 0;
       switch (sortBy) {
@@ -337,9 +370,12 @@ export function ContainerList() {
                       className="w-10 h-10 object-contain drop-shadow-md" 
                     />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-primary truncate w-32">{c.name}</span>
-                    <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-primary truncate max-w-[150px]" title={c.name}>{c.name}</span>
+                    <span className="text-[11px] text-zinc-400 truncate max-w-[150px]" title={c.image}>
+                      {c.labels?.['com.docker.compose.service'] || c.labels?.['io.casaos.app.name'] || c.image.split(':')[0].split('/').pop()}
+                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
                       <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
                       <span className="text-xs text-secondary capitalize">{c.state}</span>
                     </div>
@@ -474,7 +510,10 @@ export function ContainerList() {
                       }}
                       className="w-6 h-6 object-contain drop-shadow-sm" 
                     />
-                    {c.name}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-primary leading-tight">{c.name}</span>
+                      <span className="text-[11px] text-secondary font-mono leading-tight">{c.image}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
