@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/ui/StatCard';
 import { TrendingUp, Activity, HardDrive, Box, FolderOpen, ExternalLink, Plus, LayoutGrid, Layers } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
-import { getFriendlyDiskName, isPhysicalStorage } from '../utils/format';
+import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
 import {
   AreaChart,
@@ -107,8 +107,8 @@ export function Overview() {
   const globalDiskUsed = uniqueDisks.reduce((acc, d) => acc + d.used, 0);
   const globalDiskTotal = uniqueDisks.reduce((acc, d) => acc + d.total, 0);
 
-  const diskUsedGB = (globalDiskUsed / 1024 / 1024 / 1024).toFixed(2);
-  const diskTotalGB = (globalDiskTotal / 1024 / 1024 / 1024).toFixed(2);
+  const diskUsedFormatted = formatStorage(globalDiskUsed, 2);
+  const diskTotalFormatted = formatStorage(globalDiskTotal, 2);
   const diskPercent = globalDiskTotal > 0
     ? ((globalDiskUsed / globalDiskTotal) * 100).toFixed(1)
     : '0.0';
@@ -173,10 +173,10 @@ export function Overview() {
         />
         <StatCard 
           title={t('dashboard.storage')} 
-          value={`${diskUsedGB} GB`} 
+          value={diskUsedFormatted} 
           trend={`${diskPercent}%`}
           trendUp={parseFloat(diskPercent) < 85}
-          subText={`${diskTotalGB} GB ${t('dashboard.total')}`}
+          subText={`${diskTotalFormatted} ${t('dashboard.total')}`}
           icon={Box}
         />
       </div>
@@ -229,8 +229,8 @@ export function Overview() {
           <div className="flex-1 flex flex-col gap-3">
             {uniqueDisks.length > 0 ? (
               uniqueDisks.map((disk, idx) => {
-                const usedGB = (disk.used / 1024 / 1024 / 1024).toFixed(2);
-                const totalGB = (disk.total / 1024 / 1024 / 1024).toFixed(2);
+                const usedFormatted = formatStorage(disk.used, 2);
+                const totalFormatted = formatStorage(disk.total, 2);
                 const percent = disk.total > 0 ? ((disk.used / disk.total) * 100).toFixed(1) : '0.0';
                 const friendlyName = getFriendlyDiskName(disk.name, disk.mount_point);
                 
@@ -265,8 +265,8 @@ export function Overview() {
                     </div>
 
                     <div className="flex justify-between items-center text-[11px] text-secondary font-mono">
-                      <span>{usedGB} GB usado</span>
-                      <span>{totalGB} GB total</span>
+                      <span>{usedFormatted} usado</span>
+                      <span>{totalFormatted} total</span>
                     </div>
                   </div>
                 );

@@ -23,9 +23,27 @@ export function formatRAM(bytes?: number): string {
 }
 
 /**
- * Formats bytes as GB with 2 decimals (for disk/total memory display).
+ * Formats storage capacity or usage dynamically in GB or TB.
+ * When storage reaches 1 TB (1024 GB) or higher, it formats in TB instead of GB.
+ */
+export function formatStorage(bytes?: number, decimals: number = 1): string {
+  if (bytes === undefined || bytes === 0) return `0.${'0'.repeat(Math.max(0, decimals - 1))} GB`.replace('.0 ', ' ').trim();
+  const gb = 1024 * 1024 * 1024;
+  const tb = 1024 * 1024 * 1024 * 1024;
+  if (bytes >= tb) {
+    return `${(bytes / tb).toFixed(decimals)} TB`;
+  }
+  return `${(bytes / gb).toFixed(decimals)} GB`;
+}
+
+/**
+ * Formats bytes as GB or TB with 2 decimals (for disk/total storage display).
  */
 export function formatGB(bytes: number): string {
+  const tb = 1024 * 1024 * 1024 * 1024;
+  if (bytes >= tb) {
+    return `${(bytes / tb).toFixed(2)} TB`;
+  }
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 

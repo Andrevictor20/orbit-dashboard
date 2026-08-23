@@ -56,7 +56,7 @@ import { CloudConnectModal } from '../components/files/CloudConnectModal';
 import { FileOperationsModal } from '../components/files/FileOperationsModal';
 import type { OperationType } from '../components/files/FileOperationsModal';
 import { useTasks } from '../contexts/InstallContext';
-import { isPhysicalStorage, getFriendlyDiskName, formatBytes } from '../utils/format';
+import { isPhysicalStorage, getFriendlyDiskName, formatBytes, formatStorage } from '../utils/format';
 
 export interface MountItem {
   name: string;
@@ -841,8 +841,8 @@ export function FileManager() {
             {/* Mounted Disks List */}
             <div className="space-y-1.5">
               {storages.map((st, idx) => {
-                const usedGB = (st.used_bytes / 1024 / 1024 / 1024).toFixed(1);
-                const totalGB = (st.total_bytes / 1024 / 1024 / 1024).toFixed(1);
+                const usedFormatted = formatStorage(st.used_bytes, 1);
+                const totalFormatted = formatStorage(st.total_bytes, 1);
                 const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;
                 const isActive = !isTrashView && (currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`));
                 const friendlyName = getFriendlyDiskName(st.name, st.mount_point);
@@ -878,7 +878,7 @@ export function FileManager() {
                           />
                         </div>
                         <div className="flex justify-between text-[10px] text-secondary font-mono">
-                          <span>{usedGB} GB / {totalGB} GB</span>
+                          <span>{usedFormatted} / {totalFormatted}</span>
                           <span>{pct}%</span>
                         </div>
                       </>

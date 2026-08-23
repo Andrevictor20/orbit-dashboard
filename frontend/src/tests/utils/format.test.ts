@@ -1,13 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { getFriendlyDiskName, isPhysicalStorage, formatBytes, formatRAM, formatGB } from '../../utils/format';
+import { getFriendlyDiskName, isPhysicalStorage, formatBytes, formatRAM, formatGB, formatStorage } from '../../utils/format';
 
 describe('Format and Storage Utils', () => {
-  it('formats bytes, RAM and GB correctly', () => {
+  it('formats bytes, RAM, GB and TB correctly', () => {
     expect(formatBytes(0)).toBe('0 B');
     expect(formatBytes(1024)).toBe('1 KB');
     expect(formatBytes(1024 * 1024)).toBe('1 MB');
+    expect(formatBytes(1024 * 1024 * 1024 * 1024)).toBe('1 TB');
     expect(formatRAM(512 * 1024 * 1024)).toBe('512.0 MB');
+    
+    // Below 1 TB -> displays in GB
     expect(formatGB(4 * 1024 * 1024 * 1024)).toBe('4.00 GB');
+    expect(formatStorage(500 * 1024 * 1024 * 1024)).toBe('500.0 GB');
+    
+    // At or above 1 TB (1024 GB) -> displays in TB
+    expect(formatGB(1024 * 1024 * 1024 * 1024)).toBe('1.00 TB');
+    expect(formatGB(2 * 1024 * 1024 * 1024 * 1024)).toBe('2.00 TB');
+    expect(formatStorage(1024 * 1024 * 1024 * 1024)).toBe('1.0 TB');
+    expect(formatStorage(1536 * 1024 * 1024 * 1024, 2)).toBe('1.50 TB');
+    expect(formatStorage(4096 * 1024 * 1024 * 1024)).toBe('4.0 TB');
   });
 
   it('classifies microSD cards', () => {

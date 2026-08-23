@@ -149,10 +149,19 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     const handleLoadedMetadata = () => {
       setDuration(video.duration || 0);
       setIsBuffering(false);
+      video.play().catch(() => {});
+    };
+
+    const handleLoadedData = () => {
+      setIsBuffering(false);
+      video.play().catch(() => {});
     };
 
     const handleWaiting = () => setIsBuffering(true);
-    const handleCanPlay = () => setIsBuffering(false);
+    const handleCanPlay = () => {
+      setIsBuffering(false);
+      video.play().catch(() => {});
+    };
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
@@ -166,6 +175,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('playing', handlePlaying);
@@ -176,6 +186,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('playing', handlePlaying);
@@ -320,7 +331,8 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             ref={videoRef}
             data-testid="video-element"
             src={videoSrc}
-            preload="metadata"
+            preload="auto"
+            autoPlay
             playsInline
             crossOrigin="anonymous"
             className="w-full h-full object-contain"

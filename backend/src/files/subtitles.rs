@@ -36,7 +36,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
             return Err(StatusCode::NOT_FOUND);
         }
 
-        let output = std::process::Command::new("ffmpeg")
+        let output = tokio::process::Command::new("ffmpeg")
             .args([
                 "-v", "error",
                 "-i",
@@ -48,6 +48,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
                 "-",
             ])
             .output()
+            .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let vtt = String::from_utf8_lossy(&output.stdout).to_string();
@@ -76,17 +77,21 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<Subtit
     let video_path = sanitize_path(&q.path)?;
     let mut subtitles = Vec::new();
 
-    // 1. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe
-    if let Ok(output) = std::process::Command::new("ffprobe")
-        .args([
-            "-v", "error",
-            "-select_streams", "s",
-            "-show_entries", "stream=index,codec_name:stream_tags=language,title",
-            "-of", "json",
-        ])
-        .arg(&video_path)
-        .output()
-    {
+    // 1. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe (async with timeout)
+    let ffprobe_result = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        tokio::process::Command::new("ffprobe")
+            .args([
+                "-v", "error",
+                "-select_streams", "s",
+                "-show_entries", "stream=index,codec_name:stream_tags=language,title",
+                "-of", "json",
+            ])
+            .arg(&video_path)
+            .output()
+    ).await;
+
+    if let Ok(Ok(output)) = ffprobe_result {
         if output.status.success() {
             if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                 if let Some(streams) = json_val.get("streams").and_then(|s| s.as_array()) {
