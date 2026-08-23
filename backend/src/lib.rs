@@ -48,6 +48,7 @@ pub fn app() -> Router {
     Router::new()
         .route("/health", get(|| async { StatusCode::OK }))
         .route("/api/logs", get(logs::get_logs))
+        .route("/api/logs/clear", axum::routing::post(logs::clear_logs))
         .merge(auth::public_router())
         .merge(files::public_router())
         .merge(protected_routes)
