@@ -362,3 +362,158 @@ async fn test_files_security_and_auth() {
         .await;
     traversal_res.assert_status(axum::http::StatusCode::NOT_FOUND);
 }
+
+// 9. Extraction & Compression
+#[tokio::test]
+async fn test_files_compression_and_extraction() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let cookie = get_test_cookie();
+
+    let file_to_zip = format!("{}/documents/hello.txt", sandbox_str);
+
+    // Compress
+    let compress_res = server.post("/api/files/compress")
+        .add_cookie(cookie.clone())
+        .json(&json!({
+            "paths": [file_to_zip],
+            "destination_name": "bundle.zip",
+            "destination_dir": sandbox_str
+        }))
+        .await;
+    compress_res.assert_status_ok();
+    let zip_path = sandbox.join("bundle.zip");
+    assert!(zip_path.is_file());
+
+    // Extract
+    let extract_dir = sandbox.join("extracted");
+    let extract_res = server.post("/api/files/extract")
+        .add_cookie(cookie.clone())
+        .json(&json!({
+            "path": zip_path.to_str().unwrap(),
+            "destination": extract_dir.to_str().unwrap()
+        }))
+        .await;
+    extract_res.assert_status_ok();
+    assert!(extract_dir.join("hello.txt").is_file());
+
+    let _ = fs::remove_dir_all(&sandbox);
+}
+
+// 10. Disk Space Analysis
+#[tokio::test]
+async fn test_files_disk_analysis() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let cookie = get_test_cookie();
+
+    let analyze_res = server.get(&format!("/api/files/analyze?path={}", sandbox_str))
+        .add_cookie(cookie.clone())
+        .await;
+    analyze_res.assert_status_ok();
+    let json: serde_json::Value = analyze_res.json();
+    assert!(json["total_size"].as_u64().unwrap() > 0);
+    assert!(json["items"].as_array().unwrap().len() >= 2);
+
+    let _ = fs::remove_dir_all(&sandbox);
+}
+
+// 11. Trash Bin Operations (Move, List, Restore, Empty)
+#[tokio::test]
+async fn test_files_trash_operations() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let cookie = get_test_cookie();
+
+    let file_to_trash = format!("{}/documents/hello.txt", sandbox_str);
+
+    // 1. Move to trash
+    let trash_res = server.post("/api/files/trash")
+        .add_cookie(cookie.clone())
+        .json(&json!({ "paths": [file_to_trash] }))
+        .await;
+    trash_res.assert_status_ok();
+    assert!(!Path::new(&file_to_trash).exists());
+
+    // 2. List trash
+    let list_res = server.get("/api/files/trash")
+        .add_cookie(cookie.clone())
+        .await;
+    list_res.assert_status_ok();
+    let list_json: serde_json::Value = list_res.json();
+    let items = list_json["items"].as_array().unwrap();
+    assert!(!items.is_empty());
+    let item_id = items.last().unwrap()["id"].as_str().unwrap();
+
+    // 3. Restore from trash
+    let restore_res = server.post("/api/files/trash/restore")
+        .add_cookie(cookie.clone())
+        .json(&json!({ "ids": [item_id] }))
+        .await;
+    restore_res.assert_status_ok();
+    assert!(Path::new(&file_to_trash).exists());
+
+    // 4. Empty trash
+    let empty_res = server.delete("/api/files/trash")
+        .add_cookie(cookie.clone())
+        .await;
+    empty_res.assert_status_ok();
+
+    let _ = fs::remove_dir_all(&sandbox);
+}
+
+// 12. Temporary Share Links & Public Download
+#[tokio::test]
+async fn test_files_sharing_and_public_download() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let cookie = get_test_cookie();
+
+    let share_target = format!("{}/documents/hello.txt", sandbox_str);
+
+    // 1. Create temporary share link
+    let share_res = server.post("/api/files/share")
+        .add_cookie(cookie.clone())
+        .json(&json!({
+            "path": share_target,
+            "expires_in_seconds": 3600
+        }))
+        .await;
+    share_res.assert_status_ok();
+    let share_json: serde_json::Value = share_res.json();
+    let token = share_json["token"].as_str().unwrap();
+    assert!(!token.is_empty());
+
+    // 2. List active shares
+    let list_res = server.get("/api/files/shares")
+        .add_cookie(cookie.clone())
+        .await;
+    list_res.assert_status_ok();
+    let shares: serde_json::Value = list_res.json();
+    assert!(shares["shares"].as_array().unwrap().iter().any(|s| s["token"] == token));
+
+    // 3. Access public download WITHOUT auth
+    let public_res = server.get(&format!("/api/public/share/{}", token)).await;
+    public_res.assert_status_ok();
+    assert_eq!(public_res.text(), "Hello Orbit File Manager!");
+
+    // 4. Delete share
+    let del_res = server.delete(&format!("/api/files/share/{}", token))
+        .add_cookie(cookie.clone())
+        .await;
+    del_res.assert_status_ok();
+
+    // 5. Accessing deleted share should now return 404
+    let public_del_res = server.get(&format!("/api/public/share/{}", token)).await;
+    public_del_res.assert_status_not_found();
+
+    let _ = fs::remove_dir_all(&sandbox);
+}

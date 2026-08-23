@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { 
   Folder, 
   File, 
@@ -35,14 +35,23 @@ import {
   ArrowUpDown, 
   CheckSquare, 
   Square,
-  Check
+  Check,
+  PieChart,
+  Share2,
+  Terminal,
+  RotateCcw,
+  Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AudioPlayerModal } from '../components/files/AudioPlayerModal';
 import type { FileItem } from '../components/files/AudioPlayerModal';
+export type { FileItem };
 import { VideoPlayerModal } from '../components/files/VideoPlayerModal';
 import { TextEditorModal } from '../components/files/TextEditorModal';
 import { PdfViewerModal } from '../components/files/PdfViewerModal';
+import { ImageGalleryModal } from '../components/files/ImageGalleryModal';
+import { DiskAnalyzerModal } from '../components/files/DiskAnalyzerModal';
+import { ShareModal } from '../components/files/ShareModal';
 import { CloudConnectModal } from '../components/files/CloudConnectModal';
 import { FileOperationsModal } from '../components/files/FileOperationsModal';
 import type { OperationType } from '../components/files/FileOperationsModal';
@@ -72,12 +81,27 @@ interface ShortcutPlace {
   icon: string;
 }
 
+interface TrashItem {
+  id: string;
+  name: string;
+  original_path: string;
+  trash_path: string;
+  is_dir: boolean;
+  size: number;
+  deleted_at: string;
+}
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'];
+const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'gz', 'tgz', 'rar', '7z'];
+
 export function FileManager() {
   const { startTask } = useTasks();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPath = searchParams.get('path');
-  const [currentPath, setCurrentPath] = useState<string>(urlPath || '/');
+  const isTrashView = urlPath === '__trash__';
+  const [currentPath, setCurrentPath] = useState<string>(isTrashView ? '/' : (urlPath || '/'));
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
   const [storages, setStorages] = useState<MountItem[]>([]);
   const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
   const [places, setPlaces] = useState<ShortcutPlace[]>([
@@ -111,24 +135,35 @@ export function FileManager() {
   const [activeVideoFile, setActiveVideoFile] = useState<FileItem | null>(null);
   const [activeTextFile, setActiveTextFile] = useState<FileItem | null>(null);
   const [activePdfFile, setActivePdfFile] = useState<FileItem | null>(null);
+  const [activeImageFile, setActiveImageFile] = useState<FileItem | null>(null);
+  const [isDiskAnalyzerOpen, setIsDiskAnalyzerOpen] = useState(false);
+  const [shareFile, setShareFile] = useState<FileItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [opModalType, setOpModalType] = useState<OperationType | null>(null);
   const [opTargetItem, setOpTargetItem] = useState<FileItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync with URL query parameter
   useEffect(() => {
-    if (urlPath && urlPath !== currentPath) {
+    if (urlPath === '__trash__') {
+      loadTrash();
+    } else if (urlPath && urlPath !== currentPath) {
       setCurrentPath(urlPath);
     }
   }, [urlPath]);
 
   const navigateTo = (newPath: string) => {
     const clean = newPath || '/';
-    setSearchQuery(''); // Reset search on folder change so files are not accidentally filtered out
+    setSearchQuery('');
     setCurrentPath(clean);
     setSearchParams({ path: clean }, { replace: true });
+  };
+
+  const navigateToTrash = () => {
+    setSearchQuery('');
+    setSearchParams({ path: '__trash__' }, { replace: true });
   };
 
   // Load shortcuts, storages and cloud accounts once
@@ -184,6 +219,10 @@ export function FileManager() {
 
   // Fetch current folder files
   const loadFiles = (path: string) => {
+    if (isTrashView) {
+      loadTrash();
+      return;
+    }
     setIsLoading(true);
     setSelectedItems([]);
     fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
@@ -209,11 +248,30 @@ export function FileManager() {
       });
   };
 
-  useEffect(() => {
-    loadFiles(currentPath);
-  }, [currentPath]);
+  const loadTrash = () => {
+    setIsLoading(true);
+    setSelectedItems([]);
+    fetch('/api/files/trash')
+      .then(res => res.json())
+      .then(data => {
+        setTrashItems(data.items || []);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setTrashItems([]);
+        setIsLoading(false);
+      });
+  };
 
-  // File click handler (instant single-click opening)
+  useEffect(() => {
+    if (isTrashView) {
+      loadTrash();
+    } else {
+      loadFiles(currentPath);
+    }
+  }, [currentPath, isTrashView]);
+
+  // File click handler
   const handleItemClick = (item: FileItem) => {
     if (item.is_dir) {
       navigateTo(item.path);
@@ -221,7 +279,9 @@ export function FileManager() {
     }
 
     const ext = item.extension.toLowerCase();
-    if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
+    if (IMAGE_EXTENSIONS.includes(ext)) {
+      setActiveImageFile(item);
+    } else if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
       setActiveAudioFile(item);
     } else if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
       setActiveVideoFile(item);
@@ -234,7 +294,40 @@ export function FileManager() {
     }
   };
 
-  // Upload handler
+  // Quick Look with Spacebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+          return;
+        }
+
+        const isViewerOpen = activeAudioFile || activeVideoFile || activeTextFile || activePdfFile || activeImageFile || isDiskAnalyzerOpen || shareFile;
+        if (isViewerOpen) {
+          e.preventDefault();
+          setActiveAudioFile(null);
+          setActiveVideoFile(null);
+          setActiveTextFile(null);
+          setActivePdfFile(null);
+          setActiveImageFile(null);
+          setIsDiskAnalyzerOpen(false);
+          setShareFile(null);
+          return;
+        }
+
+        if (selectedItems.length === 1 && !isTrashView) {
+          e.preventDefault();
+          handleItemClick(selectedItems[0]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedItems, activeAudioFile, activeVideoFile, activeTextFile, activePdfFile, activeImageFile, isDiskAnalyzerOpen, shareFile, isTrashView]);
+
+  // Upload handlers
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const filesArray = Array.from(e.target.files);
@@ -265,6 +358,39 @@ export function FileManager() {
         filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
         helpers.setDone(`Upload concluído com sucesso em ${currentPath}!`);
         toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
+        loadFiles(currentPath);
+      }
+    });
+  };
+
+  const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const filesArray = Array.from(e.target.files);
+    const formData = new FormData();
+    filesArray.forEach(file => {
+      formData.append('files', file);
+    });
+
+    startTask({
+      type: 'file_upload',
+      title: `Upload de Pasta (${filesArray.length} itens)`,
+      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
+      initialLogs: [
+        `[INFO] Iniciando upload de pasta com ${filesArray.length} itens para ${currentPath}...`,
+      ],
+      runner: async (helpers) => {
+        helpers.setProgress(40);
+        helpers.setStatus('running');
+        const token = localStorage.getItem('orbit_token');
+        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        helpers.setProgress(90);
+        if (!res.ok) throw new Error('Falha no upload da pasta.');
+        helpers.setDone(`Upload de pasta concluído com sucesso!`);
+        toast.success(`Pasta enviada com sucesso!`);
         loadFiles(currentPath);
       }
     });
@@ -306,6 +432,116 @@ export function FileManager() {
         loadFiles(currentPath);
       }
     });
+  };
+
+  // Internal Move through Drag & Drop
+  const handleInternalDrop = async (e: React.DragEvent, targetDir: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      const paths: string[] = JSON.parse(raw);
+      if (!paths || paths.length === 0) return;
+
+      for (const p of paths) {
+        const fileName = p.split('/').pop() || '';
+        const destination = targetDir === '/' ? `/${fileName}` : `${targetDir}/${fileName}`;
+        if (p === destination) continue;
+        await fetch('/api/files/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: p, destination }),
+        });
+      }
+      toast.success(`${paths.length} item(s) movido(s) para ${targetDir}!`);
+      loadFiles(currentPath);
+    } catch {
+      toast.error('Erro ao mover itens.');
+    }
+  };
+
+  // Archive Extract & Compress Handlers
+  const handleExtractArchive = async (item: FileItem) => {
+    try {
+      const res = await fetch('/api/files/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path, destination: currentPath }),
+      });
+      if (!res.ok) throw new Error('Falha ao descompactar');
+      const json = await res.json();
+      toast.success(`Descompactado com sucesso (${json.files_count} arquivos)!`);
+      loadFiles(currentPath);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao extrair');
+    }
+  };
+
+  const handleCompressSelection = async () => {
+    if (selectedItems.length === 0) return;
+    try {
+      const zipName = selectedItems.length === 1 ? `${selectedItems[0].name}.zip` : 'arquivos_comprimidos.zip';
+      const res = await fetch('/api/files/compress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paths: selectedItems.map(i => i.path),
+          destination_name: zipName,
+          destination_dir: currentPath,
+        }),
+      });
+      if (!res.ok) throw new Error('Falha ao compactar');
+      toast.success('Arquivo .zip criado com sucesso!');
+      setSelectedItems([]);
+      loadFiles(currentPath);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao compactar');
+    }
+  };
+
+  // Trash Operations
+  const handleMoveToTrash = async (items: FileItem[]) => {
+    try {
+      const res = await fetch('/api/files/trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: items.map(i => i.path) }),
+      });
+      if (!res.ok) throw new Error('Erro ao mover para a lixeira');
+      toast.success(`${items.length} item(s) movido(s) para a lixeira!`);
+      setSelectedItems([]);
+      loadFiles(currentPath);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao mover para a lixeira');
+    }
+  };
+
+  const handleRestoreTrash = async (ids: string[]) => {
+    try {
+      const res = await fetch('/api/files/trash/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error('Erro ao restaurar');
+      toast.success('Item(ns) restaurado(s) com sucesso!');
+      loadTrash();
+    } catch {
+      toast.error('Erro ao restaurar item(ns).');
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    if (!window.confirm('Tem certeza que deseja esvaziar a lixeira permanentemente?')) return;
+    try {
+      const res = await fetch('/api/files/trash', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao esvaziar');
+      toast.success('Lixeira esvaziada!');
+      loadTrash();
+    } catch {
+      toast.error('Erro ao esvaziar lixeira.');
+    }
   };
 
   // Clipboard operations
@@ -373,6 +609,9 @@ export function FileManager() {
 
   // Breadcrumbs calculation
   const breadcrumbSegments = () => {
+    if (isTrashView) {
+      return [{ label: 'Lixeira do Sistema', path: '__trash__' }];
+    }
     if (currentPath === '/' || !currentPath) {
       return [{ label: 'Raiz (/)', path: '/' }];
     }
@@ -400,6 +639,7 @@ export function FileManager() {
       case 'videos': return Film;
       case 'hard-drive':
       case 'root': return HardDrive;
+      case 'trash': return Trash2;
       default: return Folder;
     }
   };
@@ -415,10 +655,10 @@ export function FileManager() {
     if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
       return <Film className="w-9 h-9 sm:w-11 sm:h-11 text-rose-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
     }
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
       return <ImageIcon className="w-9 h-9 sm:w-11 sm:h-11 text-amber-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
     }
-    if (['zip', 'tar', 'gz', 'tgz', 'rar', '7z'].includes(ext)) {
+    if (ARCHIVE_EXTENSIONS.includes(ext)) {
       return <Archive className="w-9 h-9 sm:w-11 sm:h-11 text-orange-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
     }
     if (['pdf'].includes(ext)) {
@@ -456,12 +696,22 @@ export function FileManager() {
       onDragLeave={() => setIsDraggingOver(false)}
       onDrop={handleDrop}
     >
-      {/* Hidden file input for uploads */}
+      {/* Hidden file & folder inputs for uploads */}
       <input
         type="file"
         multiple
         ref={fileInputRef}
         onChange={handleFileUpload}
+        className="hidden"
+      />
+      <input
+        type="file"
+        multiple
+        // @ts-ignore
+        webkitdirectory=""
+        directory=""
+        ref={folderInputRef}
+        onChange={handleFolderUpload}
         className="hidden"
       />
 
@@ -503,7 +753,7 @@ export function FileManager() {
             <div className="space-y-0.5">
               {places.map((place) => {
                 const Icon = getPlaceIcon(place.icon);
-                const isActive = currentPath === place.path;
+                const isActive = !isTrashView && currentPath === place.path;
                 return (
                   <button
                     key={place.id}
@@ -511,6 +761,9 @@ export function FileManager() {
                       navigateTo(place.path);
                       setIsStorageDrawerOpen(false);
                     }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-orbit-500/20'); }}
+                    onDragLeave={(e) => e.currentTarget.classList.remove('bg-orbit-500/20')}
+                    onDrop={(e) => { e.currentTarget.classList.remove('bg-orbit-500/20'); handleInternalDrop(e, place.path); }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                       isActive
                         ? 'bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 font-semibold shadow-sm'
@@ -522,10 +775,26 @@ export function FileManager() {
                   </button>
                 );
               })}
+
+              {/* Lixeira / Trash Shortcut */}
+              <button
+                onClick={() => {
+                  navigateToTrash();
+                  setIsStorageDrawerOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  isTrashView
+                    ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold shadow-sm'
+                    : 'text-secondary hover:text-primary hover:bg-accent/60'
+                }`}
+              >
+                <Trash2 className="w-4 h-4 shrink-0 text-rose-400" />
+                <span className="truncate">Lixeira</span>
+              </button>
             </div>
           </div>
 
-          {/* Section: Unidades de Armazenamento (Physical Disks) */}
+          {/* Section: Unidades de Armazenamento */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <h3 className="text-xs font-bold text-secondary uppercase tracking-wider">
@@ -559,7 +828,7 @@ export function FileManager() {
                 const usedGB = (st.used_bytes / 1024 / 1024 / 1024).toFixed(1);
                 const totalGB = (st.total_bytes / 1024 / 1024 / 1024).toFixed(1);
                 const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;
-                const isActive = currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`);
+                const isActive = !isTrashView && (currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`));
                 const friendlyName = getFriendlyDiskName(st.name, st.mount_point);
 
                 return (
@@ -569,6 +838,9 @@ export function FileManager() {
                       navigateTo(st.mount_point);
                       setIsStorageDrawerOpen(false);
                     }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-orbit-500'); }}
+                    onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-orbit-500')}
+                    onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-orbit-500'); handleInternalDrop(e, st.mount_point); }}
                     className={`w-full text-left p-2.5 rounded-xl border transition-all ${
                       isActive
                         ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
@@ -665,7 +937,7 @@ export function FileManager() {
               {breadcrumbSegments().map((crumb, idx, arr) => (
                 <React.Fragment key={crumb.path}>
                   <button
-                    onClick={() => navigateTo(crumb.path)}
+                    onClick={() => crumb.path === '__trash__' ? navigateToTrash() : navigateTo(crumb.path)}
                     className={`hover:text-orbit-400 transition-colors px-2.5 py-1 rounded-lg truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[200px] ${
                       idx === arr.length - 1 ? 'text-primary font-bold bg-accent/60 border border-border/50' : 'text-secondary hover:bg-accent/40'
                     }`}
@@ -682,140 +954,184 @@ export function FileManager() {
 
           {/* Action Toolbar */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Search Input */}
-            <div className="relative w-32 xs:w-40 sm:w-56 md:w-64">
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Pesquisar nesta pasta..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-accent/40 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  data-testid="clear-search-input-btn"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary p-0.5"
-                  title="Limpar busca"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            {!isTrashView && (
+              <>
+                {/* Search Input */}
+                <div className="relative w-28 xs:w-36 sm:w-48 md:w-56">
+                  <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-accent/40 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      data-testid="clear-search-input-btn"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary p-0.5"
+                      title="Limpar busca"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
-            {/* Clipboard Paste button */}
-            {clipboard && (
-              <button
-                onClick={handlePaste}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
-                title={`Colar ${clipboard.items.length} item(s)`}
-              >
-                <Clipboard className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Colar ({clipboard.items.length})</span>
-              </button>
+                {/* Disk Space Analyzer Button */}
+                <button
+                  onClick={() => setIsDiskAnalyzerOpen(true)}
+                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-violet-400 hover:bg-accent/80 transition-colors"
+                  title="Analisador de Espaço em Disco"
+                >
+                  <PieChart className="w-4 h-4" />
+                </button>
+
+                {/* Open in Terminal Button */}
+                <Link
+                  to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
+                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-emerald-400 hover:bg-accent/80 transition-colors"
+                  title="Abrir Terminal Aqui"
+                >
+                  <Terminal className="w-4 h-4" />
+                </Link>
+
+                {/* Clipboard Paste button */}
+                {clipboard && (
+                  <button
+                    onClick={handlePaste}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
+                    title={`Colar ${clipboard.items.length} item(s)`}
+                  >
+                    <Clipboard className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">Colar ({clipboard.items.length})</span>
+                  </button>
+                )}
+
+                {/* Sort Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+                    title="Ordenar arquivos"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                  </button>
+
+                  {showSortMenu && (
+                    <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
+                      <button
+                        onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
+                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
+                      >
+                        <span>Nome</span>
+                        {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
+                      </button>
+                      <button
+                        onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
+                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
+                      >
+                        <span>Tamanho</span>
+                        {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
+                      </button>
+                      <button
+                        onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
+                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
+                      >
+                        <span>Modificado</span>
+                        {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* View Mode Toggle */}
+                <button
+                  data-testid="view-mode-toggle"
+                  onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
+                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+                  title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
+                >
+                  {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+                </button>
+
+                {/* Create / Upload Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCreateMenu(!showCreateMenu)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/25 text-xs font-semibold transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden xs:inline">Criar</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+
+                  {showCreateMenu && (
+                    <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
+                      <button
+                        onClick={() => {
+                          setShowCreateMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
+                      >
+                        <Upload className="w-4 h-4 text-orbit-400" />
+                        <span>Carregar arquivos</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreateMenu(false);
+                          folderInputRef.current?.click();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
+                      >
+                        <Folder className="w-4 h-4 text-amber-400" />
+                        <span>Carregar pasta</span>
+                      </button>
+                      <div className="w-full h-[1px] bg-border my-1" />
+                      <button
+                        onClick={() => {
+                          setShowCreateMenu(false);
+                          setOpTargetItem(null);
+                          setOpModalType('new_folder');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
+                      >
+                        <FolderPlus className="w-4 h-4 text-sky-400" />
+                        <span>Nova pasta</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreateMenu(false);
+                          setOpTargetItem(null);
+                          setOpModalType('new_file');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
+                      >
+                        <FilePlus className="w-4 h-4 text-emerald-400" />
+                        <span>Novo arquivo</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
-            {/* Sort Menu */}
-            <div className="relative">
+            {isTrashView && (
               <button
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                title="Ordenar arquivos"
+                onClick={handleEmptyTrash}
+                disabled={trashItems.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 active:scale-95 text-xs font-semibold transition-all disabled:opacity-50"
               >
-                <ArrowUpDown className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
+                <span>Esvaziar Lixeira</span>
               </button>
-
-              {showSortMenu && (
-                <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                  <button
-                    onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
-                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                  >
-                    <span>Nome</span>
-                    {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
-                  </button>
-                  <button
-                    onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
-                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                  >
-                    <span>Tamanho</span>
-                    {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
-                  </button>
-                  <button
-                    onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
-                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                  >
-                    <span>Modificado</span>
-                    {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* View Mode Toggle */}
-            <button
-              data-testid="view-mode-toggle"
-              onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
-              className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
-            >
-              {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
-            </button>
-
-            {/* Create / Upload Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowCreateMenu(!showCreateMenu)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/25 text-xs font-semibold transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden xs:inline">Criar</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-
-              {showCreateMenu && (
-                <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                  <button
-                    onClick={() => {
-                      setShowCreateMenu(false);
-                      fileInputRef.current?.click();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                  >
-                    <Upload className="w-4 h-4 text-orbit-400" />
-                    <span>Carregar arquivo</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowCreateMenu(false);
-                      setOpTargetItem(null);
-                      setOpModalType('new_folder');
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                  >
-                    <FolderPlus className="w-4 h-4 text-sky-400" />
-                    <span>Nova pasta</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowCreateMenu(false);
-                      setOpTargetItem(null);
-                      setOpModalType('new_file');
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                  >
-                    <FilePlus className="w-4 h-4 text-emerald-400" />
-                    <span>Novo arquivo</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </header>
 
         {/* Selected Batch Action Bar */}
-        {selectedItems.length > 0 && (
+        {selectedItems.length > 0 && !isTrashView && (
           <div className="px-4 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-400 animate-in fade-in">
             <div className="flex items-center gap-2">
               <button
@@ -833,6 +1149,13 @@ export function FileManager() {
 
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
+                onClick={handleCompressSelection}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
+                title="Compactar itens selecionados em .zip"
+              >
+                <Package className="w-3.5 h-3.5 text-amber-400" /> <span className="hidden xs:inline">Compactar (.zip)</span>
+              </button>
+              <button
                 onClick={() => handleCopy(selectedItems)}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
               >
@@ -845,13 +1168,11 @@ export function FileManager() {
                 <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Recortar</span>
               </button>
               <button
-                onClick={() => {
-                  setOpTargetItem(null);
-                  setOpModalType('delete');
-                }}
+                onClick={() => handleMoveToTrash(selectedItems)}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
+                title="Mover itens para a lixeira"
               >
-                <Trash2 className="w-3.5 h-3.5" /> <span>Excluir</span>
+                <Trash2 className="w-3.5 h-3.5" /> <span>Lixeira</span>
               </button>
               <button
                 onClick={() => setSelectedItems([])}
@@ -878,6 +1199,53 @@ export function FileManager() {
             <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
               <Loader2 className="w-9 h-9 animate-spin text-orbit-400" />
               <span className="text-sm font-medium">Carregando arquivos...</span>
+            </div>
+          ) : isTrashView ? (
+            /* TRASH VIEW */
+            <div>
+              {trashItems.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
+                  <Trash2 className="w-14 h-14 stroke-[1.5] text-zinc-600" />
+                  <p className="text-base font-semibold text-primary">A Lixeira está vazia</p>
+                  <p className="text-xs text-secondary max-w-sm text-center">
+                    Os itens excluídos aparecerão aqui e poderão ser restaurados a qualquer momento.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-card/60 border border-border rounded-2xl overflow-hidden shadow-md">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-accent/40 text-secondary border-b border-border select-none font-semibold">
+                      <tr>
+                        <th className="py-3 px-4 font-bold">Nome</th>
+                        <th className="py-3 px-4 font-bold">Local Original</th>
+                        <th className="py-3 px-4 font-bold">Tamanho</th>
+                        <th className="py-3 px-4 font-bold text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {trashItems.map((item) => (
+                        <tr key={item.id} className="hover:bg-accent/50 transition-colors">
+                          <td className="py-2.5 px-4 flex items-center gap-2.5">
+                            {item.is_dir ? <Folder className="w-4 h-4 text-sky-400" /> : <File className="w-4 h-4 text-zinc-400" />}
+                            <span className="font-semibold text-primary truncate max-w-xs">{item.name}</span>
+                          </td>
+                          <td className="py-2.5 px-4 text-secondary font-mono truncate max-w-xs">{item.original_path}</td>
+                          <td className="py-2.5 px-4 text-secondary font-mono">{formatBytes(item.size)}</td>
+                          <td className="py-2.5 px-4 text-right">
+                            <button
+                              onClick={() => handleRestoreTrash([item.id])}
+                              className="px-3 py-1.5 rounded-lg bg-orbit-500/15 text-orbit-400 hover:bg-orbit-500/25 border border-orbit-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Restaurar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : filteredFiles.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
@@ -914,9 +1282,32 @@ export function FileManager() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
               {filteredFiles.map((item) => {
                 const selected = isSelected(item);
+                const isImage = IMAGE_EXTENSIONS.includes(item.extension.toLowerCase());
+                const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
+
                 return (
                   <div
                     key={item.path}
+                    draggable={true}
+                    onDragStart={(e) => {
+                      const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
+                      e.dataTransfer.setData('text/plain', JSON.stringify(list));
+                    }}
+                    onDragOver={(e) => {
+                      if (item.is_dir) {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('ring-2', 'ring-orbit-500');
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+                    }}
+                    onDrop={(e) => {
+                      if (item.is_dir) {
+                        e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+                        handleInternalDrop(e, item.path);
+                      }
+                    }}
                     onClick={() => handleItemClick(item)}
                     className={`group relative flex flex-col items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
                       selected
@@ -939,9 +1330,25 @@ export function FileManager() {
                       <Check className="w-3 h-3 stroke-[3]" />
                     </button>
 
-                    {/* Item Icon */}
-                    <div className="my-2 p-2 rounded-2xl">
-                      {getFileIcon(item)}
+                    {/* Item Visual (Real Thumbnail or Icon) */}
+                    <div className="my-2 flex items-center justify-center">
+                      {isImage ? (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-black/20 flex items-center justify-center border border-border/50 shadow-inner">
+                          <img
+                            src={`/api/files/raw?path=${encodeURIComponent(item.path)}`}
+                            alt={item.name}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-2xl">
+                          {getFileIcon(item)}
+                        </div>
+                      )}
                     </div>
 
                     {/* Item Metadata */}
@@ -958,7 +1365,29 @@ export function FileManager() {
                     </div>
 
                     {/* Quick Action Overlay on hover */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 rounded-lg p-0.5 shadow-md border border-border">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 rounded-lg p-0.5 shadow-md border border-border z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareFile(item);
+                        }}
+                        className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-accent/80"
+                        title="Compartilhar"
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </button>
+                      {isArchive && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExtractArchive(item);
+                          }}
+                          className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-accent/80"
+                          title="Extrair Arquivo"
+                        >
+                          <Archive className="w-3 h-3" />
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1010,9 +1439,30 @@ export function FileManager() {
                   <tbody className="divide-y divide-border">
                     {filteredFiles.map((item) => {
                       const selected = isSelected(item);
+                      const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
                       return (
                         <tr
                           key={item.path}
+                          draggable={true}
+                          onDragStart={(e) => {
+                            const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
+                            e.dataTransfer.setData('text/plain', JSON.stringify(list));
+                          }}
+                          onDragOver={(e) => {
+                            if (item.is_dir) {
+                              e.preventDefault();
+                              e.currentTarget.classList.add('bg-orbit-500/10');
+                            }
+                          }}
+                          onDragLeave={(e) => {
+                            if (item.is_dir) e.currentTarget.classList.remove('bg-orbit-500/10');
+                          }}
+                          onDrop={(e) => {
+                            if (item.is_dir) {
+                              e.currentTarget.classList.remove('bg-orbit-500/10');
+                              handleInternalDrop(e, item.path);
+                            }
+                          }}
                           onClick={() => handleItemClick(item)}
                           className={`hover:bg-accent/50 transition-colors cursor-pointer ${
                             selected ? 'bg-orbit-500/10' : ''
@@ -1041,6 +1491,28 @@ export function FileManager() {
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShareFile(item);
+                                }}
+                                className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-accent"
+                                title="Compartilhar"
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                              </button>
+                              {isArchive && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExtractArchive(item);
+                                  }}
+                                  className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-accent"
+                                  title="Extrair"
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1076,6 +1548,15 @@ export function FileManager() {
       </main>
 
       {/* MODALS */}
+      {activeImageFile && (
+        <ImageGalleryModal
+          currentFile={activeImageFile}
+          files={files}
+          isOpen={activeImageFile !== null}
+          onClose={() => setActiveImageFile(null)}
+        />
+      )}
+
       {activeAudioFile && (
         <AudioPlayerModal
           file={activeAudioFile}
@@ -1102,6 +1583,23 @@ export function FileManager() {
         <PdfViewerModal
           file={activePdfFile}
           onClose={() => setActivePdfFile(null)}
+        />
+      )}
+
+      {isDiskAnalyzerOpen && (
+        <DiskAnalyzerModal
+          currentPath={currentPath}
+          isOpen={isDiskAnalyzerOpen}
+          onClose={() => setIsDiskAnalyzerOpen(false)}
+          onNavigateTo={(target) => navigateTo(target)}
+        />
+      )}
+
+      {shareFile && (
+        <ShareModal
+          file={shareFile}
+          isOpen={shareFile !== null}
+          onClose={() => setShareFile(null)}
         />
       )}
 

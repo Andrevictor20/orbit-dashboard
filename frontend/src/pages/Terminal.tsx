@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +10,7 @@ type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
 
 export function Terminal() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -74,6 +76,15 @@ export function Terminal() {
         pass: password,
       }));
       setConnState('connected');
+
+      const cwd = searchParams.get('cwd');
+      if (cwd) {
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(`cd "${cwd}"\n`);
+          }
+        }, 400);
+      }
     };
 
     ws.onmessage = (event) => {

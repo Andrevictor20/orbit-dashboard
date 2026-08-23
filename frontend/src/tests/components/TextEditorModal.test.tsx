@@ -10,12 +10,12 @@ vi.mock('react-i18next', () => ({
 
 describe('TextEditorModal Component', () => {
   const mockFile = {
-    name: 'notes.txt',
-    path: '/DATA/notes.txt',
+    name: 'README.md',
+    path: '/DATA/README.md',
     is_dir: false,
     size: 1024,
     modified: '2026-08-22T10:05:00Z',
-    extension: 'txt'
+    extension: 'md'
   };
 
   beforeEach(() => {
@@ -28,17 +28,26 @@ describe('TextEditorModal Component', () => {
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ content: 'Original text content in notes.txt' }),
+        json: () => Promise.resolve({ content: '# Orbit Dashboard\n\nWelcome to **Orbit**!' }),
       });
     }));
   });
 
-  it('renders editor with loaded content', async () => {
+  it('renders editor with loaded content and allows switching to preview mode for markdown', async () => {
     render(<TextEditorModal file={mockFile} onClose={vi.fn()} onSaved={vi.fn()} />);
 
-    expect(screen.getByText('notes.txt')).toBeTruthy();
+    expect(screen.getByText('README.md')).toBeTruthy();
     const textarea = await screen.findByTestId('text-editor-area') as HTMLTextAreaElement;
-    expect(textarea.value).toBe('Original text content in notes.txt');
+    expect(textarea.value).toContain('# Orbit Dashboard');
+
+    // Check preview button exists for .md file
+    const previewTab = screen.getByTestId('tab-preview');
+    expect(previewTab).toBeTruthy();
+
+    fireEvent.click(previewTab);
+
+    // Markdown preview should render formatted header
+    expect(await screen.findByText('Orbit Dashboard')).toBeTruthy();
   });
 
   it('allows editing and saving content', async () => {
@@ -46,7 +55,7 @@ describe('TextEditorModal Component', () => {
     render(<TextEditorModal file={mockFile} onClose={vi.fn()} onSaved={onSaved} />);
 
     const textarea = await screen.findByTestId('text-editor-area');
-    fireEvent.change(textarea, { target: { value: 'Edited text content' } });
+    fireEvent.change(textarea, { target: { value: '# Updated Content' } });
 
     const saveBtn = screen.getByTestId('save-text-btn');
     fireEvent.click(saveBtn);
@@ -57,12 +66,31 @@ describe('TextEditorModal Component', () => {
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify({
-            path: '/DATA/notes.txt',
-            content: 'Edited text content'
-          })
+            path: '/DATA/README.md',
+            content: '# Updated Content',
+          }),
         })
       );
       expect(onSaved).toHaveBeenCalled();
     });
+  });
+
+  it('supports HTML preview mode for .html files', async () => {
+    const htmlFile = {
+      name: 'index.html',
+      path: '/DATA/index.html',
+      is_dir: false,
+      size: 512,
+      modified: '2026-08-22T10:05:00Z',
+      extension: 'html'
+    };
+
+    render(<TextEditorModal file={htmlFile} onClose={vi.fn()} />);
+
+    const previewTab = await screen.findByTestId('tab-preview');
+    fireEvent.click(previewTab);
+
+    const htmlPreview = await screen.findByTestId('html-preview-frame');
+    expect(htmlPreview).toBeTruthy();
   });
 });

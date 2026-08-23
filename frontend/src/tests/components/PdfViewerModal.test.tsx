@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PdfViewerModal } from '../../components/files/PdfViewerModal';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -18,14 +18,24 @@ describe('PdfViewerModal Component', () => {
     extension: 'pdf'
   };
 
-  it('renders PDF viewer modal with embed/iframe source and download button', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['%PDF-1.4 mock content'], { type: 'application/pdf' }))
+    })));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders PDF viewer modal with embed/iframe source, fullscreen button and download button', async () => {
     render(<PdfViewerModal file={mockFile} onClose={vi.fn()} />);
 
     expect(screen.getByText('document.pdf')).toBeTruthy();
-    const pdfEmbed = screen.getByTestId('pdf-viewer-embed');
-    expect(pdfEmbed).toBeTruthy();
-    expect(pdfEmbed.getAttribute('src')).toContain('/api/files/raw?path=%2FDATA%2Fdocument.pdf');
+    expect(await screen.findByTestId('pdf-viewer-embed')).toBeTruthy();
     expect(screen.getByTestId('download-pdf-btn')).toBeTruthy();
+    expect(screen.getByTestId('toggle-fullscreen-pdf')).toBeTruthy();
   });
 
   it('calls onClose when close button is clicked', () => {

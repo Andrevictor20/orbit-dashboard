@@ -171,6 +171,93 @@ pub struct SubtitlesResponse {
     pub subtitles: Vec<SubtitleItem>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ExtractRequest {
+    pub path: String,
+    pub destination: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CompressRequest {
+    pub paths: Vec<String>,
+    pub destination_name: String,
+    pub destination_dir: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeQuery {
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DiskItemStat {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub percentage: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiskAnalysisResponse {
+    pub path: String,
+    pub total_size: u64,
+    pub item_count: usize,
+    pub items: Vec<DiskItemStat>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TrashItem {
+    pub id: String,
+    pub name: String,
+    pub original_path: String,
+    pub trash_path: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub deleted_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TrashListResponse {
+    pub items: Vec<TrashItem>,
+    pub total_size: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MoveToTrashRequest {
+    pub paths: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RestoreTrashRequest {
+    pub ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShareLink {
+    pub token: String,
+    pub file_path: String,
+    pub file_name: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub created_at: String,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    #[serde(default)]
+    pub expires_at_unix: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SharesResponse {
+    pub shares: Vec<ShareLink>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateShareRequest {
+    pub path: String,
+    pub expires_in_seconds: Option<u64>,
+}
+
 // --- HELPER FUNCTIONS ---
 
 pub fn sanitize_path(raw: &str) -> Result<PathBuf, StatusCode> {
@@ -180,6 +267,10 @@ pub fn sanitize_path(raw: &str) -> Result<PathBuf, StatusCode> {
     let trimmed = raw.trim();
     let p = if trimmed.is_empty() { "/" } else { trimmed };
 
+    if Path::new(p).exists() {
+        return Ok(PathBuf::from(p));
+    }
+
     // If running inside a container where host root is mounted at /host
     if Path::new("/host").is_dir() {
         if p == "/" || p == "/host" {
@@ -188,8 +279,8 @@ pub fn sanitize_path(raw: &str) -> Result<PathBuf, StatusCode> {
         if p.starts_with("/host/") || p == "/host" {
             return Ok(PathBuf::from(p));
         }
-        // If path is under /mnt or /media or /app, check if local mount exists first
-        if (p.starts_with("/mnt") || p.starts_with("/media") || p.starts_with("/app")) && Path::new(p).exists() {
+        // If path is under /mnt or /media or /app or /tmp, check if local mount exists first
+        if (p.starts_with("/mnt") || p.starts_with("/media") || p.starts_with("/app") || p.starts_with("/tmp")) && Path::new(p).exists() {
             return Ok(PathBuf::from(p));
         }
         // Map host path: e.g. /home/user -> /host/home/user
@@ -1088,3 +1179,522 @@ pub async fn get_raw_file(Query(q): Query<DownloadQuery>) -> Result<Response, St
 
     Ok((headers, contents).into_response())
 }
+
+// --- ARCHIVE EXTRACTION & COMPRESSION ---
+
+pub async fn extract_archive(Json(req): Json<ExtractRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let path = sanitize_path(&req.path)?;
+    if !path.exists() || path.is_dir() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let dest_dir = if let Some(ref d) = req.destination {
+        sanitize_path(d)?
+    } else {
+        path.parent().unwrap_or(Path::new("/")).to_path_buf()
+    };
+
+    let _ = fs::create_dir_all(&dest_dir);
+
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let mut extracted_count = 0;
+
+    if ext == "zip" {
+        let file = File::open(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let mut archive = zip::ZipArchive::new(file).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        for i in 0..archive.len() {
+            let mut file_in_zip = archive.by_index(i).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let outpath = match file_in_zip.enclosed_name() {
+                Some(p) => dest_dir.join(p),
+                None => continue,
+            };
+
+            if file_in_zip.is_dir() {
+                let _ = fs::create_dir_all(&outpath);
+            } else {
+                if let Some(parent) = outpath.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                let mut outfile = File::create(&outpath).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                std::io::copy(&mut file_in_zip, &mut outfile).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                extracted_count += 1;
+            }
+        }
+    } else {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "extracted_to": dest_dir.to_string_lossy(),
+        "files_count": extracted_count
+    })))
+}
+
+pub async fn compress_files(Json(req): Json<CompressRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    if req.paths.is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let dest_dir = if let Some(ref d) = req.destination_dir {
+        sanitize_path(d)?
+    } else {
+        let first = sanitize_path(&req.paths[0])?;
+        first.parent().unwrap_or(Path::new("/")).to_path_buf()
+    };
+
+    let zip_filename = if req.destination_name.ends_with(".zip") {
+        req.destination_name.clone()
+    } else {
+        format!("{}.zip", req.destination_name)
+    };
+
+    let zip_path = dest_dir.join(&zip_filename);
+    let zip_file = File::create(&zip_path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut zip_writer = zip::ZipWriter::new(zip_file);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+
+    fn add_to_zip(
+        zip: &mut zip::ZipWriter<File>,
+        src_path: &Path,
+        prefix_in_zip: &str,
+        options: zip::write::SimpleFileOptions,
+    ) -> std::io::Result<()> {
+        let name = src_path.file_name().unwrap_or_default().to_string_lossy();
+        let zip_entry_name = if prefix_in_zip.is_empty() {
+            name.to_string()
+        } else {
+            format!("{}/{}", prefix_in_zip, name)
+        };
+
+        if src_path.is_dir() {
+            zip.add_directory(&zip_entry_name, options)?;
+            for entry in fs::read_dir(src_path)? {
+                let entry = entry?;
+                add_to_zip(zip, &entry.path(), &zip_entry_name, options)?;
+            }
+        } else {
+            zip.start_file(&zip_entry_name, options)?;
+            let mut f = File::open(src_path)?;
+            let mut buf = Vec::new();
+            f.read_to_end(&mut buf)?;
+            zip.write_all(&buf)?;
+        }
+        Ok(())
+    }
+
+    for p in &req.paths {
+        let target = sanitize_path(p)?;
+        if target.exists() {
+            let _ = add_to_zip(&mut zip_writer, &target, "", options);
+        }
+    }
+
+    zip_writer.finish().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let size = zip_path.metadata().map(|m| m.len()).unwrap_or(0);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "archive_path": to_display_path(&zip_path),
+        "size": size
+    })))
+}
+
+// --- DISK SPACE ANALYZER ---
+
+fn get_dir_size_recursive(p: &Path) -> u64 {
+    let mut total = 0;
+    if let Ok(entries) = fs::read_dir(p) {
+        for entry in entries.flatten() {
+            if let Ok(meta) = entry.metadata() {
+                if meta.is_dir() {
+                    total += get_dir_size_recursive(&entry.path());
+                } else {
+                    total += meta.len();
+                }
+            }
+        }
+    }
+    total
+}
+
+pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<DiskAnalysisResponse>, StatusCode> {
+    let target = q.path.as_deref().unwrap_or("/");
+    let path = sanitize_path(target)?;
+
+    if !path.exists() || !path.is_dir() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let entries = fs::read_dir(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut raw_items = Vec::new();
+    let mut total_size = 0u64;
+
+    for entry in entries.flatten() {
+        let meta = entry.metadata().ok();
+        let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
+        let name = entry.file_name().to_string_lossy().to_string();
+        let item_path = entry.path();
+
+        let size = if is_dir {
+            get_dir_size_recursive(&item_path)
+        } else {
+            meta.as_ref().map(|m| m.len()).unwrap_or(0)
+        };
+
+        total_size += size;
+        raw_items.push((name, to_display_path(&item_path), is_dir, size));
+    }
+
+    let mut items = Vec::new();
+    for (name, item_path, is_dir, size) in raw_items {
+        let percentage = if total_size > 0 {
+            (size as f32 / total_size as f32) * 100.0
+        } else {
+            0.0
+        };
+
+        items.push(DiskItemStat {
+            name,
+            path: item_path,
+            is_dir,
+            size,
+            percentage,
+        });
+    }
+
+    items.sort_by(|a, b| b.size.cmp(&a.size));
+
+    Ok(Json(DiskAnalysisResponse {
+        path: target.to_string(),
+        total_size,
+        item_count: items.len(),
+        items,
+    }))
+}
+
+// --- TRASH BIN SYSTEM ---
+
+fn get_trash_dir() -> PathBuf {
+    let candidate = PathBuf::from("/app/data/.trash");
+    if fs::create_dir_all(&candidate).is_ok() {
+        candidate
+    } else {
+        let fallback = std::env::temp_dir().join("orbit_trash");
+        let _ = fs::create_dir_all(&fallback);
+        fallback
+    }
+}
+
+fn get_trash_metadata_file() -> PathBuf {
+    get_trash_dir().join("trash_metadata.json")
+}
+
+fn load_trash_items() -> Vec<TrashItem> {
+    let file = get_trash_metadata_file();
+    if let Ok(content) = fs::read_to_string(&file) {
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+fn save_trash_items(items: &[TrashItem]) {
+    let file = get_trash_metadata_file();
+    if let Ok(content) = serde_json::to_string_pretty(items) {
+        let _ = fs::write(&file, content);
+    }
+}
+
+pub async fn list_trash() -> Json<TrashListResponse> {
+    let items = load_trash_items();
+    let total_size = items.iter().map(|i| i.size).sum();
+    Json(TrashListResponse { items, total_size })
+}
+
+fn move_path_or_copy(src: &Path, dst: &Path) -> std::io::Result<()> {
+    if let Some(parent) = dst.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if fs::rename(src, dst).is_err() {
+        if src.is_dir() {
+            copy_dir_all(src, dst)?;
+            let _ = fs::remove_dir_all(src);
+        } else {
+            fs::copy(src, dst)?;
+            let _ = fs::remove_file(src);
+        }
+    }
+    Ok(())
+}
+
+pub async fn move_to_trash(Json(req): Json<MoveToTrashRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let trash_dir = get_trash_dir();
+    let mut items = load_trash_items();
+    let now = time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default();
+
+    for p in &req.paths {
+        let src = sanitize_path(p)?;
+        if !src.exists() {
+            continue;
+        }
+
+        let meta = src.metadata().ok();
+        let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
+        let size = if is_dir { get_dir_size_recursive(&src) } else { meta.map(|m| m.len()).unwrap_or(0) };
+        let file_name = src.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let id = Uuid::new_v4().to_string();
+        let trash_target = trash_dir.join(format!("{}_{}", id, file_name));
+
+        if move_path_or_copy(&src, &trash_target).is_ok() {
+            items.push(TrashItem {
+                id,
+                name: file_name,
+                original_path: p.clone(),
+                trash_path: trash_target.to_string_lossy().to_string(),
+                is_dir,
+                size,
+                deleted_at: now.clone(),
+            });
+        }
+    }
+
+    save_trash_items(&items);
+    Ok(Json(serde_json::json!({ "success": true, "count": req.paths.len() })))
+}
+
+pub async fn restore_trash(Json(req): Json<RestoreTrashRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut items = load_trash_items();
+    let mut restored_count = 0;
+
+    for id in &req.ids {
+        if let Some(pos) = items.iter().position(|i| &i.id == id) {
+            let item = items.remove(pos);
+            let trash_path = PathBuf::from(&item.trash_path);
+            let original_path = match sanitize_path(&item.original_path) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+
+            if move_path_or_copy(&trash_path, &original_path).is_ok() {
+                restored_count += 1;
+            }
+        }
+    }
+
+    save_trash_items(&items);
+    Ok(Json(serde_json::json!({ "success": true, "restored": restored_count })))
+}
+
+pub async fn empty_trash() -> Result<Json<serde_json::Value>, StatusCode> {
+    let trash_dir = get_trash_dir();
+    let items = load_trash_items();
+
+    for item in items {
+        let p = PathBuf::from(&item.trash_path);
+        if p.is_dir() {
+            let _ = fs::remove_dir_all(&p);
+        } else if p.exists() {
+            let _ = fs::remove_file(&p);
+        }
+    }
+
+    save_trash_items(&[]);
+    let _ = fs::remove_file(get_trash_metadata_file());
+    let _ = fs::remove_dir_all(&trash_dir);
+    let _ = fs::create_dir_all(&trash_dir);
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+// --- TEMPORARY SHARE LINKS SYSTEM ---
+
+fn get_shares_file() -> PathBuf {
+    let candidate = PathBuf::from("/app/data/shares.json");
+    if let Some(parent) = candidate.parent() {
+        if fs::create_dir_all(parent).is_ok() {
+            if fs::OpenOptions::new().create(true).write(true).open(&candidate).is_ok() {
+                return candidate;
+            }
+        }
+    }
+    std::env::temp_dir().join("orbit_shares.json")
+}
+
+fn load_shares() -> Vec<ShareLink> {
+    let file = get_shares_file();
+    if let Ok(content) = fs::read_to_string(&file) {
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        Vec::new()
+    }
+}
+
+fn save_shares(shares: &[ShareLink]) {
+    let file = get_shares_file();
+    if let Ok(content) = serde_json::to_string_pretty(shares) {
+        let _ = fs::write(&file, content);
+    }
+}
+
+pub async fn create_share(Json(req): Json<CreateShareRequest>) -> Result<Json<ShareLink>, StatusCode> {
+    let path = sanitize_path(&req.path)?;
+    if !path.exists() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let meta = path.metadata().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let is_dir = meta.is_dir();
+    let size = if is_dir { get_dir_size_recursive(&path) } else { meta.len() };
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+    let now_utc = time::OffsetDateTime::now_utc();
+    let created_at = now_utc.format(&time::format_description::well_known::Rfc3339).unwrap_or_default();
+
+    let (expires_at, expires_at_unix) = if let Some(secs) = req.expires_in_seconds {
+        let exp = now_utc + time::Duration::seconds(secs as i64);
+        (
+            Some(exp.format(&time::format_description::well_known::Rfc3339).unwrap_or_default()),
+            Some(exp.unix_timestamp())
+        )
+    } else {
+        (None, None)
+    };
+
+    let token = Uuid::new_v4().to_string().replace('-', "")[..16].to_string();
+
+    let share = ShareLink {
+        token,
+        file_path: req.path.clone(),
+        file_name,
+        is_dir,
+        size,
+        created_at,
+        expires_at,
+        expires_at_unix,
+    };
+
+    let mut shares = load_shares();
+    shares.push(share.clone());
+    save_shares(&shares);
+
+    Ok(Json(share))
+}
+
+pub async fn list_shares() -> Json<SharesResponse> {
+    let shares = load_shares();
+    let now_unix = time::OffsetDateTime::now_utc().unix_timestamp();
+
+    // Filter out expired shares
+    let active_shares: Vec<ShareLink> = shares
+        .into_iter()
+        .filter(|s| {
+            if let Some(exp_unix) = s.expires_at_unix {
+                return exp_unix > now_unix;
+            }
+            true
+        })
+        .collect();
+
+    save_shares(&active_shares);
+    Json(SharesResponse { shares: active_shares })
+}
+
+pub async fn delete_share(AxumPath(token): AxumPath<String>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut shares = load_shares();
+    let initial_len = shares.len();
+    shares.retain(|s| s.token != token);
+    if shares.len() == initial_len {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    save_shares(&shares);
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+pub async fn public_get_share(AxumPath(token): AxumPath<String>) -> Result<Response, StatusCode> {
+    let shares = load_shares();
+    let share = shares.iter().find(|s| s.token == token).ok_or(StatusCode::NOT_FOUND)?;
+
+    // Check expiration
+    if let Some(exp_unix) = share.expires_at_unix {
+        if exp_unix <= time::OffsetDateTime::now_utc().unix_timestamp() {
+            return Err(StatusCode::GONE);
+        }
+    }
+
+    let path = sanitize_path(&share.file_path)?;
+    if !path.exists() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    if share.is_dir {
+        // If directory, download as zip
+        let mut zip_buf = std::io::Cursor::new(Vec::new());
+        {
+            let mut zip = zip::ZipWriter::new(&mut zip_buf);
+            let options = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated);
+
+            fn add_dir_to_zip(
+                zip: &mut zip::ZipWriter<&mut std::io::Cursor<Vec<u8>>>,
+                dir_path: &Path,
+                prefix: &Path,
+                options: zip::write::SimpleFileOptions,
+            ) -> std::io::Result<()> {
+                for entry in fs::read_dir(dir_path)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    let name = path.strip_prefix(prefix).unwrap();
+                    if path.is_dir() {
+                        zip.add_directory(name.to_string_lossy(), options)?;
+                        add_dir_to_zip(zip, &path, prefix, options)?;
+                    } else {
+                        zip.start_file(name.to_string_lossy(), options)?;
+                        let mut f = File::open(&path)?;
+                        let mut buf = Vec::new();
+                        f.read_to_end(&mut buf)?;
+                        zip.write_all(&buf)?;
+                    }
+                }
+                Ok(())
+            }
+
+            let _ = add_dir_to_zip(&mut zip, &path, &path, options);
+            let _ = zip.finish();
+        }
+
+        let result_bytes = zip_buf.into_inner();
+        let mut headers = HeaderMap::new();
+        headers.insert(header::CONTENT_TYPE, "application/zip".parse().unwrap());
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}.zip\"", share.file_name).parse().unwrap(),
+        );
+        headers.insert(header::CONTENT_LENGTH, result_bytes.len().to_string().parse().unwrap());
+
+        Ok((headers, result_bytes).into_response())
+    } else {
+        let mut file = File::open(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let mut contents = Vec::new();
+        file.read_to_end(&mut contents).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        let mime = get_mime_type(ext);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(header::CONTENT_TYPE, mime.parse().unwrap());
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            format!("inline; filename=\"{}\"", share.file_name).parse().unwrap(),
+        );
+        headers.insert(header::CONTENT_LENGTH, contents.len().to_string().parse().unwrap());
+
+        Ok((headers, contents).into_response())
+    }
+}
+

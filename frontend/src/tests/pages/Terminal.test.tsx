@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Terminal } from '../../pages/Terminal';
 import { vi, describe, it, expect } from 'vitest';
 
@@ -27,7 +28,11 @@ vi.mock('@xterm/addon-fit', () => ({
 
 describe('Terminal Page', () => {
   it('renders the SSH connection form with accessible button styling', () => {
-    render(<Terminal />);
+    render(
+      <MemoryRouter>
+        <Terminal />
+      </MemoryRouter>
+    );
     
     expect(screen.getByText('Conexão SSH')).toBeTruthy();
     expect(screen.getByPlaceholderText('pi')).toBeTruthy();

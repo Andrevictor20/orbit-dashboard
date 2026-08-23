@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Download, X, ZoomIn, ZoomOut, ExternalLink } from 'lucide-react';
+import { FileText, Download, X, ZoomIn, ZoomOut, ExternalLink, Maximize, Minimize, Loader2, AlertCircle } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 
 interface PdfViewerModalProps {
@@ -10,24 +10,86 @@ interface PdfViewerModalProps {
 
 export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
   const [zoom, setZoom] = useState(100);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const pdfUrl = `/api/files/raw?path=${encodeURIComponent(file.path)}`;
   const downloadUrl = `/api/files/download?path=${encodeURIComponent(file.path)}`;
 
+  // Fetch as blob for seamless browser compatibility
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setError(null);
+
+    const token = localStorage.getItem('orbit_token');
+    fetch(pdfUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Não foi possível carregar o arquivo PDF.');
+        return res.blob();
+      })
+      .then(blob => {
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        if (!active) return;
+        console.warn('Fallback to direct PDF URL:', err);
+        setBlobUrl(pdfUrl);
+        setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (blobUrl && blobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [file.path]);
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
   return typeof document !== 'undefined' ? createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="relative w-full max-w-5xl h-[92vh] sm:h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto"
+        ref={containerRef}
+        className={`relative w-full bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto ${
+          isFullscreen ? 'h-full max-w-none rounded-none border-0' : 'max-w-6xl h-[94vh] sm:h-[92vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-3.5 border-b border-border bg-card/90 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-primary text-sm sm:text-base truncate max-w-[150px] sm:max-w-md" title={file.name}>
+              <h3 className="font-semibold text-primary text-sm sm:text-base truncate max-w-[150px] xs:max-w-xs sm:max-w-md" title={file.name}>
                 {file.name}
               </h3>
               <p className="text-[11px] text-secondary">Documento PDF</p>
@@ -53,6 +115,16 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Native Fullscreen Button */}
+            <button
+              data-testid="toggle-fullscreen-pdf"
+              onClick={toggleFullscreen}
+              className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+              title={isFullscreen ? 'Sair da Tela Cheia' : 'Tela Cheia'}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
 
             {/* Download Button */}
             <a
@@ -88,14 +160,62 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
           </div>
         </div>
 
-        {/* PDF Frame */}
-        <div className="flex-1 w-full h-full bg-zinc-900 overflow-auto flex items-center justify-center">
-          <iframe
-            data-testid="pdf-viewer-embed"
-            src={`${pdfUrl}#zoom=${zoom}`}
-            title={file.name}
-            className="w-full h-full border-0"
-          />
+        {/* PDF Body Container */}
+        <div className="flex-1 w-full h-full bg-zinc-950 overflow-hidden relative flex items-center justify-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center gap-3 text-secondary">
+              <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
+              <span className="text-sm font-medium">Carregando PDF...</span>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center gap-3 text-secondary p-6 text-center">
+              <AlertCircle className="w-10 h-10 text-rose-400" />
+              <p className="text-sm font-medium text-primary">{error}</p>
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors"
+              >
+                Abrir em nova aba
+              </a>
+            </div>
+          ) : (
+            <object
+              data-testid="pdf-viewer-embed"
+              data={`${blobUrl || pdfUrl}#zoom=${zoom}`}
+              type="application/pdf"
+              className="w-full h-full border-0"
+            >
+              <iframe
+                src={`${blobUrl || pdfUrl}#zoom=${zoom}`}
+                title={file.name}
+                className="w-full h-full border-0"
+              >
+                <div className="flex flex-col items-center justify-center h-full gap-3 p-6 text-center text-secondary">
+                  <FileText className="w-12 h-12 text-zinc-600" />
+                  <p className="text-sm font-medium text-primary">Não foi possível embutir o PDF diretamente.</p>
+                  <div className="flex gap-2">
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-orbit-500/20 text-orbit-400 border border-orbit-500/30 text-xs font-semibold"
+                    >
+                      Abrir em nova aba
+                    </a>
+                    <a
+                      href={downloadUrl}
+                      download={file.name}
+                      className="px-3 py-1.5 rounded-xl bg-accent text-primary text-xs font-semibold"
+                    >
+                      Baixar arquivo
+                    </a>
+                  </div>
+                </div>
+              </iframe>
+            </object>
+          )}
         </div>
       </div>
     </div>,

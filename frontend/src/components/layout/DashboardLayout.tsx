@@ -19,7 +19,9 @@ import {
   Loader2,
   FolderOpen,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
@@ -264,6 +266,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               aria-label="Alternar modo claro/escuro"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => {
+                if (!document.fullscreenElement) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                  document.exitFullscreen().catch(() => {});
+                }
+              }}
+              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              title="Alternar Tela Cheia"
+              aria-label="Alternar tela cheia"
+            >
+              {typeof document !== 'undefined' && document.fullscreenElement ? (
+                <Minimize className="w-4 h-4" />
+              ) : (
+                <Maximize className="w-4 h-4" />
+              )}
             </button>
             <div className="h-5 sm:h-6 w-px bg-border mx-1 sm:mx-2"></div>
             <button

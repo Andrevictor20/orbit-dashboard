@@ -81,11 +81,20 @@ pub fn app() -> Router {
         .route("/api/files/subtitles", get(files::get_subtitles))
         .route("/api/files/content", get(files::get_file_content).put(files::update_file_content))
         .route("/api/files/raw", get(files::get_raw_file))
+        .route("/api/files/extract", post(files::extract_archive))
+        .route("/api/files/compress", post(files::compress_files))
+        .route("/api/files/analyze", get(files::analyze_directory))
+        .route("/api/files/trash", get(files::list_trash).post(files::move_to_trash).delete(files::empty_trash))
+        .route("/api/files/trash/restore", post(files::restore_trash))
+        .route("/api/files/share", post(files::create_share))
+        .route("/api/files/shares", get(files::list_shares))
+        .route("/api/files/share/{token}", delete(files::delete_share))
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state.clone());
 
     Router::new()
         .route("/health", get(|| async { StatusCode::OK }))
+        .route("/api/public/share/{token}", get(files::public_get_share))
         .route("/api/auth/login", post(auth::login))
         .route("/api/auth/status", get(auth::status))
         .route("/api/auth/setup", post(auth::setup))
@@ -100,14 +109,14 @@ pub fn app() -> Router {
                 .allow_headers([header::AUTHORIZATION, header::ACCEPT, header::CONTENT_TYPE])
                 .allow_credentials(true)
         )
-        // Adicionando Security Headers (X-Frame-Options e X-Content-Type-Options)
+        // Adicionando Security Headers (X-Frame-Options SAMEORIGIN e CSP com frame/object-src)
         .layer(SetResponseHeaderLayer::overriding(
             header::X_FRAME_OPTIONS,
-            header::HeaderValue::from_static("DENY"),
+            header::HeaderValue::from_static("SAMEORIGIN"),
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss:;"),
+            HeaderValue::from_static("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' blob: data:; frame-src 'self' blob: data:; object-src 'self' blob: data:; frame-ancestors 'self'; connect-src 'self' ws: wss:;"),
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("strict-transport-security"),
