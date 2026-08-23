@@ -30,8 +30,99 @@ export function formatGB(bytes: number): string {
 }
 
 /**
- * Classifies a storage device and returns a user-friendly label.
- * e.g., 'Cartão microSD', 'SSD NVMe', 'HD Externo', 'Pendrive / USB', 'Armazenamento do Sistema'
+ * Determines whether a given mount/disk is a real physical user storage drive
+ * (SSD, HD, Pendrive, SD Card) and filters out pseudo/virtual filesystems,
+ * boot/efi partitions (< 5GB), and fake 0-byte directory mappings.
+ */
+export function isPhysicalStorage(
+  name?: string,
+  mountPoint?: string,
+  fsType?: string,
+  totalBytes?: number
+): boolean {
+  const n = (name || '').toLowerCase();
+  const m = (mountPoint || '').toLowerCase();
+  const f = (fsType || '').toLowerCase();
+
+  // Pseudo / virtual filesystems blacklist
+  const pseudoFs = [
+    'securityfs',
+    'efivarfs',
+    'bpf',
+    'configfs',
+    'selinuxfs',
+    'debugfs',
+    'cgroup',
+    'cgroup2',
+    'pstore',
+    'hugetlbfs',
+    'mqueue',
+    'autofs',
+    'tracefs',
+    'fusectl',
+    'binfmt_misc',
+    'devtmpfs',
+    'devpts',
+    'proc',
+    'sysfs',
+    'tmpfs',
+    'squashfs',
+    'overlay',
+    'overlayfs',
+    'nsfs',
+    'rpc_pipefs',
+    'fuse.gvfsd-fuse',
+    'gvfsd-fuse',
+    'fuse.portal',
+    'portal',
+    'pipefs',
+    'sockfs'
+  ];
+
+  if (pseudoFs.includes(f) || pseudoFs.includes(n)) {
+    return false;
+  }
+
+  // Filter out system kernel and runtime mount paths, plus boot/efi internal partitions
+  if (
+    m.startsWith('/sys') ||
+    m.startsWith('/proc') ||
+    m.startsWith('/dev') ||
+    m.startsWith('/run') ||
+    m.startsWith('/var/run') ||
+    m.startsWith('/etc') ||
+    m.startsWith('/tmp') ||
+    m.startsWith('/boot') ||
+    m.startsWith('/efi') ||
+    m.startsWith('/recovery') ||
+    m.startsWith('/var/lib/docker') ||
+    m.startsWith('/var/lib/containers') ||
+    m === '/app/data' ||
+    m.startsWith('/host/sys') ||
+    m.startsWith('/host/proc') ||
+    m.startsWith('/host/dev') ||
+    m.startsWith('/host/run') ||
+    m.startsWith('/host/etc') ||
+    m.startsWith('/host/tmp') ||
+    m.startsWith('/host/boot') ||
+    m.startsWith('/host/efi') ||
+    m.startsWith('/host/recovery') ||
+    m.startsWith('/host/var/lib/docker')
+  ) {
+    return false;
+  }
+
+  // Filter out fake/empty mounts (0 bytes) or small partitions (< 2GB)
+  if (totalBytes !== undefined && totalBytes < 2 * 1024 * 1024 * 1024) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Classifies a storage device and returns a user-friendly, clean label.
+ * e.g., 'Cartão microSD', 'SSD NVMe', 'HD Externo', 'Pendrive USB', 'Armazenamento do Sistema'
  */
 export function getFriendlyDiskName(name?: string, mountPoint?: string): string {
   const n = (name || '').toLowerCase();
@@ -43,19 +134,18 @@ export function getFriendlyDiskName(name?: string, mountPoint?: string): string 
   if (n.includes('nvme')) {
     return 'SSD NVMe';
   }
-  if (m.startsWith('/mnt') || m.startsWith('/media') || m.startsWith('/run/media')) {
-    const mountFolder = mountPoint?.split('/').filter(Boolean).pop();
+  if (m.startsWith('/mnt') || m.startsWith('/media') || m.startsWith('/run/media') || m.startsWith('/host/mnt') || m.startsWith('/host/media')) {
+    const mountFolder = mountPoint?.split('/').filter(s => s && s !== 'host' && s !== 'mnt' && s !== 'media' && s !== 'run').pop();
     return mountFolder ? `HD Externo (${mountFolder})` : 'HD / Armazenamento Externo';
   }
   if (n.startsWith('/dev/sd') || n.startsWith('sd')) {
-    if (m === '/' || m === '/root' || m === '/home') {
+    if (m === '/' || m === '/root' || m === '/home' || m === '/host') {
       return 'SSD / HD Principal';
     }
-    return 'HD / Pendrive USB';
+    return 'Pendrive / HD USB';
   }
-  if (m === '/' || m === '/root' || n === 'root' || n === '/dev/root') {
+  if (m === '/' || m === '/root' || m === '/host' || n === 'root' || n === '/dev/root') {
     return 'Armazenamento do Sistema';
   }
-  return name && !name.startsWith('/dev/') ? name : 'Armazenamento Local';
+  return name && !name.startsWith('/dev/') && !name.startsWith('/') ? name : 'Armazenamento do Sistema';
 }
-

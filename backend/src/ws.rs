@@ -287,39 +287,59 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         prev_docker_tx = network_tx;
         first_tick = false;
 
-        // Disks (filter overlay, tmpfs, and internal container pseudo-mounts)
-        let mut disk_stats = Vec::new();
+        // Disks (filter pseudo-filesystems, virtual mounts, and container artifacts)
+        let mut disk_stats_map: std::collections::HashMap<String, DiskStat> = std::collections::HashMap::new();
+
         for disk in &disks {
             let name = disk.name().to_string_lossy().into_owned();
-            let mount_point = disk.mount_point().to_string_lossy().into_owned();
+            let raw_mount = disk.mount_point().to_string_lossy().into_owned();
             let fs_type = disk.file_system().to_string_lossy().into_owned();
+            let total_space = disk.total_space();
 
-            let name_lower = name.to_lowercase();
-            let mount_lower = mount_point.to_lowercase();
-            let fs_lower = fs_type.to_lowercase();
-
-            if name_lower.contains("overlay")
-                || mount_lower.contains("overlay")
-                || fs_lower.contains("overlay")
-                || fs_lower.contains("tmpfs")
-                || fs_lower.contains("devtmpfs")
-                || fs_lower.contains("squashfs")
-                || mount_lower.starts_with("/etc/")
-                || mount_lower.starts_with("/proc")
-                || mount_lower.starts_with("/sys")
-                || mount_lower.starts_with("/dev")
-                || mount_lower == "/app/data"
-            {
+            if !crate::files::is_valid_storage_disk(&name, &raw_mount, &fs_type, total_space) {
                 continue;
             }
 
-            disk_stats.push(DiskStat {
+            let mount_point = if raw_mount == "/host" {
+                "/".to_string()
+            } else if raw_mount.starts_with("/host/") {
+                raw_mount.replacen("/host", "", 1)
+            } else {
+                raw_mount
+            };
+
+            let group_key = if name.contains("nvme") {
+                let parts: Vec<&str> = name.split('p').collect();
+                parts.first().copied().unwrap_or(&name).to_string()
+            } else if name.starts_with("/dev/sd") && name.len() >= 8 {
+                name[..8].to_string()
+            } else if name.starts_with("sd") && name.len() >= 3 {
+                name[..3].to_string()
+            } else {
+                name.clone()
+            };
+
+            let available = disk.available_space();
+            let used = total_space.saturating_sub(available);
+
+            let stat = DiskStat {
                 name,
                 mount_point,
-                used: disk.total_space() - disk.available_space(),
-                total: disk.total_space(),
-            });
+                used,
+                total: total_space,
+            };
+
+            if let Some(existing) = disk_stats_map.get_mut(&group_key) {
+                if stat.total > existing.total {
+                    *existing = stat;
+                }
+            } else {
+                disk_stats_map.insert(group_key, stat);
+            }
         }
+
+        let mut disk_stats: Vec<DiskStat> = disk_stats_map.into_values().collect();
+        disk_stats.sort_by(|a, b| b.total.cmp(&a.total));
 
         // Temperature (average across all sensors)
         let mut temperature = 0.0f32;

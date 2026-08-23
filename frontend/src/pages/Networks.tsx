@@ -156,8 +156,12 @@ export function Networks() {
 
             helpers.addLog(`[INFO] Redes removidas pelo Docker: ${deleted.length}`);
             deleted.forEach(name => helpers.addLog(`[SUCCESS] Rede removida: ${name}`));
-            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedNetworks.length} rede(s) removida(s).`);
-            toast.success('Redes não utilizadas removidas com sucesso!');
+            helpers.setDone(`Limpeza concluída! ${deleted.length} rede(s) removida(s).`);
+            if (deleted.length > 0) {
+              toast.success('Redes não utilizadas removidas com sucesso!');
+            } else {
+              toast('Nenhuma rede removida pelo Docker.', { icon: 'ℹ️' });
+            }
             fetchNetworks();
           }
         });

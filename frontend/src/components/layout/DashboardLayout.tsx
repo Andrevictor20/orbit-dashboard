@@ -277,7 +277,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content with fluid responsive padding */}
-        <div className="p-3.5 sm:p-6 lg:p-8 flex-1 overflow-x-hidden animate-fade-in w-full min-w-0">
+        <div className={`flex-1 overflow-x-hidden animate-fade-in w-full min-w-0 ${
+          location.pathname === '/files' ? 'p-2 sm:p-3.5 lg:p-4 flex flex-col' : 'p-3.5 sm:p-6 lg:p-8'
+        }`}>
           {children}
         </div>
       </main>

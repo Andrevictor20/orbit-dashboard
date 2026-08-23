@@ -20,32 +20,35 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 const mockFilesResponse = {
-  current_path: '/DATA',
+  current_path: '/home/user',
   items: [
-    { name: 'Documents', path: '/DATA/Documents', is_dir: true, size: 4096, modified: '2026-08-22T10:00:00Z', extension: '' },
-    { name: 'Media', path: '/DATA/Media', is_dir: true, size: 4096, modified: '2026-08-22T10:00:00Z', extension: '' },
-    { name: 'notes.txt', path: '/DATA/notes.txt', is_dir: false, size: 1024, modified: '2026-08-22T10:05:00Z', extension: 'txt' },
-    { name: 'sample.mp3', path: '/DATA/sample.mp3', is_dir: false, size: 5242880, modified: '2026-08-22T10:10:00Z', extension: 'mp3' },
-    { name: 'video.mkv', path: '/DATA/video.mkv', is_dir: false, size: 104857600, modified: '2026-08-22T10:15:00Z', extension: 'mkv' },
-    { name: 'document.pdf', path: '/DATA/document.pdf', is_dir: false, size: 2097152, modified: '2026-08-22T10:20:00Z', extension: 'pdf' },
+    { name: 'Documents', path: '/home/user/Documents', is_dir: true, size: 4096, modified: '2026-08-22T10:00:00Z', extension: '', mime_type: 'inode/directory', is_hidden: false },
+    { name: 'Downloads', path: '/home/user/Downloads', is_dir: true, size: 4096, modified: '2026-08-22T10:00:00Z', extension: '', mime_type: 'inode/directory', is_hidden: false },
+    { name: 'notes.txt', path: '/home/user/notes.txt', is_dir: false, size: 1024, modified: '2026-08-22T10:05:00Z', extension: 'txt', mime_type: 'text/plain', is_hidden: false },
+    { name: '.config', path: '/home/user/.config', is_dir: true, size: 4096, modified: '2026-08-22T10:06:00Z', extension: '', mime_type: 'inode/directory', is_hidden: true },
+    { name: 'sample.mp3', path: '/home/user/sample.mp3', is_dir: false, size: 5242880, modified: '2026-08-22T10:10:00Z', extension: 'mp3', mime_type: 'audio/mpeg', is_hidden: false },
+    { name: 'video.mkv', path: '/home/user/video.mkv', is_dir: false, size: 104857600, modified: '2026-08-22T10:15:00Z', extension: 'mkv', mime_type: 'video/x-matroska', is_hidden: false },
+    { name: 'document.pdf', path: '/home/user/document.pdf', is_dir: false, size: 2097152, modified: '2026-08-22T10:20:00Z', extension: 'pdf', mime_type: 'application/pdf', is_hidden: false },
   ],
-  total_items: 6
+  total_items: 7
 };
 
 const mockStoragesResponse = {
   mounts: [
-    { name: 'Root', mount_point: '/', fs_type: 'ext4', total_bytes: 100000000000, used_bytes: 40000000000, available_bytes: 60000000000 },
-    { name: 'HD5TB', mount_point: '/mnt/HD5TB', fs_type: 'ext4', total_bytes: 5000000000000, used_bytes: 2500000000000, available_bytes: 2500000000000 }
+    { name: 'SSD NVMe', mount_point: '/', fs_type: 'ext4', total_bytes: 920000000000, used_bytes: 480000000000, available_bytes: 440000000000 },
+    { name: 'SSD NVMe', mount_point: '/boot/efi', fs_type: 'vfat', total_bytes: 1000000000, used_bytes: 200000000, available_bytes: 800000000 },
+    { name: 'HD Externo (pi-boot)', mount_point: '/media/pi-boot', fs_type: 'external', total_bytes: 0, used_bytes: 0, available_bytes: 0 }
   ]
 };
 
 const mockShortcutsResponse = {
-  root: '/',
-  data: '/DATA',
-  documents: '/DATA/Documents',
-  downloads: '/DATA/Downloads',
-  gallery: '/DATA/Gallery',
-  media: '/DATA/Media'
+  home: '/home/user',
+  documents: '/home/user/Documents',
+  downloads: '/home/user/Downloads',
+  pictures: '/home/user/Pictures',
+  music: '/home/user/Music',
+  videos: '/home/user/Videos',
+  root: '/'
 };
 
 describe('FileManager Page Component', () => {
@@ -86,26 +89,34 @@ describe('FileManager Page Component', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders sidebar with system shortcuts and mounted storages', async () => {
+  it('renders sidebar with Nautilus-style places and filters out small/fake external drives', async () => {
     render(
       <BrowserRouter>
         <FileManager />
       </BrowserRouter>
     );
 
-    // Sidebar shortcuts
-    expect((await screen.findAllByText('Root'))[0]).toBeTruthy();
-    expect((await screen.findAllByText('DATA'))[0]).toBeTruthy();
-    expect((await screen.findAllByText('Documents'))[0]).toBeTruthy();
-    expect((await screen.findAllByText('Downloads'))[0]).toBeTruthy();
-    expect((await screen.findAllByText('Gallery'))[0]).toBeTruthy();
-    expect((await screen.findAllByText('Media'))[0]).toBeTruthy();
+    // Nautilus-style sidebar places
+    expect((await screen.findAllByText(/Início|Home/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Documentos|Documents/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Downloads/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Imagens|Pictures/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Músicas|Music/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Vídeos|Videos/i))[0]).toBeTruthy();
+    expect((await screen.findAllByText(/Raiz|Sistema/i))[0]).toBeTruthy();
 
-    // Mounted disks section
-    expect(await screen.findByText('HD5TB')).toBeTruthy();
+    // Broken placeholders must not exist
+    expect(screen.queryByText('DATA')).toBeNull();
+    expect(screen.queryByText('Gallery')).toBeNull();
+
+    // Fake external drive (pi-boot with 0 bytes) and boot partition (1.0 GB) MUST NOT be listed in sidebar
+    expect(screen.queryByText('HD Externo (pi-boot)')).toBeNull();
+
+    // Real SSD NVMe drive must exist
+    expect(await screen.findByText('SSD NVMe')).toBeTruthy();
   });
 
-  it('renders files and directories in grid and list view', async () => {
+  it('renders files and opens folder on single click', async () => {
     render(
       <BrowserRouter>
         <FileManager />
@@ -114,12 +125,35 @@ describe('FileManager Page Component', () => {
 
     expect((await screen.findAllByText('Documents'))[0]).toBeTruthy();
     expect(screen.getByText('notes.txt')).toBeTruthy();
-    expect(screen.getByText('sample.mp3')).toBeTruthy();
-    expect(screen.getByText('video.mkv')).toBeTruthy();
-    expect(screen.getByText('document.pdf')).toBeTruthy();
+
+    // Single click on Documents folder should trigger navigation immediately
+    const folderCard = (await screen.findAllByText('Documents'))[0].closest('div');
+    if (folderCard) {
+      fireEvent.click(folderCard);
+    }
   });
 
-  it('filters files via search input', async () => {
+  it('toggles hidden files visibility', async () => {
+    render(
+      <BrowserRouter>
+        <FileManager />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('notes.txt');
+
+    // By default hidden files starting with . are hidden
+    expect(screen.queryByText('.config')).toBeNull();
+
+    // Click toggle hidden files button
+    const toggleHiddenBtn = screen.getByTestId('toggle-hidden-btn');
+    fireEvent.click(toggleHiddenBtn);
+
+    // .config should now be visible
+    expect(await screen.findByText('.config')).toBeTruthy();
+  });
+
+  it('filters files via search input and shows clear search button on zero results', async () => {
     render(
       <BrowserRouter>
         <FileManager />
@@ -128,11 +162,18 @@ describe('FileManager Page Component', () => {
 
     await screen.findByText('notes.txt');
     const searchInput = screen.getByPlaceholderText(/search|pesquisar|buscar/i);
-    fireEvent.change(searchInput, { target: { value: 'video' } });
+    fireEvent.change(searchInput, { target: { value: 'xyznonexistent' } });
 
     await waitFor(() => {
-      expect(screen.getByText('video.mkv')).toBeTruthy();
+      expect(screen.getByText(/Nenhum arquivo encontrado|Nenhum resultado/i)).toBeTruthy();
       expect(screen.queryByText('notes.txt')).toBeNull();
+    });
+
+    const clearBtn = screen.getByTestId('clear-search-btn');
+    fireEvent.click(clearBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('notes.txt')).toBeTruthy();
     });
   });
 

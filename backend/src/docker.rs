@@ -407,7 +407,10 @@ pub async fn list_volumes(
 pub async fn prune_volumes(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match state.docker.prune_volumes(None::<bollard::query_parameters::PruneVolumesOptions>).await {
+    let mut filters = std::collections::HashMap::new();
+    filters.insert("all".to_string(), vec!["true".to_string()]);
+    let options = bollard::query_parameters::PruneVolumesOptions { filters: Some(filters) };
+    match state.docker.prune_volumes(Some(options)).await {
         Ok(res) => {
             let deleted = res.volumes_deleted.unwrap_or_default();
             let space_reclaimed = res.space_reclaimed.unwrap_or(0);
@@ -424,7 +427,10 @@ pub async fn prune_volumes(
 pub async fn prune_images(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match state.docker.prune_images(None::<bollard::query_parameters::PruneImagesOptions>).await {
+    let mut filters = std::collections::HashMap::new();
+    filters.insert("dangling".to_string(), vec!["false".to_string()]);
+    let options = bollard::query_parameters::PruneImagesOptions { filters: Some(filters) };
+    match state.docker.prune_images(Some(options)).await {
         Ok(res) => {
             let deleted: Vec<String> = res.images_deleted
                 .unwrap_or_default()

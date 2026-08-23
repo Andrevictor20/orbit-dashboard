@@ -41,14 +41,31 @@ pub struct ListFilesQuery {
     pub limit: Option<usize>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ShortcutPlace {
+    pub id: String,
+    pub label: String,
+    pub path: String,
+    pub icon: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ShortcutsResponse {
-    pub root: String,
-    pub data: String,
+    pub home: String,
     pub documents: String,
     pub downloads: String,
-    pub gallery: String,
-    pub media: String,
+    pub pictures: String,
+    pub music: String,
+    pub videos: String,
+    pub root: String,
+    #[serde(default)]
+    pub places: Vec<ShortcutPlace>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gallery: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -323,63 +340,185 @@ pub async fn list_files(Query(q): Query<ListFilesQuery>) -> Result<Json<ListFile
     }))
 }
 
+pub fn is_valid_storage_disk(name: &str, mount_point: &str, fs_type: &str, total_space: u64) -> bool {
+    let name_lower = name.to_lowercase();
+    let mount_lower = mount_point.to_lowercase();
+    let fs_lower = fs_type.to_lowercase();
+
+    let pseudo_fs = [
+        "securityfs", "efivarfs", "bpf", "configfs", "selinuxfs", "debugfs",
+        "cgroup", "cgroup2", "pstore", "hugetlbfs", "mqueue", "autofs",
+        "tracefs", "fusectl", "binfmt_misc", "devtmpfs", "devpts", "proc",
+        "sysfs", "tmpfs", "squashfs", "overlay", "overlayfs", "nsfs",
+        "rpc_pipefs", "fuse.gvfsd-fuse", "gvfsd-fuse", "fuse.portal", "portal",
+        "pipefs", "sockfs", "fuse",
+    ];
+
+    if pseudo_fs.iter().any(|&p| fs_lower == p || name_lower == p) {
+        return false;
+    }
+
+    if mount_lower.starts_with("/sys")
+        || mount_lower.starts_with("/proc")
+        || mount_lower.starts_with("/dev")
+        || mount_lower.starts_with("/run")
+        || mount_lower.starts_with("/var/run")
+        || mount_lower.starts_with("/etc")
+        || mount_lower.starts_with("/tmp")
+        || mount_lower.starts_with("/boot")
+        || mount_lower.starts_with("/efi")
+        || mount_lower.starts_with("/recovery")
+        || mount_lower.starts_with("/var/lib/docker")
+        || mount_lower.starts_with("/var/lib/containers")
+        || mount_lower == "/app/data"
+        || mount_lower.starts_with("/host/sys")
+        || mount_lower.starts_with("/host/proc")
+        || mount_lower.starts_with("/host/dev")
+        || mount_lower.starts_with("/host/run")
+        || mount_lower.starts_with("/host/etc")
+        || mount_lower.starts_with("/host/tmp")
+        || mount_lower.starts_with("/host/boot")
+        || mount_lower.starts_with("/host/efi")
+        || mount_lower.starts_with("/host/recovery")
+        || mount_lower.starts_with("/host/var/lib/docker")
+    {
+        return false;
+    }
+
+    // Ignore partitions smaller than 2GB (EFI, bootloader, recovery)
+    if total_space < 2 * 1024 * 1024 * 1024 {
+        return false;
+    }
+
+    true
+}
+
 pub async fn get_shortcuts() -> Json<ShortcutsResponse> {
-    let data_dir = std::env::var("ORBIT_DATA_DIR").unwrap_or_else(|_| {
-        if Path::new("/DATA").exists() {
-            "/DATA".to_string()
-        } else if Path::new("/host/DATA").exists() {
-            "/DATA".to_string()
-        } else if Path::new("/mnt").exists() || Path::new("/host/mnt").exists() {
-            "/mnt".to_string()
-        } else if Path::new("/home").exists() || Path::new("/host/home").exists() {
-            "/home".to_string()
-        } else {
-            "/".to_string()
+    // 1. Detect real user home folder
+    let home_path = if Path::new("/host/home").is_dir() {
+        // Find first user directory in /host/home
+        let mut user_home = None;
+        if let Ok(entries) = fs::read_dir("/host/home") {
+            for entry in entries.flatten() {
+                if let Ok(ft) = entry.file_type() {
+                    if ft.is_dir() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        if !name.starts_with('.') {
+                            user_home = Some(format!("/home/{}", name));
+                            break;
+                        }
+                    }
+                }
+            }
         }
-    });
+        user_home.unwrap_or_else(|| {
+            if Path::new("/host/root").is_dir() {
+                "/root".to_string()
+            } else {
+                "/home".to_string()
+            }
+        })
+    } else if let Ok(h) = std::env::var("HOME") {
+        if Path::new(&h).is_dir() || Path::new(&format!("/host{}", h)).is_dir() {
+            h
+        } else {
+            "/home".to_string()
+        }
+    } else if Path::new("/home").is_dir() {
+        "/home".to_string()
+    } else {
+        "/".to_string()
+    };
+
+    // Helper to find existing folder under home or fallback
+    let find_user_folder = |candidates: &[&str], default_name: &str| -> String {
+        for candidate in candidates {
+            let direct = format!("{}/{}", home_path, candidate);
+            let host_mapped = format!("/host{}/{}", home_path, candidate);
+            if Path::new(&direct).is_dir() || Path::new(&host_mapped).is_dir() {
+                return direct;
+            }
+        }
+        format!("{}/{}", home_path, default_name)
+    };
+
+    let documents = find_user_folder(&["Documentos", "Documents"], "Documentos");
+    let downloads = find_user_folder(&["Downloads", "Transferências"], "Downloads");
+    let pictures = find_user_folder(&["Imagens", "Pictures", "Fotos"], "Imagens");
+    let music = find_user_folder(&["Músicas", "Música", "Music"], "Músicas");
+    let videos = find_user_folder(&["Vídeos", "Videos", "Movies"], "Vídeos");
+
+    let places = vec![
+        ShortcutPlace {
+            id: "home".to_string(),
+            label: "Início".to_string(),
+            path: home_path.clone(),
+            icon: "home".to_string(),
+        },
+        ShortcutPlace {
+            id: "documents".to_string(),
+            label: "Documentos".to_string(),
+            path: documents.clone(),
+            icon: "file-text".to_string(),
+        },
+        ShortcutPlace {
+            id: "downloads".to_string(),
+            label: "Downloads".to_string(),
+            path: downloads.clone(),
+            icon: "download".to_string(),
+        },
+        ShortcutPlace {
+            id: "pictures".to_string(),
+            label: "Imagens".to_string(),
+            path: pictures.clone(),
+            icon: "image".to_string(),
+        },
+        ShortcutPlace {
+            id: "music".to_string(),
+            label: "Músicas".to_string(),
+            path: music.clone(),
+            icon: "music".to_string(),
+        },
+        ShortcutPlace {
+            id: "videos".to_string(),
+            label: "Vídeos".to_string(),
+            path: videos.clone(),
+            icon: "film".to_string(),
+        },
+        ShortcutPlace {
+            id: "root".to_string(),
+            label: "Sistema (Raiz)".to_string(),
+            path: "/".to_string(),
+            icon: "hard-drive".to_string(),
+        },
+    ];
 
     Json(ShortcutsResponse {
+        home: home_path.clone(),
+        documents: documents.clone(),
+        downloads: downloads.clone(),
+        pictures,
+        music,
+        videos,
         root: "/".to_string(),
-        data: data_dir.clone(),
-        documents: if data_dir == "/" { "/Documents".to_string() } else { format!("{}/Documents", data_dir) },
-        downloads: if data_dir == "/" { "/Downloads".to_string() } else { format!("{}/Downloads", data_dir) },
-        gallery: if data_dir == "/" { "/Gallery".to_string() } else { format!("{}/Gallery", data_dir) },
-        media: if Path::new("/media").exists() || Path::new("/host/media").exists() {
-            "/media".to_string()
-        } else if Path::new("/mnt").exists() || Path::new("/host/mnt").exists() {
-            "/mnt".to_string()
-        } else {
-            format!("{}/Media", data_dir)
-        },
+        places,
+        data: None,
+        gallery: None,
+        media: None,
     })
 }
 
 pub async fn list_storages() -> Json<StoragesResponse> {
     let disks = Disks::new_with_refreshed_list();
-    let mut mounts = Vec::new();
-    let mut seen_points = std::collections::HashSet::new();
+    let mut mounts_map: std::collections::HashMap<String, MountItem> = std::collections::HashMap::new();
 
     for disk in &disks {
         let raw_mount = disk.mount_point().to_string_lossy().to_string();
         let name = disk.name().to_string_lossy().to_string();
         let fs_type = disk.file_system().to_string_lossy().to_string();
+        let total_bytes = disk.total_space();
 
-        let name_lower = name.to_lowercase();
-        let mount_lower = raw_mount.to_lowercase();
-        let fs_lower = fs_type.to_lowercase();
-
-        if name_lower.contains("overlay")
-            || mount_lower.contains("overlay")
-            || fs_lower.contains("overlay")
-            || fs_lower.contains("tmpfs")
-            || fs_lower.contains("devtmpfs")
-            || fs_lower.contains("squashfs")
-            || mount_lower.starts_with("/etc/")
-            || mount_lower.starts_with("/proc")
-            || mount_lower.starts_with("/sys")
-            || mount_lower.starts_with("/dev")
-            || mount_lower == "/app/data"
-        {
+        if !is_valid_storage_disk(&name, &raw_mount, &fs_type, total_bytes) {
             continue;
         }
 
@@ -391,83 +530,68 @@ pub async fn list_storages() -> Json<StoragesResponse> {
             raw_mount.clone()
         };
 
-        if seen_points.contains(&mount_point) {
-            continue;
-        }
-        seen_points.insert(mount_point.clone());
+        let name_lower = name.to_lowercase();
+        let mount_lower = mount_point.to_lowercase();
 
         let display_name = if name_lower.contains("mmcblk") || name_lower.contains("sdcard") {
-            "Cartão microSD (Sistema)".to_string()
+            "Cartão microSD".to_string()
         } else if name_lower.contains("nvme") {
             "SSD NVMe".to_string()
-        } else if mount_lower.starts_with("/mnt") || mount_lower.starts_with("/media") {
+        } else if mount_lower.starts_with("/mnt") || mount_lower.starts_with("/media") || mount_lower.starts_with("/run/media") {
             let folder = mount_point.split('/').filter(|s| !s.is_empty()).last().unwrap_or("Externo");
             format!("HD Externo ({})", folder)
         } else if name_lower.starts_with("/dev/sd") || name_lower.starts_with("sd") {
-            if mount_point == "/" || mount_point == "/root" {
+            if mount_point == "/" || mount_point == "/root" || mount_point == "/home" {
                 "SSD / HD Principal".to_string()
             } else {
-                "HD / Armazenamento USB".to_string()
+                "Pendrive / HD USB".to_string()
             }
         } else if mount_point == "/" || name_lower == "root" || name_lower == "/dev/root" {
             "Armazenamento do Sistema".to_string()
-        } else if !name.is_empty() && name != "/" {
-            name
+        } else if !name.is_empty() && !name.starts_with('/') {
+            name.clone()
         } else {
-            mount_point.clone()
+            "Armazenamento Local".to_string()
         };
 
-        let total_bytes = disk.total_space();
+        let group_key = if name.contains("nvme") {
+            let parts: Vec<&str> = name.split('p').collect();
+            parts.first().copied().unwrap_or(&name).to_string()
+        } else if name.starts_with("/dev/sd") && name.len() >= 8 {
+            name[..8].to_string()
+        } else if name.starts_with("sd") && name.len() >= 3 {
+            name[..3].to_string()
+        } else {
+            name.clone()
+        };
+
         let available_bytes = disk.available_space();
         let used_bytes = total_bytes.saturating_sub(available_bytes);
 
-        mounts.push(MountItem {
+        let item = MountItem {
             name: display_name,
             mount_point,
             fs_type,
             total_bytes,
             used_bytes,
             available_bytes,
-        });
-    }
+        };
 
-    // Auto-discover external folders mounted under /mnt or /media or /host/mnt or /host/media
-    let scan_roots = ["/mnt", "/media", "/host/mnt", "/host/media"];
-    for root in scan_roots {
-        let p = Path::new(root);
-        if let Ok(entries) = fs::read_dir(p) {
-            for entry in entries.flatten() {
-                if let Ok(file_type) = entry.file_type() {
-                    if file_type.is_dir() {
-                        let full_path = entry.path().to_string_lossy().to_string();
-                        let display_p = if full_path.starts_with("/host") {
-                            full_path.replacen("/host", "", 1)
-                        } else {
-                            full_path.clone()
-                        };
-
-                        if !seen_points.contains(&display_p) {
-                            seen_points.insert(display_p.clone());
-                            let folder_name = entry.file_name().to_string_lossy().to_string();
-                            mounts.push(MountItem {
-                                name: format!("HD / Pendrive Externo ({})", folder_name),
-                                mount_point: display_p,
-                                fs_type: "external".to_string(),
-                                total_bytes: 0,
-                                used_bytes: 0,
-                                available_bytes: 0,
-                            });
-                        }
-                    }
-                }
+        if let Some(existing) = mounts_map.get_mut(&group_key) {
+            if item.total_bytes > existing.total_bytes {
+                *existing = item;
             }
+        } else {
+            mounts_map.insert(group_key, item);
         }
     }
 
-    // Always ensure at least Root exists
-    if !seen_points.contains("/") {
-        mounts.insert(0, MountItem {
-            name: "Armazenamento do Sistema (Raiz)".to_string(),
+    let mut mounts: Vec<MountItem> = mounts_map.into_values().collect();
+    mounts.sort_by(|a, b| b.total_bytes.cmp(&a.total_bytes));
+
+    if mounts.is_empty() {
+        mounts.push(MountItem {
+            name: "Armazenamento do Sistema".to_string(),
             mount_point: "/".to_string(),
             fs_type: "ext4".to_string(),
             total_bytes: 100 * 1024 * 1024 * 1024,

@@ -31,6 +31,11 @@ async fn main() {
 
     tracing::info!("Orbit Dashboard Backend Starting...");
 
+    // Refresh App Store repositories in background
+    tokio::spawn(async {
+        backend::store::sync_repositories().await;
+    });
+
     let app = backend::app();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:5172").await.unwrap();
     tracing::info!("Listening on 0.0.0.0:5172");

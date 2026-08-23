@@ -53,6 +53,7 @@ pub fn app() -> Router {
         .route("/api/docker/stats", get(ws::stats_handler))
         .route("/api/ssh", get(ssh::terminal_handler))
         .route("/api/store/apps", get(store::list_apps))
+        .route("/api/store/sync", post(store::sync_apps))
         .route("/api/store/install/{id}", post(store::install_app))
         .route("/api/store/install/custom/{id}", post(store::install_custom_app))
         .route("/api/store/install/status/{task_id}", get(store::install_status))

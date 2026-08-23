@@ -67,7 +67,7 @@ describe('Overview Component', () => {
     expect(screen.getAllByText('0.00 GB').length).toBeGreaterThan(0); // Memory and Disks
   });
 
-  it('renders correct stats when connected', () => {
+  it('renders correct stats and only physical storage without raw path clutter', () => {
     (useStats as any).mockReturnValue({
       stats: {
         cpu_usage: 25.5,
@@ -77,7 +77,9 @@ describe('Overview Component', () => {
         network_tx: 10 * 1024 * 1024, // 10 MB
         network_rx: 20 * 1024 * 1024, // 20 MB
         disks: [
-          { name: '/dev/sda1', mount_point: '/', used: 50 * 1024 * 1024 * 1024, total: 100 * 1024 * 1024 * 1024 }
+          { name: '/dev/sda1', mount_point: '/', used: 50 * 1024 * 1024 * 1024, total: 100 * 1024 * 1024 * 1024 },
+          { name: 'securityfs', mount_point: '/sys/kernel/security', used: 0, total: 0 },
+          { name: 'efivarfs', mount_point: '/sys/firmware/efi/efivars', used: 0, total: 0 }
         ]
       },
       isConnected: true
@@ -97,9 +99,12 @@ describe('Overview Component', () => {
     expect(screen.getByText('10.0 MB')).toBeTruthy(); // TX
     expect(screen.getByText('20.0 MB')).toBeTruthy(); // RX
     
-    // Disk info
+    // Physical disk name displayed
     expect(screen.getByText('SSD / HD Principal')).toBeTruthy();
-    expect(screen.getByText('/')).toBeTruthy();
     expect(screen.getByText('50.00 GB usado')).toBeTruthy();
+
+    // Pseudo filesystems MUST NOT be rendered
+    expect(screen.queryByText('securityfs')).toBeNull();
+    expect(screen.queryByText('efivarfs')).toBeNull();
   });
 });

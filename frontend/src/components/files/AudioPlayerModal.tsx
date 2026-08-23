@@ -9,6 +9,8 @@ export interface FileItem {
   size: number;
   modified: string;
   extension: string;
+  is_hidden?: boolean;
+  mime_type?: string;
 }
 
 interface AudioPlayerModalProps {

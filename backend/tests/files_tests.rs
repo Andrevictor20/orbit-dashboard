@@ -83,10 +83,14 @@ async fn test_files_navigation_and_shortcuts() {
         .await;
     shortcuts_res.assert_status_ok();
     let shortcuts: serde_json::Value = shortcuts_res.json();
-    assert!(shortcuts.get("root").is_some());
-    assert!(shortcuts.get("data").is_some());
-    assert!(shortcuts.get("documents").is_some());
-    assert!(shortcuts.get("downloads").is_some());
+    assert!(shortcuts.get("home").is_some(), "Expected home shortcut");
+    assert!(shortcuts.get("documents").is_some(), "Expected documents shortcut");
+    assert!(shortcuts.get("downloads").is_some(), "Expected downloads shortcut");
+    assert!(shortcuts.get("pictures").is_some(), "Expected pictures shortcut");
+    assert!(shortcuts.get("music").is_some(), "Expected music shortcut");
+    assert!(shortcuts.get("videos").is_some(), "Expected videos shortcut");
+    assert!(shortcuts.get("root").is_some(), "Expected root shortcut");
+    assert!(shortcuts["places"].is_array(), "Expected places array");
 
     let _ = fs::remove_dir_all(&sandbox);
 }

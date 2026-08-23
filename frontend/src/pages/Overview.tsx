@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/ui/StatCard';
 import { TrendingUp, Activity, HardDrive, Box, FolderOpen } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
-import { getFriendlyDiskName } from '../utils/format';
+import { getFriendlyDiskName, isPhysicalStorage } from '../utils/format';
 import {
   AreaChart,
   Area,
@@ -55,18 +55,23 @@ export function Overview() {
     ? ((stats.memory_used / stats.memory_total) * 100).toFixed(1)
     : '0.0';
 
-  // Deduplicate and clean disks by device / physical partition
+  // Deduplicate and filter only real physical storage disks
   const uniqueDisksMap = new Map<string, any>();
-  if (stats) {
+  if (stats && Array.isArray(stats.disks)) {
     stats.disks.forEach((d: any) => {
-      // Pick cleanest primary mountpoint (prefer root / or /mnt or /media over internal container sub-paths)
-      if (uniqueDisksMap.has(d.name)) {
-        const existing = uniqueDisksMap.get(d.name)!;
-        if (d.mount_point === '/' || d.mount_point.startsWith('/mnt') || d.mount_point.startsWith('/media')) {
+      if (!isPhysicalStorage(d.name, d.mount_point, d.fs_type, d.total)) {
+        return;
+      }
+      const key = d.name.startsWith('/dev/') ? d.name : getFriendlyDiskName(d.name, d.mount_point);
+      if (uniqueDisksMap.has(key)) {
+        const existing = uniqueDisksMap.get(key)!;
+        if (d.mount_point === '/' || d.mount_point.startsWith('/home') || d.mount_point.startsWith('/mnt') || d.mount_point.startsWith('/media')) {
           existing.mount_point = d.mount_point;
+          existing.used = Math.max(existing.used, d.used);
+          existing.total = Math.max(existing.total, d.total);
         }
       } else {
-        uniqueDisksMap.set(d.name, { ...d });
+        uniqueDisksMap.set(key, { ...d });
       }
     });
   }
@@ -194,52 +199,56 @@ export function Overview() {
               <span>Ver todos</span>
             </button>
           </div>
-          <div className="flex-1 flex flex-col gap-4">
+          <div className="flex-1 flex flex-col gap-3">
             {uniqueDisks.length > 0 ? (
               uniqueDisks.map((disk, idx) => {
                 const usedGB = (disk.used / 1024 / 1024 / 1024).toFixed(2);
                 const totalGB = (disk.total / 1024 / 1024 / 1024).toFixed(2);
-                const percent = ((disk.used / disk.total) * 100).toFixed(1);
+                const percent = disk.total > 0 ? ((disk.used / disk.total) * 100).toFixed(1) : '0.0';
                 const friendlyName = getFriendlyDiskName(disk.name, disk.mount_point);
                 
                 return (
                   <div 
                     key={idx} 
-                    onClick={() => navigate(`/files?path=${encodeURIComponent(disk.mount_point)}`)}
-                    className="bg-white/5 border border-border rounded-lg p-4 hover:border-orbit-500/50 hover:bg-white/10 transition-all cursor-pointer group"
-                    title={`Abrir ${disk.mount_point} no Gerenciador de Arquivos`}
+                    onClick={() => navigate(`/files?path=${encodeURIComponent(disk.mount_point || '/')}`)}
+                    className="bg-accent/30 border border-border hover:border-orbit-500/50 hover:bg-accent/60 rounded-xl p-3.5 transition-all cursor-pointer group shadow-sm"
+                    title={`Abrir ${friendlyName} no Gerenciador de Arquivos`}
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-2">
-                        <HardDrive className="w-4 h-4 text-primary group-hover:text-orbit-400 shrink-0 transition-colors" />
-                        <span className="font-medium text-primary text-sm truncate max-w-[160px]" title={disk.name}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-400 group-hover:bg-orbit-500/20 group-hover:text-orbit-300 transition-colors shrink-0">
+                          <HardDrive className="w-4 h-4" />
+                        </div>
+                        <span className="font-semibold text-primary text-sm truncate" title={disk.name}>
                           {friendlyName}
                         </span>
                       </div>
-                      <span className="text-xs font-mono text-secondary bg-card px-2 py-0.5 rounded border border-border/50 group-hover:border-orbit-500/40 group-hover:text-orbit-300 transition-colors">
-                        {disk.mount_point}
+                      <span className="text-xs font-mono text-orbit-400 bg-orbit-500/10 px-2 py-0.5 rounded-full border border-orbit-500/20 font-semibold shrink-0">
+                        {percent}%
                       </span>
                     </div>
                     
-                    <div className="flex justify-between text-xs text-secondary mb-1">
-                      <span>{usedGB} GB usado</span>
-                      <span>{totalGB} GB total</span>
-                    </div>
-                    
-                    <div className="w-full bg-card rounded-full h-1.5 overflow-hidden">
+                    <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden mb-2">
                       <div 
-                        className={`h-full ${parseFloat(percent) > 85 ? 'bg-rose-500' : 'bg-primary group-hover:bg-orbit-500'} transition-colors`}
-                        style={{ width: `${percent}%` }}
+                        className={`h-full rounded-full transition-all ${
+                          parseFloat(percent) > 85 ? 'bg-rose-500' : 'bg-orbit-500 group-hover:bg-orbit-400'
+                        }`}
+                        style={{ width: `${Math.min(parseFloat(percent), 100)}%` }}
                       />
                     </div>
-                    <div className="text-right text-[10px] text-orbit-500 mt-1 font-mono">
-                      {percent}%
+
+                    <div className="flex justify-between items-center text-[11px] text-secondary font-mono">
+                      <span>{usedGB} GB usado</span>
+                      <span>{totalGB} GB total</span>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <span className="text-secondary text-sm flex items-center justify-center h-full">Carregando discos...</span>
+              <div className="flex flex-col items-center justify-center h-full text-secondary text-xs gap-2 py-8">
+                <HardDrive className="w-8 h-8 stroke-[1.5] text-zinc-600" />
+                <span>Nenhum disco detectado</span>
+              </div>
             )}
           </div>
         </div>

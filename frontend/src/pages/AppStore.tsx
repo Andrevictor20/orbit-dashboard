@@ -1,7 +1,8 @@
 import { useState, useEffect, useDeferredValue, useMemo } from 'react';
-import { Package, Download, Search } from 'lucide-react';
+import { Package, Download, Search, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
+import toast from 'react-hot-toast';
 
 interface AppStoreItem {
   id: string;
@@ -16,6 +17,7 @@ export function AppStore() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<AppStoreItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
   const { startInstall } = useInstall();
   const [search, setSearch] = useState('');
@@ -30,7 +32,10 @@ export function AppStore() {
   const fetchApps = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/store/apps');
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch('/api/store/apps', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (!res.ok) throw new Error('Failed to fetch apps');
       const data = await res.json();
       setApps(data);
@@ -41,12 +46,38 @@ export function AppStore() {
     }
   };
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const loadingToast = toast.loading('Sincronizando lojas de aplicativos...');
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch('/api/store/sync', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Catálogo atualizado! (${data.total_apps || 0} apps)`, { id: loadingToast });
+        await fetchApps();
+      } else {
+        toast.error('Erro ao sincronizar lojas.', { id: loadingToast });
+      }
+    } catch (err: any) {
+      console.error('Sync error:', err);
+      toast.error('Erro de conexão ao sincronizar.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleInstall = async (id: string, appName: string) => {
     try {
       setInstalling(id);
       
+      const token = localStorage.getItem('orbit_token');
       const res = await fetch(`/api/store/install/${id}`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       
       if (!res.ok) {
@@ -83,11 +114,20 @@ export function AppStore() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">App Store</h1>
           <p className="text-secondary mt-1">One-click install applications.</p>
         </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium bg-card/60 hover:bg-card border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50"
+          title="Sincronizar lojas de aplicativos"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-400' : ''}`} />
+          <span>{syncing ? 'Sincronizando Lojas...' : 'Sincronizar Lojas'}</span>
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">

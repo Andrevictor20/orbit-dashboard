@@ -37,58 +37,78 @@ const REPOSITORIES: &[(&str, &str)] = &[
 ];
 
 pub async fn sync_repositories() {
-    let mut all_apps = Vec::new();
+    let client = reqwest::Client::builder()
+        .user_agent("Orbit-Dashboard/1.0")
+        .timeout(std::time::Duration::from_secs(90))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+
+    let mut handles = Vec::new();
 
     for &(store_name, repo_url) in REPOSITORIES {
-        tracing::info!("Syncing repository: {} ({})", repo_url, store_name);
-        
-        let client = reqwest::Client::new();
-        let res = match client.get(repo_url).send().await {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::warn!("Failed to download {}: {}", repo_url, e);
-                continue;
-            }
-        };
+        let client = client.clone();
+        let store_name = store_name.to_string();
+        let repo_url = repo_url.to_string();
 
-        let bytes = match res.bytes().await {
-            Ok(b) => b,
-            Err(e) => {
-                tracing::warn!("Failed to read bytes from {}: {}", repo_url, e);
-                continue;
-            }
-        };
+        handles.push(tokio::spawn(async move {
+            tracing::info!("Syncing repository in parallel: {} ({})", repo_url, store_name);
+            let mut repo_apps = Vec::new();
 
-        let reader = Cursor::new(bytes.as_ref());
-        let mut archive = match ZipArchive::new(reader) {
-            Ok(a) => a,
-            Err(e) => {
-                tracing::warn!("Failed to open zip archive from {}: {}", repo_url, e);
-                continue;
-            }
-        };
-
-        for i in 0..archive.len() {
-            let mut file = match archive.by_index(i) {
-                Ok(f) => f,
-                Err(_) => continue,
+            let res = match client.get(&repo_url).send().await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::warn!("Failed to download {}: {}", repo_url, e);
+                    return repo_apps;
+                }
             };
 
-            let name = file.name().to_string();
-            let is_compose = (name.ends_with("docker-compose.yml") 
-                || name.ends_with("docker-compose.yaml") 
-                || name.ends_with("compose.yml") 
-                || name.ends_with("compose.yaml"))
-                && !name.contains("__MACOSX");
+            let bytes = match res.bytes().await {
+                Ok(b) => b,
+                Err(e) => {
+                    tracing::warn!("Failed to read bytes from {}: {}", repo_url, e);
+                    return repo_apps;
+                }
+            };
 
-            if is_compose {
-                let mut contents = String::new();
-                if file.read_to_string(&mut contents).is_ok() {
-                    if let Ok(item) = parse_casaos_compose(&contents, store_name) {
-                        all_apps.push(item);
+            let reader = Cursor::new(bytes.as_ref());
+            let mut archive = match ZipArchive::new(reader) {
+                Ok(a) => a,
+                Err(e) => {
+                    tracing::warn!("Failed to open zip archive from {}: {}", repo_url, e);
+                    return repo_apps;
+                }
+            };
+
+            for i in 0..archive.len() {
+                let mut file = match archive.by_index(i) {
+                    Ok(f) => f,
+                    Err(_) => continue,
+                };
+
+                let name = file.name().to_string();
+                let is_compose = (name.ends_with("docker-compose.yml") 
+                    || name.ends_with("docker-compose.yaml") 
+                    || name.ends_with("compose.yml") 
+                    || name.ends_with("compose.yaml"))
+                    && !name.contains("__MACOSX");
+
+                if is_compose {
+                    let mut contents = String::new();
+                    if file.read_to_string(&mut contents).is_ok() {
+                        if let Ok(item) = parse_casaos_compose(&contents, &store_name) {
+                            repo_apps.push(item);
+                        }
                     }
                 }
             }
+            repo_apps
+        }));
+    }
+
+    let mut all_apps = Vec::new();
+    for handle in handles {
+        if let Ok(apps) = handle.await {
+            all_apps.extend(apps);
         }
     }
 
@@ -105,6 +125,18 @@ pub async fn sync_repositories() {
     } else {
         tracing::warn!("No apps found during sync.");
     }
+}
+
+pub async fn sync_apps() -> impl IntoResponse {
+    sync_repositories().await;
+    let count = {
+        let cache = APPS_CACHE.read().unwrap();
+        cache.len()
+    };
+    (StatusCode::OK, Json(serde_json::json!({
+        "message": "App Store synced successfully",
+        "total_apps": count
+    }))).into_response()
 }
 
 fn parse_casaos_compose(compose_yaml: &str, store_name: &str) -> Result<AppStoreItem, Box<dyn std::error::Error>> {

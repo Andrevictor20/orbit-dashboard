@@ -168,7 +168,7 @@ export function Terminal() {
               
               <button 
                 type="submit"
-                className="w-full bg-primary hover:bg-orbit-500 text-white font-medium py-2 rounded-md transition-colors mt-2"
+                className="w-full bg-orbit-600 hover:bg-orbit-500 text-white font-medium py-2 rounded-md transition-all active:scale-[0.98] mt-2 shadow-sm"
               >
                 Conectar via SSH
               </button>

@@ -64,4 +64,11 @@ async fn test_store_endpoints_exist() {
         .await;
         
     response.assert_status(axum::http::StatusCode::NOT_FOUND);
+
+    // 4. POST /api/store/sync
+    let response = server.post("/api/store/sync")
+        .add_cookie(auth_cookie.clone())
+        .await;
+        
+    response.assert_status_ok();
 }

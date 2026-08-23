@@ -139,8 +139,12 @@ export function Images() {
             if (spaceReclaimed > 0) {
               helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
             }
-            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedImages.length} imagem(ns) removida(s).`);
-            toast.success('Imagens limpas com sucesso!');
+            helpers.setDone(`Limpeza concluída! ${deleted.length} imagem(ns)/camada(s) removida(s).`);
+            if (deleted.length > 0) {
+              toast.success('Imagens limpas com sucesso!');
+            } else {
+              toast('Nenhuma imagem removida pelo Docker.', { icon: 'ℹ️' });
+            }
             fetchImages();
           }
         });

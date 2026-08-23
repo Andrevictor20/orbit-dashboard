@@ -131,8 +131,12 @@ export function Volumes() {
             if (spaceReclaimed > 0) {
               helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
             }
-            helpers.setDone(`Limpeza concluída! ${deleted.length || unusedVolumes.length} volume(s) removido(s).`);
-            toast.success('Volumes não utilizados removidos com sucesso!');
+            helpers.setDone(`Limpeza concluída! ${deleted.length} volume(s) removido(s).`);
+            if (deleted.length > 0) {
+              toast.success('Volumes não utilizados removidos com sucesso!');
+            } else {
+              toast('Nenhum volume removido pelo Docker.', { icon: 'ℹ️' });
+            }
             fetchVolumes();
           }
         });

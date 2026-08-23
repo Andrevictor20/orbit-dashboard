@@ -100,3 +100,49 @@ async fn test_delete_container_with_cascade_params() {
     assert_ne!(response.status(), StatusCode::BAD_REQUEST);
     assert_ne!(response.status(), StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn test_prune_endpoints_unauthorized() {
+    let app = app();
+
+    for endpoint in &["/api/docker/images/prune", "/api/docker/volumes/prune", "/api/docker/networks/prune"] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(*endpoint)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "Endpoint {} should require authentication", endpoint);
+    }
+}
+
+#[tokio::test]
+async fn test_prune_endpoints_authorized_routes_exist() {
+    let app = app();
+
+    for endpoint in &["/api/docker/images/prune", "/api/docker/volumes/prune", "/api/docker/networks/prune"] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(*endpoint)
+                    .header("Cookie", valid_auth_cookie())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Either OK (if docker daemon allows/mocked) or INTERNAL_SERVER_ERROR / etc, but NOT UNAUTHORIZED or NOT_FOUND
+        assert_ne!(response.status(), StatusCode::UNAUTHORIZED, "Endpoint {} should be authorized", endpoint);
+        assert_ne!(response.status(), StatusCode::NOT_FOUND, "Endpoint {} route must exist", endpoint);
+    }
+}
+

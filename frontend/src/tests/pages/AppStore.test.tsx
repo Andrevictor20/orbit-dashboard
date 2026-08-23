@@ -81,4 +81,36 @@ describe('AppStore', () => {
     await screen.findByRole('heading', { name: /Pi-hole/i });
     expect(screen.queryByRole('heading', { name: /AdGuard Home/i })).not.toBeInTheDocument();
   });
+
+  it('handles sync repositories action', async () => {
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (url === '/api/store/apps') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockApps),
+        });
+      }
+      if (url === '/api/store/sync') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ message: 'App Store synced successfully', total_apps: 1000 }),
+        });
+      }
+      return Promise.reject(new Error('Not found'));
+    }));
+
+    render(
+      <BrowserRouter>
+        <InstallProvider>
+          <AppStore />
+        </InstallProvider>
+      </BrowserRouter>
+    );
+
+    const syncBtn = screen.getByRole('button', { name: /sincronizar lojas/i });
+    expect(syncBtn).toBeInTheDocument();
+    fireEvent.click(syncBtn);
+
+    expect(syncBtn).toBeDisabled();
+  });
 });
