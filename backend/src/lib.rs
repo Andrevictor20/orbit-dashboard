@@ -1,24 +1,25 @@
 pub mod auth;
 pub mod docker;
-pub mod ws;
-pub mod ssh;
-pub mod links;
-pub mod store;
-pub mod logs;
 pub mod files;
+pub mod links;
+pub mod logs;
+pub mod ssh;
+pub mod state;
+pub mod store;
+pub mod ws;
+
+pub use state::AppState;
 
 use axum::{
-    routing::{get, post, delete, put},
+    http::{header, HeaderName, HeaderValue, Method, StatusCode},
+    routing::get,
     Router,
-    http::Method,
 };
-use axum::http::StatusCode;
-use std::sync::Arc;
 use bollard::Docker;
-use tower_http::set_header::SetResponseHeaderLayer;
-use tower_http::cors::{CorsLayer, AllowOrigin};
+use std::sync::Arc;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
-use axum::http::{header, HeaderValue, HeaderName};
+use tower_http::set_header::SetResponseHeaderLayer;
 
 pub fn app() -> Router {
     let docker = match Docker::connect_with_local_defaults() {
@@ -26,93 +27,42 @@ pub fn app() -> Router {
         Err(_) => Docker::connect_with_socket_defaults().unwrap(),
     };
 
-    let state = docker::AppState {
+    let state = AppState {
         docker: Arc::new(docker),
     };
 
-    let protected_routes = Router::new()
-        .route("/api/docker/containers", get(docker::list_containers))
-        .route("/api/docker/containers/{id}", get(docker::inspect_container).delete(docker::delete_container))
-        .route("/api/docker/containers/{id}/logs", get(docker::container_logs))
-        .route("/api/docker/containers/{id}/env", post(docker::update_container_env))
-        .route("/api/docker/containers/{id}/volumes", post(docker::update_container_volumes))
-        .route("/api/docker/containers/{id}/exec", get(docker::container_exec_ws))
-        .route("/api/docker/containers/{id}/{action}", post(docker::container_action))
-        .route("/api/docker/containers/stats/snapshot", get(docker::snapshot_stats))
-        .route("/api/docker/images", get(docker::list_images))
-        .route("/api/docker/images/{id}", delete(docker::delete_image))
-        .route("/api/docker/images/prune", post(docker::prune_images))
-        .route("/api/docker/networks", get(docker::list_networks))
-        .route("/api/docker/networks/{id}", delete(docker::delete_network))
-        .route("/api/docker/networks/prune", post(docker::prune_networks))
-        .route("/api/docker/volumes", get(docker::list_volumes))
-        .route("/api/docker/volumes/{name}", delete(docker::delete_volume))
-        .route("/api/docker/volumes/prune", post(docker::prune_volumes))
+    let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
-        .route("/api/docker/links/{id}", post(links::set_link))
+        .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
-        .route("/api/ssh", get(ssh::terminal_handler))
-        .route("/api/store/apps", get(store::list_apps))
-        .route("/api/store/sync", post(store::sync_apps))
-        .route("/api/store/install/{id}", post(store::install_app))
-        .route("/api/store/install/custom/{id}", post(store::install_custom_app))
-        .route("/api/store/install/status/{task_id}", get(store::install_status))
-        .route("/api/store/uninstall/{id}", post(store::uninstall_app))
-        .route("/api/store/update/{id}", post(store::update_app))
-        // Files & Storage routes
-        .route("/api/files/list", get(files::list_files))
-        .route("/api/files/shortcuts", get(files::get_shortcuts))
-        .route("/api/files/storages", get(files::list_storages))
-        .route("/api/files/storages/unmount", post(files::unmount_storage))
-        .route("/api/files/cloud/providers", get(files::list_cloud_providers))
-        .route("/api/files/cloud/connect", post(files::connect_cloud))
-        .route("/api/files/cloud/accounts", get(files::list_cloud_accounts))
-        .route("/api/files/cloud/accounts/{id}", delete(files::disconnect_cloud))
-        .route("/api/files/cloud/disconnect/{id}", delete(files::disconnect_cloud).post(files::disconnect_cloud))
-        .route("/api/files/mkdir", post(files::mkdir))
-        .route("/api/files/create", post(files::create_file))
-        .route("/api/files/rename", put(files::rename_file))
-        .route("/api/files/copy", post(files::copy_file))
-        .route("/api/files/move", post(files::move_file))
-        .route("/api/files/delete", post(files::delete_files))
-        .route("/api/files/download", get(files::download_file))
-        .route("/api/files/archive", get(files::archive_folder))
-        .route("/api/files/upload", post(files::upload_files))
-        .route("/api/files/stream", get(files::stream_media))
-        .route("/api/files/subtitles", get(files::get_subtitles))
-        .route("/api/files/subtitles/vtt", get(files::get_subtitle_vtt))
-        .route("/api/files/content", get(files::get_file_content).put(files::update_file_content))
-        .route("/api/files/raw", get(files::get_raw_file))
-        .route("/api/files/extract", post(files::extract_archive))
-        .route("/api/files/compress", post(files::compress_files))
-        .route("/api/files/analyze", get(files::analyze_directory))
-        .route("/api/files/trash", get(files::list_trash).post(files::move_to_trash).delete(files::empty_trash))
-        .route("/api/files/trash/restore", post(files::restore_trash))
-        .route("/api/files/share", post(files::create_share))
-        .route("/api/files/shares", get(files::list_shares))
-        .route("/api/files/share/{token}", delete(files::delete_share))
-        .route("/api/files/cloud/oauth/auth-url", get(files::get_cloud_oauth_url))
-        .route("/api/files/cloud/oauth/callback", post(files::handle_cloud_oauth_callback))
-        .route("/api/files/cloud/account/{id}/files", get(files::list_cloud_account_files))
+        .route("/api/ssh", get(ssh::terminal_handler));
+
+    let protected_routes = Router::new()
+        .merge(docker::router())
+        .merge(store::router())
+        .merge(files::protected_router())
+        .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
-        .with_state(state.clone());
+        .with_state(state);
 
     Router::new()
         .route("/health", get(|| async { StatusCode::OK }))
-        .route("/api/public/share/{token}", get(files::public_get_share))
-        .route("/api/auth/login", post(auth::login))
-        .route("/api/auth/status", get(auth::status))
-        .route("/api/auth/setup", post(auth::setup))
-        .route("/api/auth/password", put(auth::change_password))
-        .route("/api/auth/me", get(auth::me))
         .route("/api/logs", get(logs::get_logs))
+        .merge(auth::public_router())
+        .merge(files::public_router())
         .merge(protected_routes)
         .layer(
             CorsLayer::new()
                 .allow_origin(AllowOrigin::predicate(|_, _| true))
-                .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::PUT, Method::DELETE])
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::OPTIONS,
+                    Method::PUT,
+                    Method::DELETE,
+                ])
                 .allow_headers([header::AUTHORIZATION, header::ACCEPT, header::CONTENT_TYPE])
-                .allow_credentials(true)
+                .allow_credentials(true),
         )
         // Adicionando Security Headers (X-Frame-Options SAMEORIGIN e CSP com frame/object-src)
         .layer(SetResponseHeaderLayer::overriding(
@@ -121,7 +71,9 @@ pub fn app() -> Router {
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("content-security-policy"),
-            HeaderValue::from_static("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' blob: data:; frame-src 'self' blob: data:; object-src 'self' blob: data:; frame-ancestors 'self'; connect-src 'self' ws: wss:;"),
+            HeaderValue::from_static(
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' blob: data:; frame-src 'self' blob: data:; object-src 'self' blob: data:; frame-ancestors 'self'; connect-src 'self' ws: wss:;",
+            ),
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("strict-transport-security"),
@@ -131,5 +83,7 @@ pub fn app() -> Router {
             HeaderName::from_static("referrer-policy"),
             HeaderValue::from_static("strict-origin-when-cross-origin"),
         ))
-        .fallback_service(ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")))
+        .fallback_service(
+            ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")),
+        )
 }

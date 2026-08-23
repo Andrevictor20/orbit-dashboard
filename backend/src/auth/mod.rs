@@ -1,23 +1,28 @@
-use axum::{
-    http::StatusCode,
-    response::Response,
-    Json,
-};
-use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
-use jsonwebtoken::{encode, decode, Header, Validation, EncodingKey, DecodingKey};
-use serde::{Deserialize, Serialize};
-use std::sync::{OnceLock, Mutex};
-use std::collections::HashMap;
-use std::time::{Instant, Duration, SystemTime, UNIX_EPOCH};
-use subtle::ConstantTimeEq;
+pub mod jwt;
+pub mod rate_limit;
+
+pub use jwt::{get_jwt_secret, Claims};
+pub use rate_limit::{check_rate_limit, clear_attempts, record_failed_attempt};
+
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use axum::{
+    http::StatusCode,
+    response::Response,
+    routing::{get, post, put},
+    Json, Router,
+};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use subtle::ConstantTimeEq;
 
-fn get_auth_file_path() -> String {
+pub fn get_auth_file_path() -> String {
     std::env::var("ORBIT_AUTH_FILE").unwrap_or_else(|_| "data/orbit_auth.json".to_string())
 }
 
@@ -27,18 +32,12 @@ pub struct AuthData {
     pub hash: String,
 }
 
-fn get_auth_data() -> Option<AuthData> {
+pub fn get_auth_data() -> Option<AuthData> {
     if let Ok(content) = fs::read_to_string(get_auth_file_path()) {
         serde_json::from_str(&content).ok()
     } else {
         None
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    pub sub: String,
-    pub exp: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,69 +50,6 @@ pub struct LoginPayload {
 pub struct ChangePasswordPayload {
     pub current_password: String,
     pub new_password: String,
-}
-
-pub fn get_jwt_secret() -> &'static [u8] {
-    static SECRET: OnceLock<Vec<u8>> = OnceLock::new();
-    SECRET.get_or_init(|| {
-        // Fallback for tests or explicit override
-        if let Ok(key) = std::env::var("JWT_SECRET") {
-            return key.into_bytes();
-        }
-
-        let secret_path = std::path::Path::new("data/jwt.secret");
-        if secret_path.exists() {
-            match std::fs::read_to_string(secret_path) {
-                Ok(key) if !key.trim().is_empty() => return key.trim().to_string().into_bytes(),
-                _ => tracing::warn!("Failed to read existing data/jwt.secret, generating new one"),
-            }
-        }
-
-        // Generate a new secure random secret using UUIDs
-        let new_key = format!("{}{}", uuid::Uuid::new_v4(), uuid::Uuid::new_v4()).replace("-", "");
-        
-        let _ = std::fs::create_dir_all("data");
-        if let Err(e) = std::fs::write(secret_path, &new_key) {
-            tracing::error!("Failed to save JWT secret to {:?}: {}", secret_path, e);
-        } else {
-            tracing::info!("Generated new JWT secret and saved to {:?}", secret_path);
-        }
-        
-        new_key.into_bytes()
-    }).as_slice()
-}
-
-// Rate Limiter tracking: IP -> (Failed Attempts, Lock Expiration)
-static RATE_LIMITS: OnceLock<Mutex<HashMap<String, (usize, Instant)>>> = OnceLock::new();
-
-fn check_rate_limit(ip: &str) -> bool {
-    let limits = RATE_LIMITS.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = limits.lock().unwrap();
-    if let Some(&(attempts, lock_until)) = map.get(ip) {
-        if Instant::now() < lock_until {
-            return false; // locked
-        } else if attempts >= 5 {
-            // lock expired, reset
-            map.remove(ip);
-        }
-    }
-    true
-}
-
-fn record_failed_attempt(ip: &str) {
-    let limits = RATE_LIMITS.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = limits.lock().unwrap();
-    let entry = map.entry(ip.to_string()).or_insert((0, Instant::now()));
-    entry.0 += 1;
-    if entry.0 >= 5 {
-        entry.1 = Instant::now() + Duration::from_secs(300); // Lock for 5 mins
-    }
-}
-
-fn clear_attempts(ip: &str) {
-    let limits = RATE_LIMITS.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = limits.lock().unwrap();
-    map.remove(ip);
 }
 
 pub async fn status() -> Result<Json<serde_json::Value>, StatusCode> {
@@ -321,7 +257,6 @@ pub async fn require_auth(
         &Validation::default(),
     ).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    // We could store token_data in request extensions if needed later
     req.extensions_mut().insert(token_data.claims);
 
     Ok(next.run(req).await)
@@ -339,6 +274,15 @@ pub async fn me(jar: CookieJar) -> Result<Json<serde_json::Value>, StatusCode> {
         &Validation::default(),
     ).map(|_| Json(serde_json::json!({ "authenticated": true })))
      .map_err(|_| StatusCode::UNAUTHORIZED)
+}
+
+pub fn public_router() -> Router {
+    Router::new()
+        .route("/api/auth/login", post(login))
+        .route("/api/auth/status", get(status))
+        .route("/api/auth/setup", post(setup))
+        .route("/api/auth/password", put(change_password))
+        .route("/api/auth/me", get(me))
 }
 
 #[cfg(test)]
@@ -369,8 +313,7 @@ mod tests {
     fn test_get_jwt_secret() {
         unsafe { std::env::set_var("JWT_SECRET", "test_secret_value"); }
         let secret = get_jwt_secret();
-        assert!(secret.len() > 0, "Secret should not be empty");
-        // This kills the vec![0] or Vec::new() mutants
+        assert!(!secret.is_empty(), "Secret should not be empty");
         assert_eq!(secret, b"test_secret_value");
     }
 
