@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Folder, 
   File, 
@@ -28,8 +29,10 @@ import {
   Disc, 
   Loader2, 
   ChevronDown,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { AudioPlayerModal } from '../components/files/AudioPlayerModal';
 import type { FileItem } from '../components/files/AudioPlayerModal';
 import { VideoPlayerModal } from '../components/files/VideoPlayerModal';
@@ -56,17 +59,19 @@ interface CloudAccount {
 }
 
 export function FileManager() {
-  const [currentPath, setCurrentPath] = useState<string>('/DATA');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPath = searchParams.get('path');
+  const [currentPath, setCurrentPath] = useState<string>(urlPath || '/');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [storages, setStorages] = useState<MountItem[]>([]);
   const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
   const [shortcuts, setShortcuts] = useState<Record<string, string>>({
     root: '/',
     data: '/DATA',
-    documents: '/DATA/Documents',
-    downloads: '/DATA/Downloads',
-    gallery: '/DATA/Gallery',
-    media: '/DATA/Media',
+    documents: '/Documents',
+    downloads: '/Downloads',
+    gallery: '/Gallery',
+    media: '/media',
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -91,6 +96,18 @@ export function FileManager() {
   const [opTargetItem, setOpTargetItem] = useState<FileItem | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync with URL query parameter
+  useEffect(() => {
+    if (urlPath && urlPath !== currentPath) {
+      setCurrentPath(urlPath);
+    }
+  }, [urlPath]);
+
+  const navigateTo = (newPath: string) => {
+    setCurrentPath(newPath);
+    setSearchParams({ path: newPath }, { replace: true });
+  };
 
   // Load shortcuts, storages and cloud accounts once
   useEffect(() => {
@@ -131,12 +148,19 @@ export function FileManager() {
       })
       .then(data => {
         setFiles(data.items || []);
-        if (data.current_path) setCurrentPath(data.current_path);
+        if (data.current_path && data.current_path !== currentPath) {
+          setCurrentPath(data.current_path);
+        }
         setIsLoading(false);
       })
       .catch(() => {
-        setFiles([]);
-        setIsLoading(false);
+        if (path !== '/') {
+          toast.error(`Diretório ${path} não encontrado ou inacessível. Retornando para a raiz.`);
+          navigateTo('/');
+        } else {
+          setFiles([]);
+          setIsLoading(false);
+        }
       });
   };
 
@@ -147,7 +171,7 @@ export function FileManager() {
   // File click handler
   const handleItemClick = (item: FileItem) => {
     if (item.is_dir) {
-      setCurrentPath(item.path);
+      navigateTo(item.path);
       return;
     }
 
@@ -282,7 +306,7 @@ export function FileManager() {
   // Breadcrumbs generator
   const breadcrumbSegments = () => {
     const segments = currentPath.split('/').filter(Boolean);
-    const crumbs = [{ label: 'Root', path: '/' }];
+    const crumbs = [{ label: 'Root (/)', path: '/' }];
     let accum = '';
     for (const seg of segments) {
       accum += `/${seg}`;
@@ -341,16 +365,16 @@ export function FileManager() {
           {/* Shortcuts Group */}
           <div>
             <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider px-3 mb-2">
-              Arquivos
+              Atalhos do Sistema
             </h3>
             <div className="space-y-0.5">
               {[
-                { label: 'Root', path: shortcuts.root || '/', icon: Home },
-                { label: 'DATA', path: shortcuts.data || '/DATA', icon: Disc },
-                { label: 'Documents', path: shortcuts.documents || '/DATA/Documents', icon: FileText },
-                { label: 'Downloads', path: shortcuts.downloads || '/DATA/Downloads', icon: Download },
-                { label: 'Gallery', path: shortcuts.gallery || '/DATA/Gallery', icon: Image },
-                { label: 'Media', path: shortcuts.media || '/DATA/Media', icon: Film },
+                { label: 'Root', sub: 'Raiz (/)', path: shortcuts.root || '/', icon: Home },
+                { label: 'DATA', sub: 'Dados', path: shortcuts.data || '/DATA', icon: Disc },
+                { label: 'Documents', sub: 'Documentos', path: shortcuts.documents || '/Documents', icon: FileText },
+                { label: 'Downloads', sub: 'Downloads', path: shortcuts.downloads || '/Downloads', icon: Download },
+                { label: 'Gallery', sub: 'Galeria', path: shortcuts.gallery || '/Gallery', icon: Image },
+                { label: 'Media', sub: 'Mídia (/media)', path: shortcuts.media || '/media', icon: Film },
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPath === item.path;
@@ -358,7 +382,7 @@ export function FileManager() {
                   <button
                     key={item.label}
                     onClick={() => {
-                      setCurrentPath(item.path);
+                      navigateTo(item.path);
                       setIsStorageDrawerOpen(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -368,7 +392,8 @@ export function FileManager() {
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
+                    <span className="truncate font-medium">{item.label}</span>
+                    <span className="text-[10px] text-secondary ml-auto hidden sm:inline">{item.sub}</span>
                   </button>
                 );
               })}
@@ -379,7 +404,7 @@ export function FileManager() {
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider">
-                Localização
+                Unidades Montadas
               </h3>
               <div className="relative">
                 <button
@@ -397,32 +422,7 @@ export function FileManager() {
                       onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
                       className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors font-medium"
                     >
-                      Novo armazenamento local
-                    </button>
-                    <button
-                      onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                    >
-                      Conectar ao Google Drive
-                    </button>
-                    <button
-                      onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                    >
-                      Conectar Dropbox
-                    </button>
-                    <button
-                      onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                    >
-                      Conectar ao OneDrive
-                    </button>
-                    <div className="border-t border-border my-1" />
-                    <button
-                      onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                    >
-                      Conectar armazenamento de rede
+                      Conectar nuvem / drive externo
                     </button>
                   </div>
                 )}
@@ -433,12 +433,12 @@ export function FileManager() {
             <div className="space-y-1.5">
               {storages.map((st, idx) => {
                 const { usedGB, totalGB, pct } = formatStorageSpace(st.used_bytes, st.total_bytes);
-                const isActive = currentPath.startsWith(st.mount_point);
+                const isActive = currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`);
                 return (
                   <button
                     key={idx}
                     onClick={() => {
-                      setCurrentPath(st.mount_point);
+                      navigateTo(st.mount_point);
                       setIsStorageDrawerOpen(false);
                     }}
                     className={`w-full text-left p-2.5 rounded-xl border transition-all ${
@@ -451,18 +451,25 @@ export function FileManager() {
                       <HardDrive className="w-4 h-4 shrink-0 text-orbit-400" />
                       <span className="text-xs font-semibold truncate">{st.name}</span>
                     </div>
-                    <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-1">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
-                        }`}
-                        style={{ width: `${Math.min(pct, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-secondary font-mono">
-                      <span>{usedGB} GB / {totalGB} GB</span>
-                      <span>{pct}%</span>
-                    </div>
+                    {st.total_bytes > 0 && (
+                      <>
+                        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-1">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
+                            }`}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-secondary font-mono">
+                          <span>{usedGB} GB / {totalGB} GB</span>
+                          <span>{pct}%</span>
+                        </div>
+                      </>
+                    )}
+                    {st.total_bytes === 0 && (
+                      <span className="text-[10px] text-secondary font-mono truncate block">{st.mount_point}</span>
+                    )}
                   </button>
                 );
               })}
@@ -472,7 +479,7 @@ export function FileManager() {
                 <button
                   key={acc.id}
                   onClick={() => {
-                    if (acc.mount_point) setCurrentPath(acc.mount_point);
+                    if (acc.mount_point) navigateTo(acc.mount_point);
                     setIsStorageDrawerOpen(false);
                   }}
                   className="w-full text-left p-2.5 rounded-xl border border-border bg-accent/20 hover:bg-accent/50 text-primary transition-all flex items-center gap-2.5"
@@ -488,14 +495,11 @@ export function FileManager() {
         {/* Bottom Shortcuts */}
         <div className="pt-4 border-t border-border space-y-1">
           <button
-            onClick={() => {
-              setCurrentPath(shortcuts.root || '/');
-              setIsStorageDrawerOpen(false);
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-secondary hover:text-primary hover:bg-accent/60 transition-all"
+            onClick={() => loadFiles(currentPath)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-accent/60 transition-colors font-medium"
           >
-            <Home className="w-4 h-4" />
-            <span>Sistema Raiz</span>
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Atualizar lista de arquivos</span>
           </button>
         </div>
       </aside>
@@ -520,7 +524,7 @@ export function FileManager() {
               {breadcrumbSegments().map((crumb, idx, arr) => (
                 <React.Fragment key={crumb.path}>
                   <button
-                    onClick={() => setCurrentPath(crumb.path)}
+                    onClick={() => navigateTo(crumb.path)}
                     className={`hover:text-orbit-400 transition-colors px-1 py-0.5 sm:px-1.5 sm:py-1 rounded-lg truncate max-w-[100px] sm:max-w-[160px] ${
                       idx === arr.length - 1 ? 'text-primary font-semibold' : 'text-secondary'
                     }`}

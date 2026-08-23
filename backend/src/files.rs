@@ -160,8 +160,42 @@ pub fn sanitize_path(raw: &str) -> Result<PathBuf, StatusCode> {
     if raw.contains('\0') {
         return Err(StatusCode::BAD_REQUEST);
     }
-    let p = Path::new(raw);
-    Ok(p.to_path_buf())
+    let trimmed = raw.trim();
+    let p = if trimmed.is_empty() { "/" } else { trimmed };
+
+    // If running inside a container where host root is mounted at /host
+    if Path::new("/host").is_dir() {
+        if p == "/" || p == "/host" {
+            return Ok(PathBuf::from("/host"));
+        }
+        if p.starts_with("/host/") || p == "/host" {
+            return Ok(PathBuf::from(p));
+        }
+        // If path is under /mnt or /media or /app, check if local mount exists first
+        if (p.starts_with("/mnt") || p.starts_with("/media") || p.starts_with("/app")) && Path::new(p).exists() {
+            return Ok(PathBuf::from(p));
+        }
+        // Map host path: e.g. /home/user -> /host/home/user
+        let clean = p.trim_start_matches('/');
+        let mapped = Path::new("/host").join(clean);
+        if mapped.exists() || !Path::new(p).exists() {
+            return Ok(mapped);
+        }
+    }
+
+    Ok(PathBuf::from(p))
+}
+
+pub fn to_display_path(p: &Path) -> String {
+    let s = p.to_string_lossy().to_string();
+    if s == "/host" {
+        return "/".to_string();
+    }
+    if s.starts_with("/host/") {
+        let stripped = s.replacen("/host", "", 1);
+        return if stripped.is_empty() { "/".to_string() } else { stripped };
+    }
+    s
 }
 
 fn get_mime_type(ext: &str) -> &'static str {
@@ -243,7 +277,7 @@ pub async fn list_files(Query(q): Query<ListFilesQuery>) -> Result<Json<ListFile
 
         items.push(FileItem {
             name,
-            path: p.to_string_lossy().to_string(),
+            path: to_display_path(&p),
             is_dir,
             size,
             modified,
@@ -283,35 +317,55 @@ pub async fn list_files(Query(q): Query<ListFilesQuery>) -> Result<Json<ListFile
     }
 
     Ok(Json(ListFilesResponse {
-        current_path: path.to_string_lossy().to_string(),
+        current_path: to_display_path(&path),
         items,
         total_items,
     }))
 }
 
 pub async fn get_shortcuts() -> Json<ShortcutsResponse> {
-    let data_dir = std::env::var("ORBIT_DATA_DIR").unwrap_or_else(|_| "/DATA".to_string());
+    let data_dir = std::env::var("ORBIT_DATA_DIR").unwrap_or_else(|_| {
+        if Path::new("/DATA").exists() {
+            "/DATA".to_string()
+        } else if Path::new("/host/DATA").exists() {
+            "/DATA".to_string()
+        } else if Path::new("/mnt").exists() || Path::new("/host/mnt").exists() {
+            "/mnt".to_string()
+        } else if Path::new("/home").exists() || Path::new("/host/home").exists() {
+            "/home".to_string()
+        } else {
+            "/".to_string()
+        }
+    });
+
     Json(ShortcutsResponse {
         root: "/".to_string(),
         data: data_dir.clone(),
-        documents: format!("{}/Documents", data_dir),
-        downloads: format!("{}/Downloads", data_dir),
-        gallery: format!("{}/Gallery", data_dir),
-        media: format!("{}/Media", data_dir),
+        documents: if data_dir == "/" { "/Documents".to_string() } else { format!("{}/Documents", data_dir) },
+        downloads: if data_dir == "/" { "/Downloads".to_string() } else { format!("{}/Downloads", data_dir) },
+        gallery: if data_dir == "/" { "/Gallery".to_string() } else { format!("{}/Gallery", data_dir) },
+        media: if Path::new("/media").exists() || Path::new("/host/media").exists() {
+            "/media".to_string()
+        } else if Path::new("/mnt").exists() || Path::new("/host/mnt").exists() {
+            "/mnt".to_string()
+        } else {
+            format!("{}/Media", data_dir)
+        },
     })
 }
 
 pub async fn list_storages() -> Json<StoragesResponse> {
     let disks = Disks::new_with_refreshed_list();
     let mut mounts = Vec::new();
+    let mut seen_points = std::collections::HashSet::new();
 
     for disk in &disks {
-        let mount_point = disk.mount_point().to_string_lossy().to_string();
+        let raw_mount = disk.mount_point().to_string_lossy().to_string();
         let name = disk.name().to_string_lossy().to_string();
         let fs_type = disk.file_system().to_string_lossy().to_string();
 
         let name_lower = name.to_lowercase();
-        let mount_lower = mount_point.to_lowercase();
+        let mount_lower = raw_mount.to_lowercase();
         let fs_lower = fs_type.to_lowercase();
 
         if name_lower.contains("overlay")
@@ -328,6 +382,19 @@ pub async fn list_storages() -> Json<StoragesResponse> {
         {
             continue;
         }
+
+        let mount_point = if raw_mount == "/host" {
+            "/".to_string()
+        } else if raw_mount.starts_with("/host/") {
+            raw_mount.replacen("/host", "", 1)
+        } else {
+            raw_mount.clone()
+        };
+
+        if seen_points.contains(&mount_point) {
+            continue;
+        }
+        seen_points.insert(mount_point.clone());
 
         let display_name = if name_lower.contains("mmcblk") || name_lower.contains("sdcard") {
             "Cartão microSD (Sistema)".to_string()
@@ -364,10 +431,43 @@ pub async fn list_storages() -> Json<StoragesResponse> {
         });
     }
 
+    // Auto-discover external folders mounted under /mnt or /media or /host/mnt or /host/media
+    let scan_roots = ["/mnt", "/media", "/host/mnt", "/host/media"];
+    for root in scan_roots {
+        let p = Path::new(root);
+        if let Ok(entries) = fs::read_dir(p) {
+            for entry in entries.flatten() {
+                if let Ok(file_type) = entry.file_type() {
+                    if file_type.is_dir() {
+                        let full_path = entry.path().to_string_lossy().to_string();
+                        let display_p = if full_path.starts_with("/host") {
+                            full_path.replacen("/host", "", 1)
+                        } else {
+                            full_path.clone()
+                        };
+
+                        if !seen_points.contains(&display_p) {
+                            seen_points.insert(display_p.clone());
+                            let folder_name = entry.file_name().to_string_lossy().to_string();
+                            mounts.push(MountItem {
+                                name: format!("HD / Pendrive Externo ({})", folder_name),
+                                mount_point: display_p,
+                                fs_type: "external".to_string(),
+                                total_bytes: 0,
+                                used_bytes: 0,
+                                available_bytes: 0,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Always ensure at least Root exists
-    if mounts.is_empty() {
-        mounts.push(MountItem {
-            name: "Armazenamento do Sistema".to_string(),
+    if !seen_points.contains("/") {
+        mounts.insert(0, MountItem {
+            name: "Armazenamento do Sistema (Raiz)".to_string(),
             mount_point: "/".to_string(),
             fs_type: "ext4".to_string(),
             total_bytes: 100 * 1024 * 1024 * 1024,

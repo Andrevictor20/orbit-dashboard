@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import { Overview } from '../../pages/Overview';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
@@ -51,7 +52,11 @@ describe('Overview Component', () => {
       isConnected: false
     });
 
-    render(<Overview />);
+    render(
+      <BrowserRouter>
+        <Overview />
+      </BrowserRouter>
+    );
     
     // Check titles
     expect(screen.getByText('dashboard.title')).toBeTruthy();
@@ -78,7 +83,11 @@ describe('Overview Component', () => {
       isConnected: true
     });
 
-    render(<Overview />);
+    render(
+      <BrowserRouter>
+        <Overview />
+      </BrowserRouter>
+    );
     
     expect(screen.getByText('dashboard.connected')).toBeTruthy();
     expect(screen.getByText('25.5%')).toBeTruthy(); // CPU

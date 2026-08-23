@@ -22,7 +22,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # Required for persistent Orbit data (SQLite DB, logs, store cache)
       - orbit_data:/app/data
-      # Mount host external storage and drives
+      # Mount host root and drives with rslave propagation
+      - /:/host:rslave
       - /mnt:/mnt:rslave
       - /media:/media:rslave
     environment:
