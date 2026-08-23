@@ -837,7 +837,7 @@ pub async fn get_cloud_oauth_url(Query(params): Query<OAuthAuthUrlQuery>) -> Res
         "google_drive" => {
             let client_id = params.client_id
                 .or_else(|| std::env::var("GOOGLE_CLIENT_ID").ok())
-                .unwrap_or_else(|| "108392817294-orbitapp.apps.googleusercontent.com".to_string());
+                .unwrap_or_else(|| "806244924985-gcasvj0mtdvpjs5ld1rqke7ulmgmc4c2.apps.googleusercontent.com".to_string());
             let scopes = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email";
             format!(
                 "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent&state={}",

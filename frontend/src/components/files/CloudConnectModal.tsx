@@ -107,6 +107,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
       // 1. Fetch official authorization URL from backend
       const queryParams = new URLSearchParams({
         provider: provider.id,
+        redirect_uri: window.location.origin,
         ...(customClientId ? { client_id: customClientId } : {}),
       });
 
