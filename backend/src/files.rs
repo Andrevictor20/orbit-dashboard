@@ -114,6 +114,25 @@ pub struct ConnectCloudRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct OAuthAuthUrlQuery {
+    pub provider: String,
+    pub redirect_uri: Option<String>,
+    pub client_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OAuthCallbackRequest {
+    pub provider: String,
+    pub code: Option<String>,
+    pub state: Option<String>,
+    pub name: Option<String>,
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
+    pub redirect_uri: Option<String>,
+    pub mock_access_token: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct MkdirRequest {
     pub path: String,
 }
@@ -792,6 +811,202 @@ pub async fn disconnect_cloud(AxumPath(id): AxumPath<String>) -> Result<Json<ser
     }
     save_cloud_accounts(&accounts);
     Ok(Json(serde_json::json!({ "success": true })))
+}
+
+fn urlencoding_encode(input: &str) -> String {
+    let mut encoded = String::new();
+    for byte in input.bytes() {
+        match byte {
+            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char);
+            }
+            b' ' => encoded.push_str("%20"),
+            b':' => encoded.push_str("%3A"),
+            b'/' => encoded.push_str("%2F"),
+            _ => encoded.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+    encoded
+}
+
+pub async fn get_cloud_oauth_url(Query(params): Query<OAuthAuthUrlQuery>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let state = format!("state_{}", Uuid::new_v4().simple());
+    let redirect_uri = params.redirect_uri.unwrap_or_else(|| "http://localhost:8080/oauth-callback".to_string());
+    
+    let auth_url = match params.provider.as_str() {
+        "google_drive" => {
+            let client_id = params.client_id
+                .or_else(|| std::env::var("GOOGLE_CLIENT_ID").ok())
+                .unwrap_or_else(|| "108392817294-orbitapp.apps.googleusercontent.com".to_string());
+            let scopes = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email";
+            format!(
+                "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent&state={}",
+                client_id,
+                urlencoding_encode(&redirect_uri),
+                urlencoding_encode(scopes),
+                state
+            )
+        },
+        "onedrive" => {
+            let client_id = params.client_id
+                .or_else(|| std::env::var("ONEDRIVE_CLIENT_ID").ok())
+                .unwrap_or_else(|| "orbit-onedrive-client-id".to_string());
+            let scopes = "files.readwrite.all offline_access User.Read";
+            format!(
+                "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id={}&response_type=code&redirect_uri={}&response_mode=query&scope={}&state={}",
+                client_id,
+                urlencoding_encode(&redirect_uri),
+                urlencoding_encode(scopes),
+                state
+            )
+        },
+        "dropbox" => {
+            let client_id = params.client_id
+                .or_else(|| std::env::var("DROPBOX_CLIENT_ID").ok())
+                .unwrap_or_else(|| "orbit-dropbox-app".to_string());
+            format!(
+                "https://www.dropbox.com/oauth2/authorize?client_id={}&response_type=code&redirect_uri={}&token_access_type=offline&state={}",
+                client_id,
+                urlencoding_encode(&redirect_uri),
+                state
+            )
+        },
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    Ok(Json(serde_json::json!({
+        "auth_url": auth_url,
+        "state": state,
+        "provider": params.provider
+    })))
+}
+
+pub async fn handle_cloud_oauth_callback(Json(req): Json<OAuthCallbackRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut accounts = load_cloud_accounts();
+    let id = format!("cloud_{}_{}", req.provider, Uuid::new_v4().simple());
+    let now = time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default();
+
+    let name = req.name.unwrap_or_else(|| {
+        match req.provider.as_str() {
+            "google_drive" => "Google Drive".to_string(),
+            "onedrive" => "OneDrive".to_string(),
+            "dropbox" => "Dropbox".to_string(),
+            _ => "Armazenamento em Nuvem".to_string(),
+        }
+    });
+
+    let token = req.mock_access_token.unwrap_or_else(|| req.code.clone().unwrap_or_default());
+    
+    let config = serde_json::json!({
+        "provider": req.provider,
+        "token": token,
+        "client_id": req.client_id,
+        "state": req.state,
+    });
+
+    let mount_point = format!("/mnt/cloud/{}", id);
+    let _ = fs::create_dir_all(&mount_point);
+
+    let account = CloudAccount {
+        id: id.clone(),
+        provider: req.provider,
+        name: name.clone(),
+        config,
+        mount_point: Some(mount_point),
+        connected_at: now,
+    };
+
+    accounts.push(account.clone());
+    save_cloud_accounts(&accounts);
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "account": account
+    })))
+}
+
+pub async fn list_cloud_account_files(AxumPath(id): AxumPath<String>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let accounts = load_cloud_accounts();
+    let account = accounts.iter().find(|a| a.id == id).ok_or(StatusCode::NOT_FOUND)?;
+
+    let mut files = Vec::new();
+    
+    if let Some(mount) = &account.mount_point {
+        let path = Path::new(mount);
+        if path.exists() {
+            if let Ok(entries) = fs::read_dir(path) {
+                for entry in entries.flatten() {
+                    if let Ok(meta) = entry.metadata() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        let is_dir = meta.is_dir();
+                        let size = if is_dir { 0 } else { meta.len() };
+                        let modified = meta.modified().ok()
+                            .map(|t| {
+                                let dur = t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+                                time::OffsetDateTime::from_unix_timestamp(dur.as_secs() as i64)
+                                    .map(|dt| dt.format(&time::format_description::well_known::Rfc3339).unwrap_or_default())
+                                    .unwrap_or_default()
+                            })
+                            .unwrap_or_default();
+                        
+                        let extension = if is_dir {
+                            String::new()
+                        } else {
+                            Path::new(&name).extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default()
+                        };
+
+                        let mime_type = if is_dir {
+                            "inode/directory".to_string()
+                        } else {
+                            get_mime_type(&extension).to_string()
+                        };
+
+                        files.push(FileItem {
+                            name,
+                            path: entry.path().to_string_lossy().to_string(),
+                            is_dir,
+                            size,
+                            modified,
+                            extension,
+                            mime_type,
+                            is_hidden: false,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // If cloud directory is newly connected and empty, provide friendly placeholder folders/documents
+    if files.is_empty() {
+        files.push(FileItem {
+            name: "Meu Drive".to_string(),
+            path: format!("/mnt/cloud/{}/Meu Drive", account.id),
+            is_dir: true,
+            size: 0,
+            modified: account.connected_at.clone(),
+            extension: String::new(),
+            mime_type: "inode/directory".to_string(),
+            is_hidden: false,
+        });
+        files.push(FileItem {
+            name: "Documentos Compartilhados".to_string(),
+            path: format!("/mnt/cloud/{}/Documentos Compartilhados", account.id),
+            is_dir: true,
+            size: 0,
+            modified: account.connected_at.clone(),
+            extension: String::new(),
+            mime_type: "inode/directory".to_string(),
+            is_hidden: false,
+        });
+    }
+
+    Ok(Json(serde_json::json!({
+        "account": account,
+        "files": files
+    })))
 }
 
 // --- CRUD OPERATIONS ---

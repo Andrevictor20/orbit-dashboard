@@ -517,3 +517,69 @@ async fn test_files_sharing_and_public_download() {
 
     let _ = fs::remove_dir_all(&sandbox);
 }
+
+// 13. Cloud OAuth 2.0 Flow (Google Drive, OneDrive, Dropbox)
+#[tokio::test]
+async fn test_files_cloud_oauth_flow() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let server = TestServer::new(app());
+    let cookie = get_test_cookie();
+
+    // 1. Get Google Drive Auth URL
+    let gdrive_res = server.get("/api/files/cloud/oauth/auth-url?provider=google_drive")
+        .add_cookie(cookie.clone())
+        .await;
+    gdrive_res.assert_status_ok();
+    let gdrive_json: serde_json::Value = gdrive_res.json();
+    let gdrive_url = gdrive_json["auth_url"].as_str().unwrap();
+    assert!(gdrive_url.contains("accounts.google.com") || gdrive_url.contains("google"));
+    assert!(!gdrive_json["state"].as_str().unwrap().is_empty());
+
+    // 2. Get OneDrive Auth URL
+    let onedrive_res = server.get("/api/files/cloud/oauth/auth-url?provider=onedrive")
+        .add_cookie(cookie.clone())
+        .await;
+    onedrive_res.assert_status_ok();
+    let onedrive_json: serde_json::Value = onedrive_res.json();
+    let onedrive_url = onedrive_json["auth_url"].as_str().unwrap();
+    assert!(onedrive_url.contains("login.microsoftonline.com") || onedrive_url.contains("microsoft"));
+
+    // 3. Get Dropbox Auth URL
+    let dropbox_res = server.get("/api/files/cloud/oauth/auth-url?provider=dropbox")
+        .add_cookie(cookie.clone())
+        .await;
+    dropbox_res.assert_status_ok();
+    let dropbox_json: serde_json::Value = dropbox_res.json();
+    let dropbox_url = dropbox_json["auth_url"].as_str().unwrap();
+    assert!(dropbox_url.contains("dropbox.com"));
+
+    // 4. Handle OAuth Callback / Direct Connect
+    let callback_res = server.post("/api/files/cloud/oauth/callback")
+        .add_cookie(cookie.clone())
+        .json(&json!({
+            "provider": "google_drive",
+            "name": "Meu Google Drive Pessoal",
+            "code": "test_auth_code_123",
+            "state": gdrive_json["state"].as_str().unwrap(),
+            "mock_access_token": "mock_gdrive_token_xyz"
+        }))
+        .await;
+    callback_res.assert_status_ok();
+    let callback_json: serde_json::Value = callback_res.json();
+    let account_id = callback_json["account"]["id"].as_str().unwrap();
+    assert!(!account_id.is_empty());
+
+    // 5. List files for the connected cloud account
+    let cloud_files_res = server.get(&format!("/api/files/cloud/account/{}/files", account_id))
+        .add_cookie(cookie.clone())
+        .await;
+    cloud_files_res.assert_status_ok();
+    let cloud_files_json: serde_json::Value = cloud_files_res.json();
+    assert!(cloud_files_json["files"].is_array());
+
+    // Cleanup: disconnect account
+    let disc_res = server.delete(&format!("/api/files/cloud/disconnect/{}", account_id))
+        .add_cookie(cookie.clone())
+        .await;
+    disc_res.assert_status_ok();
+}

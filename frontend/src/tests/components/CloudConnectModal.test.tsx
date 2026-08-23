@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { CloudConnectModal } from '../../components/files/CloudConnectModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -10,47 +11,65 @@ vi.mock('react-i18next', () => ({
 
 describe('CloudConnectModal Component', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn((_url: string, opts?: any) => {
+    vi.stubGlobal('fetch', vi.fn((url: string, opts?: any) => {
+      if (url.includes('/api/files/cloud/oauth/auth-url')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            auth_url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=test',
+            state: 'state_123',
+            provider: 'google_drive',
+          }),
+        });
+      }
       if (opts?.method === 'POST') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ success: true, id: 'account_123' }),
+          json: () => Promise.resolve({ success: true, account: { id: 'account_123' } }),
         });
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({
-          providers: [
-            { id: 'google_drive', name: 'Google Drive', icon: 'google_drive' },
-            { id: 'onedrive', name: 'OneDrive', icon: 'onedrive' },
-            { id: 'dropbox', name: 'Dropbox', icon: 'dropbox' },
-            { id: 'smb', name: 'Armazenamento de Rede (SMB)', icon: 'server' },
-          ]
-        }),
+        json: () => Promise.resolve({}),
       });
     }));
+
+    vi.stubGlobal('open', vi.fn(() => ({
+      closed: true,
+    })));
   });
 
-  it('renders provider selection and connects Google Drive', async () => {
+  it('renders OAuth 1-click cloud providers correctly', async () => {
+    render(<CloudConnectModal isOpen={true} onClose={vi.fn()} onConnected={vi.fn()} />);
+
+    expect(screen.getByText('Conectar Armazenamento')).toBeInTheDocument();
+    expect(screen.getByText('Google Drive')).toBeInTheDocument();
+    expect(screen.getByText('Microsoft OneDrive')).toBeInTheDocument();
+    expect(screen.getByText('Dropbox')).toBeInTheDocument();
+    expect(screen.getByText('Entrar com Google Drive')).toBeInTheDocument();
+    expect(screen.getByText('Entrar com Microsoft OneDrive')).toBeInTheDocument();
+    expect(screen.getByText('Entrar com Dropbox')).toBeInTheDocument();
+  });
+
+  it('switches to network tab and renders SMB and WebDAV protocols', async () => {
+    render(<CloudConnectModal isOpen={true} onClose={vi.fn()} onConnected={vi.fn()} />);
+
+    const networkTab = screen.getByText(/Rede Local \/ Servidores/i);
+    fireEvent.click(networkTab);
+
+    expect(screen.getByText('Compartilhamento SMB / Samba')).toBeInTheDocument();
+    expect(screen.getByText('Servidor WebDAV / Nextcloud')).toBeInTheDocument();
+  });
+
+  it('handles Google Drive 1-click login click', async () => {
     const onConnected = vi.fn();
     render(<CloudConnectModal isOpen={true} onClose={vi.fn()} onConnected={onConnected} />);
 
-    expect(await screen.findByText('Google Drive')).toBeTruthy();
-    expect(screen.getByText('Dropbox')).toBeTruthy();
-    expect(screen.getByText('OneDrive')).toBeTruthy();
-
-    // Select Google Drive
-    fireEvent.click(screen.getByText('Google Drive'));
-
-    // Fill form
-    const nameInput = screen.getByLabelText(/Nome|Name/i);
-    fireEvent.change(nameInput, { target: { value: 'Meu Drive' } });
-
-    const submitBtn = screen.getByTestId('submit-cloud-btn');
-    fireEvent.click(submitBtn);
+    const googleBtn = screen.getByText('Entrar com Google Drive');
+    fireEvent.click(googleBtn);
 
     await waitFor(() => {
-      expect(onConnected).toHaveBeenCalled();
+      expect(window.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/files/cloud/oauth/auth-url?provider=google_drive'));
     });
   });
 });

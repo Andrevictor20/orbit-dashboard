@@ -217,6 +217,22 @@ export function FileManager() {
       .catch(() => {});
   };
 
+  const handleDisconnectCloud = async (id: string, name: string) => {
+    if (!window.confirm(`Deseja desconectar "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/files/cloud/accounts/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success(`"${name}" desconectado com sucesso.`);
+        loadStoragesAndCloud();
+        if (currentPath.includes(id)) {
+          navigateTo(places[0]?.path || '/');
+        }
+      }
+    } catch {
+      toast.error('Erro ao desconectar conta');
+    }
+  };
+
   // Fetch current folder files
   const loadFiles = (path: string) => {
     if (isTrashView) {
@@ -872,19 +888,57 @@ export function FileManager() {
               })}
 
               {/* Connected Cloud Accounts */}
-              {cloudAccounts.map((acc) => (
-                <button
-                  key={acc.id}
-                  onClick={() => {
-                    if (acc.mount_point) navigateTo(acc.mount_point);
-                    setIsStorageDrawerOpen(false);
-                  }}
-                  className="w-full text-left p-2.5 rounded-xl border border-border bg-accent/20 hover:bg-accent/50 text-primary transition-all flex items-center gap-2.5"
-                >
-                  <Cloud className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span className="text-xs font-medium truncate">{acc.name}</span>
-                </button>
-              ))}
+              {cloudAccounts.map((acc) => {
+                const isCurrent = acc.mount_point && currentPath.startsWith(acc.mount_point);
+                const isGoogle = acc.provider === 'google_drive';
+                const isOneDrive = acc.provider === 'onedrive';
+                const isDropbox = acc.provider === 'dropbox';
+
+                return (
+                  <div
+                    key={acc.id}
+                    className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
+                      isCurrent
+                        ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
+                        : 'border-border bg-accent/20 hover:bg-accent/50 text-primary'
+                    }`}
+                  >
+                    <button
+                      onClick={() => {
+                        if (acc.mount_point) navigateTo(acc.mount_point);
+                        setIsStorageDrawerOpen(false);
+                      }}
+                      className="flex-1 text-left flex items-center gap-2.5 min-w-0 pr-1"
+                      title={acc.name}
+                    >
+                      <div className={`p-1.5 rounded-lg border shrink-0 ${
+                        isGoogle ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        isOneDrive ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
+                        isDropbox ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      }`}>
+                        <Cloud className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs truncate block">{acc.name}</span>
+                        <span className="text-[10px] text-secondary capitalize block">{acc.provider.replace('_', ' ')}</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDisconnectCloud(acc.id, acc.name);
+                      }}
+                      className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`Desconectar ${acc.name}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

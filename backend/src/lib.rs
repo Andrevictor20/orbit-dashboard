@@ -68,6 +68,7 @@ pub fn app() -> Router {
         .route("/api/files/cloud/connect", post(files::connect_cloud))
         .route("/api/files/cloud/accounts", get(files::list_cloud_accounts))
         .route("/api/files/cloud/accounts/{id}", delete(files::disconnect_cloud))
+        .route("/api/files/cloud/disconnect/{id}", delete(files::disconnect_cloud).post(files::disconnect_cloud))
         .route("/api/files/mkdir", post(files::mkdir))
         .route("/api/files/create", post(files::create_file))
         .route("/api/files/rename", put(files::rename_file))
@@ -89,6 +90,9 @@ pub fn app() -> Router {
         .route("/api/files/share", post(files::create_share))
         .route("/api/files/shares", get(files::list_shares))
         .route("/api/files/share/{token}", delete(files::delete_share))
+        .route("/api/files/cloud/oauth/auth-url", get(files::get_cloud_oauth_url))
+        .route("/api/files/cloud/oauth/callback", post(files::handle_cloud_oauth_callback))
+        .route("/api/files/cloud/account/{id}/files", get(files::list_cloud_account_files))
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state.clone());
 
