@@ -775,6 +775,112 @@ fn save_cloud_accounts(accounts: &[CloudAccount]) {
     let _ = fs::write(CLOUD_ACCOUNTS_FILE, serde_json::to_string_pretty(accounts).unwrap_or_default());
 }
 
+fn dirs_or_fallback_rclone_dir() -> String {
+    if Path::new("/root/.config/rclone").exists() || Path::new("/root").is_dir() {
+        "/root/.config/rclone".to_string()
+    } else {
+        "data/rclone".to_string()
+    }
+}
+
+fn sync_rclone_config(account: &CloudAccount) {
+    let config_dir = dirs_or_fallback_rclone_dir();
+    let _ = fs::create_dir_all(&config_dir);
+    let conf_path = Path::new(&config_dir).join("rclone.conf");
+    
+    let mut current_conf = fs::read_to_string(&conf_path).unwrap_or_default();
+    
+    let section_header = format!("[{}]", account.id);
+    if !current_conf.contains(&section_header) {
+        let mut section = format!("\n[{}]\n", account.id);
+        match account.provider.as_str() {
+            "google_drive" => {
+                let client_id = account.config.get("client_id").and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .or_else(|| std::env::var("GOOGLE_CLIENT_ID").ok())
+                    .unwrap_or_default();
+                let client_secret = std::env::var("GOOGLE_CLIENT_SECRET").unwrap_or_default();
+                let token = account.config.get("token").and_then(|v| v.as_str()).unwrap_or("");
+                section.push_str("type = drive\n");
+                if !client_id.is_empty() {
+                    section.push_str(&format!("client_id = {}\n", client_id));
+                }
+                if !client_secret.is_empty() {
+                    section.push_str(&format!("client_secret = {}\n", client_secret));
+                }
+                section.push_str(&format!("token = {}\n", token));
+                section.push_str("scope = drive\n");
+            },
+            "onedrive" => {
+                section.push_str("type = onedrive\n");
+                if let Some(token) = account.config.get("token").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("token = {}\n", token));
+                }
+            },
+            "dropbox" => {
+                section.push_str("type = dropbox\n");
+                if let Some(token) = account.config.get("token").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("token = {}\n", token));
+                }
+            },
+            "smb" => {
+                section.push_str("type = smb\n");
+                if let Some(host) = account.config.get("host").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("host = {}\n", host));
+                }
+                if let Some(user) = account.config.get("username").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("user = {}\n", user));
+                }
+                if let Some(pass) = account.config.get("password").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("pass = {}\n", pass));
+                }
+            },
+            "webdav" => {
+                section.push_str("type = webdav\n");
+                if let Some(url) = account.config.get("host").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("url = {}\n", url));
+                }
+                if let Some(user) = account.config.get("username").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("user = {}\n", user));
+                }
+                if let Some(pass) = account.config.get("password").and_then(|v| v.as_str()) {
+                    section.push_str(&format!("pass = {}\n", pass));
+                }
+            },
+            _ => {},
+        }
+        current_conf.push_str(&section);
+        let _ = fs::write(&conf_path, current_conf);
+    }
+}
+
+fn mount_rclone_remote(account_id: &str, mount_point: &str) {
+    let _ = fs::create_dir_all(mount_point);
+    let conf_path = format!("{}/rclone.conf", dirs_or_fallback_rclone_dir());
+    let _ = std::process::Command::new("rclone")
+        .arg("mount")
+        .arg(format!("{}:", account_id))
+        .arg(mount_point)
+        .arg("--config")
+        .arg(&conf_path)
+        .arg("--vfs-cache-mode")
+        .arg("full")
+        .arg("--allow-other")
+        .arg("--daemon")
+        .spawn();
+}
+
+fn unmount_rclone_remote(mount_point: &str) {
+    let _ = std::process::Command::new("fusermount")
+        .arg("-u")
+        .arg(mount_point)
+        .spawn();
+    let _ = std::process::Command::new("umount")
+        .arg("-l")
+        .arg(mount_point)
+        .spawn();
+}
+
 pub async fn connect_cloud(Json(req): Json<ConnectCloudRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
     let mut accounts = load_cloud_accounts();
     let id = format!("cloud_{}", Uuid::new_v4().simple());
@@ -782,14 +888,18 @@ pub async fn connect_cloud(Json(req): Json<ConnectCloudRequest>) -> Result<Json<
         .format(&time::format_description::well_known::Rfc3339)
         .unwrap_or_default();
 
+    let mount_point = format!("/mnt/cloud/{}", id);
     let account = CloudAccount {
         id: id.clone(),
         provider: req.provider,
         name: req.name,
         config: req.config,
-        mount_point: Some(format!("/mnt/cloud/{}", id)),
+        mount_point: Some(mount_point.clone()),
         connected_at: now,
     };
+
+    sync_rclone_config(&account);
+    mount_rclone_remote(&account.id, &mount_point);
 
     accounts.push(account);
     save_cloud_accounts(&accounts);
@@ -805,9 +915,15 @@ pub async fn list_cloud_accounts() -> Json<serde_json::Value> {
 pub async fn disconnect_cloud(AxumPath(id): AxumPath<String>) -> Result<Json<serde_json::Value>, StatusCode> {
     let mut accounts = load_cloud_accounts();
     let initial_len = accounts.len();
+    let found = accounts.iter().find(|a| a.id == id).cloned();
     accounts.retain(|a| a.id != id);
     if accounts.len() == initial_len {
         return Err(StatusCode::NOT_FOUND);
+    }
+    if let Some(acc) = found {
+        if let Some(mount) = &acc.mount_point {
+            unmount_rclone_remote(mount);
+        }
     }
     save_cloud_accounts(&accounts);
     Ok(Json(serde_json::json!({ "success": true })))
@@ -837,7 +953,7 @@ pub async fn get_cloud_oauth_url(Query(params): Query<OAuthAuthUrlQuery>) -> Res
         "google_drive" => {
             let client_id = params.client_id
                 .or_else(|| std::env::var("GOOGLE_CLIENT_ID").ok())
-                .unwrap_or_else(|| "806244924985-gcasvj0mtdvpjs5ld1rqke7ulmgmc4c2.apps.googleusercontent.com".to_string());
+                .unwrap_or_default();
             let scopes = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email";
             format!(
                 "https://accounts.google.com/o/oauth2/v2/auth?client_id={}&redirect_uri={}&response_type=code&scope={}&access_type=offline&prompt=consent&state={}",
@@ -914,9 +1030,12 @@ pub async fn handle_cloud_oauth_callback(Json(req): Json<OAuthCallbackRequest>) 
         provider: req.provider,
         name: name.clone(),
         config,
-        mount_point: Some(mount_point),
+        mount_point: Some(mount_point.clone()),
         connected_at: now,
     };
+
+    sync_rclone_config(&account);
+    mount_rclone_remote(&account.id, &mount_point);
 
     accounts.push(account.clone());
     save_cloud_accounts(&accounts);

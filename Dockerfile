@@ -32,8 +32,8 @@ FROM docker:27-cli AS docker-cli
 
 # Stage 4: Runtime image
 FROM debian:bookworm-slim
-# Install runtime dependencies for networking, CA certificates, ssh client and sshpass
-RUN apt-get update && apt-get install -y ca-certificates libssl-dev sshpass openssh-client && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies for networking, CA certificates, ssh client, rclone and fuse3
+RUN apt-get update && apt-get install -y ca-certificates libssl-dev sshpass openssh-client rclone fuse3 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

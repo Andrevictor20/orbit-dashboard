@@ -521,7 +521,11 @@ async fn test_files_sharing_and_public_download() {
 // 13. Cloud OAuth 2.0 Flow (Google Drive, OneDrive, Dropbox)
 #[tokio::test]
 async fn test_files_cloud_oauth_flow() {
-    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    unsafe {
+        std::env::set_var("JWT_SECRET", "super_secret");
+        std::env::set_var("GOOGLE_CLIENT_ID", "test_google_client_id");
+        std::env::set_var("GOOGLE_CLIENT_SECRET", "test_google_client_secret");
+    }
     let server = TestServer::new(app());
     let cookie = get_test_cookie();
 

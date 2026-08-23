@@ -29,8 +29,8 @@ services:
     environment:
       - RUST_LOG=info
       - SSH_HOST=host.docker.internal
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-806244924985-gcasvj0mtdvpjs5ld1rqke7ulmgmc4c2.apps.googleusercontent.com}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-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}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
   # ------------------------------------------------------------------
   # Watchtower: monitors ghcr.io for new :latest and auto-updates orbit
   # Checks every 5 minutes. Remove this service if you prefer manual updates.
