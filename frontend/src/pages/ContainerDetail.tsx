@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Activity, HardDrive, Play, Square, RotateCw, Pause, PlayCircle, Trash2, Terminal as TerminalIcon, AlignLeft, Info, ExternalLink, Pencil, Plus, X, Copy, CheckCircle2, DownloadCloud } from 'lucide-react';
+import { ArrowLeft, Activity, HardDrive, Play, Square, RotateCw, Pause, PlayCircle, Trash2, Terminal as TerminalIcon, AlignLeft, Info, ExternalLink, Pencil, Plus, X, Copy, CheckCircle2, DownloadCloud, Sparkles } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { StatCard } from '../components/ui/StatCard';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -48,29 +48,47 @@ export function ContainerDetail() {
   const [history, setHistory] = useState<StatPoint[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [hasUpdate, setHasUpdate] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'logs' | 'terminal'>('overview');
 
-  const isOrbitApp = inspectData?.Config?.Labels?.["com.docker.compose.project.working_dir"]?.includes("/data/apps/");
-  const appId = isOrbitApp ? inspectData?.Config?.Labels?.["com.docker.compose.project.working_dir"].split("/data/apps/")[1] : null;
+  useEffect(() => {
+    if (id) {
+      const token = localStorage.getItem('orbit_token');
+      fetch(`/api/docker/containers/${id}/check-update`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && data.has_update) {
+            setHasUpdate(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [id]);
 
   const handleUpdate = async () => {
-    if (!appId) return;
+    if (!id) return;
     setUpdating(true);
     try {
       const token = localStorage.getItem('orbit_token');
-      const res = await fetch(`/api/store/update/${appId}`, {
+      const res = await fetch(`/api/docker/containers/${id}/update`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
+        setHasUpdate(false);
+        toast.success('Container atualizado e reiniciado com sucesso!');
         await fetchContainer();
         await fetchInspect();
       } else {
         const err = await res.text();
         console.error('Update failed:', err);
+        toast.error(`Falha ao atualizar container: ${err}`);
       }
     } catch (e) {
       console.error('Update error:', e);
+      toast.error('Erro de conexão ao atualizar container.');
     } finally {
       setUpdating(false);
     }
@@ -585,16 +603,25 @@ export function ContainerDetail() {
             </button>
           )}
           
-          {isOrbitApp && (
-            <button 
-              onClick={handleUpdate} 
-              disabled={updating || actionLoading} 
-              className="px-3 sm:px-4 py-2 bg-orbit-600 hover:bg-orbit-500 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-lg shadow-orbit-900/20"
-            >
-              <DownloadCloud className={`w-4 h-4 ${updating ? 'animate-bounce' : ''}`} /> 
-              {updating ? 'Atualizando...' : 'Atualizar'}
-            </button>
-          )}
+          <button 
+            onClick={handleUpdate} 
+            disabled={updating || actionLoading} 
+            className={`px-3 sm:px-4 py-2 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-lg relative ${
+              hasUpdate
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-2 ring-violet-400/50 shadow-violet-900/30'
+                : 'bg-orbit-600 hover:bg-orbit-500 shadow-orbit-900/20'
+            }`}
+            title={hasUpdate ? 'Nova versão da imagem disponível para seu dispositivo! Clique para atualizar e reiniciar.' : 'Buscar nova imagem do container e reiniciar'}
+          >
+            <DownloadCloud className={`w-4 h-4 ${updating ? 'animate-bounce' : ''}`} /> 
+            <span>{updating ? 'Atualizando...' : 'Atualizar'}</span>
+            {hasUpdate && (
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+              </span>
+            )}
+          </button>
 
           <div className="w-px h-6 sm:h-8 bg-white/10 mx-1"></div>
           <button 
@@ -623,6 +650,25 @@ export function ContainerDetail() {
 
       {activeTab === 'overview' && (
         <>
+          {hasUpdate && (
+            <div className="flex items-center justify-between p-3.5 mb-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs sm:text-sm animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-violet-400 shrink-0" />
+                <div>
+                  <span className="font-semibold text-white">Atualização disponível</span>
+                  <p className="text-xs text-zinc-400 mt-0.5">Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.</p>
+                </div>
+              </div>
+              <button
+                onClick={handleUpdate}
+                disabled={updating}
+                className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium text-xs transition-colors shrink-0 shadow-md shadow-violet-900/30 flex items-center gap-1.5"
+              >
+                <DownloadCloud className={`w-3.5 h-3.5 ${updating ? 'animate-bounce' : ''}`} />
+                <span>{updating ? 'Atualizando...' : 'Atualizar Agora'}</span>
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard 
               title="Uso de CPU" 

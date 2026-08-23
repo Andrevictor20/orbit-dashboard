@@ -31,24 +31,7 @@ services:
       - SSH_HOST=host.docker.internal
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-  # ------------------------------------------------------------------
-  # Watchtower: monitors ghcr.io for new :latest and auto-updates orbit
-  # Checks every 5 minutes. Remove this service if you prefer manual updates.
-  # ------------------------------------------------------------------
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: orbit-watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Mount Docker config so Watchtower can pull from ghcr.io (authenticated)
-      - /root/.docker/config.json:/config.json:ro
-    environment:
-      - WATCHTOWER_CLEANUP=true          # Remove old images after update
-      - WATCHTOWER_POLL_INTERVAL=300     # Check every 5 minutes
-      - WATCHTOWER_INCLUDE_STOPPED=false
-      - WATCHTOWER_SCOPE=orbit           # Only watch containers with this label
-    command: orbit-dashboard             # Only watch the orbit container
 
 volumes:
   orbit_data:
+

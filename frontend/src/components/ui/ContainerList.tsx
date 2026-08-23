@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe } from 'lucide-react';
+import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, DownloadCloud, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
@@ -36,6 +36,8 @@ export function ContainerList() {
   const [loading, setLoading] = useState(() => !globalContainerCache || globalContainerCache.length === 0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
+  const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(null);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
   const [linkModal, setLinkModal] = useState<{ isOpen: boolean, containerId: string | null }>({ isOpen: false, containerId: null });
   const [linkInput, setLinkInput] = useState('');
@@ -183,12 +185,46 @@ export function ContainerList() {
     }
   };
 
+  const fetchUpdates = async () => {
+    try {
+      const res = await fetch('/api/docker/containers/check-updates');
+      if (res.ok) {
+        const data = await res.json();
+        setUpdatesMap(data);
+      }
+    } catch (_) {}
+  };
+
+  const handleUpdateContainer = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setUpdatingContainerId(id);
+    try {
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch(`/api/docker/containers/${id}/update`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setUpdatesMap(prev => ({ ...prev, [id]: { has_update: false } }));
+        await fetchContainers(false);
+      } else {
+        const err = await res.text();
+        alert(`Erro ao atualizar container: ${err}`);
+      }
+    } catch (err) {
+      console.error('Failed to update container', err);
+    } finally {
+      setUpdatingContainerId(null);
+    }
+  };
+
   useEffect(() => {
     fetchContainers();
     fetchLinks();
+    fetchUpdates();
     const interval = setInterval(() => {
       if (!actionLoading) {
-        fetchContainers();
+        fetchContainers(false);
       }
     }, 10000); // refresh every 10s as proposed
     return () => clearInterval(interval);
@@ -357,9 +393,9 @@ export function ContainerList() {
               onClick={() => navigate(`/containers/${c.id}`)}
               className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 relative group hover:border-orbit-600 transition-colors cursor-pointer shadow-sm"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-background rounded-xl flex items-center justify-center border border-border shadow-inner">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-14 h-14 bg-background rounded-xl flex items-center justify-center border border-border shadow-inner shrink-0">
                     <img 
                       src={getIconForImage(c.image, c.name)} 
                       alt={c.name} 
@@ -382,6 +418,18 @@ export function ContainerList() {
                     </div>
                   </div>
                 </div>
+
+                {updatesMap[c.id]?.has_update && (
+                  <button
+                    onClick={(e) => handleUpdateContainer(e, c.id)}
+                    disabled={updatingContainerId === c.id}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shadow-violet-900/20 shrink-0"
+                    title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
+                  >
+                    <DownloadCloud className={`w-3 h-3 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
+                    <span>{updatingContainerId === c.id ? '...' : 'Atualizar'}</span>
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2 bg-background p-3 rounded-lg border border-border/50">
@@ -445,29 +493,42 @@ export function ContainerList() {
               </div>
 
               {/* Explicit Actions Bottom Bar */}
-              <div className="flex items-center justify-between mt-2 pt-4 border-t border-border/50">
+              <div className="flex items-center justify-between mt-2 pt-4 border-t border-border/50 gap-1.5">
                 {c.state?.toLowerCase() === 'running' ? (
                   <>
-                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1.5 mr-2">
+                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1" title="Parar container">
                       <Square className="w-3.5 h-3.5" />
                       <span>Parar</span>
                     </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 flex-1 flex items-center justify-center gap-1.5 mr-2">
+                    <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 flex-1 flex items-center justify-center gap-1" title="Pausar container">
                       <Pause className="w-3.5 h-3.5" />
                       <span>Pausar</span>
                     </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 flex-1 flex items-center justify-center gap-1.5">
+                    <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 flex-1 flex items-center justify-center gap-1" title="Reiniciar container">
                       <RotateCw className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
                       <span>Reiniciar</span>
+                    </button>
+                    <button 
+                      onClick={(e) => handleUpdateContainer(e, c.id)} 
+                      disabled={updatingContainerId === c.id || actionLoading === c.id} 
+                      className={`glass-button px-2 py-1.5 text-xs rounded-lg flex-1 flex items-center justify-center gap-1 transition-all ${
+                        updatesMap[c.id]?.has_update 
+                          ? 'text-violet-300 bg-violet-500/20 border-violet-500/40 hover:bg-violet-500/30' 
+                          : 'text-secondary hover:text-primary'
+                      }`}
+                      title="Atualizar imagem e recriar container com suporte a arquitetura nativa"
+                    >
+                      <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
+                      <span>{updatingContainerId === c.id ? '...' : 'Atualizar'}</span>
                     </button>
                   </>
                 ) : c.state?.toLowerCase() === 'paused' ? (
                   <>
-                    <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 flex-1 flex items-center justify-center gap-1.5 mr-2">
+                    <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 flex-1 flex items-center justify-center gap-1.5">
                       <PlayCircle className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
                       <span>Retomar</span>
                     </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1.5 mr-2">
+                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1.5">
                       <Square className="w-3.5 h-3.5" />
                       <span>Parar</span>
                     </button>
@@ -512,7 +573,14 @@ export function ContainerList() {
                       className="w-6 h-6 object-contain drop-shadow-sm" 
                     />
                     <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-primary leading-tight">{c.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-primary leading-tight">{c.name}</span>
+                        {updatesMap[c.id]?.has_update && (
+                          <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] font-semibold border border-violet-500/30">
+                            Atualização
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[11px] text-secondary font-mono leading-tight">{c.image}</span>
                     </div>
                   </td>
@@ -565,6 +633,17 @@ export function ContainerList() {
                       </button>
 
                       <div className="w-px h-4 bg-border mx-1"></div>
+
+                      {updatesMap[c.id]?.has_update && (
+                        <button 
+                          onClick={(e) => handleUpdateContainer(e, c.id)}
+                          disabled={updatingContainerId === c.id}
+                          className="p-1.5 rounded glass-button text-violet-300 hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1" 
+                          title="Atualizar container"
+                        >
+                          <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
+                        </button>
+                      )}
 
                       {c.state?.toLowerCase() === 'running' ? (
                         <>

@@ -27,6 +27,9 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/containers/{id}/logs", get(container_logs))
         .route("/api/docker/containers/{id}/env", post(update_container_env))
         .route("/api/docker/containers/{id}/volumes", post(update_container_volumes))
+        .route("/api/docker/containers/{id}/update", post(update_container))
+        .route("/api/docker/containers/{id}/check-update", get(check_single_container_update))
+        .route("/api/docker/containers/check-updates", get(check_container_updates))
         .route("/api/docker/containers/{id}/exec", get(container_exec_ws))
         .route("/api/docker/containers/{id}/{action}", post(container_action))
         .route("/api/docker/containers/stats/snapshot", get(snapshot_stats))
@@ -122,5 +125,34 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(calculate_memory_used(&v2_stats), 1024 * 1024 * 60);
+    }
+
+    #[test]
+    fn test_parse_image_ref() {
+        let (reg, repo, tag) = parse_image_ref("nginx:alpine");
+        assert_eq!(reg, "registry-1.docker.io");
+        assert_eq!(repo, "library/nginx");
+        assert_eq!(tag, "alpine");
+
+        let (reg, repo, tag) = parse_image_ref("linuxserver/qbittorrent:latest");
+        assert_eq!(reg, "registry-1.docker.io");
+        assert_eq!(repo, "linuxserver/qbittorrent");
+        assert_eq!(tag, "latest");
+
+        let (reg, repo, tag) = parse_image_ref("ghcr.io/andrevmp/orbit:latest");
+        assert_eq!(reg, "ghcr.io");
+        assert_eq!(repo, "andrevmp/orbit");
+        assert_eq!(tag, "latest");
+
+        let (reg, repo, tag) = parse_image_ref("redis");
+        assert_eq!(reg, "registry-1.docker.io");
+        assert_eq!(repo, "library/redis");
+        assert_eq!(tag, "latest");
+    }
+
+    #[test]
+    fn test_get_host_platform() {
+        let platform = get_host_platform();
+        assert!(platform.starts_with("linux/"));
     }
 }

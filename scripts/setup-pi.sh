@@ -52,7 +52,7 @@ echo ""
 echo "🐳 Pulling image: ${IMAGE}"
 docker pull "${IMAGE}"
 
-echo "▶️  Starting Orbit + Watchtower..."
+echo "▶️  Starting Orbit Dashboard..."
 docker compose up -d
 
 echo ""
@@ -60,5 +60,6 @@ echo "✅ Done! Orbit Dashboard is running."
 echo ""
 echo "   🌐 Access: http://$(hostname -I | awk '{print $1}'):5172"
 echo "   📋 Logs:   docker compose logs -f orbit"
-echo "   🔄 Updates happen automatically via Watchtower (every 5 min)"
+echo "   🔄 Updates are managed directly via the Orbit Dashboard UI"
 echo ""
+
