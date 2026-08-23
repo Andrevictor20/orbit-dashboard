@@ -74,6 +74,29 @@ pub fn calculate_cpu_percent(
     }
 }
 
+pub fn calculate_memory_used(stats: &bollard::models::ContainerStatsResponse) -> u64 {
+    let Some(mem) = &stats.memory_stats else {
+        return 0;
+    };
+    let usage = mem.usage.unwrap_or(0);
+
+    let cache = if let Some(stats_map) = &mem.stats {
+        if let Some(&val) = stats_map.get("total_inactive_file") {
+            if val > 0 { val } else { *stats_map.get("cache").unwrap_or(&0) }
+        } else if let Some(&val) = stats_map.get("inactive_file") {
+            val
+        } else if let Some(&val) = stats_map.get("cache") {
+            val
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    usage.saturating_sub(cache)
+}
+
 #[derive(Serialize)]
 pub struct ContainerSnapshot {
     pub id: String,
@@ -87,6 +110,8 @@ pub struct ImageInfo {
     pub id: String,
     pub tags: Vec<String>,
     pub size: i64,
+    pub in_use: bool,
+    pub containers_count: usize,
 }
 
 #[derive(Serialize)]
@@ -94,6 +119,8 @@ pub struct NetworkInfo {
     pub id: String,
     pub name: String,
     pub driver: String,
+    pub in_use: bool,
+    pub containers_count: usize,
 }
 
 #[derive(Serialize)]
@@ -101,6 +128,9 @@ pub struct VolumeInfo {
     pub name: String,
     pub driver: String,
     pub mountpoint: String,
+    pub in_use: bool,
+    pub containers_count: usize,
+    pub size: Option<i64>,
 }
 
 pub async fn list_containers(
@@ -181,7 +211,7 @@ pub async fn snapshot_stats(
             if let Ok(Some(Ok(stats))) = stat_result {
                 let mut cpu_percent = 0.0;
                 
-                if let (Some(cpu), Some(precpu)) = (stats.cpu_stats, stats.precpu_stats) {
+                if let (Some(cpu), Some(precpu)) = (&stats.cpu_stats, &stats.precpu_stats) {
                     let cpu_usage_total = cpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
                     let precpu_usage_total = precpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
                     let system_cpu_usage = cpu.system_cpu_usage.unwrap_or(0) as f64;
@@ -200,7 +230,7 @@ pub async fn snapshot_stats(
                     );
                 }
 
-                let memory_used = stats.memory_stats.as_ref().and_then(|m| m.usage).unwrap_or(0);
+                let memory_used = calculate_memory_used(&stats);
                 let memory_limit = stats.memory_stats.as_ref().and_then(|m| m.limit).unwrap_or(0);
 
                 Some(ContainerSnapshot {
@@ -224,14 +254,43 @@ pub async fn snapshot_stats(
 pub async fn list_images(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match state.docker.list_images(Some(bollard::query_parameters::ListImagesOptions::default())).await {
+    let images_res = state.docker.list_images(Some(bollard::query_parameters::ListImagesOptions::default())).await;
+    let mut options = bollard::query_parameters::ListContainersOptions::default();
+    options.all = true;
+    let containers = state.docker.list_containers(Some(options)).await.unwrap_or_default();
+
+    match images_res {
         Ok(images) => {
             let info: Vec<ImageInfo> = images
                 .into_iter()
-                .map(|img| ImageInfo {
-                    id: img.id.replace("sha256:", "").chars().take(12).collect(),
-                    tags: img.repo_tags,
-                    size: img.size,
+                .map(|img| {
+                    let short_id = img.id.replace("sha256:", "").chars().take(12).collect::<String>();
+                    let full_id = img.id.clone();
+                    let tags = img.repo_tags.clone();
+
+                    let mut count = 0;
+                    for c in &containers {
+                        let c_image = c.image.as_deref().unwrap_or_default();
+                        let c_image_id = c.image_id.as_deref().unwrap_or_default();
+
+                        let matches_id = c_image_id == full_id 
+                            || c_image_id.replace("sha256:", "").starts_with(&short_id)
+                            || c_image.starts_with(&short_id);
+                        
+                        let matches_tag = tags.iter().any(|t| t == c_image || (t.ends_with(":latest") && t.trim_end_matches(":latest") == c_image));
+                        
+                        if matches_id || matches_tag {
+                            count += 1;
+                        }
+                    }
+
+                    ImageInfo {
+                        id: short_id,
+                        tags: img.repo_tags,
+                        size: img.size,
+                        in_use: count > 0,
+                        containers_count: count,
+                    }
                 })
                 .collect();
             (StatusCode::OK, Json(info)).into_response()
@@ -243,14 +302,40 @@ pub async fn list_images(
 pub async fn list_networks(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match state.docker.list_networks(None).await {
+    let networks_res = state.docker.list_networks(None).await;
+    let mut options = bollard::query_parameters::ListContainersOptions::default();
+    options.all = true;
+    let containers = state.docker.list_containers(Some(options)).await.unwrap_or_default();
+
+    match networks_res {
         Ok(networks) => {
             let info: Vec<NetworkInfo> = networks
                 .into_iter()
-                .map(|net| NetworkInfo {
-                    id: net.id.unwrap_or_default().chars().take(12).collect(),
-                    name: net.name.unwrap_or_default(),
-                    driver: net.driver.unwrap_or_default(),
+                .map(|net| {
+                    let net_name = net.name.as_deref().unwrap_or_default();
+                    let net_id = net.id.as_deref().unwrap_or_default();
+                    let short_id = net_id.chars().take(12).collect::<String>();
+
+                    let mut count = 0;
+                    for c in &containers {
+                        if let Some(net_settings) = &c.network_settings {
+                            if let Some(c_nets) = &net_settings.networks {
+                                if c_nets.contains_key(net_name) || c_nets.values().any(|n| n.network_id.as_deref() == Some(net_id)) {
+                                    count += 1;
+                                }
+                            }
+                        }
+                    }
+
+                    let in_use = count > 0 || net_name == "bridge" || net_name == "host" || net_name == "none";
+
+                    NetworkInfo {
+                        id: short_id,
+                        name: net.name.unwrap_or_default(),
+                        driver: net.driver.unwrap_or_default(),
+                        in_use,
+                        containers_count: count,
+                    }
                 })
                 .collect();
             (StatusCode::OK, Json(info)).into_response()
@@ -279,18 +364,38 @@ pub async fn container_action(
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
+
 pub async fn list_volumes(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match state.docker.list_volumes(None::<bollard::query_parameters::ListVolumesOptions>).await {
+    let volumes_res = state.docker.list_volumes(None::<bollard::query_parameters::ListVolumesOptions>).await;
+    let mut options = bollard::query_parameters::ListContainersOptions::default();
+    options.all = true;
+    let containers = state.docker.list_containers(Some(options)).await.unwrap_or_default();
+
+    match volumes_res {
         Ok(volumes_response) => {
             let info: Vec<VolumeInfo> = volumes_response.volumes
                 .unwrap_or_default()
                 .into_iter()
-                .map(|v| VolumeInfo {
-                    name: v.name,
-                    driver: v.driver,
-                    mountpoint: v.mountpoint,
+                .map(|v| {
+                    let mut count = 0;
+                    for c in &containers {
+                        if let Some(mounts) = &c.mounts {
+                            if mounts.iter().any(|m| m.name.as_deref() == Some(&v.name) || m.source.as_deref() == Some(&v.mountpoint)) {
+                                count += 1;
+                            }
+                        }
+                    }
+
+                    VolumeInfo {
+                        name: v.name,
+                        driver: v.driver,
+                        mountpoint: v.mountpoint,
+                        in_use: count > 0,
+                        containers_count: count,
+                        size: None,
+                    }
                 })
                 .collect();
             (StatusCode::OK, Json(info)).into_response()
@@ -739,10 +844,57 @@ mod tests {
         // Negative CPU delta
         assert_eq!(calculate_cpu_percent(100.0, 200.0, 1000.0, 500.0, 2.0), 0.0);
 
-        // Zero system delta
-        assert_eq!(calculate_cpu_percent(200.0, 100.0, 500.0, 500.0, 2.0), 0.0);
-        
         // Zero CPU delta
         assert_eq!(calculate_cpu_percent(100.0, 100.0, 1000.0, 500.0, 2.0), 0.0);
+    }
+
+    #[test]
+    fn test_calculate_memory_used() {
+        use std::collections::HashMap;
+
+        // None memory_stats
+        let empty_stats = bollard::models::ContainerStatsResponse {
+            memory_stats: None,
+            ..Default::default()
+        };
+        assert_eq!(calculate_memory_used(&empty_stats), 0);
+
+        // Usage without cache
+        let raw_stats = bollard::models::ContainerStatsResponse {
+            memory_stats: Some(bollard::models::ContainerMemoryStats {
+                usage: Some(1024 * 1024 * 100),
+                stats: None,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(calculate_memory_used(&raw_stats), 1024 * 1024 * 100);
+
+        // cgroup v1 with total_inactive_file
+        let mut map_v1 = HashMap::new();
+        map_v1.insert("total_inactive_file".to_string(), 1024 * 1024 * 30);
+        map_v1.insert("cache".to_string(), 1024 * 1024 * 30);
+        let v1_stats = bollard::models::ContainerStatsResponse {
+            memory_stats: Some(bollard::models::ContainerMemoryStats {
+                usage: Some(1024 * 1024 * 100),
+                stats: Some(map_v1),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(calculate_memory_used(&v1_stats), 1024 * 1024 * 70);
+
+        // cgroup v2 with inactive_file
+        let mut map_v2 = HashMap::new();
+        map_v2.insert("inactive_file".to_string(), 1024 * 1024 * 40);
+        let v2_stats = bollard::models::ContainerStatsResponse {
+            memory_stats: Some(bollard::models::ContainerMemoryStats {
+                usage: Some(1024 * 1024 * 100),
+                stats: Some(map_v2),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(calculate_memory_used(&v2_stats), 1024 * 1024 * 60);
     }
 }

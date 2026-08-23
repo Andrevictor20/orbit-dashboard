@@ -30,11 +30,6 @@ export function Metrics() {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
         
-        const txMB = stats.network_tx / 1024 / 1024;
-        const rxMB = stats.network_rx / 1024 / 1024;
-        const dTxMB = stats.docker_tx / 1024 / 1024;
-        const dRxMB = stats.docker_rx / 1024 / 1024;
-        
         const newData = [...prev, { 
           time: timeStr, 
           cpu: stats.cpu_usage, 
@@ -43,10 +38,10 @@ export function Metrics() {
           memory: stats.memory_used, 
           dockerMemory: stats.docker_memory,
           orbitMemory: stats.orbit_memory,
-          tx: txMB, 
-          rx: rxMB,
-          dockerTx: dTxMB,
-          dockerRx: dRxMB
+          tx: stats.network_tx, 
+          rx: stats.network_rx,
+          dockerTx: stats.docker_tx,
+          dockerRx: stats.docker_rx
         }];
         
         // Keep last 60 data points for metrics (longer history than overview)
@@ -58,7 +53,21 @@ export function Metrics() {
 
   const formatDecimal = (val: any) => val.toFixed(2);
   const formatPercentage = (val: any) => `${val.toFixed(2)}%`;
-  const formatMB = (val: any) => `${val.toFixed(2)} MB`;
+  const formatSpeed = (bytesPerSec: any) => {
+    if (bytesPerSec === 0 || isNaN(bytesPerSec)) return '0 B/s';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytesPerSec) / Math.log(k)));
+    return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatSpeedAxis = (bytesPerSec: any) => {
+    if (bytesPerSec === 0 || isNaN(bytesPerSec)) return '0';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytesPerSec) / Math.log(k)));
+    return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(1)) + sizes[i];
+  };
   
   const formatBytes = (bytes: any) => {
     if (bytes === 0 || isNaN(bytes)) return '0 B';
@@ -169,7 +178,7 @@ export function Metrics() {
         <div className="glass-panel rounded-xl p-6 h-[350px] flex flex-col">
           <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
             <HardDrive className="w-5 h-5 text-emerald-500" />
-            Evolução de Memória (%)
+            Evolução de Memória (RAM Real)
           </h3>
           <div className="flex-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +215,7 @@ export function Metrics() {
           <div className="glass-panel rounded-xl p-6 h-[350px] lg:col-span-2 flex flex-col animate-in fade-in zoom-in-95 duration-300">
             <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <Network className="w-5 h-5 text-blue-500" />
-              Tráfego de Rede (MB)
+              Tráfego de Rede (Velocidade em Tempo Real)
             </h3>
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
@@ -230,12 +239,10 @@ export function Metrics() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="time" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis tickFormatter={formatDecimal} stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis tickFormatter={formatSpeedAxis} stroke="#525252" fontSize={11} tickLine={false} axisLine={false} width={80} />
                   <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                  <Tooltip formatter={formatMB} contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', fontSize: '12px' }} />
+                  <Tooltip formatter={formatSpeed} contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', fontSize: '12px' }} />
                   
-                  <Area type="monotone" dataKey="tx" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#3b82f6" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricTx)" name="Host Upload" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
-                  <Area type="monotone" dataKey="rx" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#f59e0b" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricRx)" name="Host Download" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
                   <Area type="monotone" dataKey="dockerTx" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#6366f1" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerTx)" name="Containers Upload" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
                   <Area type="monotone" dataKey="dockerRx" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#fb923c" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerRx)" name="Containers Download" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
                 </AreaChart>

@@ -59,7 +59,7 @@ describe('Networks Component', () => {
     render(<Networks />);
     
     await waitFor(() => {
-      expect(screen.getByText('Nenhuma rede encontrada.')).toBeTruthy();
+      expect(screen.getByText(/Nenhuma rede encontrada/)).toBeTruthy();
     });
   });
 
@@ -107,7 +107,7 @@ describe('Networks Component', () => {
       ok: true
     });
 
-    const pruneBtn = screen.getByText('Limpar Não Utilizadas');
+    const pruneBtn = screen.getByText(/Limpar Não Utilizadas/);
     fireEvent.click(pruneBtn);
     
     // Modal opens

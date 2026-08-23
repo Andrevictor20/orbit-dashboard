@@ -50,9 +50,9 @@ describe('Metrics Component', () => {
     expect(screen.getByText('Desconectado')).toBeTruthy();
     
     // Check panels exist
-    expect(screen.getByText('Evolução de CPU (%)')).toBeTruthy();
-    expect(screen.getByText('Evolução de Memória (%)')).toBeTruthy();
-    expect(screen.getByText('Tráfego de Rede (MB)')).toBeTruthy();
+    expect(screen.getByText(/Evolução de CPU/)).toBeTruthy();
+    expect(screen.getByText(/Evolução de Memória/)).toBeTruthy();
+    expect(screen.getByText(/Tráfego de Rede/)).toBeTruthy();
   });
 
   it('renders connected state', () => {

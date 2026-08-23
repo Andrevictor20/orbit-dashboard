@@ -84,6 +84,33 @@ fn find_vite_pid() -> Option<u32> {
     None
 }
 
+fn read_host_network_bytes() -> (u64, u64) {
+    let paths = ["/proc/1/net/dev", "/proc/net/dev", "/host/proc/net/dev"];
+    for p in paths {
+        if let Ok(content) = std::fs::read_to_string(p) {
+            let mut total_rx = 0u64;
+            let mut total_tx = 0u64;
+            for line in content.lines().skip(2) {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 10 {
+                    let iface = parts[0].trim_end_matches(':');
+                    if iface == "lo" {
+                        continue;
+                    }
+                    if let (Ok(rx), Ok(tx)) = (parts[1].parse::<u64>(), parts[9].parse::<u64>()) {
+                        total_rx += rx;
+                        total_tx += tx;
+                    }
+                }
+            }
+            if total_rx > 0 || total_tx > 0 {
+                return (total_rx, total_tx);
+            }
+        }
+    }
+    (0, 0)
+}
+
 async fn handle_socket(mut socket: WebSocket, state: AppState) {
     let mut sys = System::new_all();
     let mut disks = Disks::new_with_refreshed_list();
@@ -102,9 +129,19 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     let mut interval = time::interval(Duration::from_secs(3));
 
     let mut prev_cpu_stats = std::collections::HashMap::new();
+    let mut prev_host_rx = 0u64;
+    let mut prev_host_tx = 0u64;
+    let mut prev_docker_rx = 0u64;
+    let mut prev_docker_tx = 0u64;
+    let mut last_tick_instant = std::time::Instant::now();
+    let mut first_tick = true;
 
     loop {
         interval.tick().await;
+
+        let now = std::time::Instant::now();
+        let elapsed_secs = now.duration_since(last_tick_instant).as_secs_f64().max(0.1);
+        last_tick_instant = now;
 
         sys.refresh_cpu_usage();
         sys.refresh_memory();
@@ -145,12 +182,30 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             mem
         };
 
-        let mut sys_net_tx = 0u64;
-        let mut sys_net_rx = 0u64;
-        for (_iface, data) in &networks {
-            sys_net_tx += data.transmitted();
-            sys_net_rx += data.received();
+        let (mut host_raw_rx, mut host_raw_tx) = read_host_network_bytes();
+        if host_raw_rx == 0 && host_raw_tx == 0 {
+            for (iface, data) in &networks {
+                if iface != "lo" {
+                    host_raw_rx += data.total_received();
+                    host_raw_tx += data.total_transmitted();
+                }
+            }
         }
+
+        let host_rate_rx = if first_tick || host_raw_rx < prev_host_rx {
+            0u64
+        } else {
+            ((host_raw_rx - prev_host_rx) as f64 / elapsed_secs) as u64
+        };
+
+        let host_rate_tx = if first_tick || host_raw_tx < prev_host_tx {
+            0u64
+        } else {
+            ((host_raw_tx - prev_host_tx) as f64 / elapsed_secs) as u64
+        };
+
+        prev_host_rx = host_raw_rx;
+        prev_host_tx = host_raw_tx;
 
         // Fetch running containers
         let mut options = bollard::query_parameters::ListContainersOptions::default();
@@ -204,10 +259,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             }
             total_cpu += cpu_percent;
 
-            // Memory
-            total_mem += res.memory_stats.as_ref().and_then(|m| m.usage).unwrap_or(0);
+            // Accurate Memory (subtracted cache/inactive_file)
+            total_mem += crate::docker::calculate_memory_used(&res);
 
-            // Network
+            // Network (cumulative bytes)
             if let Some(nets) = res.networks {
                 for (_, net) in nets {
                     network_tx += net.tx_bytes.unwrap_or(0);
@@ -215,6 +270,22 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                 }
             }
         }
+
+        let docker_rate_rx = if first_tick || network_rx < prev_docker_rx {
+            0u64
+        } else {
+            ((network_rx - prev_docker_rx) as f64 / elapsed_secs) as u64
+        };
+
+        let docker_rate_tx = if first_tick || network_tx < prev_docker_tx {
+            0u64
+        } else {
+            ((network_tx - prev_docker_tx) as f64 / elapsed_secs) as u64
+        };
+
+        prev_docker_rx = network_rx;
+        prev_docker_tx = network_tx;
+        first_tick = false;
 
         // Disks (filter overlay, tmpfs, and internal container pseudo-mounts)
         let mut disk_stats = Vec::new();
@@ -268,13 +339,13 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             memory_used: sys_mem,
             memory_total: sys.total_memory(),
             disks: disk_stats,
-            network_tx: sys_net_tx,
-            network_rx: sys_net_rx,
+            network_tx: host_rate_tx,
+            network_rx: host_rate_rx,
             temperature,
             docker_cpu: total_cpu as f32,
             docker_memory: total_mem,
-            docker_tx: network_tx,
-            docker_rx: network_rx,
+            docker_tx: docker_rate_tx,
+            docker_rx: docker_rate_rx,
             orbit_cpu,
             orbit_memory,
         };
