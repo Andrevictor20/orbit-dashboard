@@ -13,7 +13,8 @@ import {
   Code, 
   Columns, 
   Copy, 
-  Sparkles 
+  Sparkles,
+  Globe 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { FileItem } from './AudioPlayerModal';
@@ -362,13 +363,11 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
               {(viewMode === 'preview' || viewMode === 'split') && (
                 <div className={`h-full bg-zinc-900/40 overflow-auto p-4 sm:p-6 ${viewMode === 'split' ? 'w-full sm:w-1/2' : 'w-full'}`}>
                   {isHtml ? (
-                    <div className="w-full h-full flex flex-col rounded-xl overflow-hidden border border-zinc-800 shadow-xl bg-white">
-                      <div className="bg-zinc-800 px-3 py-1.5 flex items-center justify-between text-xs text-zinc-300 font-mono border-b border-zinc-700">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                          <span className="ml-2 text-[11px] text-zinc-400">Prévia do Website (Live HTML)</span>
+                    <div className="w-full h-full flex flex-col rounded-xl overflow-hidden border border-border shadow-xl bg-white">
+                      <div className="bg-card/95 px-4 py-2 flex items-center justify-between text-xs text-secondary border-b border-border">
+                        <div className="flex items-center gap-2 font-medium text-primary">
+                          <Globe className="w-3.5 h-3.5 text-orbit-400" />
+                          <span>Prévia do Website (Live HTML)</span>
                         </div>
                       </div>
                       <iframe
