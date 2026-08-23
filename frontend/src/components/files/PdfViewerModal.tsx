@@ -126,6 +126,18 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
 
+            {/* Mobile Reader Quick Launch */}
+            <a
+              href={pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex sm:hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 transition-colors text-xs font-semibold shadow-sm"
+              title="Abrir no leitor nativo do celular"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Abrir no Celular</span>
+            </a>
+
             {/* Download Button */}
             <a
               data-testid="download-pdf-btn"

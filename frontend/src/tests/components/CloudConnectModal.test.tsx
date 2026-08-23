@@ -69,7 +69,7 @@ describe('CloudConnectModal Component', () => {
     fireEvent.click(googleBtn);
 
     await waitFor(() => {
-      expect(window.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/files/cloud/oauth/auth-url?provider=google_drive'));
+      expect(window.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/files\/cloud\/oauth\/auth-url.*provider=google_drive/));
     });
   });
 });

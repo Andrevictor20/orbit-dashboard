@@ -1,6 +1,6 @@
 use axum::{
     extract::{Query, Path as AxumPath, Multipart},
-    http::{header, HeaderMap, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
@@ -761,13 +761,17 @@ pub async fn list_cloud_providers() -> Json<serde_json::Value> {
 }
 
 const CLOUD_ACCOUNTS_FILE: &str = "data/orbit_cloud_accounts.json";
-
-fn load_cloud_accounts() -> Vec<CloudAccount> {
-    if let Ok(data) = fs::read_to_string(CLOUD_ACCOUNTS_FILE) {
+static CLOUD_ACCOUNTS: once_cell::sync::Lazy<std::sync::Mutex<Vec<CloudAccount>>> = once_cell::sync::Lazy::new(|| {
+    let accs = if let Ok(data) = fs::read_to_string(CLOUD_ACCOUNTS_FILE) {
         serde_json::from_str(&data).unwrap_or_default()
     } else {
         Vec::new()
-    }
+    };
+    std::sync::Mutex::new(accs)
+});
+
+fn load_cloud_accounts() -> Vec<CloudAccount> {
+    CLOUD_ACCOUNTS.lock().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 fn save_cloud_accounts(accounts: &[CloudAccount]) {
@@ -882,7 +886,7 @@ fn unmount_rclone_remote(mount_point: &str) {
 }
 
 pub async fn connect_cloud(Json(req): Json<ConnectCloudRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut accounts = load_cloud_accounts();
+    let mut guard = CLOUD_ACCOUNTS.lock().unwrap_or_else(|e| e.into_inner());
     let id = format!("cloud_{}", Uuid::new_v4().simple());
     let now = time::OffsetDateTime::now_utc()
         .format(&time::format_description::well_known::Rfc3339)
@@ -901,8 +905,8 @@ pub async fn connect_cloud(Json(req): Json<ConnectCloudRequest>) -> Result<Json<
     sync_rclone_config(&account);
     mount_rclone_remote(&account.id, &mount_point);
 
-    accounts.push(account);
-    save_cloud_accounts(&accounts);
+    guard.push(account);
+    save_cloud_accounts(&guard);
 
     Ok(Json(serde_json::json!({ "success": true, "id": id })))
 }
@@ -913,11 +917,11 @@ pub async fn list_cloud_accounts() -> Json<serde_json::Value> {
 }
 
 pub async fn disconnect_cloud(AxumPath(id): AxumPath<String>) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut accounts = load_cloud_accounts();
-    let initial_len = accounts.len();
-    let found = accounts.iter().find(|a| a.id == id).cloned();
-    accounts.retain(|a| a.id != id);
-    if accounts.len() == initial_len {
+    let mut guard = CLOUD_ACCOUNTS.lock().unwrap_or_else(|e| e.into_inner());
+    let initial_len = guard.len();
+    let found = guard.iter().find(|a| a.id == id).cloned();
+    guard.retain(|a| a.id != id);
+    if guard.len() == initial_len {
         return Err(StatusCode::NOT_FOUND);
     }
     if let Some(acc) = found {
@@ -925,7 +929,7 @@ pub async fn disconnect_cloud(AxumPath(id): AxumPath<String>) -> Result<Json<ser
             unmount_rclone_remote(mount);
         }
     }
-    save_cloud_accounts(&accounts);
+    save_cloud_accounts(&guard);
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
@@ -998,7 +1002,7 @@ pub async fn get_cloud_oauth_url(Query(params): Query<OAuthAuthUrlQuery>) -> Res
 }
 
 pub async fn handle_cloud_oauth_callback(Json(req): Json<OAuthCallbackRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut accounts = load_cloud_accounts();
+    let mut guard = CLOUD_ACCOUNTS.lock().unwrap_or_else(|e| e.into_inner());
     let id = format!("cloud_{}_{}", req.provider, Uuid::new_v4().simple());
     let now = time::OffsetDateTime::now_utc()
         .format(&time::format_description::well_known::Rfc3339)
@@ -1037,8 +1041,8 @@ pub async fn handle_cloud_oauth_callback(Json(req): Json<OAuthCallbackRequest>) 
     sync_rclone_config(&account);
     mount_rclone_remote(&account.id, &mount_point);
 
-    accounts.push(account.clone());
-    save_cloud_accounts(&accounts);
+    guard.push(account.clone());
+    save_cloud_accounts(&guard);
 
     Ok(Json(serde_json::json!({
         "success": true,
@@ -1415,34 +1419,81 @@ pub async fn stream_media(
     Ok((StatusCode::OK, resp_headers, full_buf).into_response())
 }
 
+fn srt_or_ass_to_vtt(content: &str) -> String {
+    let mut vtt = String::from("WEBVTT\n\n");
+    for line in content.lines() {
+        if line.contains("-->") {
+            let vtt_line = line.replace(',', ".");
+            vtt.push_str(&vtt_line);
+            vtt.push('\n');
+        } else {
+            vtt.push_str(line);
+            vtt.push('\n');
+        }
+    }
+    vtt
+}
+
+pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl IntoResponse, StatusCode> {
+    let path = sanitize_path(&q.path)?;
+    if !path.exists() || path.is_dir() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    let content = fs::read_to_string(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let vtt = if path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()) == Some("vtt".to_string()) {
+        content
+    } else {
+        srt_or_ass_to_vtt(&content)
+    };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
+    Ok((StatusCode::OK, headers, vtt))
+}
+
 pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<SubtitlesResponse>, StatusCode> {
     let video_path = sanitize_path(&q.path)?;
     let mut subtitles = Vec::new();
 
     if let Some(parent) = video_path.parent() {
-        let video_stem = video_path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+        let video_stem = video_path.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+        
+        // Extract possible episode token (e.g., s01e02, e02, ep02, 02)
+        let ep_pattern = if let Some(idx) = video_stem.find('e') {
+            let part = &video_stem[idx..];
+            part.split(|c: char| !c.is_alphanumeric()).next().unwrap_or("")
+        } else {
+            ""
+        };
+
         if let Ok(entries) = fs::read_dir(parent) {
             for entry in entries.flatten() {
                 let p = entry.path();
                 if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
                     let ext_lower = ext.to_lowercase();
-                    if ext_lower == "srt" || ext_lower == "vtt" || ext_lower == "ass" {
+                    if ext_lower == "srt" || ext_lower == "vtt" || ext_lower == "ass" || ext_lower == "sub" {
                         let name = entry.file_name().to_string_lossy().to_string();
-                        let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+                        let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
                         
-                        // If it matches video stem or is a subtitle in the same folder
-                        if stem.starts_with(video_stem) || name.contains(video_stem) || subtitles.is_empty() {
-                            let label = if name.contains("pt-BR") || name.contains("pt") || name.contains("por") {
-                                "Português".to_string()
-                            } else if name.contains("en") || name.contains("eng") {
+                        // Smart matching: starts with, contains stem, contains episode pattern, or any subtitle in directory
+                        let is_match = stem.starts_with(&video_stem) 
+                            || video_stem.starts_with(&stem)
+                            || (!ep_pattern.is_empty() && stem.contains(ep_pattern))
+                            || stem.contains(&video_stem)
+                            || true; // Include all companion subtitles in the directory
+
+                        if is_match {
+                            let label = if name.contains("pt-BR") || name.contains("pt") || name.contains("por") || name.contains("pob") || name.to_lowercase().contains("portug") {
+                                "Português (Brasil)".to_string()
+                            } else if name.contains("en") || name.contains("eng") || name.to_lowercase().contains("english") {
                                 "English".to_string()
-                            } else if name.contains("es") || name.contains("spa") {
+                            } else if name.contains("es") || name.contains("spa") || name.to_lowercase().contains("espanol") {
                                 "Español".to_string()
                             } else {
                                 name.clone()
                             };
 
-                            let lang = if label == "Português" { "pt-BR" } else if label == "English" { "en" } else { "und" };
+                            let lang = if label.starts_with("Português") { "pt-BR" } else if label.starts_with("English") { "en" } else if label.starts_with("Español") { "es" } else { "und" };
 
                             subtitles.push(SubtitleItem {
                                 name,

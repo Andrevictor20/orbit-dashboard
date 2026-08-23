@@ -80,6 +80,7 @@ pub fn app() -> Router {
         .route("/api/files/upload", post(files::upload_files))
         .route("/api/files/stream", get(files::stream_media))
         .route("/api/files/subtitles", get(files::get_subtitles))
+        .route("/api/files/subtitles/vtt", get(files::get_subtitle_vtt))
         .route("/api/files/content", get(files::get_file_content).put(files::update_file_content))
         .route("/api/files/raw", get(files::get_raw_file))
         .route("/api/files/extract", post(files::extract_archive))

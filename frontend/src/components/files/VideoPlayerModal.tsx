@@ -48,12 +48,72 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}`)
       .then(res => res.json())
       .then(data => {
-        if (data.subtitles && Array.isArray(data.subtitles)) {
+        if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
           setSubtitlesList(data.subtitles);
+          const preferred = data.subtitles.find((s: SubtitleItem) => s.lang === 'pt-BR' || s.label.includes('Português')) || data.subtitles[0];
+          if (preferred) {
+            setActiveSubtitle(preferred.path);
+          }
         }
       })
       .catch(() => {});
   }, [file.path]);
+
+  const handleSubtitleChange = (subPath: string) => {
+    setActiveSubtitle(subPath);
+    if (videoRef.current && videoRef.current.textTracks) {
+      for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+        const track = videoRef.current.textTracks[i];
+        const sub = subtitlesList[i];
+        if (sub && sub.path === subPath) {
+          track.mode = 'showing';
+        } else {
+          track.mode = 'disabled';
+        }
+      }
+    }
+  };
+
+  const handleCustomSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileUploaded = e.target.files?.[0];
+    if (!fileUploaded) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+      
+      // Convert SRT comma timestamps to WebVTT dots if needed
+      const vttContent = text.includes('WEBVTT') 
+        ? text 
+        : `WEBVTT\n\n${text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')}`;
+      
+      const blob = new Blob([vttContent], { type: 'text/vtt' });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const newSub: SubtitleItem = {
+        name: fileUploaded.name,
+        path: blobUrl,
+        label: `Arquivo (${fileUploaded.name})`,
+        lang: 'custom',
+      };
+
+      setSubtitlesList(prev => [newSub, ...prev]);
+      setActiveSubtitle(blobUrl);
+
+      if (videoRef.current) {
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.label = newSub.label;
+        track.srclang = 'custom';
+        track.src = blobUrl;
+        track.default = true;
+        videoRef.current.appendChild(track);
+        track.track.mode = 'showing';
+      }
+    };
+    reader.readAsText(fileUploaded);
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -181,13 +241,14 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             data-testid="video-element"
             src={videoSrc}
             playsInline
+            crossOrigin="anonymous"
             className="w-full h-full object-contain"
           >
             {subtitlesList.map((sub, idx) => (
               <track
                 key={idx}
                 kind="subtitles"
-                src={`/api/files/raw?path=${encodeURIComponent(sub.path)}`}
+                src={sub.path.startsWith('blob:') ? sub.path : `/api/files/subtitles/vtt?path=${encodeURIComponent(sub.path)}`}
                 srcLang={sub.lang}
                 label={sub.label}
                 default={activeSubtitle === sub.path}
@@ -276,16 +337,8 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
                 <select
                   data-testid="subtitle-selector"
                   value={activeSubtitle}
-                  onChange={(e) => {
-                    setActiveSubtitle(e.target.value);
-                    if (videoRef.current && videoRef.current.textTracks) {
-                      for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                        const track = videoRef.current.textTracks[i];
-                        track.mode = (e.target.value !== 'off' && track.label === e.target.value) ? 'showing' : 'disabled';
-                      }
-                    }
-                  }}
-                  className="bg-transparent text-xs text-white outline-none cursor-pointer"
+                  onChange={(e) => handleSubtitleChange(e.target.value)}
+                  className="bg-transparent text-xs text-white outline-none cursor-pointer max-w-[130px] md:max-w-[200px] truncate"
                 >
                   <option value="off" className="bg-zinc-900 text-white">Legendas: Off</option>
                   {subtitlesList.map((sub, idx) => (
@@ -294,6 +347,18 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
                     </option>
                   ))}
                 </select>
+                <label 
+                  className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                  title="Carregar legenda do dispositivo (.srt, .vtt)"
+                >
+                  <span className="text-[10px] font-mono border border-zinc-600 px-1 py-0.5 rounded">.SRT</span>
+                  <input
+                    type="file"
+                    accept=".srt,.vtt,.ass"
+                    onChange={handleCustomSubtitleUpload}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {/* Speed Selector */}

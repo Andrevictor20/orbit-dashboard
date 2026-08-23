@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/ui/StatCard';
-import { TrendingUp, Activity, HardDrive, Box, FolderOpen } from 'lucide-react';
+import { TrendingUp, Activity, HardDrive, Box, FolderOpen, ExternalLink, Plus, LayoutGrid, Layers } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
 import { getFriendlyDiskName, isPhysicalStorage } from '../utils/format';
+import { getIconForImage } from '../utils/icons';
 import {
   AreaChart,
   Area,
@@ -21,12 +22,38 @@ interface ChartDataPoint {
   memory: number;
 }
 
+interface OverviewContainer {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  ports?: Array<{ private_port: number; public_port?: number; typ: string }>;
+  labels?: Record<string, string>;
+}
+
 export function Overview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { stats, isConnected } = useStats();
   
   const [history, setHistory] = useState<ChartDataPoint[]>([]);
+  const [containers, setContainers] = useState<OverviewContainer[]>([]);
+  const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch('/api/docker/containers')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) setContainers(data);
+      })
+      .catch(() => {});
+
+    fetch('/api/docker/links')
+      .then(res => res.ok ? res.json() : {})
+      .then(links => setCustomLinks(links))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (stats) {
@@ -250,6 +277,115 @@ export function Overview() {
                 <span>Nenhum disco detectado</span>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* CasaOS Style Installed Apps Grid */}
+      <div className="mt-6 sm:mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5 text-orbit-400" />
+            <h3 className="text-base sm:text-lg font-semibold text-primary">Aplicativos Instalados</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-secondary font-mono">
+              {containers.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/store')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 transition-all text-xs font-semibold"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Instalar App</span>
+            </button>
+            <button
+              onClick={() => navigate('/containers')}
+              className="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1 font-medium px-2 py-1"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Gerenciar</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+          {containers.map((c) => {
+            const iconUrl = getIconForImage(c.image, c.name);
+            const isRunning = c.state === 'running';
+            
+            let webLink = customLinks[c.id] || '';
+            if (!webLink && c.ports && c.ports.length > 0) {
+              const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
+              if (publicPort) {
+                webLink = `http://${window.location.hostname}:${publicPort}`;
+              }
+            }
+
+            return (
+              <div
+                key={c.id}
+                onClick={() => {
+                  if (webLink && isRunning) {
+                    window.open(webLink, '_blank');
+                  } else {
+                    navigate(`/containers/${c.id}`);
+                  }
+                }}
+                className="group relative bg-card/60 hover:bg-accent/70 border border-border/70 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                title={`${c.name} (${c.state})`}
+              >
+                {/* Status indicator dot */}
+                <div className="absolute top-2.5 right-2.5 flex items-center">
+                  <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-zinc-600'}`} />
+                </div>
+
+                {/* App Icon */}
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900/60 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-200 shadow-inner">
+                  <img
+                    src={iconUrl}
+                    alt={c.name}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+
+                {/* App Name */}
+                <span className="font-semibold text-xs text-primary truncate w-full capitalize" title={c.name}>
+                  {c.name}
+                </span>
+
+                {/* Port / Status Subtext */}
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
+                  {isRunning ? (
+                    webLink ? (
+                      <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5">
+                        Abrir <ExternalLink className="w-2.5 h-2.5 inline" />
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400">Ativo</span>
+                    )
+                  ) : (
+                    <span className="text-zinc-500">Parado</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Quick Install Card */}
+          <div
+            onClick={() => navigate('/store')}
+            className="border-2 border-dashed border-border/70 hover:border-orbit-500/50 bg-card/20 hover:bg-orbit-500/5 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer group min-h-[110px]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-secondary group-hover:text-orbit-400 group-hover:bg-orbit-500/10 transition-colors mb-1.5">
+              <Plus className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-secondary group-hover:text-primary transition-colors">
+              Adicionar App
+            </span>
           </div>
         </div>
       </div>
