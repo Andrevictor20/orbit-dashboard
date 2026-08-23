@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Terminal as TerminalIcon, RefreshCw, AlertTriangle, Copy, CheckCircle2, Download, Trash2, Search, Filter, Server, Cpu, Box, Activity, ChevronDown } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw, AlertTriangle, Copy, CheckCircle2, Download, Trash2, Search, Server, Cpu, Box, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface LogsResponse {

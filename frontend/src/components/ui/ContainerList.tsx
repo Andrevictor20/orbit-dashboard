@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, DownloadCloud, Sparkles } from 'lucide-react';
+import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, DownloadCloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';

@@ -68,6 +68,9 @@ jobs:
       - name: Run Unit Tests
         run: cd frontend && npm run test
 
+      - name: Typecheck & Build Frontend
+        run: cd frontend && npm run build
+
       - name: Run SAST (npm audit)
         run: cd frontend && npm audit --audit-level=high
 
