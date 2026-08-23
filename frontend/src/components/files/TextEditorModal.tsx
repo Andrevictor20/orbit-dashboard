@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Save, X, FileText, Check, AlertCircle, Loader2 } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 
@@ -81,43 +82,42 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
   const lineCount = lines.length;
   const charCount = content.length;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl h-[85vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+  return typeof document !== 'undefined' ? createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200" onClick={handleClose}>
+      <div 
+        className="relative w-full max-w-4xl h-[92vh] sm:h-[85vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 border-b border-border bg-card/60 backdrop-blur-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-primary text-base" title={file.path}>
-                  {file.name}
-                </h3>
-                {isDirty && (
-                  <span className="w-2 h-2 rounded-full bg-amber-500" title="Não salvo" />
-                )}
-              </div>
-              <p className="text-xs text-secondary font-mono truncate max-w-md">{file.path}</p>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-primary text-sm sm:text-base truncate max-w-[180px] sm:max-w-md" title={file.name}>
+                {file.name}
+              </h3>
+              <p className="text-[11px] text-secondary truncate font-mono hidden sm:block">{file.path}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             {saveSuccess && (
               <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium animate-in fade-in">
-                <Check className="w-4 h-4" /> Salvo com sucesso!
+                <Check className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Salvo com sucesso</span>
               </span>
             )}
 
             <button
               data-testid="save-text-btn"
               onClick={handleSave}
-              disabled={!isDirty || isSaving || isLoading}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                isDirty && !isSaving
-                  ? 'bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/20'
-                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+              disabled={isSaving || !isDirty}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all active:scale-95 shadow-sm ${
+                isDirty 
+                  ? 'bg-orbit-500 hover:bg-orbit-600 text-white shadow-orbit-500/20' 
+                  : 'bg-accent/50 text-secondary cursor-not-allowed'
               }`}
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -127,7 +127,8 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
             <button
               data-testid="close-text-modal"
               onClick={handleClose}
-              className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+              className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+              aria-label="Fechar editor"
             >
               <X className="w-5 h-5" />
             </button>
@@ -135,44 +136,39 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         </div>
 
         {/* Editor Area */}
-        <div className="relative flex-1 flex overflow-hidden bg-zinc-950 font-mono text-sm">
+        <div className="flex-1 relative overflow-hidden bg-background">
           {isLoading ? (
-            <div className="flex-1 flex items-center justify-center gap-3 text-secondary">
-              <Loader2 className="w-6 h-6 animate-spin text-orbit-400" />
-              <span>Carregando arquivo...</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-secondary">
+              <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
+              <span className="text-sm">Carregando conteúdo...</span>
             </div>
           ) : error ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-rose-400 gap-2">
-              <AlertCircle className="w-8 h-8" />
-              <p className="font-semibold">{error}</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <AlertCircle className="w-10 h-10 text-rose-400" />
+              <p className="text-rose-400 text-sm">{error}</p>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-accent text-primary text-xs font-medium"
+              >
+                Fechar
+              </button>
             </div>
           ) : (
-            <div className="flex-1 flex overflow-hidden">
-              {/* Line Numbers */}
-              <div className="w-12 py-4 px-2 select-none text-right text-zinc-600 bg-zinc-900/50 border-r border-zinc-800 text-xs overflow-hidden">
-                {lines.map((_, i) => (
-                  <div key={i} className="leading-6">
-                    {i + 1}
-                  </div>
-                ))}
-              </div>
-
-              {/* Text Area */}
-              <textarea
-                data-testid="text-editor-area"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                spellCheck={false}
-                className="flex-1 w-full h-full p-4 bg-transparent text-zinc-100 placeholder-zinc-600 resize-none outline-none leading-6 font-mono text-xs md:text-sm selection:bg-orbit-500/30 overflow-y-auto"
-                placeholder="Digite o conteúdo aqui..."
-              />
-            </div>
+            <textarea
+              data-testid="text-editor-area"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Digite seu texto aqui..."
+              className="w-full h-full p-3 sm:p-6 bg-transparent text-primary font-mono text-xs sm:text-sm resize-none focus:outline-none leading-relaxed selection:bg-orbit-500/30"
+              spellCheck={false}
+              autoFocus
+            />
           )}
         </div>
 
         {/* Footer info */}
-        <div className="flex items-center justify-between px-6 py-2 border-t border-border bg-card text-xs text-secondary">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-2 border-t border-border bg-card text-[11px] sm:text-xs text-secondary">
+          <div className="flex items-center gap-2 sm:gap-4">
             <span>Linhas: {lineCount}</span>
             <span>Caracteres: {charCount}</span>
             <span className="uppercase">{file.extension || 'TXT'} UTF-8</span>
@@ -181,11 +177,12 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
             {isDirty ? (
               <span className="text-amber-400 font-medium">Modificado</span>
             ) : (
-              <span className="text-emerald-400">Salvo</span>
+              <span className="text-emerald-400 font-medium">Salvo</span>
             )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 }

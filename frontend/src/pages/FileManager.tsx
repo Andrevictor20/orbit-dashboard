@@ -507,16 +507,16 @@ export function FileManager() {
       {/* MAIN BROWSER AREA */}
       <main className="flex-1 flex flex-col min-w-0 bg-background/50 overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-14 sm:h-16 px-3 sm:px-6 border-b border-border bg-card/40 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 shrink-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <header className="h-auto min-h-[56px] py-2 px-3 sm:px-6 border-b border-border bg-card/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
             {/* Mobile Toggle Locations Button */}
             <button
               onClick={() => setIsStorageDrawerOpen(true)}
-              className="lg:hidden p-1.5 rounded-lg bg-accent/50 text-secondary hover:text-primary transition-colors flex items-center gap-1 text-xs shrink-0 border border-border"
+              className="lg:hidden p-1.5 rounded-xl bg-accent/60 text-secondary hover:text-primary transition-colors flex items-center gap-1 text-xs shrink-0 border border-border"
               aria-label="Abrir locais de armazenamento"
             >
               <HardDrive className="w-4 h-4 text-orbit-400" />
-              <span className="hidden sm:inline">Locais</span>
+              <span className="hidden xs:inline">Locais</span>
             </button>
 
             {/* Breadcrumbs */}
@@ -525,7 +525,7 @@ export function FileManager() {
                 <React.Fragment key={crumb.path}>
                   <button
                     onClick={() => navigateTo(crumb.path)}
-                    className={`hover:text-orbit-400 transition-colors px-1 py-0.5 sm:px-1.5 sm:py-1 rounded-lg truncate max-w-[100px] sm:max-w-[160px] ${
+                    className={`hover:text-orbit-400 transition-colors px-1 py-0.5 sm:px-1.5 sm:py-1 rounded-lg truncate max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] ${
                       idx === arr.length - 1 ? 'text-primary font-semibold' : 'text-secondary'
                     }`}
                   >
@@ -540,16 +540,16 @@ export function FileManager() {
           </div>
 
           {/* Search, Action Toolbar, View Mode Toggle */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Search Input */}
-            <div className="relative w-28 xs:w-36 sm:w-44 md:w-56">
+            <div className="relative w-24 xs:w-32 sm:w-44 md:w-56">
               <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
               <input
                 type="text"
                 placeholder="Pesquisar..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 sm:pl-9 pr-2.5 sm:pr-3.5 py-1.5 rounded-xl bg-accent/40 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 transition-colors"
+                className="w-full pl-7 xs:pl-8 sm:pl-9 pr-2 sm:pr-3 py-1.5 rounded-xl bg-accent/40 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 transition-colors"
               />
             </div>
 
@@ -557,10 +557,10 @@ export function FileManager() {
             {clipboard && (
               <button
                 onClick={handlePaste}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 text-xs font-medium transition-colors animate-in fade-in"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 text-xs font-medium transition-colors animate-in fade-in"
               >
                 <Clipboard className="w-3.5 h-3.5" />
-                <span>Colar ({clipboard.items.length})</span>
+                <span className="hidden xs:inline">Colar ({clipboard.items.length})</span>
               </button>
             )}
 
@@ -568,9 +568,10 @@ export function FileManager() {
             <div className="relative">
               <button
                 onClick={() => setShowCreateMenu(!showCreateMenu)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/20 text-xs font-medium transition-all"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/20 text-xs font-medium transition-all"
               >
-                <span>Carregar ou criar</span>
+                <span className="hidden xs:inline">Carregar ou criar</span>
+                <span className="xs:hidden">Criar</span>
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
 
@@ -616,7 +617,7 @@ export function FileManager() {
             <button
               data-testid="view-mode-toggle"
               onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
-              className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
               title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
             >
               {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
@@ -626,9 +627,9 @@ export function FileManager() {
 
         {/* Selected Batch Action Bar */}
         {selectedItems.length > 0 && (
-          <div className="px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex items-center justify-between text-xs text-orbit-400 animate-in fade-in">
+          <div className="px-3 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-400 animate-in fade-in">
             <span>{selectedItems.length} item(s) selecionado(s)</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => handleCopy(selectedItems)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors"
@@ -655,7 +656,7 @@ export function FileManager() {
         )}
 
         {/* File Browser Body */}
-        <div className="flex-1 p-6 overflow-y-auto relative">
+        <div className="flex-1 p-3 sm:p-6 overflow-y-auto relative">
           {isDraggingOver && (
             <div className="absolute inset-4 z-40 border-2 border-dashed border-orbit-500 bg-orbit-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
               <Upload className="w-12 h-12 text-orbit-400 animate-bounce" />
@@ -664,7 +665,7 @@ export function FileManager() {
           )}
 
           {isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary">
+            <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-16">
               <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
               <span className="text-sm">Carregando diretório...</span>
             </div>
@@ -681,7 +682,7 @@ export function FileManager() {
             </div>
           ) : viewMode === 'grid' ? (
             /* GRID VIEW */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-4">
               {filteredFiles.map((item) => {
                 const isSelected = selectedItems.some(i => i.path === item.path);
                 return (
@@ -695,20 +696,20 @@ export function FileManager() {
                       }
                     }}
                     onDoubleClick={() => handleItemClick(item)}
-                    className={`group relative flex flex-col items-center p-3 rounded-2xl border transition-all cursor-pointer ${
+                    className={`group relative flex flex-col items-center p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer select-none ${
                       isSelected
                         ? 'bg-orbit-500/15 border-orbit-500/40 ring-2 ring-orbit-500/30'
                         : 'bg-card/70 border-border hover:bg-card hover:border-zinc-700 hover:shadow-lg'
                     }`}
                   >
                     {/* Item Icon */}
-                    <div className="mb-2 p-2 rounded-xl transition-transform group-hover:scale-105">
+                    <div className="mb-1.5 sm:mb-2 p-1.5 sm:p-2 rounded-xl transition-transform group-hover:scale-105">
                       {getFileIcon(item)}
                     </div>
 
                     {/* Item Name */}
                     <span 
-                      className="w-full text-center text-xs font-medium text-primary truncate px-1"
+                      className="w-full text-center text-xs font-medium text-primary truncate px-0.5"
                       title={item.name}
                     >
                       {item.name}
@@ -719,8 +720,8 @@ export function FileManager() {
                       {item.is_dir ? 'Pasta' : formatSize(item.size)}
                     </span>
 
-                    {/* Quick Hover Actions Menu */}
-                    <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-card/90 rounded-lg p-0.5 shadow-sm border border-border">
+                    {/* Quick Action Overlay (Touch-Friendly) */}
+                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 rounded-lg p-0.5 shadow-sm border border-border">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -760,85 +761,87 @@ export function FileManager() {
           ) : (
             /* LIST VIEW */
             <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-accent/40 text-secondary border-b border-border select-none">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Nome</th>
-                    <th className="py-3 px-4 font-semibold">Tamanho</th>
-                    <th className="py-3 px-4 font-semibold">Modificado</th>
-                    <th className="py-3 px-4 font-semibold text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredFiles.map((item) => {
-                    const isSelected = selectedItems.some(i => i.path === item.path);
-                    return (
-                      <tr
-                        key={item.path}
-                        onClick={() => {
-                          if (selectedItems.some(i => i.path === item.path)) {
-                            setSelectedItems(selectedItems.filter(i => i.path !== item.path));
-                          } else {
-                            setSelectedItems([...selectedItems, item]);
-                          }
-                        }}
-                        onDoubleClick={() => handleItemClick(item)}
-                        className={`hover:bg-accent/50 transition-colors cursor-pointer ${
-                          isSelected ? 'bg-orbit-500/10' : ''
-                        }`}
-                      >
-                        <td className="py-2.5 px-4 flex items-center gap-3">
-                          <div className="shrink-0">{getFileIcon(item)}</div>
-                          <span className="font-medium text-primary truncate max-w-xs md:max-w-md">
-                            {item.name}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-4 text-secondary font-mono">
-                          {item.is_dir ? '-' : formatSize(item.size)}
-                        </td>
-                        <td className="py-2.5 px-4 text-secondary font-mono">
-                          {item.modified ? new Date(item.modified).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleItemClick(item);
-                              }}
-                              className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
-                              title="Abrir"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(item);
-                              }}
-                              className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
-                              title="Download"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpTargetItem(item);
-                                setOpModalType('rename');
-                              }}
-                              className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
-                              title="Renomear"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-accent/40 text-secondary border-b border-border select-none">
+                    <tr>
+                      <th className="py-3 px-4 font-semibold">Nome</th>
+                      <th className="py-3 px-4 font-semibold">Tamanho</th>
+                      <th className="py-3 px-4 font-semibold hidden sm:table-cell">Modificado</th>
+                      <th className="py-3 px-4 font-semibold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredFiles.map((item) => {
+                      const isSelected = selectedItems.some(i => i.path === item.path);
+                      return (
+                        <tr
+                          key={item.path}
+                          onClick={() => {
+                            if (selectedItems.some(i => i.path === item.path)) {
+                              setSelectedItems(selectedItems.filter(i => i.path !== item.path));
+                            } else {
+                              setSelectedItems([...selectedItems, item]);
+                            }
+                          }}
+                          onDoubleClick={() => handleItemClick(item)}
+                          className={`hover:bg-accent/50 transition-colors cursor-pointer ${
+                            isSelected ? 'bg-orbit-500/10' : ''
+                          }`}
+                        >
+                          <td className="py-2.5 px-4 flex items-center gap-2.5">
+                            <div className="shrink-0">{getFileIcon(item)}</div>
+                            <span className="font-medium text-primary truncate max-w-[140px] xs:max-w-xs md:max-w-md">
+                              {item.name}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap">
+                            {item.is_dir ? '-' : formatSize(item.size)}
+                          </td>
+                          <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap hidden sm:table-cell">
+                            {item.modified ? new Date(item.modified).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="py-2.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleItemClick(item);
+                                }}
+                                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
+                                title="Abrir"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(item);
+                                }}
+                                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
+                                title="Download"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpTargetItem(item);
+                                  setOpModalType('rename');
+                                }}
+                                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
+                                title="Renomear"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

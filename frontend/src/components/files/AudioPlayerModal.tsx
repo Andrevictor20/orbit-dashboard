@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, Pause, Volume2, VolumeX, X, Music, RotateCcw, RotateCw } from 'lucide-react';
 
 export interface FileItem {
@@ -90,13 +91,13 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-6">
+  return typeof document !== 'undefined' ? createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 shrink-0">
               <Music className="w-5 h-5" />
             </div>
             <div className="truncate">
@@ -191,6 +192,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 }

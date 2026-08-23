@@ -31,7 +31,7 @@ describe('Images component', () => {
     render(<Images />);
     
     await waitFor(() => {
-      expect(screen.getByText('test_img')).toBeTruthy();
+      expect(screen.getAllByText('test_img').length).toBeGreaterThan(0);
     });
     
     const pruneButton = screen.getByText('Limpar Não Utilizadas (Prune)');

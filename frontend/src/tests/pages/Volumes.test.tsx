@@ -39,7 +39,7 @@ describe('Volumes component', () => {
     
     // Wait for the volumes to load
     await waitFor(() => {
-      expect(screen.getByText('test_vol')).toBeTruthy();
+      expect(screen.getAllByText('test_vol').length).toBeGreaterThan(0);
     });
     
     // Check that fetch was called with token

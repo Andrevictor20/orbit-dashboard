@@ -42,12 +42,12 @@ describe('Networks Component', () => {
     expect(screen.getByText('Carregando redes...')).toBeTruthy();
     
     await waitFor(() => {
-      expect(screen.getByText('orbit_network')).toBeTruthy();
+      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
     });
     
-    expect(screen.getByText('my_custom_net')).toBeTruthy();
-    expect(screen.getByText('bridge')).toBeTruthy();
-    expect(screen.getByText('overlay')).toBeTruthy();
+    expect(screen.getAllByText('my_custom_net').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('bridge').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('overlay').length).toBeGreaterThan(0);
   });
 
   it('handles empty networks list', async () => {
@@ -67,7 +67,7 @@ describe('Networks Component', () => {
     render(<Networks />);
     
     await waitFor(() => {
-      expect(screen.getByText('orbit_network')).toBeTruthy();
+      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
     });
 
     // Mock delete endpoint
@@ -99,7 +99,7 @@ describe('Networks Component', () => {
     render(<Networks />);
     
     await waitFor(() => {
-      expect(screen.getByText('orbit_network')).toBeTruthy();
+      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
     });
 
     // Mock prune endpoint

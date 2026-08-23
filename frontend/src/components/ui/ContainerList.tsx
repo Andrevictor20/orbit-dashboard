@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
@@ -600,23 +601,54 @@ export function ContainerList() {
         </div>
       )}
 
-      {linkModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setLinkModal({ isOpen: false, containerId: null })}>
-          <div className="bg-background border border-border rounded-xl shadow-2xl p-6 w-full max-w-md animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-primary mb-2">
-              Link Customizado
-            </h3>
+      {linkModal.isOpen && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200" 
+          onClick={() => setLinkModal({ isOpen: false, containerId: null })}
+        >
+          <div 
+            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-lg mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-primary">
+                    Link Customizado do App
+                  </h3>
+                  <p className="text-xs text-secondary">Configure a URL de acesso rápido para este container</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setLinkModal({ isOpen: false, containerId: null })}
+                className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
-            <div className="flex bg-card/50 border border-border rounded-lg p-1 mb-4">
+            <div className="flex bg-background/60 border border-border rounded-xl p-1 mb-4">
               <button 
                 onClick={() => setLinkMode('builder')} 
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${linkMode === 'builder' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-primary'}`}
+                className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
+                  linkMode === 'builder' 
+                    ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
+                    : 'text-secondary hover:text-primary'
+                }`}
               >
                 Construtor Automático
               </button>
               <button 
                 onClick={() => setLinkMode('raw')} 
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${linkMode === 'raw' ? 'bg-accent text-primary shadow' : 'text-secondary hover:text-primary'}`}
+                className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
+                  linkMode === 'raw' 
+                    ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
+                    : 'text-secondary hover:text-primary'
+                }`}
               >
                 URL Completa
               </button>
@@ -624,44 +656,46 @@ export function ContainerList() {
 
             {linkMode === 'builder' ? (
               <div className="mb-6 space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs text-secondary mb-1">Subdomínio (App)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-secondary mb-1.5">Subdomínio (App)</label>
                     <input 
                       type="text" 
                       autoFocus
-                      className="w-full bg-card border border-border rounded-lg px-3 py-2 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all font-mono text-sm"
-                      placeholder="app"
+                      className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
+                      placeholder="meu-app"
                       value={linkSubdomain}
                       onChange={(e) => setLinkSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-secondary mb-1">Domínio Base</label>
+                  <div>
+                    <label className="block text-xs font-medium text-secondary mb-1.5">Domínio Base</label>
                     <input 
                       type="text" 
-                      className="w-full bg-card border border-border rounded-lg px-3 py-2 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all font-mono text-sm"
+                      className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
                       placeholder="exemplo.com"
                       value={linkDomain}
                       onChange={(e) => setLinkDomain(e.target.value.toLowerCase())}
                     />
                   </div>
                 </div>
-                <div className="bg-black/20 rounded-lg p-3 border border-white/5">
-                  <span className="text-xs text-secondary block mb-1">Hostname completo:</span>
-                  <span className="text-sm text-emerald-400 font-mono">
-                    {linkSubdomain && linkDomain ? `https://${linkSubdomain}.${linkDomain}` : 'Preencha os campos...'}
+                <div className="bg-background/80 rounded-xl p-3.5 border border-border">
+                  <span className="text-xs text-secondary block mb-1 font-medium">Hostname final de acesso:</span>
+                  <span className="text-sm text-emerald-400 font-mono break-all font-semibold">
+                    {linkSubdomain && linkDomain ? `https://${linkSubdomain}.${linkDomain}` : 'Preencha os campos acima...'}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="mb-6">
-                <p className="text-xs text-secondary mb-2">Insira a URL customizada completa (deixe em branco para remover):</p>
+              <div className="mb-6 space-y-2">
+                <label className="block text-xs font-medium text-secondary">
+                  Insira a URL customizada completa (deixe em branco para remover):
+                </label>
                 <input 
                   type="text" 
                   autoFocus
-                  className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all font-mono text-sm"
-                  placeholder="https://exemplo.com/caminho"
+                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
+                  placeholder="https://exemplo.com:8080/caminho"
                   value={linkInput}
                   onChange={(e) => setLinkInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -671,22 +705,24 @@ export function ContainerList() {
                 />
               </div>
             )}
-            <div className="flex justify-end gap-3">
+
+            <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-2">
               <button 
                 onClick={() => setLinkModal({ isOpen: false, containerId: null })}
-                className="px-4 py-2 rounded-lg text-secondary hover:text-primary transition-colors text-sm font-medium"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-secondary hover:text-primary hover:bg-accent/50 transition-colors text-sm font-medium text-center"
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleSaveLink}
-                className="px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-xl transition-all text-sm font-semibold shadow-md shadow-orbit-500/20 text-center"
               >
-                Salvar
+                Salvar Link
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
