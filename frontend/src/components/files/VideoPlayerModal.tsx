@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Play, 
@@ -10,7 +10,10 @@ import {
   Maximize, 
   Subtitles, 
   RotateCcw, 
-  RotateCw
+  RotateCw,
+  Loader2,
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 
@@ -28,8 +31,11 @@ interface VideoPlayerModalProps {
 
 export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [bufferedEnd, setBufferedEnd] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [subtitlesList, setSubtitlesList] = useState<SubtitleItem[]>([]);
@@ -43,7 +49,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
   const videoSrc = `/api/files/stream?path=${encodeURIComponent(file.path)}`;
 
-  // Fetch companion subtitles
+  // Fetch companion and embedded subtitles
   useEffect(() => {
     fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}`)
       .then(res => res.json())
@@ -83,7 +89,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       const text = evt.target?.result as string;
       if (!text) return;
       
-      // Convert SRT comma timestamps to WebVTT dots if needed
       const vttContent = text.includes('WEBVTT') 
         ? text 
         : `WEBVTT\n\n${text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')}`;
@@ -115,26 +120,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     reader.readAsText(fileUploaded);
   };
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleLoadedMetadata = () => setDuration(video.duration || 0);
-    const handleEnded = () => setIsPlaying(false);
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('ended', handleEnded);
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('ended', handleEnded);
-    };
-  }, []);
-
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
@@ -143,7 +129,101 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
-  };
+  }, [isPlaying]);
+
+  // Video event handlers for smooth streaming & buffering
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      if (video.buffered.length > 0) {
+        try {
+          const currentBuf = video.buffered.end(video.buffered.length - 1);
+          setBufferedEnd(currentBuf);
+        } catch (_) {}
+      }
+    };
+    
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration || 0);
+      setIsBuffering(false);
+    };
+
+    const handleWaiting = () => setIsBuffering(true);
+    const handleCanPlay = () => setIsBuffering(false);
+    const handlePlaying = () => {
+      setIsBuffering(false);
+      setIsPlaying(true);
+    };
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => setIsPlaying(false);
+    const handleError = () => {
+      setIsBuffering(false);
+      setHasError(true);
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('error', handleError);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('error', handleError);
+    };
+  }, []);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (videoRef.current) videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 5);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (videoRef.current) {
+          const newVol = Math.min(1, videoRef.current.volume + 0.1);
+          videoRef.current.volume = newVol;
+          setVolume(newVol);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (videoRef.current) {
+          const newVol = Math.max(0, videoRef.current.volume - 0.1);
+          videoRef.current.volume = newVol;
+          setVolume(newVol);
+        }
+      } else if (e.key.toLowerCase() === 'm') {
+        toggleMute();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlay, duration]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
@@ -234,12 +314,13 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           </button>
         </div>
 
-        {/* Video Element */}
-        <div className="relative flex-1 w-full h-full flex items-center justify-center bg-black cursor-pointer" onClick={togglePlay}>
+        {/* Video Element & Overlays */}
+        <div className="relative flex-1 w-full h-full flex items-center justify-center bg-black cursor-pointer overflow-hidden" onClick={togglePlay}>
           <video
             ref={videoRef}
             data-testid="video-element"
             src={videoSrc}
+            preload="metadata"
             playsInline
             crossOrigin="anonymous"
             className="w-full h-full object-contain"
@@ -256,8 +337,42 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             ))}
           </video>
 
-          {/* Big Center Play Icon when paused */}
-          {!isPlaying && (
+          {/* Buffering Spinner */}
+          {isBuffering && !hasError && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
+              <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/70 text-white shadow-2xl border border-white/10">
+                <Loader2 className="w-8 h-8 text-orbit-400 animate-spin" />
+                <span className="text-xs text-zinc-300 font-medium">Carregando fluxo...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error Banner (e.g. unsupported container or codec) */}
+          {hasError && (
+            <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md" onClick={(e) => e.stopPropagation()}>
+              <div className="max-w-md p-6 rounded-2xl bg-zinc-900 border border-red-500/30 text-center space-y-4 shadow-2xl">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-semibold text-white">Falha na Decodificação do Vídeo</h4>
+                  <p className="text-xs text-zinc-400">
+                    O codec de áudio ou vídeo deste arquivo pode não ser compatível nativamente com o navegador. Você pode baixá-lo ou abrir com reprodutor externo (VLC).
+                  </p>
+                </div>
+                <a
+                  href={`/api/files/download?path=${encodeURIComponent(file.path)}`}
+                  download={file.name}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-orbit-600 hover:bg-orbit-500 text-white rounded-xl text-xs font-medium transition-colors shadow-lg shadow-orbit-600/30"
+                >
+                  <Download className="w-4 h-4" /> Baixar Arquivo
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Big Center Play Icon when paused and not buffering */}
+          {!isPlaying && !isBuffering && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="p-5 rounded-full bg-orbit-500/90 text-white shadow-2xl backdrop-blur-sm transform scale-110">
                 <Play className="w-10 h-10 fill-current ml-1" />
@@ -268,17 +383,26 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
         {/* Bottom Controls Overlay */}
         <div className={`absolute bottom-0 inset-x-0 z-20 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-2 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Progress Slider */}
-          <input
-            data-testid="video-progress"
-            type="range"
-            min="0"
-            max={duration || 100}
-            step="0.1"
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
-          />
+          {/* Progress Slider with Buffer Indicator */}
+          <div className="relative w-full flex items-center">
+            {/* Background & Buffer Bar */}
+            <div className="absolute inset-x-0 h-1.5 bg-zinc-800 rounded-lg overflow-hidden pointer-events-none">
+              <div 
+                className="h-full bg-zinc-600 transition-all duration-200" 
+                style={{ width: `${duration > 0 ? (bufferedEnd / duration) * 100 : 0}%` }}
+              />
+            </div>
+            <input
+              data-testid="video-progress"
+              type="range"
+              min="0"
+              max={duration || 100}
+              step="0.1"
+              value={currentTime}
+              onChange={handleSeek}
+              className="relative z-10 w-full h-1.5 bg-transparent rounded-lg appearance-none cursor-pointer accent-orbit-500"
+            />
+          </div>
 
           <div className="flex items-center justify-between text-white text-xs md:text-sm">
             {/* Left Controls */}

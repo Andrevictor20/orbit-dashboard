@@ -1369,20 +1369,27 @@ pub async fn stream_media(
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let mut file = File::open(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let total_size = file.metadata().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.len();
+    let mut file = tokio::fs::File::open(&path).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let total_size = file.metadata().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.len();
 
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let mime = get_mime_type(ext);
 
     let range_header = headers.get(header::RANGE).and_then(|r| r.to_str().ok());
 
+    // 4MB maximum chunk size per range request to enable instant playback and low memory usage
+    const MAX_CHUNK_SIZE: u64 = 4 * 1024 * 1024;
+
     if let Some(range_str) = range_header {
         if let Some(range_spec) = range_str.strip_prefix("bytes=") {
             let parts: Vec<&str> = range_spec.split('-').collect();
             let start: u64 = parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
-            let end: u64 = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(total_size.saturating_sub(1));
-            let end = end.min(total_size.saturating_sub(1));
+            
+            let raw_end = parts.get(1).and_then(|s| s.parse().ok());
+            let end: u64 = match raw_end {
+                Some(e) => e.min(total_size.saturating_sub(1)),
+                None => (start + MAX_CHUNK_SIZE - 1).min(total_size.saturating_sub(1)),
+            };
 
             if start > end || start >= total_size {
                 let mut resp_headers = HeaderMap::new();
@@ -1392,29 +1399,52 @@ pub async fn stream_media(
 
             let chunk_size = (end - start) + 1;
             let mut chunk = vec![0u8; chunk_size as usize];
-            file.seek(SeekFrom::Start(start)).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            file.read_exact(&mut chunk).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            use tokio::io::{AsyncReadExt, AsyncSeekExt};
+            file.seek(std::io::SeekFrom::Start(start)).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            file.read_exact(&mut chunk).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
             let mut resp_headers = HeaderMap::new();
-            resp_headers.insert(header::CONTENT_TYPE, mime.parse().unwrap());
-            resp_headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
+            resp_headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
+            resp_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
             resp_headers.insert(
                 header::CONTENT_RANGE,
                 format!("bytes {}-{}/{}", start, end, total_size).parse().unwrap(),
             );
             resp_headers.insert(header::CONTENT_LENGTH, chunk_size.to_string().parse().unwrap());
+            resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
 
             return Ok((StatusCode::PARTIAL_CONTENT, resp_headers, chunk).into_response());
         }
     }
 
+    if total_size > MAX_CHUNK_SIZE {
+        let chunk_size = MAX_CHUNK_SIZE;
+        let mut chunk = vec![0u8; chunk_size as usize];
+        use tokio::io::AsyncReadExt;
+        file.read_exact(&mut chunk).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let mut resp_headers = HeaderMap::new();
+        resp_headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
+        resp_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+        resp_headers.insert(
+            header::CONTENT_RANGE,
+            format!("bytes 0-{}/{}", chunk_size - 1, total_size).parse().unwrap(),
+        );
+        resp_headers.insert(header::CONTENT_LENGTH, chunk_size.to_string().parse().unwrap());
+        resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
+
+        return Ok((StatusCode::PARTIAL_CONTENT, resp_headers, chunk).into_response());
+    }
+
     let mut full_buf = Vec::new();
-    file.read_to_end(&mut full_buf).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    use tokio::io::AsyncReadExt;
+    file.read_to_end(&mut full_buf).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut resp_headers = HeaderMap::new();
-    resp_headers.insert(header::CONTENT_TYPE, mime.parse().unwrap());
-    resp_headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
+    resp_headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
+    resp_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
     resp_headers.insert(header::CONTENT_LENGTH, full_buf.len().to_string().parse().unwrap());
+    resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
 
     Ok((StatusCode::OK, resp_headers, full_buf).into_response())
 }
