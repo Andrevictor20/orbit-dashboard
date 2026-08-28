@@ -38,13 +38,12 @@ EOF
 echo -e "${NC}${BOLD}Orbit Dashboard — Zero-Config Homelab & Docker Manager${NC}"
 echo -e "${CYAN}======================================================${NC}\n"
 
-# ── 1. Helper Functions ───────────────────────────────────────────────────────
+# ── 1. Helper Functions & Sudo Setup ──────────────────────────────────────────
 log_info()    { echo -e "${CYAN}ℹ️  [INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}✅ [SUCCESS]${NC} $1"; }
 log_warn()    { echo -e "${YELLOW}⚠️  [WARNING]${NC} $1"; }
 log_error()   { echo -e "${RED}❌ [ERROR]${NC} $1"; }
 
-# Check sudo access
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
   if command -v sudo &>/dev/null; then
@@ -55,13 +54,26 @@ if [ "$(id -u)" -ne 0 ]; then
   fi
 fi
 
-# ── 1.1 Fix Corrupted Docker Config Directories ───────────────────────────────
-# Fix known issue where /root/.docker/config.json or ~/.docker/config.json is accidentally created as a directory
-for cfg in "/root/.docker/config.json" "${HOME:-}/.docker/config.json"; do
-  if [ -d "${cfg}" ]; then
-    $SUDO rm -rf "${cfg}" 2>/dev/null || true
+# ── 1.1 Fix Docker Config Directory Glitch ────────────────────────────────────
+# Fix issue where /root/.docker/config.json or ~/.docker/config.json is accidentally created as a directory
+if $SUDO test -d /root/.docker/config.json 2>/dev/null; then
+  $SUDO rm -rf /root/.docker/config.json 2>/dev/null || true
+fi
+if [ -d "${HOME:-}/.docker/config.json" ]; then
+  rm -rf "${HOME:-}/.docker/config.json" 2>/dev/null || true
+fi
+
+# Guarantee valid minimal JSON file exists
+$SUDO mkdir -p /root/.docker 2>/dev/null || true
+if ! $SUDO test -f /root/.docker/config.json 2>/dev/null; then
+  echo "{}" | $SUDO tee /root/.docker/config.json > /dev/null 2>&1 || true
+fi
+if [ -n "${HOME:-}" ]; then
+  mkdir -p "${HOME}/.docker" 2>/dev/null || true
+  if [ ! -f "${HOME}/.docker/config.json" ]; then
+    echo "{}" > "${HOME}/.docker/config.json" 2>/dev/null || true
   fi
-done
+fi
 
 # ── 2. Architecture & OS Detection ────────────────────────────────────────────
 ARCH="$(uname -m)"
@@ -129,7 +141,6 @@ if [ -d /etc/systemd/journald.conf.d ]; then
 fi
 
 # ── 5. Directory Setup & DATA Persistence ─────────────────────────────────────
-# Determine installation path
 if [ -d "/DATA" ] && [ -w "/DATA" ]; then
   INSTALL_DIR="/DATA/orbit"
 else
