@@ -62,9 +62,20 @@
 
 ---
 
-## 🚀 Início Rápido (1 Minuto)
+## 🚀 Início Rápido (1 Comando)
 
-Para rodar o Orbit Dashboard na sua máquina ou servidor com Docker Compose:
+### ⚡ Instalação Automática (Estilo CasaOS - Recomendado)
+Instalação completa e imediata com detecção automática de arquitetura (**ARM64, ARMv7 ou x86_64**), instalação de dependências e Docker se necessário, criação da pasta de dados e inicialização:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash
+```
+
+---
+
+### 🐳 Instalação Manual via Docker Compose
+
+Caso prefira iniciar manualmente:
 
 ```yaml
 services:
@@ -77,12 +88,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - orbit_data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   orbit_data:
 ```
 
-Inicie o contêiner:
 ```bash
 docker compose up -d
 ```

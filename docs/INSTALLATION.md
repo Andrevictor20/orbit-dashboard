@@ -4,9 +4,21 @@ O Orbit foi projetado para oferecer uma experiência **Zero-Config**: não reque
 
 ---
 
-## 🐳 Método 1: Instalação via Docker Compose (Recomendado)
+## ⚡ Método 1: Instalação Automática em 1 Comando (Estilo CasaOS - Recomendado)
 
-Esta é a forma mais simples e recomendada para produção (servidores Linux, VPS, Homelabs ou Raspberry Pi 4/5).
+Instalação completa automatizada com detecção automática de arquitetura (**ARM64, ARMv7 ou x86_64**), instalação automática do Docker/Compose se não houver, criação da pasta `data/`, proteção de logs e inicialização imediata:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash
+```
+
+Após a conclusão, acesse `http://<IP-DO-SEU-SERVIDOR>:5172`.
+
+---
+
+## 🐳 Método 2: Instalação Manual via Docker Compose
+
+Caso prefira criar manualmente o seu arquivo `docker-compose.yml`:
 
 ### 1. Crie o arquivo `docker-compose.yml`
 

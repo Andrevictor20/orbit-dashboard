@@ -192,7 +192,7 @@ export function ContainerList() {
         const data = await res.json();
         setUpdatesMap(data);
       }
-    } catch (_) {}
+    } catch {}
   };
 
   const handleUpdateContainer = async (e: React.MouseEvent, id: string) => {

@@ -35,7 +35,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       toast.success(t('auth.password_updated') || 'Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
-    } catch (err) {
+    } catch {
       toast.error('Invalid current password or server error');
     } finally {
       setIsChangingPassword(false);
