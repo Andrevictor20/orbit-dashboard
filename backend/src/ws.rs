@@ -4,12 +4,18 @@ use axum::{
 };
 use sysinfo::{System, Disks, Networks, Components};
 use std::time::Duration;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::RwLock;
 use serde::Serialize;
 use tokio::time;
+use tokio::sync::broadcast;
+use once_cell::sync::Lazy;
+use bollard::Docker;
 use crate::docker::AppState;
 use futures::StreamExt;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct DiskStat {
     pub name: String,
     pub mount_point: String,
@@ -17,7 +23,7 @@ pub struct DiskStat {
     pub total: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct SystemStats {
     pub cpu_usage: f32,
     pub memory_used: u64,
@@ -34,8 +40,45 @@ pub struct SystemStats {
     pub orbit_memory: u64,
 }
 
+// Global Broadcaster and Cache for O(1) CPU/RAM scaling across all clients/tabs
+static STATS_TX: Lazy<broadcast::Sender<Arc<String>>> = Lazy::new(|| {
+    let (tx, _) = broadcast::channel(32);
+    tx
+});
+static LATEST_STATS: Lazy<RwLock<Option<Arc<String>>>> = Lazy::new(|| RwLock::new(None));
+static COLLECTOR_INITIALIZED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+
+pub fn ensure_stats_collector(docker: Arc<Docker>) {
+    if COLLECTOR_INITIALIZED.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+        tokio::spawn(async move {
+            run_singleton_stats_collector(docker).await;
+        });
+    }
+}
+
 pub async fn stats_handler(State(state): State<AppState>, ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state))
+    ensure_stats_collector(state.docker.clone());
+    ws.on_upgrade(move |socket| handle_socket(socket))
+}
+
+async fn handle_socket(mut socket: WebSocket) {
+    let mut rx = STATS_TX.subscribe();
+
+    // 1. Send immediate cached snapshot so UI renders instantly without waiting for next tick
+    let initial_msg = LATEST_STATS.read().ok().and_then(|g| g.clone());
+    if let Some(cached) = initial_msg {
+        if socket.send(Message::Text(cached.as_str().into())).await.is_err() {
+            return;
+        }
+    }
+
+    // 2. Stream broadcasts with zero CPU overhead per connection
+    while let Ok(msg) = rx.recv().await {
+        if socket.send(Message::Text(msg.as_str().into())).await.is_err() {
+            tracing::debug!("Client disconnected from stats WebSocket");
+            break;
+        }
+    }
 }
 
 /// Returns private memory (RSS equivalent) for a PID via smaps_rollup (bytes).
@@ -51,7 +94,6 @@ fn read_private_memory(pid: u32) -> u64 {
 }
 
 /// Scans /proc once to find the vite/node frontend PID.
-/// Called only every ~30 seconds, not every tick.
 fn find_vite_pid() -> Option<u32> {
     let Ok(proc_entries) = std::fs::read_dir("/proc") else {
         return None;
@@ -111,22 +153,16 @@ fn read_host_network_bytes() -> (u64, u64) {
     (0, 0)
 }
 
-async fn handle_socket(mut socket: WebSocket, state: AppState) {
+async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut sys = System::new_all();
     let mut disks = Disks::new_with_refreshed_list();
     let mut networks = Networks::new_with_refreshed_list();
     let mut components = Components::new_with_refreshed_list();
 
-    // OPT-B1: Own PID via std::process::id() — zero I/O, no /proc scan needed
     let backend_pid = std::process::id();
-
-    // OPT-B1: Cache vite PID; refresh only every 10 ticks (~30s at 3s interval)
     let mut vite_pid: Option<u32> = find_vite_pid();
     let mut vite_pid_ticks: u32 = 0;
     const VITE_REFRESH_EVERY: u32 = 10;
-
-    // OPT-B2: Interval increased from 2s → 3s (~33% less CPU/I/O pressure)
-    let mut interval = time::interval(Duration::from_secs(3));
 
     let mut prev_cpu_stats = std::collections::HashMap::new();
     let mut prev_host_rx = 0u64;
@@ -137,7 +173,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     let mut first_tick = true;
 
     loop {
-        interval.tick().await;
+        // Adaptive sleep: 3s if active subscribers, 8s if idle (power/CPU conservation)
+        let has_subscribers = STATS_TX.receiver_count() > 0;
+        let sleep_duration = if has_subscribers { Duration::from_secs(3) } else { Duration::from_secs(8) };
+        time::sleep(sleep_duration).await;
 
         let now = std::time::Instant::now();
         let elapsed_secs = now.duration_since(last_tick_instant).as_secs_f64().max(0.1);
@@ -154,14 +193,12 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         let sys_mem = sys.used_memory();
         let num_cores = sys.cpus().len() as f32;
 
-        // OPT-B1: Refresh vite PID periodically (not every tick)
         vite_pid_ticks += 1;
         if vite_pid_ticks >= VITE_REFRESH_EVERY {
             vite_pid = find_vite_pid();
             vite_pid_ticks = 0;
         }
 
-        // Orbit process metrics using cached PIDs — no /proc full scan
         let orbit_cpu = {
             let mut cpu = sys.process(sysinfo::Pid::from_u32(backend_pid))
                 .map(|p| p.cpu_usage() / num_cores)
@@ -210,7 +247,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         // Fetch running containers
         let mut options = bollard::query_parameters::ListContainersOptions::default();
         options.all = false;
-        let containers = match state.docker.list_containers(Some(options)).await {
+        let containers = match docker.list_containers(Some(options)).await {
             Ok(c) => c,
             Err(_) => continue,
         };
@@ -220,19 +257,18 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         let mut network_tx = 0u64;
         let mut network_rx = 0u64;
 
-        // OPT-B3: FuturesUnordered streams results as they complete (better mem efficiency)
         use futures::stream::FuturesUnordered;
         let mut stat_futures: FuturesUnordered<_> = containers
             .into_iter()
             .filter_map(|c| c.id)
             .map(|id| {
-                let docker = state.docker.clone();
+                let d = docker.clone();
                 async move {
                     let stats_options = bollard::query_parameters::StatsOptions {
                         stream: false,
                         ..Default::default()
                     };
-                    let mut stream = docker.stats(&id, Some(stats_options));
+                    let mut stream = d.stats(&id, Some(stats_options));
                     stream.next().await.and_then(|r| r.ok()).map(|s| (id, s))
                 }
             })
@@ -259,10 +295,10 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             }
             total_cpu += cpu_percent;
 
-            // Accurate Memory (subtracted cache/inactive_file)
+            // Memory
             total_mem += crate::docker::calculate_memory_used(&res);
 
-            // Network (cumulative bytes)
+            // Network
             if let Some(nets) = res.networks {
                 for (_, net) in nets {
                     network_tx += net.tx_bytes.unwrap_or(0);
@@ -287,9 +323,8 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         prev_docker_tx = network_tx;
         first_tick = false;
 
-        // Disks (filter pseudo-filesystems, virtual mounts, and container artifacts)
+        // Disks
         let mut disk_stats_map: std::collections::HashMap<String, DiskStat> = std::collections::HashMap::new();
-
         for disk in &disks {
             let name = disk.name().to_string_lossy().into_owned();
             let raw_mount = disk.mount_point().to_string_lossy().into_owned();
@@ -341,7 +376,7 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
         let mut disk_stats: Vec<DiskStat> = disk_stats_map.into_values().collect();
         disk_stats.sort_by(|a, b| b.total.cmp(&a.total));
 
-        // Temperature (average across all sensors)
+        // Temperature
         let mut temperature = 0.0f32;
         let mut temp_count = 0u32;
         for component in &components {
@@ -370,14 +405,12 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             orbit_memory,
         };
 
-        let msg = match serde_json::to_string(&stats) {
-            Ok(j) => j,
-            Err(_) => continue,
-        };
-
-        if socket.send(Message::Text(msg.into())).await.is_err() {
-            tracing::debug!("Client disconnected from stats WebSocket");
-            break;
+        if let Ok(j) = serde_json::to_string(&stats) {
+            let msg_arc = Arc::new(j);
+            if let Ok(mut guard) = LATEST_STATS.write() {
+                *guard = Some(msg_arc.clone());
+            }
+            let _ = STATS_TX.send(msg_arc);
         }
     }
 }

@@ -16,7 +16,23 @@ export default defineConfig({
     },
   },
   build: {
-    // Warn on chunks > 600KB (recharts is ~500KB minified, that's acceptable)
     chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('@xterm')) {
+              return 'vendor-xterm';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+          }
+        },
+      },
+    },
   },
 })
