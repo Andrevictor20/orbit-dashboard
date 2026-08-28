@@ -64,7 +64,7 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     let mut published_at = None;
     let mut has_update = false;
 
-    // Fetch from GitHub Releases API
+    // Fetch from GitHub Releases API with robust timeout
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
         .user_agent("Orbit-Dashboard")
@@ -134,9 +134,11 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     };
 
     // Store in cache
-    if let Ok(mut guard) = UPDATE_CACHE.write() {
-        *guard = Some((info.clone(), Instant::now()));
-    }
+    let mut guard = match UPDATE_CACHE.write() {
+        Ok(g) => g,
+        Err(p) => p.into_inner(),
+    };
+    *guard = Some((info.clone(), Instant::now()));
 
     info
 }
@@ -155,12 +157,18 @@ pub async fn check_update_handler(State(state): State<AppState>) -> impl IntoRes
 }
 
 pub async fn get_update_status_handler() -> impl IntoResponse {
-    let task = SYSTEM_UPDATE_TASK.read().unwrap().clone();
+    let task = match SYSTEM_UPDATE_TASK.read() {
+        Ok(g) => g.clone(),
+        Err(p) => p.into_inner().clone(),
+    };
     (StatusCode::OK, Json(task)).into_response()
 }
 
 fn append_task_log(msg: impl Into<String>, progress: Option<u8>, step: Option<&str>) {
-    let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+    let mut task = match SYSTEM_UPDATE_TASK.write() {
+        Ok(g) => g,
+        Err(p) => p.into_inner(),
+    };
     let msg_str = msg.into();
     tracing::info!("[SystemUpdate] {}", msg_str);
     task.logs.push(msg_str);
@@ -175,7 +183,10 @@ fn append_task_log(msg: impl Into<String>, progress: Option<u8>, step: Option<&s
 pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoResponse {
     // Check if task is already running
     {
-        let task = SYSTEM_UPDATE_TASK.read().unwrap();
+        let task = match SYSTEM_UPDATE_TASK.read() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         if task.status == "pulling" || task.status == "recreating" {
             return (StatusCode::CONFLICT, Json(serde_json::json!({
                 "message": "Uma atualização já está em andamento."
@@ -185,7 +196,10 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
 
     // Reset task state
     {
-        let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+        let mut task = match SYSTEM_UPDATE_TASK.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         *task = SystemUpdateTask {
             status: "pulling".to_string(),
             progress: 5,
@@ -218,6 +232,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         let mut pull_stream = docker.create_image(Some(create_options), None, None);
         let mut pull_progress = 15u8;
         let mut last_status = String::new();
+        let mut had_error = false;
 
         while let Some(res) = pull_stream.next().await {
             match res {
@@ -255,9 +270,21 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                     }
                 }
                 Err(e) => {
+                    had_error = true;
                     append_task_log(format!("⚠️ [WARN] Aviso no pull da imagem: {}", e), None, None);
                 }
             }
+        }
+
+        if had_error && pull_progress <= 15 {
+            let mut task = match SYSTEM_UPDATE_TASK.write() {
+                Ok(g) => g,
+                Err(p) => p.into_inner(),
+            };
+            task.status = "error".to_string();
+            task.error = Some("Não foi possível baixar a imagem do GitHub Container Registry.".to_string());
+            task.logs.push("❌ [ERROR] Falha durante o download da nova imagem.".to_string());
+            return;
         }
 
         append_task_log("✅ [SUCCESS] Imagem multi-arch baixada e verificada com sucesso!", Some(85), Some("Preparando reinicialização sem downtime..."));
@@ -298,7 +325,10 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
 
         // 3. Mark state as recreating
         {
-            let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+            let mut task = match SYSTEM_UPDATE_TASK.write() {
+                Ok(g) => g,
+                Err(p) => p.into_inner(),
+            };
             task.status = "recreating".to_string();
             task.progress = 95;
             task.current_step = "Reiniciando serviço Orbit com a nova versão...".to_string();

@@ -1,6 +1,35 @@
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        if let Ok(mut sig) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            sig.recv().await;
+        } else {
+            std::future::pending::<()>().await;
+        }
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C signal. Starting graceful shutdown...");
+        },
+        _ = terminate => {
+            tracing::info!("Received SIGTERM signal. Starting graceful shutdown...");
+        },
+    }
+}
+
 #[tokio::main]
 async fn main() {
     // Load .env if present
@@ -49,8 +78,15 @@ async fn main() {
         }
     };
     tracing::info!("Listening on 0.0.0.0:5172");
-    if let Err(e) = axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await {
+    
+    let server = axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>())
+        .with_graceful_shutdown(shutdown_signal());
+
+    if let Err(e) = server.await {
         eprintln!("FATAL: Server error: {}", e);
         tracing::error!("FATAL: Server error: {}", e);
+        std::process::exit(1);
+    } else {
+        tracing::info!("Orbit Dashboard Backend stopped gracefully.");
     }
 }

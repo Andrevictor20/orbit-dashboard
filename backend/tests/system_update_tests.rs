@@ -1,5 +1,5 @@
 use axum_test::TestServer;
-use backend::system::{get_system_update_info, SystemUpdateInfo};
+use backend::system::{get_system_update_info, SystemUpdateInfo, SystemUpdateTask};
 use backend::auth::Claims;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
@@ -46,6 +46,22 @@ async fn test_system_update_check_endpoint() {
 }
 
 #[tokio::test]
+async fn test_system_update_status_endpoint() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let app = backend::app();
+    let server = TestServer::new(app);
+    let cookie = get_test_cookie();
+
+    let res = server.get("/api/system/update/status")
+        .add_cookie(cookie)
+        .await;
+    res.assert_status_success();
+
+    let task: SystemUpdateTask = res.json();
+    assert!(!task.status.is_empty(), "Task status must not be empty");
+}
+
+#[tokio::test]
 async fn test_system_platform_detection() {
     let info = get_system_update_info().await;
     let expected_platform = backend::docker::get_host_platform();
@@ -66,4 +82,3 @@ async fn test_system_update_endpoint_exists() {
     // Status can be success (if docker is available) or a handled response, but NOT 404 Not Found
     assert_ne!(res.status_code(), axum::http::StatusCode::NOT_FOUND);
 }
-
