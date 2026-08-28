@@ -1,0 +1,120 @@
+# Referência de CD (GitHub Actions) para a skill deploy-pipeline-conductor.
+# Roda DEPOIS que o workflow de CI (ver ci-security-gate/assets/ci.yml) passou 100%.
+# Build da imagem Docker -> push no registry -> deploy em staging -> health check ->
+# promoção manual para produção (via GitHub Environments com aprovação obrigatória) -> rollback.
+#
+# Salvar em: .github/workflows/cd.yml
+#
+# Pré-requisitos a configurar no repositório:
+# - Registry: GHCR (padrão, usa GITHUB_TOKEN automaticamente) ou troque por ECR/GCR/Docker Hub.
+# - GitHub Environments "staging" e "production" criados em Settings > Environments,
+#   com "production" exigindo revisão manual (Required reviewers) — isso É o gate humano
+#   antes de produção, sem precisar de step manual dentro do workflow.
+# - Secrets de deploy (ex. credenciais do host/plataforma) configurados por Environment,
+#   nunca como secret global do repositório — isolamento entre staging e produção.
+
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch: {} # permite disparar/promover manualmente também
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build & push image
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy image to staging
+        run: |
+          echo "Trocar por: kubectl set image / docker compose pull+up / plataforma de deploy (Fly.io, Render, ECS, etc.)"
+          echo "Imagem: ${{ needs.build-and-push.outputs.image_tag }}"
+
+      - name: Health check pós-deploy (staging)
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS https://staging.example.com/health; then
+              echo "Health check OK"
+              exit 0
+            fi
+            echo "Tentativa $i falhou, aguardando..."
+            sleep 5
+          done
+          echo "Health check falhou após 10 tentativas — deploy considerado com falha"
+          exit 1
+
+  deploy-production:
+    name: Deploy to production
+    needs: [build-and-push, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy image to production
+        run: |
+          echo "Trocar pelo comando real de deploy da plataforma."
+          echo "Imagem: ${{ needs.build-and-push.outputs.image_tag }}"
+
+      - name: Health check pós-deploy (produção)
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS https://example.com/health; then
+              echo "Health check OK"
+              exit 0
+            fi
+            echo "Tentativa $i falhou, aguardando..."
+            sleep 5
+          done
+          echo "Health check falhou — considerar rollback imediato (ver job rollback abaixo)"
+          exit 1
+
+  rollback:
+    name: Rollback (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Redeploy previous known-good image
+        run: |
+          echo "Definir IMAGE_TAG_TO_ROLLBACK_TO como input do workflow_dispatch"
+          echo "Reimplantar essa tag específica na plataforma de deploy"

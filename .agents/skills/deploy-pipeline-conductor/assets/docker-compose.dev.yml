@@ -1,0 +1,32 @@
+# Referência de docker-compose para desenvolvimento local — não usar em produção
+# (produção usa a imagem construída pelo cd.yml + Dockerfile, implantada na plataforma escolhida).
+
+services:
+  app:
+    build:
+      context: .
+      target: build
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env.local # nunca commitar este arquivo — ver seção de secrets na skill deploy-pipeline-conductor
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
