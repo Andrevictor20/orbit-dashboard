@@ -152,6 +152,33 @@ export function Images() {
     });
   };
 
+  const confirmBuildPrune = () => {
+    setConfirmAction({
+      isOpen: true,
+      title: 'Limpar Cache de Build do Docker (BuildKit)',
+      message: 'Deseja limpar o cache de compilação (Build Cache) e camadas de imagens não utilizadas? Essa operação libera espaço em disco (frequentemente gigabytes acumulados) sem afetar seus containers em execução.',
+      onConfirm: async () => {
+        const loadingToast = toast.loading('Limpando cache de build do Docker...');
+        try {
+          const token = localStorage.getItem('orbit_token');
+          const res = await fetch('/api/docker/builder/prune', { 
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            toast.success(data.message || 'Cache de build liberado com sucesso!', { id: loadingToast });
+            fetchImages();
+          } else {
+            toast.error('Erro ao limpar cache de build.', { id: loadingToast });
+          }
+        } catch {
+          toast.error('Erro de conexão.', { id: loadingToast });
+        }
+      }
+    });
+  };
+
   const confirmDelete = (id: string) => {
     setConfirmAction({
       isOpen: true,
@@ -231,7 +258,15 @@ export function Images() {
           </h2>
           <p className="text-xs sm:text-sm text-secondary mt-1">Gerencie as imagens Docker e visualize o consumo em disco</p>
         </div>
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={confirmBuildPrune}
+            className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 text-xs sm:text-sm font-medium transition-colors"
+            title="Limpar cache de compilação Docker (BuildKit)"
+          >
+            <HardDrive className="w-4 h-4" />
+            Limpar Build Cache
+          </button>
           <button 
             onClick={confirmPrune}
             className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs sm:text-sm font-medium transition-colors"

@@ -41,6 +41,11 @@ if command -v sudo &>/dev/null; then
     sudo systemctl restart systemd-journald 2>/dev/null || true
     sudo journalctl --vacuum-size=50M 2>/dev/null || true
   fi
+
+  # Clean Docker build cache and dangling layers
+  echo "🧹 Cleaning legacy Docker build cache and orphan layers..."
+  docker builder prune -af 2>/dev/null || true
+  docker image prune -f 2>/dev/null || true
 fi
 
 # ── 2. Create install directory ───────────────────────────────────────────────

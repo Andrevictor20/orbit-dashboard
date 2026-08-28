@@ -29,6 +29,38 @@ fn test_read_last_n_lines_bounded() {
 }
 
 #[test]
+fn test_shrink_large_active_log_file() {
+    let test_dir = "data/test_shrink_logs";
+    let _ = fs::create_dir_all(test_dir);
+    let file_path = format!("{}/orbit.log", test_dir);
+
+    // Create a 2MB log file with 5,000 lines
+    {
+        let mut f = File::create(&file_path).unwrap();
+        for i in 1..=5000 {
+            writeln!(f, "2026-08-28T12:00:00Z [INFO] Log message line with detailed context {}", i).unwrap();
+        }
+    }
+
+    let initial_size = fs::metadata(&file_path).unwrap().len();
+    assert!(initial_size > 100_000, "Initial file should be large");
+
+    // Shrink if exceeds 50KB, keeping last 20 lines
+    let shrunk = backend::logs::shrink_active_log_file(Path::new(&file_path), 50_000, 20);
+    assert!(shrunk, "File should have been shrunk");
+
+    let new_size = fs::metadata(&file_path).unwrap().len();
+    assert!(new_size < initial_size, "New size must be smaller than initial size");
+
+    let remaining_lines: Vec<_> = std::io::BufRead::lines(std::io::BufReader::new(File::open(&file_path).unwrap())).filter_map(Result::ok).collect();
+    assert_eq!(remaining_lines.len(), 20, "Must have exactly 20 lines");
+    assert!(remaining_lines.last().unwrap().contains("5000"));
+
+    // Cleanup
+    let _ = fs::remove_dir_all(test_dir);
+}
+
+#[test]
 fn test_prune_old_logs() {
     let test_dir = "data/test_prune_logs";
     let _ = fs::create_dir_all(test_dir);

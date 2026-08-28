@@ -162,10 +162,33 @@ pub fn read_last_n_lines_from_file(path: &Path, max_lines: usize) -> std::io::Re
     Ok(lines)
 }
 
+pub fn shrink_active_log_file(path: &Path, max_bytes: u64, keep_lines: usize) -> bool {
+    if !path.exists() {
+        return false;
+    }
+    if let Ok(meta) = path.metadata() {
+        if meta.len() > max_bytes {
+            if let Ok(lines) = read_last_n_lines_from_file(path, keep_lines) {
+                let content = lines.join("\n") + if lines.is_empty() { "" } else { "\n" };
+                let _ = std::fs::write(path, content);
+                return true;
+            }
+        }
+    }
+    false
+}
+
 pub fn prune_old_log_files(dir_path: &str, keep_files: usize, max_total_bytes: u64) -> usize {
     let path = Path::new(dir_path);
     if !path.exists() || !path.is_dir() {
         return 0;
+    }
+
+    // Shrink active orbit.log if it exceeds 10MB
+    let active_log = path.join("orbit.log");
+    if active_log.exists() {
+        let max_active_size = 10 * 1024 * 1024; // 10MB
+        shrink_active_log_file(&active_log, max_active_size, 2000);
     }
 
     let mut log_files: Vec<(std::path::PathBuf, u64, std::time::SystemTime)> = Vec::new();

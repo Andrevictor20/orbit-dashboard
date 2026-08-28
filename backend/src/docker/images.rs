@@ -88,3 +88,54 @@ pub async fn delete_image(
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
+
+pub async fn prune_builder(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let mut total_reclaimed = 0i64;
+
+    // 1. Run builder prune via host / container CLI
+    let chroot_output = tokio::process::Command::new("chroot")
+        .arg("/host")
+        .arg("docker")
+        .arg("builder")
+        .arg("prune")
+        .arg("-af")
+        .output()
+        .await;
+
+    if let Ok(o) = chroot_output {
+        if o.status.success() {
+            let msg = String::from_utf8_lossy(&o.stdout);
+            tracing::info!("Host docker builder prune: {}", msg);
+        }
+    }
+
+    let local_output = tokio::process::Command::new("docker")
+        .arg("builder")
+        .arg("prune")
+        .arg("-af")
+        .output()
+        .await;
+
+    if let Ok(o) = local_output {
+        if o.status.success() {
+            let msg = String::from_utf8_lossy(&o.stdout);
+            tracing::info!("Local docker builder prune: {}", msg);
+        }
+    }
+
+    // 2. Also run bollard images prune
+    let mut filters = std::collections::HashMap::new();
+    filters.insert("dangling".to_string(), vec!["false".to_string()]);
+    let options = bollard::query_parameters::PruneImagesOptions { filters: Some(filters) };
+    if let Ok(res) = state.docker.prune_images(Some(options)).await {
+        total_reclaimed += res.space_reclaimed.unwrap_or(0);
+    }
+
+    (StatusCode::OK, Json(serde_json::json!({
+        "success": true,
+        "space_reclaimed": total_reclaimed,
+        "message": "Cache de build e imagens não utilizadas liberados com sucesso!"
+    }))).into_response()
+}

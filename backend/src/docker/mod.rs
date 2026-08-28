@@ -36,6 +36,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/images", get(list_images))
         .route("/api/docker/images/{id}", delete(delete_image))
         .route("/api/docker/images/prune", post(prune_images))
+        .route("/api/docker/builder/prune", post(prune_builder))
         .route("/api/docker/networks", get(list_networks))
         .route("/api/docker/networks/{id}", delete(delete_network))
         .route("/api/docker/networks/prune", post(prune_networks))
