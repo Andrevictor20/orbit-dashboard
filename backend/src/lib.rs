@@ -23,9 +23,15 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 pub fn app() -> Router {
-    let docker = match Docker::connect_with_local_defaults() {
+    let docker = match Docker::connect_with_socket_defaults() {
         Ok(d) => d,
-        Err(_) => Docker::connect_with_socket_defaults().unwrap(),
+        Err(e) => {
+            tracing::warn!("Failed to connect with socket defaults: {}, trying local defaults", e);
+            Docker::connect_with_local_defaults().unwrap_or_else(|e2| {
+                tracing::warn!("Failed to connect with local defaults: {}, fallback to socket defaults", e2);
+                Docker::connect_with_socket_defaults().unwrap()
+            })
+        }
     };
 
     let state = AppState {

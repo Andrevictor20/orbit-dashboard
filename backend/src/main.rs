@@ -38,8 +38,17 @@ async fn main() {
     });
 
     let app = backend::app();
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:5172").await.unwrap();
+    let listener = match tokio::net::TcpListener::bind("0.0.0.0:5172").await {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("FATAL: Failed to bind TCP listener on 0.0.0.0:5172: {}", e);
+            tracing::error!("FATAL: Failed to bind TCP listener on 0.0.0.0:5172: {}", e);
+            std::process::exit(1);
+        }
+    };
     tracing::info!("Listening on 0.0.0.0:5172");
-    axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await.unwrap();
+    if let Err(e) = axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await {
+        eprintln!("FATAL: Server error: {}", e);
+        tracing::error!("FATAL: Server error: {}", e);
+    }
 }
-

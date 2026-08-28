@@ -98,6 +98,8 @@ COPY --from=backend-builder /app/backend-bin /usr/local/bin/orbit-backend
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/
 COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/
 
+RUN chmod +x /usr/local/bin/orbit-backend /usr/local/bin/docker /usr/local/libexec/docker/cli-plugins/docker-compose
+
 # Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./public
 
