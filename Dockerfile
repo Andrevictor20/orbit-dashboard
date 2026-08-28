@@ -11,26 +11,53 @@ COPY frontend/ ./
 RUN npm run build && npm cache clean --force
 
 # =============================================================================
-# Stage 2: Build the backend (Rust) with LTO and Stripping
+# Stage 2: Build the backend (Rust) with Native Cross-Compilation (No QEMU lag!)
 # =============================================================================
-FROM rust:slim-bookworm AS backend-builder
+FROM --platform=$BUILDPLATFORM rust:slim-bookworm AS backend-builder
+ARG TARGETARCH
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends pkg-config libssl-dev && \
+    apt-get install -y --no-install-recommends \
+        pkg-config \
+        libssl-dev \
+        gcc-aarch64-linux-gnu \
+        libc6-dev-arm64-cross && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /app/backend
+
+# Setup cross-compilation target
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        rustup target add aarch64-unknown-linux-gnu; \
+    fi
+
+COPY backend/Cargo.toml backend/Cargo.lock ./
 
 # Cache dependencies
-RUN cargo new backend
-WORKDIR /app/backend
-COPY backend/Cargo.toml backend/Cargo.lock ./
-RUN cargo build --release && rm -rf src/*.rs target/release/deps/backend* target/release/backend*
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs && echo "pub fn lib() {}" > src/lib.rs && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc; \
+        export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc; \
+        cargo build --release --target aarch64-unknown-linux-gnu; \
+    else \
+        cargo build --release; \
+    fi && \
+    rm -rf src
 
-# Build real application
 COPY backend/src ./src
 COPY backend/tests ./tests
-RUN cargo build --release && strip target/release/backend
+
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc; \
+        export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc; \
+        cargo build --release --target aarch64-unknown-linux-gnu && \
+        aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/backend && \
+        cp target/aarch64-unknown-linux-gnu/release/backend /app/backend-bin; \
+    else \
+        cargo build --release && \
+        strip target/release/backend && \
+        cp target/release/backend /app/backend-bin; \
+    fi
 
 # =============================================================================
 # Stage 3: Docker CLI & Compose plugin
@@ -38,7 +65,7 @@ RUN cargo build --release && strip target/release/backend
 FROM docker:27-cli AS docker-cli
 
 # =============================================================================
-# Stage 4: Minimal Runtime Image
+# Stage 4: Minimal Runtime Image (Target Architecture)
 # =============================================================================
 FROM debian:bookworm-slim
 
@@ -59,12 +86,13 @@ RUN apt-get update && \
         /var/tmp/* \
         /usr/share/doc \
         /usr/share/man \
-        /usr/share/locale
+        /usr/share/locale \
+        /usr/share/info
 
 WORKDIR /app
 
-# Copy compiled, stripped backend binary
-COPY --from=backend-builder /app/backend/target/release/backend /usr/local/bin/orbit-backend
+# Copy compiled backend binary from builder
+COPY --from=backend-builder /app/backend-bin /usr/local/bin/orbit-backend
 
 # Copy Docker CLI & Compose plugin
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/
