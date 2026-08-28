@@ -24,6 +24,25 @@ else
   echo "✅ Docker already installed: $(docker --version)"
 fi
 
+# ── 1.1 Configure Docker & Systemd Log Limits (Prevent Disk Filling) ─────────
+echo "⚙️  Configuring log rotation policies..."
+if command -v sudo &>/dev/null; then
+  # Limit Docker Daemon json-file logs globally
+  if [ ! -f /etc/docker/daemon.json ]; then
+    sudo mkdir -p /etc/docker
+    echo '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}' | sudo tee /etc/docker/daemon.json > /dev/null
+    sudo systemctl restart docker || true
+  fi
+
+  # Limit Systemd Journal to 100M and vacuum old logs (frees up to 4GB)
+  if [ -d /etc/systemd ]; then
+    sudo mkdir -p /etc/systemd/journald.conf.d
+    echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | sudo tee /etc/systemd/journald.conf.d/00-orbit.conf > /dev/null
+    sudo systemctl restart systemd-journald 2>/dev/null || true
+    sudo journalctl --vacuum-size=50M 2>/dev/null || true
+  fi
+fi
+
 # ── 2. Create install directory ───────────────────────────────────────────────
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"

@@ -76,6 +76,9 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
         let re_image = regex::Regex::new(r#"(?m)^(\s*image:\s*"?)([a-zA-Z0-9_\-\./]+):([a-zA-Z0-9_\-\.]+)(.*)$"#).unwrap();
         compose_content = re_image.replace_all(&compose_content, "${1}${2}:latest${4}").to_string();
 
+        // Enforce safe container logging rotation limits (max 30MB per container)
+        compose_content = ensure_safe_logging_config(&compose_content);
+
         let compose_path = format!("{}/docker-compose.yml", app_dir);
         if fs::write(&compose_path, &compose_content).is_err() {
             let mut tasks = INSTALL_TASKS.write().unwrap();
@@ -408,3 +411,31 @@ pub async fn install_status(Path(task_id): Path<String>) -> impl IntoResponse {
         None => (StatusCode::NOT_FOUND, "Task not found").into_response(),
     }
 }
+
+pub fn ensure_safe_logging_config(compose_str: &str) -> String {
+    if let Ok(mut parsed) = serde_yaml::from_str::<Value>(compose_str) {
+        if let Some(services) = parsed.get_mut("services").and_then(|s| s.as_mapping_mut()) {
+            let logging_key = Value::String("logging".to_string());
+            for (_, service) in services.iter_mut() {
+                if let Some(svc_map) = service.as_mapping_mut() {
+                    if !svc_map.contains_key(&logging_key) {
+                        let mut log_opts = serde_yaml::Mapping::new();
+                        log_opts.insert(Value::String("max-size".to_string()), Value::String("10m".to_string()));
+                        log_opts.insert(Value::String("max-file".to_string()), Value::String("3".to_string()));
+
+                        let mut log_map = serde_yaml::Mapping::new();
+                        log_map.insert(Value::String("driver".to_string()), Value::String("json-file".to_string()));
+                        log_map.insert(Value::String("options".to_string()), Value::Mapping(log_opts));
+
+                        svc_map.insert(logging_key.clone(), Value::Mapping(log_map));
+                    }
+                }
+            }
+        }
+        if let Ok(updated) = serde_yaml::to_string(&parsed) {
+            return updated;
+        }
+    }
+    compose_str.to_string()
+}
+

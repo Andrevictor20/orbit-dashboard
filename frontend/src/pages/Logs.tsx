@@ -100,22 +100,23 @@ export function Logs() {
     toast.success('Download do arquivo de log iniciado!');
   };
 
-  const handleClearOrbitLogs = async () => {
-    if (source !== 'orbit' && source !== 'all') {
-      toast.error('Apenas os logs do Orbit podem ser limpos.');
-      return;
-    }
-    if (!window.confirm('Deseja realmente limpar os registros de log do Orbit?')) return;
+  const handleClearLogs = async () => {
+    const isOrbit = source === 'orbit';
+    const confirmMsg = isOrbit
+      ? 'Deseja realmente limpar os registros de log do Orbit?'
+      : 'Deseja executar a limpeza e compactação de logs (vacuum do journald/sistema) para liberar espaço em disco?';
+
+    if (!window.confirm(confirmMsg)) return;
 
     setClearing(true);
     try {
       const token = localStorage.getItem('orbit_token');
-      const res = await fetch('/api/logs/clear', {
+      const res = await fetch(`/api/logs/clear?source=${source}`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
-        toast.success('Logs do Orbit limpos com sucesso!');
+        toast.success(isOrbit ? 'Logs do Orbit limpos com sucesso!' : 'Logs limpos e espaço em disco compactado (vacuum)!');
         await fetchLogs(true);
       } else {
         toast.error('Erro ao limpar logs.');
@@ -170,17 +171,15 @@ export function Logs() {
             <span>Baixar</span>
           </button>
 
-          {(source === 'orbit' || source === 'all') && (
-            <button
-              onClick={handleClearOrbitLogs}
-              disabled={clearing}
-              className="px-3 py-1.5 rounded-lg bg-card border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40 text-secondary transition-colors text-xs font-medium flex items-center gap-1.5 disabled:opacity-40"
-              title="Limpar arquivo de log do Orbit"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Limpar</span>
-            </button>
-          )}
+          <button
+            onClick={handleClearLogs}
+            disabled={clearing}
+            className="px-3 py-1.5 rounded-lg bg-card border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40 text-secondary transition-colors text-xs font-medium flex items-center gap-1.5 disabled:opacity-40"
+            title={source === 'orbit' ? "Limpar arquivo de log do Orbit" : "Limpar e compactar logs do sistema (liberar espaço)"}
+          >
+            <Trash2 className={`w-3.5 h-3.5 ${clearing ? 'animate-spin' : ''}`} />
+            <span>{source === 'orbit' ? 'Limpar' : 'Limpar / Vacuum'}</span>
+          </button>
 
           <button
             onClick={() => fetchLogs(true)}

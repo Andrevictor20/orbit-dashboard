@@ -5,8 +5,9 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
 
 #[derive(Deserialize, Debug, Default)]
@@ -98,14 +99,149 @@ pub fn filter_log_line(line: &str, level_filter: &str, search_query: Option<&str
     true
 }
 
-pub async fn clear_logs() -> impl IntoResponse {
-    for p in ["data/orbit.log", "/app/data/orbit.log", "orbit.log"] {
-        let path = Path::new(p);
-        if path.exists() {
-            let _ = std::fs::write(path, "");
+#[derive(Deserialize, Debug, Default)]
+pub struct ClearLogsQuery {
+    pub source: Option<String>,
+}
+
+pub fn read_last_n_lines_from_file(path: &Path, max_lines: usize) -> std::io::Result<Vec<String>> {
+    if max_lines == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut file = File::open(path)?;
+    let file_len = file.metadata()?.len();
+
+    // If file is small (< 512 KB), read sequentially with bounded deque
+    if file_len < 512 * 1024 {
+        let reader = BufReader::new(file);
+        let mut deque = VecDeque::with_capacity(max_lines);
+        for line in reader.lines() {
+            if let Ok(l) = line {
+                if deque.len() == max_lines {
+                    deque.pop_front();
+                }
+                deque.push_back(l);
+            }
+        }
+        return Ok(deque.into());
+    }
+
+    // For large files, seek backwards from EOF in chunks
+    let chunk_size = 65536u64;
+    let mut pos = file_len;
+    let mut buffer = Vec::new();
+    let mut newline_count = 0;
+
+    while pos > 0 && newline_count <= max_lines {
+        let read_size = chunk_size.min(pos);
+        pos -= read_size;
+        file.seek(SeekFrom::Start(pos))?;
+
+        let mut chunk = vec![0u8; read_size as usize];
+        file.read_exact(&mut chunk)?;
+
+        for &b in chunk.iter().rev() {
+            if b == b'\n' {
+                newline_count += 1;
+                if newline_count > max_lines {
+                    break;
+                }
+            }
+        }
+
+        chunk.append(&mut buffer);
+        buffer = chunk;
+    }
+
+    let text = String::from_utf8_lossy(&buffer);
+    let mut lines: Vec<String> = text.lines().map(|s| s.to_string()).collect();
+    if lines.len() > max_lines {
+        lines = lines[lines.len() - max_lines..].to_vec();
+    }
+    Ok(lines)
+}
+
+pub fn prune_old_log_files(dir_path: &str, keep_files: usize, max_total_bytes: u64) -> usize {
+    let path = Path::new(dir_path);
+    if !path.exists() || !path.is_dir() {
+        return 0;
+    }
+
+    let mut log_files: Vec<(std::path::PathBuf, u64, std::time::SystemTime)> = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                if name.starts_with("orbit.log.") {
+                    if let Ok(meta) = entry.metadata() {
+                        if meta.is_file() {
+                            let modified = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                            log_files.push((p, meta.len(), modified));
+                        }
+                    }
+                }
+            }
         }
     }
-    (StatusCode::OK, Json(serde_json::json!({ "message": "Orbit logs cleared successfully" }))).into_response()
+
+    log_files.sort_by_key(|(_, _, mod_time)| *mod_time);
+
+    let mut removed_count = 0;
+    let mut total_files = log_files.len();
+    let mut total_size: u64 = log_files.iter().map(|(_, size, _)| *size).sum();
+
+    for (file_path, file_size, _) in log_files {
+        if total_files > keep_files || total_size > max_total_bytes {
+            if std::fs::remove_file(&file_path).is_ok() {
+                removed_count += 1;
+                total_files = total_files.saturating_sub(1);
+                total_size = total_size.saturating_sub(file_size);
+            }
+        }
+    }
+
+    removed_count
+}
+
+pub async fn clear_logs(Query(params): Query<ClearLogsQuery>) -> impl IntoResponse {
+    let source = params.source.as_deref().unwrap_or("orbit");
+    let mut cleared_sources = Vec::new();
+
+    if source == "orbit" || source == "all" {
+        for p in ["data/orbit.log", "/app/data/orbit.log", "orbit.log"] {
+            let path = Path::new(p);
+            if path.exists() {
+                let _ = std::fs::write(path, "");
+            }
+        }
+        for dir in ["data", "/app/data"] {
+            let _ = prune_old_log_files(dir, 0, 0);
+        }
+        cleared_sources.push("orbit");
+    }
+
+    if source == "system" || source == "docker" || source == "all" {
+        let _ = tokio::process::Command::new("journalctl")
+            .arg("--vacuum-size=10M")
+            .output()
+            .await;
+
+        let _ = tokio::process::Command::new("chroot")
+            .arg("/host")
+            .arg("journalctl")
+            .arg("--vacuum-size=10M")
+            .output()
+            .await;
+
+        cleared_sources.push("system");
+    }
+
+    (StatusCode::OK, Json(serde_json::json!({
+        "message": format!("Logs limpos com sucesso para: {}", cleared_sources.join(", ")),
+        "cleared": cleared_sources
+    }))).into_response()
 }
 
 async fn fetch_orbit_logs(max_lines: usize) -> Vec<String> {
@@ -113,15 +249,25 @@ async fn fetch_orbit_logs(max_lines: usize) -> Vec<String> {
     for p in candidate_paths {
         let log_path = Path::new(p);
         if log_path.exists() {
-            if let Ok(file) = File::open(log_path) {
-                let reader = BufReader::new(file);
-                let all_lines: Vec<String> = reader.lines().filter_map(Result::ok).collect();
-                if !all_lines.is_empty() {
-                    return if all_lines.len() > max_lines {
-                        all_lines[all_lines.len() - max_lines..].to_vec()
-                    } else {
-                        all_lines
-                    };
+            if let Ok(lines) = read_last_n_lines_from_file(log_path, max_lines) {
+                if !lines.is_empty() {
+                    return lines;
+                }
+            }
+        }
+    }
+
+    for dir in ["data", "/app/data"] {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            let mut rotated: Vec<_> = entries.flatten()
+                .filter(|e| e.file_name().to_string_lossy().starts_with("orbit.log"))
+                .collect();
+            rotated.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::SystemTime::UNIX_EPOCH));
+            if let Some(latest) = rotated.last() {
+                if let Ok(lines) = read_last_n_lines_from_file(&latest.path(), max_lines) {
+                    if !lines.is_empty() {
+                        return lines;
+                    }
                 }
             }
         }
