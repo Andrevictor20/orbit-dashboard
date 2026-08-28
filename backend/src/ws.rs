@@ -81,16 +81,34 @@ async fn handle_socket(mut socket: WebSocket) {
     }
 }
 
-/// Returns private memory (RSS equivalent) for a PID via smaps_rollup (bytes).
+/// Returns private memory (RSS equivalent) for a PID via smaps_rollup or VmRSS (bytes).
 fn read_private_memory(pid: u32) -> u64 {
+    // 1. Try smaps_rollup (Private_Dirty + Private_Clean)
     let smaps = std::fs::read_to_string(format!("/proc/{}/smaps_rollup", pid)).unwrap_or_default();
-    smaps.lines().filter_map(|l| {
+    let val: u64 = smaps.lines().filter_map(|l| {
         if l.starts_with("Private_Dirty:") || l.starts_with("Private_Clean:") {
             l.split_whitespace().nth(1).and_then(|v| v.parse::<u64>().ok())
         } else {
             None
         }
-    }).sum::<u64>() * 1024
+    }).sum();
+    if val > 0 {
+        return val * 1024;
+    }
+
+    // 2. Fallback to /proc/{pid}/status VmRSS
+    if let Ok(status) = std::fs::read_to_string(format!("/proc/{}/status", pid)) {
+        for line in status.lines() {
+            if line.starts_with("VmRSS:") {
+                if let Some(kb) = line.split_whitespace().nth(1).and_then(|v| v.parse::<u64>().ok()) {
+                    return kb * 1024;
+                }
+            }
+        }
+    }
+
+    // 3. Fallback to sysinfo process memory
+    0
 }
 
 /// Scans /proc once to find the vite/node frontend PID.
@@ -197,6 +215,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         if vite_pid_ticks >= VITE_REFRESH_EVERY {
             vite_pid = find_vite_pid();
             vite_pid_ticks = 0;
+            // Periodically reclaim unused arena memory back to the Linux OS
+            crate::store::catalog::trim_memory();
         }
 
         let orbit_cpu = {

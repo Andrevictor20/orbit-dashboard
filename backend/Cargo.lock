@@ -225,6 +225,7 @@ dependencies = [
  "futures",
  "http-body-util",
  "jsonwebtoken",
+ "libc",
  "once_cell",
  "portable-pty",
  "rand 0.10.2",

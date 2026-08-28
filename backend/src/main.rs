@@ -32,9 +32,11 @@ async fn main() {
 
     tracing::info!("Orbit Dashboard Backend Starting...");
 
-    // Refresh App Store repositories in background
+    // Load App Store cache from disk or sync in background
     tokio::spawn(async {
-        backend::store::sync_repositories().await;
+        if !backend::store::catalog::load_cached_apps_from_disk() {
+            backend::store::sync_repositories().await;
+        }
     });
 
     let app = backend::app();

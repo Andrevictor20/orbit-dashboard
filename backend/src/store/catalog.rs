@@ -23,46 +23,67 @@ const REPOSITORIES: &[(&str, &str)] = &[
     ("homeautomation", "https://github.com/mr-manuel/CasaOS-HomeAutomation-AppStore/archive/refs/heads/master.zip"),
 ];
 
+/// Reclaim glibc arena memory back to the Linux kernel.
+pub fn trim_memory() {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        libc::malloc_trim(0);
+    }
+}
+
+/// Load cache from disk if available to avoid cold-start memory spikes.
+pub fn load_cached_apps_from_disk() -> bool {
+    if let Ok(contents) = fs::read_to_string("data/cached_apps.json") {
+        if let Ok(apps) = serde_json::from_str::<Vec<AppStoreItem>>(&contents) {
+            if !apps.is_empty() {
+                if let Ok(mut cache) = APPS_CACHE.write() {
+                    *cache = apps;
+                    tracing::info!("App Store cache loaded from disk ({} apps)", cache.len());
+                    trim_memory();
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 pub async fn sync_repositories() {
     let client = reqwest::Client::builder()
         .user_agent("Orbit-Dashboard/1.0")
-        .timeout(std::time::Duration::from_secs(90))
+        .timeout(std::time::Duration::from_secs(45))
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
 
-    let mut handles = Vec::new();
+    let mut all_apps = Vec::new();
 
+    // Process repositories sequentially with immediate memory cleanup per archive
     for &(store_name, repo_url) in REPOSITORIES {
-        let client = client.clone();
-        let store_name = store_name.to_string();
-        let repo_url = repo_url.to_string();
+        tracing::info!("Syncing repository: {} ({})", repo_url, store_name);
 
-        handles.push(tokio::spawn(async move {
-            tracing::info!("Syncing repository in parallel: {} ({})", repo_url, store_name);
-            let mut repo_apps = Vec::new();
+        let res = match client.get(repo_url).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("Failed to download {}: {}", repo_url, e);
+                continue;
+            }
+        };
 
-            let res = match client.get(&repo_url).send().await {
-                Ok(r) => r,
-                Err(e) => {
-                    tracing::warn!("Failed to download {}: {}", repo_url, e);
-                    return repo_apps;
-                }
-            };
+        let bytes = match res.bytes().await {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::warn!("Failed to read bytes from {}: {}", repo_url, e);
+                continue;
+            }
+        };
 
-            let bytes = match res.bytes().await {
-                Ok(b) => b,
-                Err(e) => {
-                    tracing::warn!("Failed to read bytes from {}: {}", repo_url, e);
-                    return repo_apps;
-                }
-            };
-
-            let reader = Cursor::new(bytes.as_ref());
+        {
+            let reader = Cursor::new(bytes);
             let mut archive = match ZipArchive::new(reader) {
                 Ok(a) => a,
                 Err(e) => {
                     tracing::warn!("Failed to open zip archive from {}: {}", repo_url, e);
-                    return repo_apps;
+                    continue;
                 }
             };
 
@@ -82,21 +103,16 @@ pub async fn sync_repositories() {
                 if is_compose {
                     let mut contents = String::new();
                     if file.read_to_string(&mut contents).is_ok() {
-                        if let Ok(item) = parse_casaos_compose(&contents, &store_name) {
-                            repo_apps.push(item);
+                        if let Ok(item) = parse_casaos_compose(&contents, store_name) {
+                            all_apps.push(item);
                         }
                     }
                 }
             }
-            repo_apps
-        }));
-    }
-
-    let mut all_apps = Vec::new();
-    for handle in handles {
-        if let Ok(apps) = handle.await {
-            all_apps.extend(apps);
         }
+
+        // Periodic memory trim between large repository archives
+        trim_memory();
     }
 
     if !all_apps.is_empty() {
@@ -112,6 +128,9 @@ pub async fn sync_repositories() {
     } else {
         tracing::warn!("No apps found during sync.");
     }
+
+    // Free heap memory back to OS immediately
+    trim_memory();
 }
 
 pub async fn sync_apps() -> impl IntoResponse {
@@ -133,19 +152,8 @@ pub async fn list_apps() -> impl IntoResponse {
     };
 
     if is_empty {
-        // Try loading from disk first
-        let loaded_from_disk = if let Ok(contents) = fs::read_to_string("data/cached_apps.json") {
-            if let Ok(apps) = serde_json::from_str::<Vec<AppStoreItem>>(&contents) {
-                if let Ok(mut cache) = APPS_CACHE.write() {
-                    *cache = apps;
-                    tracing::info!("App Store cache loaded from disk ({} apps)", cache.len());
-                    true
-                } else { false }
-            } else { false }
-        } else { false };
-
-        if !loaded_from_disk {
-            // Trigger background sync if not found
+        let loaded = load_cached_apps_from_disk();
+        if !loaded {
             sync_repositories().await;
         }
     }
