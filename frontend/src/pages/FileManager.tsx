@@ -145,15 +145,6 @@ export function FileManager() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync with URL query parameter
-  useEffect(() => {
-    if (urlPath === '__trash__') {
-      loadTrash();
-    } else if (urlPath && urlPath !== currentPath) {
-      setCurrentPath(urlPath);
-    }
-  }, [urlPath]);
-
   const navigateTo = (newPath: string) => {
     const clean = newPath || '/';
     setSearchQuery('');
@@ -165,36 +156,6 @@ export function FileManager() {
     setSearchQuery('');
     setSearchParams({ path: '__trash__' }, { replace: true });
   };
-
-  // Load shortcuts, storages and cloud accounts once
-  useEffect(() => {
-    fetch('/api/files/shortcuts')
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
-          if (Array.isArray(data.places) && data.places.length > 0) {
-            setPlaces(data.places);
-          } else {
-            const newPlaces: ShortcutPlace[] = [];
-            if (data.home) newPlaces.push({ id: 'home', label: 'Início', path: data.home, icon: 'home' });
-            if (data.documents) newPlaces.push({ id: 'documents', label: 'Documentos', path: data.documents, icon: 'file-text' });
-            if (data.downloads) newPlaces.push({ id: 'downloads', label: 'Downloads', path: data.downloads, icon: 'download' });
-            if (data.pictures) newPlaces.push({ id: 'pictures', label: 'Imagens', path: data.pictures, icon: 'image' });
-            if (data.music) newPlaces.push({ id: 'music', label: 'Músicas', path: data.music, icon: 'music' });
-            if (data.videos) newPlaces.push({ id: 'videos', label: 'Vídeos', path: data.videos, icon: 'film' });
-            newPlaces.push({ id: 'root', label: 'Sistema (Raiz)', path: data.root || '/', icon: 'hard-drive' });
-            setPlaces(newPlaces);
-          }
-
-          if (!urlPath && data.home) {
-            navigateTo(data.home);
-          }
-        }
-      })
-      .catch(() => {});
-
-    loadStoragesAndCloud();
-  }, []);
 
   const loadStoragesAndCloud = () => {
     fetch('/api/files/storages')
@@ -217,20 +178,19 @@ export function FileManager() {
       .catch(() => {});
   };
 
-  const handleDisconnectCloud = async (id: string, name: string) => {
-    if (!window.confirm(`Deseja desconectar "${name}"?`)) return;
-    try {
-      const res = await fetch(`/api/files/cloud/accounts/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        toast.success(`"${name}" desconectado com sucesso.`);
-        loadStoragesAndCloud();
-        if (currentPath.includes(id)) {
-          navigateTo(places[0]?.path || '/');
-        }
-      }
-    } catch {
-      toast.error('Erro ao desconectar conta');
-    }
+  const loadTrash = () => {
+    setIsLoading(true);
+    setSelectedItems([]);
+    fetch('/api/files/trash')
+      .then(res => res.json())
+      .then(data => {
+        setTrashItems(data.items || []);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setTrashItems([]);
+        setIsLoading(false);
+      });
   };
 
   // Fetch current folder files
@@ -264,20 +224,60 @@ export function FileManager() {
       });
   };
 
-  const loadTrash = () => {
-    setIsLoading(true);
-    setSelectedItems([]);
-    fetch('/api/files/trash')
+  const handleDisconnectCloud = async (id: string, name: string) => {
+    if (!window.confirm(`Deseja desconectar "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/files/cloud/accounts/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success(`"${name}" desconectado com sucesso.`);
+        loadStoragesAndCloud();
+        if (currentPath.includes(id)) {
+          navigateTo(places[0]?.path || '/');
+        }
+      }
+    } catch {
+      toast.error('Erro ao desconectar conta');
+    }
+  };
+
+  // Sync with URL query parameter
+  useEffect(() => {
+    if (urlPath === '__trash__') {
+      loadTrash();
+    } else if (urlPath && urlPath !== currentPath) {
+      setCurrentPath(urlPath);
+    }
+  }, [urlPath]);
+
+  // Load shortcuts, storages and cloud accounts once
+  useEffect(() => {
+    fetch('/api/files/shortcuts')
       .then(res => res.json())
       .then(data => {
-        setTrashItems(data.items || []);
-        setIsLoading(false);
+        if (data) {
+          if (Array.isArray(data.places) && data.places.length > 0) {
+            setPlaces(data.places);
+          } else {
+            const newPlaces: ShortcutPlace[] = [];
+            if (data.home) newPlaces.push({ id: 'home', label: 'Início', path: data.home, icon: 'home' });
+            if (data.documents) newPlaces.push({ id: 'documents', label: 'Documentos', path: data.documents, icon: 'file-text' });
+            if (data.downloads) newPlaces.push({ id: 'downloads', label: 'Downloads', path: data.downloads, icon: 'download' });
+            if (data.pictures) newPlaces.push({ id: 'pictures', label: 'Imagens', path: data.pictures, icon: 'image' });
+            if (data.music) newPlaces.push({ id: 'music', label: 'Músicas', path: data.music, icon: 'music' });
+            if (data.videos) newPlaces.push({ id: 'videos', label: 'Vídeos', path: data.videos, icon: 'film' });
+            newPlaces.push({ id: 'root', label: 'Sistema (Raiz)', path: data.root || '/', icon: 'hard-drive' });
+            setPlaces(newPlaces);
+          }
+
+          if (!urlPath && data.home) {
+            navigateTo(data.home);
+          }
+        }
       })
-      .catch(() => {
-        setTrashItems([]);
-        setIsLoading(false);
-      });
-  };
+      .catch(() => {});
+
+    loadStoragesAndCloud();
+  }, []);
 
   useEffect(() => {
     if (isTrashView) {

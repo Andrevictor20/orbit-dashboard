@@ -21,13 +21,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Maximize,
-  Minimize
+  Minimize,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
 import { useTheme } from '../ThemeProvider';
 import { InstallProgressModal } from '../InstallProgressModal';
 import { ProfileModal } from '../ProfileModal';
+import { UpdateModal, type SystemUpdateInfo } from '../UpdateModal';
 
 interface SidebarSectionProps {
   title: string;
@@ -86,12 +88,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<SystemUpdateInfo | null>(null);
   const { appName, task, maximize } = useInstall();
 
   // Close mobile drawer on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const checkUpdates = () => {
+    const token = localStorage.getItem('orbit_token');
+    fetch('/api/system/update/check', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data) setUpdateInfo(data);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    checkUpdates();
+    const interval = setInterval(checkUpdates, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -116,10 +138,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar (Responsive Drawer on Mobile, Collapsible on Desktop) */}
       <aside 
         className={`border-r shad-border flex flex-col fixed inset-y-0 left-0 z-50 bg-background transition-all duration-300 ${
-          // Mobile state: off-canvas drawer
           isMobileMenuOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
         } md:translate-x-0 ${
-          // Desktop state: 64 or 16
           isSidebarOpen ? 'md:w-64' : 'md:w-16'
         }`}
       >
@@ -237,6 +257,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right Controls */}
           <div className="flex items-center gap-2 sm:gap-4 text-sm font-medium">
+            {/* Update Notification / Sparkles Button */}
+            <button
+              onClick={() => setIsUpdateModalOpen(true)}
+              className={`relative p-1.5 sm:p-2 rounded-md border shad-border transition-all duration-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none ${
+                updateInfo?.has_update 
+                  ? 'text-amber-400 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20' 
+                  : 'text-secondary hover:text-primary hover:bg-accent'
+              }`}
+              title={updateInfo?.has_update ? "Nova versão do Orbit disponível! Clique para ver." : "Verificar atualizações do Orbit"}
+              aria-label="Atualizações do Orbit"
+            >
+              <Sparkles className="w-4 h-4" />
+              {updateInfo?.has_update && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                </span>
+              )}
+            </button>
+
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary shrink-0" />
               <select 
@@ -306,7 +346,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <InstallProgressModal />
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <UpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        updateInfo={updateInfo}
+        onRefreshInfo={checkUpdates}
+      />
     </div>
   );
 }
+
 

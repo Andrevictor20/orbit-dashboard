@@ -23,21 +23,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # Persistência de dados locais, links e credenciais
       - orbit_data:/app/data
-
-  # Opcional: Atualização automática via Watchtower
-  watchtower:
-    image: containrrr/watchtower
-    container_name: orbit-watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup orbit
-    depends_on:
-      - orbit
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   orbit_data:
 ```
+
+> 💡 **Atualizações Sob Demanda:** O Orbit possui atualização nativa com detecção automática de arquitetura (ARM/x86). Você pode checar novidades, ver o changelog e atualizar o Orbit diretamente pelo botão de atualização no painel superior!
 
 ### 2. Inicie o Serviço
 

@@ -6,6 +6,7 @@ pub mod logs;
 pub mod ssh;
 pub mod state;
 pub mod store;
+pub mod system;
 pub mod ws;
 
 pub use state::AppState;
@@ -41,6 +42,7 @@ pub fn app() -> Router {
         .merge(docker::router())
         .merge(store::router())
         .merge(files::protected_router())
+        .merge(system::router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);
