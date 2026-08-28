@@ -224,7 +224,19 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                 Ok(info) => {
                     let status = info.status.unwrap_or_default();
                     let id = info.id.unwrap_or_default();
-                    let progress_detail = info.progress.unwrap_or_default();
+                    let progress_detail = if let Some(ref p) = info.progress_detail {
+                        if let (Some(cur), Some(tot)) = (p.current, p.total) {
+                            if tot > 0 {
+                                format!("({:.1} MB / {:.1} MB)", cur as f64 / (1024.0 * 1024.0), tot as f64 / (1024.0 * 1024.0))
+                            } else {
+                                String::new()
+                            }
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    };
 
                     if !status.is_empty() && (status != last_status || !progress_detail.is_empty()) {
                         let log_line = if !id.is_empty() {
