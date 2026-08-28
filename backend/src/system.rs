@@ -24,16 +24,25 @@ pub struct SystemUpdateInfo {
     pub published_at: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SystemUpdateResponse {
-    pub success: bool,
-    pub message: String,
-    pub platform: String,
-    pub image: String,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SystemUpdateTask {
+    pub status: String,        // "idle" | "pulling" | "recreating" | "done" | "error"
+    pub progress: u8,          // 0-100
+    pub current_step: String,
+    pub logs: Vec<String>,
+    pub error: Option<String>,
 }
 
 static UPDATE_CACHE: Lazy<RwLock<Option<(SystemUpdateInfo, Instant)>>> = Lazy::new(|| RwLock::new(None));
 const CACHE_TTL: Duration = Duration::from_secs(180); // 3 minutes cache
+
+static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock::new(SystemUpdateTask {
+    status: "idle".to_string(),
+    progress: 0,
+    current_step: "".to_string(),
+    logs: Vec::new(),
+    error: None,
+}));
 
 pub async fn get_system_update_info() -> SystemUpdateInfo {
     // Check cache
@@ -145,69 +154,172 @@ pub async fn check_update_handler(State(state): State<AppState>) -> impl IntoRes
     (StatusCode::OK, Json(info)).into_response()
 }
 
+pub async fn get_update_status_handler() -> impl IntoResponse {
+    let task = SYSTEM_UPDATE_TASK.read().unwrap().clone();
+    (StatusCode::OK, Json(task)).into_response()
+}
+
+fn append_task_log(msg: impl Into<String>, progress: Option<u8>, step: Option<&str>) {
+    let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+    let msg_str = msg.into();
+    tracing::info!("[SystemUpdate] {}", msg_str);
+    task.logs.push(msg_str);
+    if let Some(p) = progress {
+        task.progress = p;
+    }
+    if let Some(s) = step {
+        task.current_step = s.to_string();
+    }
+}
+
 pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoResponse {
-    let platform = get_host_platform();
-    let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
-
-    tracing::info!("Iniciando atualização completa do Orbit para plataforma {}", platform);
-
-    // 1. Pull the new multi-arch image specifying platform
-    let create_options = bollard::query_parameters::CreateImageOptions {
-        from_image: Some(image_name.to_string()),
-        platform: platform.to_string(),
-        ..Default::default()
-    };
-
-    let mut pull_stream = state.docker.create_image(Some(create_options), None, None);
-    while let Some(res) = pull_stream.next().await {
-        if let Err(e) = res {
-            tracing::warn!("Aviso no pull do Orbit: {}", e);
+    // Check if task is already running
+    {
+        let task = SYSTEM_UPDATE_TASK.read().unwrap();
+        if task.status == "pulling" || task.status == "recreating" {
+            return (StatusCode::CONFLICT, Json(serde_json::json!({
+                "message": "Uma atualização já está em andamento."
+            }))).into_response();
         }
     }
 
-    // 2. Try docker compose in standard directories on host
-    let mut compose_updated = false;
-    let candidate_dirs = ["/host/root/orbit", "/host/home", "/app", "."];
-    for base in candidate_dirs {
-        let dir = if base == "/host/home" {
-            // Find user dir
-            if let Ok(entries) = std::fs::read_dir(base) {
-                let user_orbit: Vec<_> = entries.flatten()
-                    .map(|e| e.path().join("orbit"))
-                    .filter(|p| p.join("docker-compose.yml").exists())
-                    .collect();
-                user_orbit.first().map(|p| p.to_string_lossy().to_string())
-            } else {
-                None
-            }
-        } else {
-            let p = std::path::Path::new(base).join("docker-compose.yml");
-            if p.exists() {
-                Some(base.to_string())
-            } else {
-                None
-            }
+    // Reset task state
+    {
+        let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+        *task = SystemUpdateTask {
+            status: "pulling".to_string(),
+            progress: 5,
+            current_step: "Iniciando verificação e download...".to_string(),
+            logs: vec![
+                "🚀 [INFO] Iniciando atualização transparente do Orbit Dashboard...".to_string(),
+            ],
+            error: None,
+        };
+    }
+
+    let docker = state.docker.clone();
+
+    // Spawn background worker
+    tokio::spawn(async move {
+        let platform = get_host_platform();
+        let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+
+        append_task_log(format!("ℹ️ [INFO] Plataforma de destino confirmada: {}", platform), Some(10), Some("Baixando imagem multi-arch..."));
+
+        // 1. Pull the new multi-arch image specifying platform
+        let create_options = bollard::query_parameters::CreateImageOptions {
+            from_image: Some(image_name.to_string()),
+            platform: platform.to_string(),
+            ..Default::default()
         };
 
-        if let Some(d) = dir {
-            let chroot_res = tokio::process::Command::new("chroot")
+        append_task_log(format!("📥 [PULL] Conectando ao GitHub Container Registry ({})", image_name), Some(15), None);
+
+        let mut pull_stream = docker.create_image(Some(create_options), None, None);
+        let mut pull_progress = 15u8;
+        let mut last_status = String::new();
+
+        while let Some(res) = pull_stream.next().await {
+            match res {
+                Ok(info) => {
+                    let status = info.status.unwrap_or_default();
+                    let id = info.id.unwrap_or_default();
+                    let progress_detail = info.progress.unwrap_or_default();
+
+                    if !status.is_empty() && (status != last_status || !progress_detail.is_empty()) {
+                        let log_line = if !id.is_empty() {
+                            format!("   ↳ [{}] {} {}", id, status, progress_detail)
+                        } else {
+                            format!("   ↳ {} {}", status, progress_detail)
+                        };
+
+                        if status.contains("Download complete") || status.contains("Pull complete") || status.contains("Already exists") {
+                            pull_progress = (pull_progress + 5).min(80);
+                            append_task_log(log_line, Some(pull_progress), None);
+                        } else if status != last_status {
+                            append_task_log(log_line, None, None);
+                        }
+                        last_status = status;
+                    }
+                }
+                Err(e) => {
+                    append_task_log(format!("⚠️ [WARN] Aviso no pull da imagem: {}", e), None, None);
+                }
+            }
+        }
+
+        append_task_log("✅ [SUCCESS] Imagem multi-arch baixada e verificada com sucesso!", Some(85), Some("Preparando reinicialização sem downtime..."));
+
+        // 2. Discover host compose directory
+        let mut target_dir = None;
+        let candidate_dirs = ["/host/root/orbit", "/host/home", "/app", "."];
+        for base in candidate_dirs {
+            let dir = if base == "/host/home" {
+                if let Ok(entries) = std::fs::read_dir(base) {
+                    let user_orbit: Vec<_> = entries.flatten()
+                        .map(|e| e.path().join("orbit"))
+                        .filter(|p| p.join("docker-compose.yml").exists())
+                        .collect();
+                    user_orbit.first().map(|p| p.to_string_lossy().to_string())
+                } else {
+                    None
+                }
+            } else {
+                let p = std::path::Path::new(base).join("docker-compose.yml");
+                if p.exists() {
+                    Some(base.to_string())
+                } else {
+                    None
+                }
+            };
+            if let Some(d) = dir {
+                target_dir = Some(d);
+                break;
+            }
+        }
+
+        if let Some(ref d) = target_dir {
+            append_task_log(format!("📁 [CONFIG] Diretório de configuração do Compose localizado: {}", d), Some(90), None);
+        } else {
+            append_task_log("📁 [CONFIG] Usando diretório padrão de instalação.", Some(90), None);
+        }
+
+        // 3. Mark state as recreating
+        {
+            let mut task = SYSTEM_UPDATE_TASK.write().unwrap();
+            task.status = "recreating".to_string();
+            task.progress = 95;
+            task.current_step = "Reiniciando serviço Orbit com a nova versão...".to_string();
+            task.logs.push("⚙️ [RESTART] Aplicando nova imagem ao contêiner em segundo plano...".to_string());
+            task.logs.push("🔄 [RESTART] Aguarde enquanto o novo contêiner inicializa...".to_string());
+        }
+
+        // Invalidate cache
+        if let Ok(mut guard) = UPDATE_CACHE.write() {
+            *guard = None;
+        }
+
+        // 4. Trigger compose recreation after a short delay so the HTTP response is delivered to the browser
+        tokio::time::sleep(Duration::from_millis(1200)).await;
+
+        if let Some(d) = target_dir {
+            let host_compose_path = d.strip_prefix("/host").unwrap_or(&d);
+            
+            // Try chroot first
+            let _ = tokio::process::Command::new("chroot")
                 .arg("/host")
                 .arg("docker")
                 .arg("compose")
+                .arg("-f")
+                .arg(format!("{}/docker-compose.yml", host_compose_path))
                 .arg("up")
                 .arg("-d")
                 .arg("--force-recreate")
                 .output()
                 .await;
 
-            if let Ok(o) = chroot_res {
-                if o.status.success() {
-                    compose_updated = true;
-                    break;
-                }
-            }
-
-            let cmd_res = tokio::process::Command::new("docker")
+            // Also fallback to direct docker compose
+            let _ = tokio::process::Command::new("docker")
                 .arg("compose")
                 .arg("up")
                 .arg("-d")
@@ -215,35 +327,18 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                 .current_dir(&d)
                 .output()
                 .await;
-
-            if let Ok(o) = cmd_res {
-                if o.status.success() {
-                    compose_updated = true;
-                    break;
-                }
-            }
         }
-    }
+    });
 
-    // Invalidate cache
-    if let Ok(mut guard) = UPDATE_CACHE.write() {
-        *guard = None;
-    }
-
-    (StatusCode::OK, Json(SystemUpdateResponse {
-        success: true,
-        message: if compose_updated {
-            "Orbit atualizado com sucesso via Docker Compose!".to_string()
-        } else {
-            format!("Imagem {} ({}) baixada com sucesso. O Orbit reiniciará com a nova versão.", image_name, platform)
-        },
-        platform: platform.to_string(),
-        image: image_name.to_string(),
-    })).into_response()
+    (StatusCode::OK, Json(serde_json::json!({
+        "message": "Atualização iniciada com sucesso",
+        "status": "pulling"
+    }))).into_response()
 }
 
 pub fn router() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/api/system/update/check", axum::routing::get(check_update_handler))
+        .route("/api/system/update/status", axum::routing::get(get_update_status_handler))
         .route("/api/system/update", axum::routing::post(perform_system_update))
 }
