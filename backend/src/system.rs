@@ -344,29 +344,38 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         // 4. Trigger compose recreation after a short delay so the HTTP response is delivered to the browser
         tokio::time::sleep(Duration::from_millis(1200)).await;
 
-        if let Some(d) = target_dir {
-            let host_compose_path = d.strip_prefix("/host").unwrap_or(&d);
-            
-            // Try chroot first
-            let _ = tokio::process::Command::new("chroot")
-                .arg("/host")
-                .arg("docker")
-                .arg("compose")
-                .arg("-f")
-                .arg(format!("{}/docker-compose.yml", host_compose_path))
-                .arg("up")
-                .arg("-d")
-                .arg("--force-recreate")
-                .output()
-                .await;
+        let host_compose_dir = if let Some(ref d) = target_dir {
+            d.strip_prefix("/host").unwrap_or(d).to_string()
+        } else {
+            "/home/andre/orbit".to_string()
+        };
 
-            // Also fallback to direct docker compose
+        // 1. Spawn a detached transient updater container via the host Docker daemon.
+        // This ensures that even when the current container stops, the updater process continues
+        // running independently on the host and recreates Orbit with the new image seamlessly.
+        let _ = tokio::process::Command::new("docker")
+            .args([
+                "run",
+                "--rm",
+                "-d",
+                "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                "-v", &format!("{}:/work", host_compose_dir),
+                "-w", "/work",
+                "docker:27-cli",
+                "sh", "-c",
+                "sleep 1 && docker compose up -d --force-recreate",
+            ])
+            .output()
+            .await;
+
+        // 2. Also attempt direct execution in target dir if reachable
+        if let Some(ref d) = target_dir {
             let _ = tokio::process::Command::new("docker")
                 .arg("compose")
                 .arg("up")
                 .arg("-d")
                 .arg("--force-recreate")
-                .current_dir(&d)
+                .current_dir(d)
                 .output()
                 .await;
         }
