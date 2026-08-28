@@ -55,6 +55,14 @@ if [ "$(id -u)" -ne 0 ]; then
   fi
 fi
 
+# ── 1.1 Fix Corrupted Docker Config Directories ───────────────────────────────
+# Fix known issue where /root/.docker/config.json or ~/.docker/config.json is accidentally created as a directory
+for cfg in "/root/.docker/config.json" "${HOME:-}/.docker/config.json"; do
+  if [ -d "${cfg}" ]; then
+    $SUDO rm -rf "${cfg}" 2>/dev/null || true
+  fi
+done
+
 # ── 2. Architecture & OS Detection ────────────────────────────────────────────
 ARCH="$(uname -m)"
 log_info "Detectando arquitetura do processador: ${BOLD}${ARCH}${NC}"

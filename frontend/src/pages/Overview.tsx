@@ -36,7 +36,7 @@ export function Overview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { stats, isConnected } = useStats();
-  
+
   const [history, setHistory] = useState<ChartDataPoint[]>([]);
   const [containers, setContainers] = useState<OverviewContainer[]>([]);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
@@ -47,12 +47,12 @@ export function Overview() {
       .then(data => {
         if (Array.isArray(data)) setContainers(data);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetch('/api/docker/links')
       .then(res => res.ok ? res.json() : {})
       .then(links => setCustomLinks(links))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export function Overview() {
   const cpuPercent = stats ? stats.cpu_usage.toFixed(1) : '0.0';
   const memoryUsedGB = stats ? (stats.memory_used / 1024 / 1024 / 1024).toFixed(2) : '0.00';
   const memoryTotalGB = stats ? (stats.memory_total / 1024 / 1024 / 1024).toFixed(2) : '0.00';
-  const memoryPercent = stats && stats.memory_total > 0 
+  const memoryPercent = stats && stats.memory_total > 0
     ? ((stats.memory_used / stats.memory_total) * 100).toFixed(1)
     : '0.0';
 
@@ -112,7 +112,7 @@ export function Overview() {
   const diskPercent = globalDiskTotal > 0
     ? ((globalDiskUsed / globalDiskTotal) * 100).toFixed(1)
     : '0.0';
-    
+
   const tempC = stats ? stats.temperature.toFixed(1) : '0.0';
 
   return (
@@ -131,49 +131,49 @@ export function Overview() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <StatCard 
-          title={t('dashboard.containers')} 
-          value={t('dashboard.live')} 
+        <StatCard
+          title={t('dashboard.containers')}
+          value={t('dashboard.live')}
           trend="WS"
           trendUp={isConnected}
           subText={t('dashboard.syncing')}
           icon={TrendingUp}
         />
-        <StatCard 
-          title={t('dashboard.cpu_usage')} 
-          value={`${cpuPercent}%`} 
+        <StatCard
+          title={t('dashboard.cpu_usage')}
+          value={`${cpuPercent}%`}
           trend="Avg"
           trendUp={parseFloat(cpuPercent) < 70}
           subText={t('dashboard.system_average')}
           icon={Activity}
         />
-        <StatCard 
+        <StatCard
           title="Temperatura"
-          value={`${tempC}°C`} 
+          value={`${tempC}°C`}
           trend="Sys"
           trendUp={parseFloat(tempC) < 75}
           subText="Sensores"
           icon={Activity}
         />
-        <StatCard 
-          title={t('dashboard.memory_usage')} 
-          value={`${memoryUsedGB} GB`} 
+        <StatCard
+          title={t('dashboard.memory_usage')}
+          value={`${memoryUsedGB} GB`}
           trend={`${memoryPercent}%`}
           trendUp={parseFloat(memoryPercent) < 80}
           subText={`${memoryTotalGB} GB ${t('dashboard.total')}`}
           icon={HardDrive}
         />
-        <StatCard 
+        <StatCard
           title="Rede (TX/RX)"
-          value={`${(stats ? stats.network_tx / 1024 / 1024 : 0).toFixed(1)} MB`} 
+          value={`${(stats ? stats.network_tx / 1024 / 1024 : 0).toFixed(1)} MB`}
           trend={`${(stats ? stats.network_rx / 1024 / 1024 : 0).toFixed(1)} MB`}
           trendUp={true}
           subText="Transferência"
           icon={Box}
         />
-        <StatCard 
-          title={t('dashboard.storage')} 
-          value={diskUsedFormatted} 
+        <StatCard
+          title={t('dashboard.storage')}
+          value={diskUsedFormatted}
           trend={`${diskPercent}%`}
           trendUp={parseFloat(diskPercent) < 85}
           subText={`${diskTotalFormatted} ${t('dashboard.total')}`}
@@ -191,18 +191,18 @@ export function Overview() {
               <AreaChart data={history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorMemory" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="time" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#525252" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} width={40} />
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any) => typeof value === 'number' ? value.toFixed(1) : value}
                   contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}
                   itemStyle={{ color: '#d4d4d4', fontWeight: 600 }}
@@ -233,10 +233,10 @@ export function Overview() {
                 const totalFormatted = formatStorage(disk.total, 2);
                 const percent = disk.total > 0 ? ((disk.used / disk.total) * 100).toFixed(1) : '0.0';
                 const friendlyName = getFriendlyDiskName(disk.name, disk.mount_point);
-                
+
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     onClick={() => navigate(`/files?path=${encodeURIComponent(disk.mount_point || '/')}`)}
                     className="bg-accent/30 border border-border hover:border-orbit-500/50 hover:bg-accent/60 rounded-xl p-3.5 transition-all cursor-pointer group shadow-sm"
                     title={`Abrir ${friendlyName} no Gerenciador de Arquivos`}
@@ -254,12 +254,11 @@ export function Overview() {
                         {percent}%
                       </span>
                     </div>
-                    
+
                     <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden mb-2">
-                      <div 
-                        className={`h-full rounded-full transition-all ${
-                          parseFloat(percent) > 85 ? 'bg-rose-500' : 'bg-orbit-500 group-hover:bg-orbit-400'
-                        }`}
+                      <div
+                        className={`h-full rounded-full transition-all ${parseFloat(percent) > 85 ? 'bg-rose-500' : 'bg-orbit-500 group-hover:bg-orbit-400'
+                          }`}
                         style={{ width: `${Math.min(parseFloat(percent), 100)}%` }}
                       />
                     </div>
@@ -313,7 +312,7 @@ export function Overview() {
           {containers.map((c) => {
             const iconUrl = getIconForImage(c.image, c.name);
             const isRunning = c.state === 'running';
-            
+
             let webLink = customLinks[c.id] || '';
             if (!webLink && c.ports && c.ports.length > 0) {
               const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
