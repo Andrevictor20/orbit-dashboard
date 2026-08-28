@@ -173,6 +173,24 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
       let text = rawText.trim();
 
       const exactMap: Record<string, string> = {
+        'Harden backend graceful shutdown and system update status endpoint':
+          'Blindagem do desligamento seguro do backend e endpoint de status de atualização',
+        'Add Unix SIGTERM/SIGINT signal listener in main.rs to avoid premature exit code 0':
+          'Adicionado interceptador de sinais Unix SIGTERM/SIGINT no main.rs para evitar encerramento prematuro (código 0)',
+        'Implement poison-safe lock guards across system.rs':
+          'Implementação de travas seguras contra envenenamento de threads em todo o system.rs',
+        'Add dedicated status and check endpoint unit tests in system_update_tests.rs':
+          'Adicionados testes unitários dedicados de status e verificação no system_update_tests.rs',
+        'Enhance FileManager test async assertion resiliency for CI':
+          'Aprimorada a resiliência de asserções assíncronas no teste do Gerenciador de Arquivos para o CI',
+        'Slim down runtime Docker image by removing ffmpeg and cleaning cache':
+          'Redução drástica do tamanho da imagem Docker removendo ffmpeg e limpando cache',
+        'Bump version to v1.9.3 and fix CreateImageInfo progress_detail in CD build':
+          'Atualização para a versão v1.9.3 e correção de detalhes de progresso de download no CD',
+        'Bump version to v1.9.4 and improve changelog localization':
+          'Atualização para a versão v1.9.4 e tradução integral do changelog',
+        'Implement live update log streaming and smooth reconnection':
+          'Implementado streaming de logs em tempo real e reconexão transparente no modal de atualização',
         'Fix container restarting loop and backend execution permissions':
           'Correção do loop de reinicialização do contêiner e permissões de execução do backend',
         'Add explicit chmod +x for orbit-backend, docker and compose binaries in Dockerfile':
@@ -203,24 +221,46 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         return exactMap[text];
       }
 
-      // Regex pattern translations
+      // Comprehensive phrase & regex replacement rules for dynamic git commits
       text = text
-        .replace(/^Add explicit chmod \+x for (.+)/i, 'Permissão explícita chmod +x para $1')
-        .replace(/^Add (.+)/i, 'Adicionado: $1')
-        .replace(/^Fix (.+)/i, 'Correção: $1')
-        .replace(/^Update (.+)/i, 'Atualizado: $1')
-        .replace(/^Remove (.+)/i, 'Removido: $1')
-        .replace(/^Implement (.+)/i, 'Implementado: $1')
-        .replace(/^Configure (.+)/i, 'Configurado: $1')
-        .replace(/^Optimize (.+)/i, 'Otimizado: $1')
-        .replace(/^Enhance (.+)/i, 'Aprimorado: $1')
-        .replace(/for immediate publishing/i, 'para publicação imediata')
-        .replace(/in install\.sh/i, 'no script install.sh')
-        .replace(/in Dockerfile/i, 'no Dockerfile')
-        .replace(/in main\.rs/i, 'no arquivo main.rs')
-        .replace(/in lib\.rs/i, 'no arquivo lib.rs')
-        .replace(/to prevent CLI warning/i, 'para evitar avisos no terminal')
-        .replace(/using native cross-compilation/i, 'usando cross-compilação nativa');
+        .replace(/^Add\s+/i, 'Adicionado: ')
+        .replace(/^Added\s+/i, 'Adicionado: ')
+        .replace(/^Fix\s+/i, 'Correção: ')
+        .replace(/^Fixed\s+/i, 'Corrigido: ')
+        .replace(/^Update\s+/i, 'Atualizado: ')
+        .replace(/^Updated\s+/i, 'Atualizado: ')
+        .replace(/^Remove\s+/i, 'Removido: ')
+        .replace(/^Removed\s+/i, 'Removido: ')
+        .replace(/^Implement\s+/i, 'Implementado: ')
+        .replace(/^Implemented\s+/i, 'Implementado: ')
+        .replace(/^Configure\s+/i, 'Configurado: ')
+        .replace(/^Configured\s+/i, 'Configurado: ')
+        .replace(/^Optimize\s+/i, 'Otimizado: ')
+        .replace(/^Optimized\s+/i, 'Otimizado: ')
+        .replace(/^Enhance\s+/i, 'Aprimorado: ')
+        .replace(/^Enhanced\s+/i, 'Aprimorado: ')
+        .replace(/^Harden\s+/i, 'Blindagem de: ')
+        .replace(/^Bump\s+/i, 'Atualização de: ')
+        .replace(/graceful shutdown/gi, 'desligamento seguro')
+        .replace(/status endpoint/gi, 'endpoint de status')
+        .replace(/check endpoint/gi, 'endpoint de verificação')
+        .replace(/unit tests/gi, 'testes unitários')
+        .replace(/signal listener/gi, 'ouvinte de sinais')
+        .replace(/in main\.rs/gi, 'no arquivo main.rs')
+        .replace(/in system\.rs/gi, 'no arquivo system.rs')
+        .replace(/in Dockerfile/gi, 'no Dockerfile')
+        .replace(/in install\.sh/gi, 'no script install.sh')
+        .replace(/in system_update_tests\.rs/gi, 'no arquivo de testes do sistema')
+        .replace(/to avoid premature exit code 0/gi, 'para evitar encerramento prematuro (código 0)')
+        .replace(/to avoid premature exit/gi, 'para evitar encerramento prematuro')
+        .replace(/poison-safe lock guards/gi, 'travas de memória seguras contra travamentos de thread')
+        .replace(/across/gi, 'em todo o')
+        .replace(/by removing (.+)/gi, 'removendo $1')
+        .replace(/and cleaning cache/gi, 'e limpando cache')
+        .replace(/runtime Docker image/gi, 'imagem Docker de execução')
+        .replace(/for immediate publishing/gi, 'para publicação imediata')
+        .replace(/to prevent CLI warning/gi, 'para evitar avisos no terminal')
+        .replace(/using native cross-compilation/gi, 'usando cross-compilação nativa');
 
       return text;
     };
@@ -257,22 +297,22 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           badgeLabel = t('update_modal.badge_fix', 'Correção');
           badgeClass = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
           icon = Bug;
-        } else if (lower.includes('feat') || lower.includes('add') || lower.includes('new') || lower.includes('nov') || lower.includes('recurso')) {
-          category = 'feat';
-          badgeLabel = t('update_modal.badge_feat', 'Nova Funcionalidade');
-          badgeClass = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
-          icon = Sparkles;
-        } else if (lower.includes('perf') || lower.includes('optimiz') || lower.includes('speed') || lower.includes('ram') || lower.includes('cpu')) {
-          category = 'perf';
-          badgeLabel = t('update_modal.badge_perf', 'Performance');
-          badgeClass = 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
-          icon = Zap;
-        } else if (lower.includes('sec') || lower.includes('auth') || lower.includes('token') || lower.includes('jwt') || lower.includes('seguran')) {
+        } else if (lower.includes('harden') || lower.includes('sec') || lower.includes('guard') || lower.includes('auth') || lower.includes('jwt') || lower.includes('seguran')) {
           category = 'sec';
           badgeLabel = t('update_modal.badge_sec', 'Segurança');
           badgeClass = 'bg-purple-500/15 text-purple-400 border-purple-500/30';
           icon = Shield;
-        } else if (lower.includes('refactor') || lower.includes('clean') || lower.includes('lint') || lower.includes('melhor')) {
+        } else if (lower.includes('slim') || lower.includes('perf') || lower.includes('optimiz') || lower.includes('speed') || lower.includes('ram') || lower.includes('cpu')) {
+          category = 'perf';
+          badgeLabel = t('update_modal.badge_perf', 'Performance');
+          badgeClass = 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
+          icon = Zap;
+        } else if (lower.includes('feat') || lower.includes('add') || lower.includes('new') || lower.includes('nov') || lower.includes('recurso') || lower.includes('bump')) {
+          category = 'feat';
+          badgeLabel = t('update_modal.badge_feat', 'Nova Funcionalidade');
+          badgeClass = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+          icon = Sparkles;
+        } else if (lower.includes('refactor') || lower.includes('clean') || lower.includes('lint') || lower.includes('melhor') || lower.includes('enhance')) {
           category = 'refactor';
           badgeLabel = t('update_modal.badge_refactor', 'Melhoria');
           badgeClass = 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30';
