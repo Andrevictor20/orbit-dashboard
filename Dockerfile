@@ -65,11 +65,11 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 FROM docker:27-cli AS docker-cli
 
 # =============================================================================
-# Stage 4: Minimal Runtime Image (Target Architecture)
+# Stage 4: Minimal Lightweight Runtime Image (Target Architecture)
 # =============================================================================
 FROM debian:bookworm-slim
 
-# Install strictly necessary runtime dependencies without recommended packages (no X11/GUI bloat)
+# Install strictly necessary runtime dependencies without recommended packages (no X11/ffmpeg bloat)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -77,11 +77,11 @@ RUN apt-get update && \
         sshpass \
         openssh-client \
         rclone \
-        fuse3 \
-        ffmpeg && \
+        fuse3 && \
     apt-get clean && \
     rm -rf \
         /var/lib/apt/lists/* \
+        /var/cache/apt/* \
         /tmp/* \
         /var/tmp/* \
         /usr/share/doc \
