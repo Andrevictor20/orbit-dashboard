@@ -1,60 +1,84 @@
-# Stage 1: Build the frontend (React/Vite)
-# $BUILDPLATFORM = runner's native platform (amd64) — fast npm build producing platform-agnostic static assets
+# =============================================================================
+# Stage 1: Build the frontend (React/Vite SPA)
+# =============================================================================
 FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
-COPY frontend/ ./
-RUN npm run build
 
-# Stage 2: Build the backend (Rust)
-# Build inside the target architecture (via QEMU on cross-builds) to produce the correct native binary (aarch64 / x86_64)
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --prefer-offline --no-audit
+
+COPY frontend/ ./
+RUN npm run build && npm cache clean --force
+
+# =============================================================================
+# Stage 2: Build the backend (Rust) with LTO and Stripping
+# =============================================================================
 FROM rust:slim-bookworm AS backend-builder
-# Install build dependencies (pkg-config and libssl-dev for networking/crypto crates)
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends pkg-config libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-# We create a dummy project to cache dependencies
+
+# Cache dependencies
 RUN cargo new backend
 WORKDIR /app/backend
 COPY backend/Cargo.toml backend/Cargo.lock ./
-# Build dependencies (this layer is cached)
-RUN cargo build --release
-# Remove the dummy src and copy actual source code
-RUN rm src/*.rs
+RUN cargo build --release && rm -rf src/*.rs target/release/deps/backend* target/release/backend*
+
+# Build real application
 COPY backend/src ./src
 COPY backend/tests ./tests
-# Touch main.rs to ensure Cargo recompiles the bin
-RUN touch src/main.rs
-RUN cargo build --release
+RUN cargo build --release && strip target/release/backend
 
-# Stage 3: Docker CLI & Compose plugin matching target architecture
+# =============================================================================
+# Stage 3: Docker CLI & Compose plugin
+# =============================================================================
 FROM docker:27-cli AS docker-cli
 
-# Stage 4: Runtime image
+# =============================================================================
+# Stage 4: Minimal Runtime Image
+# =============================================================================
 FROM debian:bookworm-slim
-# Install runtime dependencies for networking, CA certificates, ssh client, rclone, fuse3 and ffmpeg
-RUN apt-get update && apt-get install -y ca-certificates libssl-dev sshpass openssh-client rclone fuse3 ffmpeg && rm -rf /var/lib/apt/lists/*
+
+# Install strictly necessary runtime dependencies without recommended packages (no X11/GUI bloat)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libssl3 \
+        sshpass \
+        openssh-client \
+        rclone \
+        fuse3 \
+        ffmpeg && \
+    apt-get clean && \
+    rm -rf \
+        /var/lib/apt/lists/* \
+        /tmp/* \
+        /var/tmp/* \
+        /usr/share/doc \
+        /usr/share/man \
+        /usr/share/locale
 
 WORKDIR /app
 
-# Copy the compiled backend binary
+# Copy compiled, stripped backend binary
 COPY --from=backend-builder /app/backend/target/release/backend /usr/local/bin/orbit-backend
 
-# Install Docker CLI & Compose from the official image
+# Copy Docker CLI & Compose plugin
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/
 COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/
 
-# Copy the built frontend into the public directory (where ServeDir expects it)
+# Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./public
 
-# Ensure the data directory exists
+# Prepare data volume directory
 RUN mkdir -p /app/data
 
 EXPOSE 5172
 
-# Set environment variables for production
 ENV RUST_LOG=info
 ENV PORT=5172
 
 CMD ["orbit-backend"]
-

@@ -36,3 +36,10 @@ tokio-util = { version = "0.7", features = ["io"] }
 axum-test = "21.0.0"
 http-body-util = "0.1.5"
 tower = "0.5.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
