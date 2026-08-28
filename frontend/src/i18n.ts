@@ -47,6 +47,33 @@ const resources = {
         "state": "Estado",
         "actions": "Ações",
         "no_containers": "Nenhum container encontrado"
+      },
+      "update_modal": {
+        "title": "Atualização do Orbit",
+        "subtitle": "Gerenciamento e implantação sob demanda",
+        "available": "Disponível",
+        "architecture": "Arquitetura",
+        "installed_version": "Versão Instalada",
+        "active_installation": "Instalação Ativa",
+        "latest_github": "Mais Recente no GitHub",
+        "what_changed": "O que há de novo / O que foi corrigido",
+        "refresh": "Verificar",
+        "no_notes": "Nenhuma nota de versão disponível no momento.",
+        "close": "Fechar",
+        "updating": "Atualizando...",
+        "update_now": "Atualizar Orbit Agora",
+        "reinstall_force": "Reinstalar / Forçar Atualização",
+        "downloading_image": "Baixando imagem multi-arch do GitHub Container Registry (GHCR)...",
+        "restarting_orbit": "Imagem baixada! Reiniciando container do Orbit... Aguarde reconexão.",
+        "update_success": "Orbit atualizado com sucesso! Recarregando...",
+        "restarting_manual": "O Orbit está reiniciando. Atualize a página manualmente caso não recarregue.",
+        "badge_fix": "Correção",
+        "badge_feat": "Nova Funcionalidade",
+        "badge_perf": "Performance",
+        "badge_sec": "Segurança",
+        "badge_refactor": "Melhoria",
+        "badge_docs": "Documentação",
+        "badge_update": "Atualização"
       }
     }
   },
@@ -95,6 +122,33 @@ const resources = {
         "state": "State",
         "actions": "Actions",
         "no_containers": "No containers found"
+      },
+      "update_modal": {
+        "title": "Orbit Update",
+        "subtitle": "On-demand system management & deployment",
+        "available": "Available",
+        "architecture": "Architecture",
+        "installed_version": "Installed Version",
+        "active_installation": "Active Installation",
+        "latest_github": "Latest on GitHub",
+        "what_changed": "What's New / What's Fixed",
+        "refresh": "Check",
+        "no_notes": "No release notes available at this time.",
+        "close": "Close",
+        "updating": "Updating...",
+        "update_now": "Update Orbit Now",
+        "reinstall_force": "Reinstall / Force Update",
+        "downloading_image": "Downloading multi-arch image from GitHub Container Registry (GHCR)...",
+        "restarting_orbit": "Image downloaded! Restarting Orbit container... Please wait for reconnection.",
+        "update_success": "Orbit updated successfully! Reloading...",
+        "restarting_manual": "Orbit is restarting. Please refresh the page manually if it does not reload.",
+        "badge_fix": "Fix",
+        "badge_feat": "New Feature",
+        "badge_perf": "Performance",
+        "badge_sec": "Security",
+        "badge_refactor": "Improvement",
+        "badge_docs": "Documentation",
+        "badge_update": "Update"
       }
     }
   }

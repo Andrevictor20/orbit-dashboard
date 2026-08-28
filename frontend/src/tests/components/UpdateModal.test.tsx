@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import '../../i18n';
 import { UpdateModal, type SystemUpdateInfo } from '../../components/UpdateModal';
 
 describe('UpdateModal Component', () => {
@@ -16,11 +17,11 @@ describe('UpdateModal Component', () => {
     platform: 'linux/arm64',
     arch: 'aarch64',
     release_name: 'Orbit v1.1.0 - Suporte a Multi-Arch e Correções',
-    release_notes: '- Corrigido acúmulo de logs no Raspberry Pi\n- Adicionada detecção multi-arch nativa',
+    release_notes: 'Fix container restarting loop\n\n- Add explicit chmod +x for orbit-backend in Dockerfile',
     published_at: '2026-08-28T12:00:00Z',
   };
 
-  it('renders update modal with platform, versions and changelog', () => {
+  it('renders update modal with platform, versions and localized changelog badges', () => {
     render(
       <UpdateModal
         isOpen={true}
@@ -34,7 +35,7 @@ describe('UpdateModal Component', () => {
     expect(screen.getByText('ARM64 (Raspberry Pi / ARM)')).toBeInTheDocument();
     expect(screen.getByText('v1.0.0')).toBeInTheDocument();
     expect(screen.getByText('v1.1.0')).toBeInTheDocument();
-    expect(screen.getByText(/Corrigido acúmulo de logs no Raspberry Pi/i)).toBeInTheDocument();
+    expect(screen.getByText(/\[Correção\]/i)).toBeInTheDocument();
   });
 
   it('triggers update POST endpoint when clicking update button', async () => {
@@ -74,7 +75,7 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    const closeButton = screen.getByLabelText('Fechar modal');
+    const closeButton = screen.getByLabelText(/Fechar/i);
     fireEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalledTimes(1);
