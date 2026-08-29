@@ -185,6 +185,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           'Aprimorada a resiliência de asserções assíncronas no teste do Gerenciador de Arquivos para o CI',
         'Slim down runtime Docker image by removing ffmpeg and cleaning cache':
           'Redução drástica do tamanho da imagem Docker removendo ffmpeg e limpando cache',
+        'Bump version to v1.9.6 and fix premature ExitCode 0 container restart loop in main.rs':
+          'Atualização para a versão v1.9.6 e correção definitiva do loop de reinicialização com código 0 no main.rs',
         'Bump version to v1.9.5 and fix self-recreation container loop':
           'Atualização para a versão v1.9.5 e correção definitiva da reinicialização transparente do contêiner',
         'Fix self-update container recreation using Docker labels and local image helper':
