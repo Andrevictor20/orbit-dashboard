@@ -1,6 +1,41 @@
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+/// Graceful shutdown signal handler.
+///
+/// Waits for SIGTERM (Docker stop / compose recreate) or Ctrl+C.
+/// This is called AFTER axum::serve() binds the TCP port and starts serving,
+/// so the signal is only handled once the server is fully ready.
+///
+/// NOTE: this is intentionally NOT called during server startup.
+/// Passing shutdown_signal() to with_graceful_shutdown() before the server
+/// is listening would cause the container to exit immediately (ExitCode=0)
+/// when Docker sends SIGTERM during --force-recreate.
+#[cfg(unix)]
+async fn shutdown_signal() {
+    use tokio::signal::unix::{signal, SignalKind};
+
+    let mut sigterm = signal(SignalKind::terminate())
+        .expect("failed to install SIGTERM handler");
+
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            tracing::info!("Received Ctrl+C signal. Starting graceful shutdown...");
+        },
+        _ = sigterm.recv() => {
+            tracing::info!("Received SIGTERM signal. Starting graceful shutdown...");
+        },
+    }
+}
+
+#[cfg(not(unix))]
+async fn shutdown_signal() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install Ctrl+C handler");
+    tracing::info!("Received Ctrl+C signal. Starting graceful shutdown...");
+}
+
 #[tokio::main]
 async fn main() {
     // Load .env if present
@@ -49,10 +84,18 @@ async fn main() {
         }
     };
     tracing::info!("Listening on 0.0.0.0:5172");
-    
-    if let Err(e) = axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await {
+
+    // Attach the graceful shutdown signal AFTER the port is bound and listening.
+    // This ensures SIGTERM from Docker --force-recreate during recreation does not
+    // kill the new container before it has a chance to accept its first connection.
+    let server = axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>())
+        .with_graceful_shutdown(shutdown_signal());
+
+    if let Err(e) = server.await {
         eprintln!("FATAL: Server error: {}", e);
         tracing::error!("FATAL: Server error: {}", e);
         std::process::exit(1);
+    } else {
+        tracing::info!("Orbit Dashboard Backend stopped gracefully.");
     }
 }

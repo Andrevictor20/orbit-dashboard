@@ -293,8 +293,18 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         let mut host_compose_dir = None;
         let mut compose_file_name = "docker-compose.yml".to_string();
 
-        // 2.1 First attempt: inspect container 'orbit' via Docker API to read Docker Compose labels
-        if let Ok(inspect) = docker.inspect_container("orbit", None::<bollard::query_parameters::InspectContainerOptions>).await {
+        // 2.1 First attempt: inspect container 'orbit-dashboard' via Docker API to read Docker Compose labels
+        // NOTE: container_name in docker-compose.yml is 'orbit-dashboard', not 'orbit'.
+        // 'orbit' is only the compose project/service name — the actual running container is 'orbit-dashboard'.
+        let container_names = ["orbit-dashboard", "orbit"];
+        let mut inspect_result = None;
+        for cname in &container_names {
+            if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                inspect_result = Some(ins);
+                break;
+            }
+        }
+        if let Some(inspect) = inspect_result {
             if let Some(labels) = inspect.config.and_then(|c| c.labels) {
                 if let Some(work_dir) = labels.get("com.docker.compose.project.working_dir") {
                     if !work_dir.trim().is_empty() {
@@ -383,13 +393,21 @@ elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
   cd "/host/root/orbit" && docker compose up -d --force-recreate
 else
-  docker stop orbit 2>/dev/null || true
-  docker rm orbit 2>/dev/null || true
-  docker run -d --name orbit --restart unless-stopped \
+  docker stop orbit-dashboard 2>/dev/null || true
+  docker rm orbit-dashboard 2>/dev/null || true
+  docker run -d --name orbit-dashboard --restart unless-stopped \
+    --privileged \
+    --pid host \
+    --add-host host.docker.internal:host-gateway \
     -p 5172:5172 \
+    -p 5173:5172 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v orbit_data:/app/data \
-    -v /:/host:ro \
+    -v /:/host:rslave \
+    -v /mnt:/mnt:rslave \
+    -v /media:/media:rslave \
+    -e RUST_LOG=info \
+    -e SSH_HOST=host.docker.internal \
     "{image_name}"
 fi
 )"#,
