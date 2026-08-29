@@ -289,38 +289,65 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
 
         append_task_log("✅ [SUCCESS] Imagem multi-arch baixada e verificada com sucesso!", Some(85), Some("Preparando reinicialização sem downtime..."));
 
-        // 2. Discover host compose directory
-        let mut target_dir = None;
-        let candidate_dirs = ["/host/root/orbit", "/host/home", "/app", "."];
-        for base in candidate_dirs {
-            let dir = if base == "/host/home" {
-                if let Ok(entries) = std::fs::read_dir(base) {
-                    let user_orbit: Vec<_> = entries.flatten()
-                        .map(|e| e.path().join("orbit"))
-                        .filter(|p| p.join("docker-compose.yml").exists())
-                        .collect();
-                    user_orbit.first().map(|p| p.to_string_lossy().to_string())
-                } else {
-                    None
+        // 2. Discover host compose directory and compose file name
+        let mut host_compose_dir = None;
+        let mut compose_file_name = "docker-compose.yml".to_string();
+
+        // 2.1 First attempt: inspect container 'orbit' via Docker API to read Docker Compose labels
+        if let Ok(inspect) = docker.inspect_container("orbit", None::<bollard::query_parameters::InspectContainerOptions>).await {
+            if let Some(labels) = inspect.config.and_then(|c| c.labels) {
+                if let Some(work_dir) = labels.get("com.docker.compose.project.working_dir") {
+                    if !work_dir.trim().is_empty() {
+                        host_compose_dir = Some(work_dir.clone());
+                    }
                 }
-            } else {
-                let p = std::path::Path::new(base).join("docker-compose.yml");
-                if p.exists() {
-                    Some(base.to_string())
-                } else {
-                    None
+                if let Some(cfg_files) = labels.get("com.docker.compose.project.config_files") {
+                    if let Some(first_file) = cfg_files.split(',').next() {
+                        let p = std::path::Path::new(first_file.trim());
+                        if let Some(fname) = p.file_name() {
+                            compose_file_name = fname.to_string_lossy().to_string();
+                        }
+                    }
                 }
-            };
-            if let Some(d) = dir {
-                target_dir = Some(d);
-                break;
             }
         }
 
-        if let Some(ref d) = target_dir {
-            append_task_log(format!("📁 [CONFIG] Diretório de configuração do Compose localizado: {}", d), Some(90), None);
+        // 2.2 Second attempt: Scan common host paths if not discovered via Docker Compose labels
+        if host_compose_dir.is_none() {
+            let candidate_bases = [
+                "/host/DATA/orbit",
+                "/host/data/orbit",
+                "/host/root/orbit",
+                "/host/opt/orbit",
+                "/host/srv/orbit",
+            ];
+            for base in candidate_bases {
+                if std::path::Path::new(base).join(&compose_file_name).exists() {
+                    let cleaned = base.strip_prefix("/host").unwrap_or(base).to_string();
+                    host_compose_dir = Some(cleaned);
+                    break;
+                }
+            }
+
+            if host_compose_dir.is_none() {
+                if let Ok(entries) = std::fs::read_dir("/host/home") {
+                    for entry in entries.flatten() {
+                        let orbit_path = entry.path().join("orbit");
+                        if orbit_path.join(&compose_file_name).exists() {
+                            let host_str = orbit_path.to_string_lossy();
+                            let cleaned = host_str.strip_prefix("/host").unwrap_or(&host_str).to_string();
+                            host_compose_dir = Some(cleaned);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(ref d) = host_compose_dir {
+            append_task_log(format!("📁 [CONFIG] Diretório Compose detectado: {} (arquivo: {})", d, compose_file_name), Some(90), None);
         } else {
-            append_task_log("📁 [CONFIG] Usando diretório padrão de instalação.", Some(90), None);
+            append_task_log("📁 [CONFIG] Nenhum compose detectado, fallback para recriação direta via Docker Engine.", Some(90), None);
         }
 
         // 3. Mark state as recreating
@@ -341,44 +368,50 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             *guard = None;
         }
 
-        // 4. Trigger compose recreation after a short delay so the HTTP response is delivered to the browser
-        tokio::time::sleep(Duration::from_millis(1200)).await;
+        // 4. Trigger compose / container recreation via an independent detached helper container.
+        // Wait 1.5s so the HTTP response is safely flushed and delivered to the web browser.
+        tokio::time::sleep(Duration::from_millis(1500)).await;
 
-        let host_compose_dir = if let Some(ref d) = target_dir {
-            d.strip_prefix("/host").unwrap_or(d).to_string()
-        } else {
-            "/home/andre/orbit".to_string()
-        };
+        let host_dir_val = host_compose_dir.unwrap_or_default();
 
-        // 1. Spawn a detached transient updater container via the host Docker daemon.
-        // This ensures that even when the current container stops, the updater process continues
-        // running independently on the host and recreates Orbit with the new image seamlessly.
+        let helper_script = format!(
+            r#"sleep 1 && (
+if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
+  cd "/host{host_dir}" && docker compose -f "{compose_file}" up -d --force-recreate
+elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
+  cd "/host/DATA/orbit" && docker compose up -d --force-recreate
+elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
+  cd "/host/root/orbit" && docker compose up -d --force-recreate
+else
+  docker stop orbit 2>/dev/null || true
+  docker rm orbit 2>/dev/null || true
+  docker run -d --name orbit --restart unless-stopped \
+    -p 5172:5172 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v orbit_data:/app/data \
+    -v /:/host:ro \
+    "{image_name}"
+fi
+)"#,
+            host_dir = host_dir_val,
+            compose_file = compose_file_name,
+            image_name = image_name
+        );
+
+        // Spawn a detached transient updater container using the newly pulled image (already present locally!)
         let _ = tokio::process::Command::new("docker")
             .args([
                 "run",
                 "--rm",
                 "-d",
                 "-v", "/var/run/docker.sock:/var/run/docker.sock",
-                "-v", &format!("{}:/work", host_compose_dir),
-                "-w", "/work",
-                "docker:27-cli",
+                "-v", "/:/host",
+                image_name,
                 "sh", "-c",
-                "sleep 1 && docker compose up -d --force-recreate",
+                &helper_script,
             ])
             .output()
             .await;
-
-        // 2. Also attempt direct execution in target dir if reachable
-        if let Some(ref d) = target_dir {
-            let _ = tokio::process::Command::new("docker")
-                .arg("compose")
-                .arg("up")
-                .arg("-d")
-                .arg("--force-recreate")
-                .current_dir(d)
-                .output()
-                .await;
-        }
     });
 
     (StatusCode::OK, Json(serde_json::json!({
