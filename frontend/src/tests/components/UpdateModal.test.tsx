@@ -32,10 +32,15 @@ describe('UpdateModal Component', () => {
     );
 
     expect(screen.getByText('Atualização do Orbit')).toBeInTheDocument();
+    expect(screen.getByText(/\[Correção\]/i)).toBeInTheDocument();
+
+    // Click on details tab
+    const detailsTab = screen.getByText('Detalhes da Atualização');
+    fireEvent.click(detailsTab);
+
     expect(screen.getByText('ARM64 (Raspberry Pi / ARM)')).toBeInTheDocument();
     expect(screen.getByText('v1.0.0')).toBeInTheDocument();
     expect(screen.getByText('v1.1.0')).toBeInTheDocument();
-    expect(screen.getByText(/\[Correção\]/i)).toBeInTheDocument();
   });
 
   it('triggers update POST endpoint when clicking update button', async () => {
