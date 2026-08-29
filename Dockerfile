@@ -44,6 +44,8 @@ RUN mkdir -p src && echo "fn main() {}" > src/main.rs && echo "pub fn lib() {}" 
     fi && \
     rm -rf src
 
+# Cache bust: APP_VERSION changes per commit, invalidating backend source cache
+ARG APP_VERSION=dev
 COPY backend/src ./src
 COPY backend/tests ./tests
 
