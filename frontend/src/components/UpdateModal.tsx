@@ -9,7 +9,6 @@ import {
   Cpu, 
   GitBranch, 
   Clock, 
-  ShieldCheck,
   Bug,
   Zap,
   Shield,
@@ -17,7 +16,7 @@ import {
   Wrench,
   Terminal,
   AlertTriangle,
-  Info,
+  History,
   List
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -61,7 +60,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   const { t, i18n } = useTranslation();
   const isPt = (i18n.language || 'pt').toLowerCase().startsWith('pt');
 
-  const [activeTab, setActiveTab] = useState<'details' | 'changelog'>('changelog');
+  const [activeTab, setActiveTab] = useState<'whatsnew' | 'history'>(updateInfo?.has_update ? 'whatsnew' : 'history');
   const [updating, setUpdating] = useState(false);
   const [taskState, setTaskState] = useState<UpdateTaskState>({
     status: 'idle',
@@ -72,6 +71,12 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   });
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (updateInfo) {
+      setActiveTab(updateInfo.has_update ? 'whatsnew' : 'history');
+    }
+  }, [updateInfo?.has_update]);
 
   // Auto-scroll terminal on new logs
   useEffect(() => {
@@ -217,7 +222,6 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
       const cleanLine = isBullet ? line.substring(2).trim() : line;
       const lower = cleanLine.toLowerCase();
 
-      // Determine category for styling
       let category: ParsedChangelogEntry['category'] = 'update';
       let badgeLabel = t('update_modal.badge_update', 'Atualização');
       let badgeClass = 'bg-blue-500/15 text-blue-400 border-blue-500/30';
@@ -255,8 +259,6 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         icon = FileCode2;
       }
 
-      // If we don't have an entry yet, OR it's a bullet and we want each bullet to be a new entry
-      // For commit bodies (which are not bullets), we want to append them to the current entry.
       if (!currentEntry || (isBullet && entries.length > 0)) {
         currentEntry = {
           category,
@@ -268,7 +270,6 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         };
         entries.push(currentEntry);
       } else {
-        // It's a continuation line (commit body) or a secondary bullet
         currentEntry.bullets.push(translateText(cleanLine));
       }
     }
@@ -379,101 +380,94 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         <div className="flex-1 overflow-hidden flex flex-col bg-background/50">
           {!updating ? (
             <>
+              {/* Top Always Visible Details */}
+              <div className="p-5 pb-0 space-y-4">
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-accent/40 border border-border/60 text-xs">
+                  <div className="flex items-center gap-1.5 text-primary font-medium">
+                    <Cpu className="w-4 h-4 text-orbit-400" />
+                    <span>{t('update_modal.architecture', 'Arquitetura')}:</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/5 font-semibold text-secondary">
+                      {updateInfo ? formatPlatformName(updateInfo.platform, updateInfo.arch) : 'Detectando...'}
+                    </span>
+                  </div>
+
+                  {updateInfo?.published_at && (
+                    <div className="flex items-center gap-1 text-secondary ml-auto">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{new Date(updateInfo.published_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-xl bg-card border border-border/80 flex flex-col justify-between">
+                    <span className="text-xs text-secondary font-medium">{t('update_modal.installed_version', 'Versão Instalada')}</span>
+                    <span className="text-lg font-bold text-white mt-1 tabular-nums">
+                      v{updateInfo?.current_version || '1.0.0'}
+                    </span>
+                    <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{t('update_modal.active_installation', 'Instalação Ativa')}</span>
+                    </div>
+                  </div>
+
+                  <div className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+                    updateInfo?.has_update 
+                      ? 'bg-orbit-500/10 border-orbit-500/30' 
+                      : 'bg-card border-border/80'
+                  }`}>
+                    <span className="text-xs text-secondary font-medium">{t('update_modal.latest_github', 'Mais Recente no GitHub')}</span>
+                    <span className={`text-lg font-bold mt-1 tabular-nums ${
+                      updateInfo?.has_update ? 'text-orbit-300' : 'text-white'
+                    }`}>
+                      v{updateInfo?.latest_version || updateInfo?.current_version || '1.0.0'}
+                    </span>
+                    <div className="flex items-center gap-1 text-[11px] text-secondary mt-1">
+                      <GitBranch className="w-3.5 h-3.5 text-orbit-400" />
+                      <span className="truncate">ghcr.io :latest</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Tabs */}
-              <div className="flex border-b border-border/50 px-5 pt-3 gap-6 bg-card/30">
+              <div className="flex border-b border-border/50 px-5 pt-5 gap-6">
                 <button
-                  onClick={() => setActiveTab('changelog')}
-                  className={`pb-3 text-xs font-semibold flex items-center gap-2 transition-colors relative ${activeTab === 'changelog' ? 'text-orbit-400' : 'text-secondary hover:text-primary'}`}
+                  onClick={() => setActiveTab('whatsnew')}
+                  className={`pb-3 text-xs font-semibold flex items-center gap-2 transition-colors relative ${activeTab === 'whatsnew' ? 'text-orbit-400' : 'text-secondary hover:text-primary'}`}
                 >
                   <List className="w-3.5 h-3.5" />
-                  {isPt ? 'O que foi alterado' : 'Changelog'}
-                  {activeTab === 'changelog' && (
+                  {isPt ? 'O que há de novo / corrigido' : 'What\'s new'}
+                  {activeTab === 'whatsnew' && (
                     <span className="absolute bottom-0 left-0 w-full h-[2px] bg-orbit-500 rounded-t-full" />
                   )}
                 </button>
                 <button
-                  onClick={() => setActiveTab('details')}
-                  className={`pb-3 text-xs font-semibold flex items-center gap-2 transition-colors relative ${activeTab === 'details' ? 'text-orbit-400' : 'text-secondary hover:text-primary'}`}
+                  onClick={() => setActiveTab('history')}
+                  className={`pb-3 text-xs font-semibold flex items-center gap-2 transition-colors relative ${activeTab === 'history' ? 'text-orbit-400' : 'text-secondary hover:text-primary'}`}
                 >
-                  <Info className="w-3.5 h-3.5" />
-                  {isPt ? 'Detalhes da Atualização' : 'Update Details'}
-                  {activeTab === 'details' && (
+                  <History className="w-3.5 h-3.5" />
+                  {isPt ? 'Histórico das últimas atualizações' : 'Update History'}
+                  {activeTab === 'history' && (
                     <span className="absolute bottom-0 left-0 w-full h-[2px] bg-orbit-500 rounded-t-full" />
                   )}
+                </button>
+                
+                <button 
+                  onClick={onRefreshInfo}
+                  className="ml-auto text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md mb-2"
+                  title={t('update_modal.refresh', 'Verificar')}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>{t('update_modal.refresh', 'Verificar')}</span>
                 </button>
               </div>
 
               {/* Tab Content */}
-              <div className="p-5 space-y-4 overflow-y-auto flex-1">
-                {activeTab === 'details' && (
-                  <div className="space-y-4 animate-in fade-in duration-200">
-                    <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-accent/40 border border-border/60 text-xs">
-                      <div className="flex items-center gap-1.5 text-primary font-medium">
-                        <Cpu className="w-4 h-4 text-orbit-400" />
-                        <span>{t('update_modal.architecture', 'Arquitetura')}:</span>
-                        <span className="px-2 py-0.5 rounded-md bg-white/5 font-semibold text-secondary">
-                          {updateInfo ? formatPlatformName(updateInfo.platform, updateInfo.arch) : 'Detectando...'}
-                        </span>
-                      </div>
-
-                      {updateInfo?.published_at && (
-                        <div className="flex items-center gap-1 text-secondary ml-auto">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{new Date(updateInfo.published_at).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3.5 rounded-xl bg-card border border-border/80 flex flex-col justify-between">
-                        <span className="text-xs text-secondary font-medium">{t('update_modal.installed_version', 'Versão Instalada')}</span>
-                        <span className="text-lg font-bold text-white mt-1 tabular-nums">
-                          v{updateInfo?.current_version || '1.0.0'}
-                        </span>
-                        <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t('update_modal.active_installation', 'Instalação Ativa')}</span>
-                        </div>
-                      </div>
-
-                      <div className={`p-3.5 rounded-xl border flex flex-col justify-between ${
-                        updateInfo?.has_update 
-                          ? 'bg-orbit-500/10 border-orbit-500/30' 
-                          : 'bg-card border-border/80'
-                      }`}>
-                        <span className="text-xs text-secondary font-medium">{t('update_modal.latest_github', 'Mais Recente no GitHub')}</span>
-                        <span className={`text-lg font-bold mt-1 tabular-nums ${
-                          updateInfo?.has_update ? 'text-orbit-300' : 'text-white'
-                        }`}>
-                          v{updateInfo?.latest_version || updateInfo?.current_version || '1.0.0'}
-                        </span>
-                        <div className="flex items-center gap-1 text-[11px] text-secondary mt-1">
-                          <GitBranch className="w-3.5 h-3.5 text-orbit-400" />
-                          <span className="truncate">ghcr.io :latest</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'changelog' && (
-                  <div className="space-y-3 animate-in fade-in duration-200">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-orbit-400" />
-                        {t('update_modal.what_changed', 'O que há de novo / O que foi corrigido')}
-                      </h3>
-                      <button 
-                        onClick={onRefreshInfo}
-                        className="text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md"
-                        title={t('update_modal.refresh', 'Verificar')}
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>{t('update_modal.refresh', 'Verificar')}</span>
-                      </button>
-                    </div>
-
-                    {parsedChangelog.length > 0 ? (
+              <div className="p-5 overflow-y-auto flex-1">
+                {activeTab === 'whatsnew' && (
+                  <div className="animate-in fade-in duration-200 h-full">
+                    {updateInfo?.has_update && parsedChangelog.length > 0 ? (
                       <div className="space-y-3 pr-1">
                         {parsedChangelog.map((entry, idx) => {
                           const Icon = entry.icon;
@@ -506,8 +500,57 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                         })}
                       </div>
                     ) : (
-                      <div className="p-6 rounded-xl bg-card/60 border border-border/80 text-xs text-secondary text-center">
-                        {t('update_modal.no_notes', 'Nenhuma nota de versão disponível no momento.')}
+                      <div className="h-full flex flex-col items-center justify-center p-8 rounded-xl bg-card/30 border border-border/40 border-dashed text-secondary text-center space-y-2">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500/50 mb-1" />
+                        <p className="text-sm font-semibold text-primary">{isPt ? 'Sistema Atualizado' : 'System is Up to Date'}</p>
+                        <p className="text-xs">{isPt ? 'Você já possui a versão mais recente instalada. Nenhuma atualização pendente.' : 'You already have the latest version installed. No updates pending.'}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'history' && (
+                  <div className="animate-in fade-in duration-200 h-full">
+                    {!updateInfo?.has_update && parsedChangelog.length > 0 ? (
+                      <div className="space-y-3 pr-1">
+                        {parsedChangelog.map((entry, idx) => {
+                          const Icon = entry.icon;
+                          return (
+                            <div 
+                              key={idx} 
+                              className="p-3.5 rounded-xl bg-card/70 border border-border/80 hover:border-border transition-all space-y-2 opacity-80 hover:opacity-100"
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <span className={`inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md border shrink-0 mt-0.5 ${entry.badgeClass}`}>
+                                  <Icon className="w-3 h-3" />
+                                  <span>[{entry.badgeLabel}]</span>
+                                </span>
+                                <p className="text-[13px] font-semibold text-primary leading-snug">
+                                  {entry.title}
+                                </p>
+                              </div>
+
+                              {entry.bullets.length > 0 && (
+                                <ul className="space-y-1.5 pl-7 pt-1 border-l-2 border-border/50 ml-3">
+                                  {entry.bullets.map((bullet, bIdx) => (
+                                    <li key={bIdx} className="text-[11.5px] text-secondary leading-relaxed">
+                                      {bullet}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center p-8 rounded-xl bg-card/30 border border-border/40 border-dashed text-secondary text-center space-y-3">
+                        <GitBranch className="w-8 h-8 text-orbit-500/50 mb-1" />
+                        <p className="text-xs max-w-[250px]">{isPt ? 'O histórico de versões anteriores está disponível no repositório.' : 'Previous version history is available on the repository.'}</p>
+                        <a href="https://github.com/Andrevictor20/orbit-dashboard/commits/main" target="_blank" rel="noreferrer" className="text-xs font-semibold text-orbit-400 hover:text-orbit-300 hover:underline inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orbit-500/10 transition-colors">
+                          <History className="w-3.5 h-3.5" />
+                          {isPt ? 'Ver Histórico Completo' : 'View Full History'}
+                        </a>
                       </div>
                     )}
                   </div>
