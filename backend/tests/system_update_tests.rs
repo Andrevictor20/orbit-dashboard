@@ -70,15 +70,25 @@ async fn test_system_platform_detection() {
 }
 
 #[tokio::test]
-async fn test_system_update_endpoint_exists() {
+async fn test_system_update_endpoint_exists_and_polls_task() {
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
     let cookie = get_test_cookie();
 
     let res = server.post("/api/system/update")
+        .add_cookie(cookie.clone())
+        .await;
+    assert_ne!(res.status_code(), axum::http::StatusCode::NOT_FOUND);
+
+    // Poll status endpoint to verify background worker task updates
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let status_res = server.get("/api/system/update/status")
         .add_cookie(cookie)
         .await;
-    // Status can be success (if docker is available) or a handled response, but NOT 404 Not Found
-    assert_ne!(res.status_code(), axum::http::StatusCode::NOT_FOUND);
+    status_res.assert_status_success();
+
+    let task: SystemUpdateTask = status_res.json();
+    assert!(!task.status.is_empty(), "Task status must be populated");
+    assert!(!task.logs.is_empty(), "Task logs should contain at least initial line");
 }
