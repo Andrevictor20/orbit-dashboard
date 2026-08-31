@@ -107,4 +107,54 @@ describe('Overview Component', () => {
     expect(screen.queryByText('securityfs')).toBeNull();
     expect(screen.queryByText('efivarfs')).toBeNull();
   });
+
+  it('consolidates stack containers into one card and opens sub-containers modal on click', async () => {
+    (useStats as any).mockReturnValue({
+      stats: null,
+      isConnected: true,
+    });
+
+    const mockContainers = [
+      { id: 'c1', name: 'orbit', image: 'orbit:latest', state: 'running', status: 'Up 1 day' },
+      { id: 'c2', name: 'overseerr', image: 'overseerr:latest', state: 'running', status: 'Up 1 day' },
+      { id: 'as1', name: 'ar-saude-coletor', image: 'coletor:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
+      { id: 'as2', name: 'ar-saude-frontend', image: 'frontend:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
+      { id: 'as3', name: 'ar-saude-postgres', image: 'postgres:16', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
+    ];
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url === '/api/docker/containers') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockContainers)
+        });
+      }
+      if (url === '/api/docker/links') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    }));
+
+    const { findByText } = render(
+      <BrowserRouter>
+        <Overview />
+      </BrowserRouter>
+    );
+
+    // Ar Saude should appear as a single consolidated group
+    const groupCard = await findByText('Ar Saude');
+    expect(groupCard).toBeTruthy();
+    expect(await findByText('3/3 ativos')).toBeTruthy();
+
+    // Individual sub-containers shouldn't be scattered on the overview grid
+    expect(screen.queryByText('ar-saude-coletor')).toBeNull();
+
+    // Clicking on Ar Saude opens the modal with sub-containers
+    groupCard.click();
+
+    expect(await findByText('Sub-containers do Grupo (3)')).toBeTruthy();
+    expect(screen.getByText('ar-saude-coletor')).toBeTruthy();
+    expect(screen.getByText('ar-saude-frontend')).toBeTruthy();
+    expect(screen.getByText('ar-saude-postgres')).toBeTruthy();
+  });
 });

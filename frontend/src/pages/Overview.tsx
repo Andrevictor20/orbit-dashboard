@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StatCard } from '../components/ui/StatCard';
@@ -6,6 +6,8 @@ import { TrendingUp, Activity, HardDrive, Box, FolderOpen, ExternalLink, Plus, L
 import { useStats } from '../contexts/StatsContext';
 import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
+import { groupContainers, type GroupContainerItem } from '../utils/containerGroups';
+import { AppGroupModal } from '../components/ui/AppGroupModal';
 import {
   AreaChart,
   Area,
@@ -40,20 +42,32 @@ export function Overview() {
   const [history, setHistory] = useState<ChartDataPoint[]>([]);
   const [containers, setContainers] = useState<OverviewContainer[]>([]);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
+  const [selectedGroup, setSelectedGroup] = useState<GroupContainerItem | null>(null);
 
-  useEffect(() => {
+  const fetchContainers = () => {
     fetch('/api/docker/containers')
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (Array.isArray(data)) setContainers(data);
       })
       .catch(() => { });
+  };
 
+  const fetchLinks = () => {
     fetch('/api/docker/links')
       .then(res => res.ok ? res.json() : {})
       .then(links => setCustomLinks(links))
       .catch(() => { });
+  };
+
+  useEffect(() => {
+    fetchContainers();
+    fetchLinks();
   }, []);
+
+  const groupedItems = useMemo(() => {
+    return groupContainers(containers, customLinks, getIconForImage);
+  }, [containers, customLinks]);
 
   useEffect(() => {
     if (stats) {
@@ -309,17 +323,62 @@ export function Overview() {
         </div>
 
         <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
-          {containers.map((c) => {
-            const iconUrl = getIconForImage(c.image, c.name);
-            const isRunning = c.state === 'running';
+          {groupedItems.map((item) => {
+            if (item.type === 'group') {
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedGroup(item)}
+                  className="group relative bg-card/60 hover:bg-accent/70 border border-border/70 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  title={`${item.name} (Stack com ${item.totalCount} containers)`}
+                >
+                  {/* Top-right stack count badge & running indicator */}
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/20 text-orbit-300 border border-orbit-500/30 font-semibold font-mono">
+                      {item.totalCount}
+                    </span>
+                    <span className={`w-2 h-2 rounded-full ${
+                      item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-zinc-600'
+                    }`} />
+                  </div>
 
-            let webLink = customLinks[c.id] || '';
-            if (!webLink && c.ports && c.ports.length > 0) {
-              const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
-              if (publicPort) {
-                webLink = `http://${window.location.hostname}:${publicPort}`;
-              }
+                  {/* Stack App Icon with multi-layer effect */}
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-900/60 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-200 shadow-inner relative">
+                    <img
+                      src={item.iconUrl}
+                      alt={item.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white shadow-sm">
+                      <Layers className="w-2.5 h-2.5" />
+                    </div>
+                  </div>
+
+                  {/* Stack Name */}
+                  <span className="font-semibold text-xs text-primary truncate w-full capitalize" title={item.name}>
+                    {item.name}
+                  </span>
+
+                  {/* Status / Sub-containers Subtext */}
+                  <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
+                    {item.anyRunning ? (
+                      <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5">
+                        {item.runningCount}/{item.totalCount} ativos
+                      </span>
+                    ) : (
+                      <span className="text-zinc-500">Parado</span>
+                    )}
+                  </div>
+                </div>
+              );
             }
+
+            const c = item.container;
+            const isRunning = item.isRunning;
+            const webLink = item.webLink;
 
             return (
               <div
@@ -342,7 +401,7 @@ export function Overview() {
                 {/* App Icon */}
                 <div className="w-12 h-12 rounded-2xl bg-zinc-900/60 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-200 shadow-inner">
                   <img
-                    src={iconUrl}
+                    src={item.iconUrl}
                     alt={c.name}
                     className="w-full h-full object-contain"
                     onError={(e) => {
@@ -388,6 +447,15 @@ export function Overview() {
           </div>
         </div>
       </div>
+
+      {/* App Group / Stack Sub-Containers Modal */}
+      <AppGroupModal
+        group={selectedGroup}
+        isOpen={Boolean(selectedGroup)}
+        onClose={() => setSelectedGroup(null)}
+        onRefresh={fetchContainers}
+        customLinks={customLinks}
+      />
     </>
   );
 }

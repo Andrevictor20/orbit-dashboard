@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Containers } from '../../pages/Containers';
+import { resetContainerCache } from '../../components/ui/ContainerList';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 declare const global: any;
@@ -7,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 describe('Containers list component', () => {
   beforeEach(() => {
+    resetContainerCache();
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
       if (url === '/api/docker/containers') {
         return Promise.resolve({
@@ -71,5 +73,48 @@ describe('Containers list component', () => {
       );
       expect(stopCall).toBeTruthy();
     });
+  });
+
+  it('renders stack groups and opens sub-containers modal when clicked', async () => {
+    resetContainerCache();
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/docker/containers') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 'as1', name: 'ar-saude-coletor', image: 'coletor:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
+            { id: 'as2', name: 'ar-saude-frontend', image: 'frontend:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
+            { id: 'c1', name: 'orbit', image: 'orbit:latest', state: 'running', status: 'Up 1 day' },
+          ])
+        });
+      }
+      if (url === '/api/docker/links') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      }
+      if (url.includes('/api/docker/containers/stats/snapshot')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    }));
+
+    const { findByText, getAllByText } = render(
+      <MemoryRouter>
+        <Containers />
+      </MemoryRouter>
+    );
+
+    const groupTitle = await findByText('Ar Saude');
+    expect(groupTitle).toBeTruthy();
+    expect(await findByText('Stack (2 containers)')).toBeTruthy();
+    expect(screen.getAllByText('orbit').length).toBeGreaterThan(0);
+
+    const subBtns = getAllByText('Ver Sub-containers');
+    expect(subBtns.length).toBeGreaterThan(0);
+    fireEvent.click(subBtns[0]);
+
+    expect(await findByText('Sub-containers do Grupo (2)')).toBeTruthy();
+    expect(screen.getByText('ar-saude-coletor')).toBeTruthy();
+    expect(screen.getByText('ar-saude-frontend')).toBeTruthy();
   });
 });
