@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Metrics } from '../../pages/Metrics';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
@@ -24,6 +24,11 @@ vi.mock('recharts', () => {
 vi.mock('../../contexts/StatsContext', () => ({
   useStats: vi.fn(),
   StatsProvider: ({ children }: any) => children,
+}));
+
+// Mock ProcessMonitor inside Metrics tests
+vi.mock('../../components/metrics/ProcessMonitor', () => ({
+  ProcessMonitor: () => <div data-testid="process-monitor-mock">Process Monitor View</div>
 }));
 
 import { useStats } from '../../contexts/StatsContext';
@@ -76,5 +81,21 @@ describe('Metrics Component', () => {
     render(<Metrics />);
     
     expect(screen.getByText('Real-time')).toBeTruthy();
+  });
+
+  it('switches to Processos tab when button is clicked', () => {
+    (useStats as any).mockReturnValue({
+      stats: null,
+      isConnected: true
+    });
+
+    render(<Metrics />);
+
+    const processesTabBtn = screen.getByText('Processos');
+    expect(processesTabBtn).toBeTruthy();
+
+    fireEvent.click(processesTabBtn);
+
+    expect(screen.getByTestId('process-monitor-mock')).toBeTruthy();
   });
 });

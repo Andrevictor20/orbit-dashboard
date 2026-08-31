@@ -438,9 +438,13 @@ fi
     }))).into_response()
 }
 
+pub mod processes;
+
 pub fn router() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/api/system/update/check", axum::routing::get(check_update_handler))
         .route("/api/system/update/status", axum::routing::get(get_update_status_handler))
         .route("/api/system/update", axum::routing::post(perform_system_update))
+        .route("/api/system/processes", axum::routing::get(processes::get_processes_handler))
+        .route("/api/system/processes/{pid}/kill", axum::routing::post(processes::kill_process_handler))
 }
