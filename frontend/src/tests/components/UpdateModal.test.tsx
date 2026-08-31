@@ -64,6 +64,29 @@ describe('UpdateModal Component', () => {
     });
   });
 
+  it('renders CI/CD building state with disabled waiting button', () => {
+    const buildingInfo: SystemUpdateInfo = {
+      ...mockInfo,
+      has_update: false,
+      ci_status: 'building',
+      ci_workflow_url: 'https://github.com/Andrevictor20/orbit-dashboard/actions/runs/12345',
+    };
+
+    render(
+      <UpdateModal
+        isOpen={true}
+        onClose={vi.fn()}
+        updateInfo={buildingInfo}
+        onRefreshInfo={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Compilando Imagem \(CI\/CD\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Build Multi-Arch em Andamento/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aguardando Término do CI\/CD\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Acompanhar CI\/CD/i)).toBeInTheDocument();
+  });
+
   it('calls onClose when close button is clicked', () => {
     const onClose = vi.fn();
     render(

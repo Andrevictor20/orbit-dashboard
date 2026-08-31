@@ -22,6 +22,10 @@ pub struct SystemUpdateInfo {
     pub release_name: String,
     pub release_notes: String,
     pub published_at: Option<String>,
+    #[serde(default)]
+    pub ci_status: Option<String>, // "building" | "ready" | "failed" | null
+    #[serde(default)]
+    pub ci_workflow_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,7 +38,7 @@ pub struct SystemUpdateTask {
 }
 
 static UPDATE_CACHE: Lazy<RwLock<Option<(SystemUpdateInfo, Instant)>>> = Lazy::new(|| RwLock::new(None));
-const CACHE_TTL: Duration = Duration::from_secs(180); // 3 minutes cache
+const CACHE_TTL: Duration = Duration::from_secs(30); // 30 seconds cache for responsive CI status
 
 static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock::new(SystemUpdateTask {
     status: "idle".to_string(),
@@ -63,6 +67,8 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     let mut release_notes = "Versão atual instalada e atualizada.".to_string();
     let mut published_at = None;
     let mut has_update = false;
+    let mut ci_status = None;
+    let mut ci_workflow_url = None;
 
     // Fetch from GitHub Releases API with robust timeout
     let client = reqwest::Client::builder()
@@ -130,6 +136,52 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
                 }
             }
         }
+
+        // 3. Check GitHub Actions check-runs status for the main branch
+        let checks_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/commits/main/check-runs";
+        if let Ok(resp) = client.get(checks_url).send().await {
+            if resp.status().is_success() {
+                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                    if let Some(check_runs) = json.get("check_runs").and_then(|v| v.as_array()) {
+                        let mut has_building_job = false;
+                        let mut has_failed_job = false;
+                        let mut all_completed_success = !check_runs.is_empty();
+
+                        for run in check_runs {
+                            let status = run.get("status").and_then(|v| v.as_str()).unwrap_or("");
+                            let conclusion = run.get("conclusion").and_then(|v| v.as_str());
+                            let url = run.get("html_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+                            if status == "in_progress" || status == "queued" {
+                                has_building_job = true;
+                                all_completed_success = false;
+                                if ci_workflow_url.is_none() {
+                                    ci_workflow_url = url;
+                                }
+                            } else if status == "completed" {
+                                if conclusion == Some("failure") || conclusion == Some("timed_out") || conclusion == Some("cancelled") {
+                                    has_failed_job = true;
+                                    all_completed_success = false;
+                                    if ci_workflow_url.is_none() {
+                                        ci_workflow_url = url;
+                                    }
+                                }
+                            }
+                        }
+
+                        if has_building_job {
+                            ci_status = Some("building".to_string());
+                            has_update = false; // Block update while CI is in progress!
+                        } else if has_failed_job {
+                            ci_status = Some("failed".to_string());
+                            has_update = false;
+                        } else if all_completed_success {
+                            ci_status = Some("ready".to_string());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     let info = SystemUpdateInfo {
@@ -141,6 +193,8 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
         release_name,
         release_notes,
         published_at,
+        ci_status,
+        ci_workflow_url,
     };
 
     // Store in cache
@@ -156,11 +210,15 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
 pub async fn check_update_handler(State(state): State<AppState>) -> impl IntoResponse {
     let mut info = get_system_update_info().await;
 
-    // Also check remote registry for image updates if docker is available
-    let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
-    let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
-    if image_has_update {
-        info.has_update = true;
+    // Only check remote registry if CI is not actively building
+    if info.ci_status.as_deref() != Some("building") && info.ci_status.as_deref() != Some("failed") {
+        let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+        let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
+        if image_has_update {
+            info.has_update = true;
+        }
+    } else {
+        info.has_update = false;
     }
 
     (StatusCode::OK, Json(info)).into_response()

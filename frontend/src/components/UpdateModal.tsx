@@ -17,7 +17,8 @@ import {
   Terminal,
   AlertTriangle,
   History,
-  List
+  List,
+  ExternalLink
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -30,6 +31,8 @@ export interface SystemUpdateInfo {
   release_name: string;
   release_notes: string;
   published_at?: string | null;
+  ci_status?: 'building' | 'ready' | 'failed' | null;
+  ci_workflow_url?: string | null;
 }
 
 interface UpdateModalProps {
@@ -405,7 +408,19 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white leading-tight flex items-center gap-2">
                 {updating ? (isPt ? 'Atualização em Tempo Real' : 'Live Update Progress') : t('update_modal.title', 'Atualização do Orbit')}
-                {!updating && updateInfo?.has_update && (
+                {!updating && updateInfo?.ci_status === 'building' && (
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/35 flex items-center gap-1">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin text-amber-400" />
+                    <span>{isPt ? 'Compilando Imagem (CI/CD)' : 'Building Image (CI/CD)'}</span>
+                  </span>
+                )}
+                {!updating && updateInfo?.ci_status === 'failed' && (
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/35 flex items-center gap-1">
+                    <AlertTriangle className="w-2.5 h-2.5 text-rose-400" />
+                    <span>{isPt ? 'Falha no Build' : 'Build Failed'}</span>
+                  </span>
+                )}
+                {!updating && updateInfo?.has_update && updateInfo?.ci_status !== 'building' && (
                   <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     {t('update_modal.available', 'Disponível')}
                   </span>
@@ -419,6 +434,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               <p className="text-xs text-secondary">
                 {updating 
                   ? (taskState.current_step || (isPt ? 'Processando...' : 'Processing...'))
+                  : updateInfo?.ci_status === 'building'
+                  ? (isPt ? 'Novo commit em compilação no GitHub Actions' : 'New commit is building on GitHub Actions')
                   : t('update_modal.subtitle', 'Gerenciamento e implantação sob demanda')
                 }
               </p>
@@ -441,6 +458,36 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             <>
               {/* Top Always Visible Details */}
               <div className="p-5 pb-0 space-y-4">
+                {/* CI/CD Building Alert Banner */}
+                {updateInfo?.ci_status === 'building' && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-200">
+                    <div className="flex items-start gap-2.5">
+                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white">
+                          {isPt ? 'Build Multi-Arch em Andamento no GitHub Actions' : 'Multi-Arch Build in Progress'}
+                        </p>
+                        <p className="text-[11.5px] text-amber-200/80 mt-0.5">
+                          {isPt 
+                            ? 'O commit mais recente no repositório ainda está sendo compilado. O botão de atualizar será liberado automaticamente após a publicação da imagem.'
+                            : 'The latest commit is currently building on GitHub Actions. The update button will be enabled once published.'}
+                        </p>
+                      </div>
+                    </div>
+                    {updateInfo.ci_workflow_url && (
+                      <a
+                        href={updateInfo.ci_workflow_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[11px] font-semibold shrink-0 flex items-center gap-1 transition-colors"
+                      >
+                        <span>{isPt ? 'Ver CI/CD' : 'View Build'}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-accent/40 border border-border/60 text-xs">
                   <div className="flex items-center gap-1.5 text-primary font-medium">
                     <Cpu className="w-4 h-4 text-orbit-400" />
@@ -694,14 +741,60 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           </button>
 
           {!updating ? (
-            <button
-              type="button"
-              onClick={handleStartUpdate}
-              className="px-4 py-2 text-xs font-semibold text-white bg-orbit-600 hover:bg-orbit-500 rounded-xl transition-all shadow-md shadow-orbit-900/30 flex items-center gap-2 active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>{updateInfo?.has_update ? t('update_modal.update_now', 'Atualizar Orbit Agora') : t('update_modal.reinstall_force', 'Reinstalar / Forçar Atualização')}</span>
-            </button>
+            updateInfo?.ci_status === 'building' ? (
+              <div className="flex items-center gap-2">
+                {updateInfo.ci_workflow_url && (
+                  <a
+                    href={updateInfo.ci_workflow_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 text-xs font-semibold text-amber-300 hover:text-white bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{isPt ? 'Acompanhar CI/CD' : 'View Workflow'}</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 text-xs font-semibold text-zinc-400 bg-zinc-800/80 border border-zinc-700/60 rounded-xl cursor-not-allowed flex items-center gap-2 opacity-70"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  <span>{isPt ? 'Aguardando Término do CI/CD...' : 'Waiting for CI/CD Build...'}</span>
+                </button>
+              </div>
+            ) : updateInfo?.ci_status === 'failed' ? (
+              <div className="flex items-center gap-2">
+                {updateInfo.ci_workflow_url && (
+                  <a
+                    href={updateInfo.ci_workflow_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-2 text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{isPt ? 'Ver Erro no GitHub' : 'View Error'}</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 text-xs font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl cursor-not-allowed flex items-center gap-2 opacity-70"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>{isPt ? 'Build Falhou no GitHub Actions' : 'Build Failed on GitHub'}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartUpdate}
+                className="px-4 py-2 text-xs font-semibold text-white bg-orbit-600 hover:bg-orbit-500 rounded-xl transition-all shadow-md shadow-orbit-900/30 flex items-center gap-2 active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{updateInfo?.has_update ? t('update_modal.update_now', 'Atualizar Orbit Agora') : t('update_modal.reinstall_force', 'Reinstalar / Forçar Atualização')}</span>
+              </button>
+            )
           ) : taskState.status === 'error' ? (
             <button
               type="button"
