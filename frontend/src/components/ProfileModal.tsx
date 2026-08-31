@@ -55,7 +55,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <div className="p-6 space-y-6">
           <div className="flex flex-col items-center gap-4">
             <div className="w-24 h-24 rounded-full bg-orbit-500/20 border-2 border-orbit-500/50 flex items-center justify-center overflow-hidden">
-              <img src="/favicon.jpg" alt="Profile" className="w-full h-full object-cover" />
+              <img src="/favicon.jpg?v=2" alt="Profile" className="w-full h-full object-cover" />
             </div>
             <h3 className="font-semibold text-lg">Admin</h3>
           </div>

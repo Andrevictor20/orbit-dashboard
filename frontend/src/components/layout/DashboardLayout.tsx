@@ -145,7 +145,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className={`h-14 border-b shad-border flex items-center justify-between px-4`}>
           <div className="flex items-center gap-2 overflow-hidden">
             <div className="w-6 h-6 rounded flex items-center justify-center overflow-hidden shrink-0">
-              <img src="/favicon.jpg" alt="Orbit Logo" className="w-full h-full object-cover" />
+              <img src="/favicon.jpg?v=2" alt="Orbit Logo" className="w-full h-full object-cover" />
             </div>
             <div className={`flex flex-col ${(isSidebarOpen || isMobileMenuOpen) ? 'block' : 'hidden md:hidden'}`}>
               <span className="text-sm font-semibold leading-tight">Orbit</span>
@@ -247,7 +247,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2">
-              <img src="/favicon.jpg" alt="Orbit Logo" className="w-5 h-5 rounded object-cover" />
+              <img src="/favicon.jpg?v=2" alt="Orbit Logo" className="w-5 h-5 rounded object-cover" />
               <span className="text-sm font-bold tracking-tight">Orbit</span>
             </div>
           </div>
@@ -338,7 +338,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-orbit-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500"
               aria-label="Abrir perfil"
             >
-              <img src="/favicon.jpg" alt="Profile" className="w-full h-full object-cover" />
+              <img src="/favicon.jpg?v=2" alt="Profile" className="w-full h-full object-cover" />
             </button>
           </div>
         </header>

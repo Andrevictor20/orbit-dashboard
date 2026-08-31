@@ -72,7 +72,7 @@ export function Login() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in">
         <div className="flex justify-center">
           <div className="w-16 h-16 bg-accent/80 backdrop-blur-xl border border-border/50 rounded-2xl flex items-center justify-center shadow-2xl shadow-orbit-900/50 overflow-hidden transform hover:scale-105 transition-transform duration-500">
-            <img src="/favicon.jpg" alt="Orbit Logo" className="w-full h-full object-cover" />
+            <img src="/favicon.jpg?v=2" alt="Orbit Logo" className="w-full h-full object-cover" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
