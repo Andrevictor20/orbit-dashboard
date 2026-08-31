@@ -165,7 +165,18 @@ export const ko = {
     command: "실행 명령",
     entrypoint: "엔트리포인트",
     working_dir: "작업 디렉토리",
-    privileged_mode: "특권 모드"
+    privileged_mode: "특권 모드",
+    update_all: "모두 업데이트",
+    update_all_progress: "컨테이너 업데이트 중 {{current}}/{{total}}: {{name}}...",
+    update_all_success: "모든 컨테이너가 성공적으로 업데이트되었습니다!",
+    all_up_to_date: "모든 컨테이너가 이미 최신 버전입니다!",
+    select_primary: "기본 컨테이너 선택",
+    primary: "기본",
+    set_as_primary: "기본으로 설정",
+    primary_selected: "컨테이너 '{{name}}'이(가) 스택의 기본으로 설정되었습니다!",
+    no_public_ports: "공개 포트 없음",
+    open_app: "열기",
+    stopping_and_deleting: "컨테이너를 안전하게 중지하고 삭제하는 중..."
   },
   store: {
     title: "앱 스토어",

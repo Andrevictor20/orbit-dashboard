@@ -166,7 +166,18 @@ export const pt = {
     command: "Comando de Inicialização",
     entrypoint: "Entrypoint",
     working_dir: "Diretório de Trabalho",
-    privileged_mode: "Modo Privilegiado"
+    privileged_mode: "Modo Privilegiado",
+    update_all: "Atualizar Todos",
+    update_all_progress: "Atualizando container {{current}} de {{total}}: {{name}}...",
+    update_all_success: "Todos os containers foram atualizados com sucesso!",
+    all_up_to_date: "Todos os containers já estão na versão mais recente!",
+    select_primary: "Selecionar Container Principal",
+    primary: "Principal",
+    set_as_primary: "Definir como Principal",
+    primary_selected: "Container '{{name}}' definido como principal da stack!",
+    no_public_ports: "Sem portas públicas",
+    open_app: "Abrir",
+    stopping_and_deleting: "Parando e excluindo container com segurança..."
   },
   store: {
     title: "App Store",

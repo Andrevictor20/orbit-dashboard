@@ -46,6 +46,7 @@ describe('AppGroupModal Component', () => {
     totalCpu: 3.5,
     totalMemory: 512 * 1024 * 1024,
     totalDisk: 1024 * 1024 * 1024,
+    webContainers: [mockContainer1],
     containers: [mockContainer1, mockContainer2],
   };
 

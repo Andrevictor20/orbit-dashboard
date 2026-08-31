@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   X, Layers, Play, Square, RotateCw, Pause, 
   ExternalLink, ArrowRight, Activity, Cpu, HardDrive, 
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { GroupContainerItem, ContainerLike } from '../../utils/containerGroups';
 import { formatRAM } from '../../utils/format';
+import { resolveWebUrl } from '../../utils/url';
 
 interface AppGroupModalProps {
   group: GroupContainerItem | null;
@@ -24,6 +26,7 @@ export function AppGroupModal({
   customLinks = {},
 }: AppGroupModalProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
@@ -63,13 +66,18 @@ export function AppGroupModal({
     }
   };
 
+  const handleSetPrimary = (e: React.MouseEvent, containerId: string) => {
+    e.stopPropagation();
+    localStorage.setItem(`orbit_stack_primary_${group.groupKey}`, containerId);
+    if (onRefresh) onRefresh();
+  };
+
   const getWebLink = (c: ContainerLike): string => {
-    if (customLinks[c.id]) return customLinks[c.id];
+    if (customLinks[c.id]) return resolveWebUrl(customLinks[c.id]);
     if (c.ports && c.ports.length > 0) {
       const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
       if (publicPort) {
-        const hostname = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
-        return `http://${hostname}:${publicPort}`;
+        return resolveWebUrl(publicPort);
       }
     }
     return '';
@@ -268,10 +276,23 @@ export function AppGroupModal({
                       </div>
 
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-semibold text-sm text-white truncate group-hover:text-orbit-300 transition-colors" title={c.name}>
                             {c.name}
                           </span>
+                          {c.id === group.primaryContainer.id ? (
+                            <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-300 border border-orbit-500/40 text-[10px] font-bold shrink-0">
+                              {t('containers.primary')}
+                            </span>
+                          ) : (c.ports && c.ports.length > 0) || customLinks[c.id] ? (
+                            <button
+                              onClick={(e) => handleSetPrimary(e, c.id)}
+                              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-orbit-500/20 text-zinc-400 hover:text-orbit-300 border border-white/10 text-[10px] transition-colors shrink-0"
+                              title={t('containers.set_as_primary')}
+                            >
+                              {t('containers.set_as_primary')}
+                            </button>
+                          ) : null}
                         </div>
                         <span className="text-[11px] text-zinc-400 font-mono truncate block max-w-[200px]" title={c.image}>
                           {c.image.split(':')[0].split('/').pop()}:{c.image.split(':')[1] || 'latest'}

@@ -164,8 +164,19 @@ export const ru = {
     restart_policy: "Политика перезапуска",
     command: "Команда запуска",
     entrypoint: "Точка входа",
-    working_dir: "Рабочий каталог",
-    privileged_mode: "Привилегированный режим"
+    working_dir: "Рабочая Директория",
+    privileged_mode: "Привилегированный Режим",
+    update_all: "Обновить Все",
+    update_all_progress: "Обновление контейнера {{current}} из {{total}}: {{name}}...",
+    update_all_success: "Все контейнеры успешно обновлены!",
+    all_up_to_date: "Все контейнеры уже обновлены до последней версии!",
+    select_primary: "Выбрать Основной Контейнер",
+    primary: "Основной",
+    set_as_primary: "Сделать Основным",
+    primary_selected: "Контейнер '{{name}}' назначен основным для стека!",
+    no_public_ports: "Нет публичных портов",
+    open_app: "Открыть",
+    stopping_and_deleting: "Безопасная остановка и удаление контейнера..."
   },
   store: {
     title: "Магазин приложений",

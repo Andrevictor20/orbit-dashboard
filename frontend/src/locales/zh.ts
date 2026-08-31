@@ -165,7 +165,18 @@ export const zh = {
     command: "启动命令",
     entrypoint: "入口点",
     working_dir: "工作目录",
-    privileged_mode: "特权模式"
+    privileged_mode: "特权模式",
+    update_all: "全部更新",
+    update_all_progress: "正在更新容器 {{current}}/{{total}}: {{name}}...",
+    update_all_success: "所有容器已成功更新！",
+    all_up_to_date: "所有容器均已是最新版本！",
+    select_primary: "选择主容器",
+    primary: "主容器",
+    set_as_primary: "设为主容器",
+    primary_selected: "已将容器 '{{name}}' 设为主容器！",
+    no_public_ports: "无公开端口",
+    open_app: "打开",
+    stopping_and_deleting: "正在安全停止并删除容器..."
   },
   store: {
     title: "应用商店",

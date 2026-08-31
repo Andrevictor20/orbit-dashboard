@@ -123,25 +123,34 @@ describe('containerGroups utility', () => {
       expect(arSaudeGroup.totalCpu).toBeCloseTo(6.5);
       expect(arSaudeGroup.totalMemory).toBe(290 * 1024 * 1024);
       expect(arSaudeGroup.primaryContainer.name).toBe('ar-saude-frontend');
+      expect(arSaudeGroup.webLink).toContain(':8080');
+      expect(arSaudeGroup.webContainers.length).toBe(1);
+      expect(arSaudeGroup.webContainers[0].name).toBe('ar-saude-frontend');
     }
 
     const grafanaGroup = grouped.find(g => g.type === 'group' && g.groupKey === 'grafana');
     expect(grafanaGroup).toBeDefined();
     if (grafanaGroup && grafanaGroup.type === 'group') {
-      expect(grafanaGroup.containers.length).toBe(2);
-      expect(grafanaGroup.primaryContainer.name).toBe('grafana-server');
+      expect(grafanaGroup.totalCount).toBe(2);
+      expect(grafanaGroup.webLink).toContain(':3001');
+      expect(grafanaGroup.webContainers.length).toBe(1);
     }
+  });
 
-    const moodleSingle = grouped.find(g => g.type === 'single' && g.container.name === 'moodle-tutorial');
-    expect(moodleSingle).toBeDefined();
+  it('honors saved preferred primary container in group', () => {
+    localStorage.setItem('orbit_stack_primary_ar-saude', 'as2');
+    const groups = groupContainers(mockContainers);
+    const arSaudeGroup = groups.find(g => g.type === 'group' && g.id === 'group:ar-saude') as any;
+    expect(arSaudeGroup?.primaryContainer.id).toBe('as2');
+    localStorage.removeItem('orbit_stack_primary_ar-saude');
   });
 
   it('keeps single containers as single type', () => {
-    const grouped = groupContainers(mockContainers, {});
-    const orbitSingle = grouped.find(g => g.type === 'single' && g.container.name === 'orbit');
-    expect(orbitSingle).toBeDefined();
-    if (orbitSingle && orbitSingle.type === 'single') {
-      expect(orbitSingle.container.id).toBe('c1');
-    }
+    const groups = groupContainers(mockContainers);
+    const singleItems = groups.filter(g => g.type === 'single');
+    expect(singleItems.length).toBe(3); // orbit, overseerr, moodle-tutorial
+    expect(singleItems.some((s: any) => s.container.name === 'orbit')).toBe(true);
+    expect(singleItems.some((s: any) => s.container.name === 'overseerr')).toBe(true);
+    expect(singleItems.some((s: any) => s.container.name === 'moodle-tutorial')).toBe(true);
   });
 });

@@ -165,7 +165,18 @@ export const fr = {
     command: "Commande de Démarrage",
     entrypoint: "Point d'Entrée",
     working_dir: "Répertoire de Travail",
-    privileged_mode: "Mode Privilégié"
+    privileged_mode: "Mode Privilégié",
+    update_all: "Tout Mettre à Jour",
+    update_all_progress: "Mise à jour du conteneur {{current}} sur {{total}} : {{name}}...",
+    update_all_success: "Tous les conteneurs ont été mis à jour avec succès !",
+    all_up_to_date: "Tous les conteneurs sont déjà à jour !",
+    select_primary: "Sélectionner le Conteneur Principal",
+    primary: "Principal",
+    set_as_primary: "Définir comme Principal",
+    primary_selected: "Conteneur '{{name}}' défini comme principal !",
+    no_public_ports: "Aucun port public",
+    open_app: "Ouvrir",
+    stopping_and_deleting: "Arrêt et suppression du conteneur en toute sécurité..."
   },
   store: {
     title: "App Store",

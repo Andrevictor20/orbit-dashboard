@@ -1,3 +1,5 @@
+import { resolveWebUrl } from './url';
+
 export interface PortInfo {
   ip?: string;
   private_port: number;
@@ -36,6 +38,7 @@ export interface GroupContainerItem<T extends ContainerLike = ContainerLike> {
   name: string;
   groupKey: string;
   containers: T[];
+  webContainers: T[];
   primaryContainer: T;
   iconUrl: string;
   webLink?: string;
@@ -104,13 +107,24 @@ export function getContainerGroupName(c: ContainerLike): string | null {
 
 /**
  * Resolves the primary/representative container of a group.
- * Prioritizes containers that:
- * 1. Have public listening web ports (e.g. 80, 443, 3000, 8080, etc.)
- * 2. Contain keywords like "frontend", "web", "ui", "app", "dashboard", "server" in their name/service
- * 3. Fallback to the first running container, or the first container in the list.
+ * Prioritizes:
+ * 1. User-saved preferred container ID for this group/stack
+ * 2. Containers that have public listening web ports + web keyword in name
+ * 3. Containers with public listening web ports
+ * 4. Containers containing keywords like "frontend", "web", "ui", "app", "dashboard", "server" in name
+ * 5. First running container, or first container in the list.
  */
-export function getPrimaryContainer<T extends ContainerLike>(containers: T[]): T {
+export function getPrimaryContainer<T extends ContainerLike>(
+  containers: T[],
+  preferredId?: string | null
+): T {
   if (containers.length === 1) return containers[0];
+
+  // 0. Check preferred container ID if supplied
+  if (preferredId) {
+    const matched = containers.find(c => c.id === preferredId || c.name === preferredId);
+    if (matched) return matched;
+  }
 
   const webKeywords = ['frontend', 'web', 'ui', 'dashboard', 'app', 'portal', 'client', 'server'];
 
@@ -148,14 +162,13 @@ export function getPrimaryContainer<T extends ContainerLike>(containers: T[]): T
  */
 export function getContainerWebLink(c: ContainerLike, customLinks: Record<string, string> = {}): string {
   if (customLinks[c.id]) {
-    return customLinks[c.id];
+    return resolveWebUrl(customLinks[c.id]);
   }
 
   if (c.ports && c.ports.length > 0) {
-    const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
+    const publicPort = c.ports.find(p => p.public_port)?.public_port;
     if (publicPort) {
-      const hostname = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
-      return `http://${hostname}:${publicPort}`;
+      return resolveWebUrl(publicPort);
     }
   }
 
@@ -195,7 +208,15 @@ export function groupContainers<T extends ContainerLike>(
   // Step 2: Form groups for keys with 2+ containers
   for (const [groupKey, bucket] of groupBuckets.entries()) {
     if (bucket.length >= 2) {
-      const primary = getPrimaryContainer(bucket);
+      const savedPrimaryId = typeof localStorage !== 'undefined' 
+        ? localStorage.getItem(`orbit_stack_primary_${groupKey}`) 
+        : null;
+
+      const primary = getPrimaryContainer(bucket, savedPrimaryId);
+      const webContainers = bucket.filter(c => 
+        (c.ports && c.ports.some(p => Boolean(p.public_port))) || Boolean(customLinks[c.id])
+      );
+
       const totalCpu = bucket.reduce((sum, c) => sum + (c.cpu_percent || 0), 0);
       const totalMemory = bucket.reduce((sum, c) => sum + (c.memory_used || 0), 0);
       const totalDisk = bucket.reduce((sum, c) => sum + ((c.size_rw || 0) + (c.size_root_fs || 0)), 0);
@@ -212,6 +233,7 @@ export function groupContainers<T extends ContainerLike>(
         name: formatGroupName(groupKey),
         groupKey,
         containers: bucket,
+        webContainers,
         primaryContainer: primary,
         iconUrl,
         webLink,

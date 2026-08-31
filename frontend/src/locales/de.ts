@@ -165,7 +165,18 @@ export const de = {
     command: "Startbefehl",
     entrypoint: "Einstiegspunkt",
     working_dir: "Arbeitsverzeichnis",
-    privileged_mode: "Privilegierter Modus"
+    privileged_mode: "Privilegierter Modus",
+    update_all: "Alle Aktualisieren",
+    update_all_progress: "Aktualisiere Container {{current}} von {{total}}: {{name}}...",
+    update_all_success: "Alle Container wurden erfolgreich aktualisiert!",
+    all_up_to_date: "Alle Container sind bereits auf dem neuesten Stand!",
+    select_primary: "Hauptcontainer Auswählen",
+    primary: "Hauptcontainer",
+    set_as_primary: "Als Hauptcontainer festlegen",
+    primary_selected: "Container '{{name}}' als Hauptcontainer festgelegt!",
+    no_public_ports: "Keine öffentlichen Ports",
+    open_app: "Öffnen",
+    stopping_and_deleting: "Container wird sicher gestoppt und gelöscht..."
   },
   store: {
     title: "App Store",

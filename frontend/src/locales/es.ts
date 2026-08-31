@@ -163,9 +163,20 @@ export const es = {
     network_settings: "Configuración de Red",
     restart_policy: "Política de Reinicio",
     command: "Comando de Inicio",
-    entrypoint: "Punto de Entrada",
+    entrypoint: "Entrypoint",
     working_dir: "Directorio de Trabajo",
-    privileged_mode: "Modo Privilegiado"
+    privileged_mode: "Modo Privilegiado",
+    update_all: "Actualizar Todos",
+    update_all_progress: "Actualizando contenedor {{current}} de {{total}}: {{name}}...",
+    update_all_success: "¡Todos los contenedores se actualizaron con éxito!",
+    all_up_to_date: "¡Todos los contenedores ya están en la última versión!",
+    select_primary: "Seleccionar Contenedor Principal",
+    primary: "Principal",
+    set_as_primary: "Establecer como Principal",
+    primary_selected: "¡Contenedor '{{name}}' establecido como principal!",
+    no_public_ports: "Sin puertos públicos",
+    open_app: "Abrir",
+    stopping_and_deleting: "Deteniendo y eliminando contenedor de forma segura..."
   },
   store: {
     title: "Tienda de Aplicaciones",

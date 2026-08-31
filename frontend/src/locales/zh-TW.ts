@@ -165,7 +165,18 @@ export const zhTW = {
     command: "啟動指令",
     entrypoint: "進入點",
     working_dir: "工作目錄",
-    privileged_mode: "特權模式"
+    privileged_mode: "特權模式",
+    update_all: "全部更新",
+    update_all_progress: "正在更新容器 {{current}}/{{total}}: {{name}}...",
+    update_all_success: "所有容器已成功更新！",
+    all_up_to_date: "所有容器均已是最新版本！",
+    select_primary: "選擇主容器",
+    primary: "主容器",
+    set_as_primary: "設為主容器",
+    primary_selected: "已將容器 '{{name}}' 設為主容器！",
+    no_public_ports: "無公開連接埠",
+    open_app: "開啟",
+    stopping_and_deleting: "正在安全停止並刪除容器..."
   },
   store: {
     title: "應用商店",

@@ -165,7 +165,18 @@ export const ja = {
     command: "起動コマンド",
     entrypoint: "エントリポイント",
     working_dir: "作業ディレクトリ",
-    privileged_mode: "特権モード"
+    privileged_mode: "特権モード",
+    update_all: "すべて更新",
+    update_all_progress: "コンテナを更新中 {{current}}/{{total}}: {{name}}...",
+    update_all_success: "すべてのコンテナが正常に更新されました！",
+    all_up_to_date: "すべてのコンテナは既に最新バージョンです！",
+    select_primary: "プライマリコンテナを選択",
+    primary: "プライマリ",
+    set_as_primary: "プライマリに設定",
+    primary_selected: "コンテナ '{{name}}' をプライマリに設定しました！",
+    no_public_ports: "公開ポートなし",
+    open_app: "開く",
+    stopping_and_deleting: "コンテナを安全に停止して削除中..."
   },
   store: {
     title: "アプリストア",

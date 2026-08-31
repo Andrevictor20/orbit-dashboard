@@ -7,9 +7,11 @@ import {
   DownloadCloud, Layers, ChevronDown, ChevronRight, Terminal 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
 import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
+import { resolveWebUrl } from '../../utils/url';
 import { AppGroupModal } from './AppGroupModal';
 import { DockerInstallModal } from '../docker/DockerInstallModal';
 
@@ -51,9 +53,11 @@ export function ContainerList() {
   const [groupByStack, setGroupByStack] = useState<boolean>(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [selectedGroupModal, setSelectedGroupModal] = useState<GroupContainerItem | null>(null);
+  const [primarySelectorModal, setPrimarySelectorModal] = useState<{ isOpen: boolean; group: GroupContainerItem | null }>({ isOpen: false, group: null });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
   const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(null);
+  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
   const [linkModal, setLinkModal] = useState<{ isOpen: boolean, containerId: string | null }>({ isOpen: false, containerId: null });
   const [linkInput, setLinkInput] = useState('');
@@ -212,6 +216,63 @@ export function ContainerList() {
     } catch {}
   };
 
+  const pendingUpdatesCount = useMemo(() => {
+    return containers.filter(c => updatesMap[c.id]?.has_update).length;
+  }, [containers, updatesMap]);
+
+  const handleUpdateAllContainers = async () => {
+    const outdated = containers.filter(c => updatesMap[c.id]?.has_update);
+    if (outdated.length === 0) {
+      await fetchUpdates();
+      toast.success(t('containers.all_up_to_date'));
+      return;
+    }
+
+    setIsUpdatingAll(true);
+    const toastId = toast.loading(
+      t('containers.update_all_progress', { current: 1, total: outdated.length, name: outdated[0].name })
+    );
+
+    const token = localStorage.getItem('orbit_token');
+    let successCount = 0;
+
+    for (let i = 0; i < outdated.length; i++) {
+      const c = outdated[i];
+      toast.loading(
+        t('containers.update_all_progress', { current: i + 1, total: outdated.length, name: c.name }),
+        { id: toastId }
+      );
+      try {
+        const res = await fetch(`/api/docker/containers/${c.id}/update`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          successCount++;
+          setUpdatesMap(prev => ({ ...prev, [c.id]: { has_update: false } }));
+        }
+      } catch (err) {
+        console.error(`Failed updating container ${c.name}`, err);
+      }
+    }
+
+    setIsUpdatingAll(false);
+    if (successCount > 0) {
+      toast.success(t('containers.update_all_success'), { id: toastId });
+      await fetchContainers(false);
+    } else {
+      toast.error(t('common.error'), { id: toastId });
+    }
+  };
+
+  const handleSelectStackPrimary = (groupKey: string, containerId: string, containerName: string) => {
+    localStorage.setItem(`orbit_stack_primary_${groupKey}`, containerId);
+    toast.success(t('containers.primary_selected', { name: containerName }));
+    setPrimarySelectorModal({ isOpen: false, group: null });
+    // Force re-render of groups
+    setContainers(prev => [...prev]);
+  };
+
   const handleUpdateContainer = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setUpdatingContainerId(id);
@@ -226,10 +287,11 @@ export function ContainerList() {
         await fetchContainers(false);
       } else {
         const err = await res.text();
-        alert(`Erro ao atualizar container: ${err}`);
+        toast.error(`Erro ao atualizar container: ${err}`);
       }
     } catch (err) {
       console.error('Failed to update container', err);
+      toast.error('Erro na requisição de atualização');
     } finally {
       setUpdatingContainerId(null);
     }
@@ -372,6 +434,27 @@ export function ContainerList() {
               <List className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Bulk Update All Containers Button */}
+          <button
+            onClick={handleUpdateAllContainers}
+            disabled={isUpdatingAll}
+            className={`px-3 sm:px-4 py-2 rounded-md flex items-center gap-2 transition-all text-xs sm:text-sm font-medium border ${
+              pendingUpdatesCount > 0
+                ? 'bg-violet-600/25 hover:bg-violet-600/40 text-violet-300 border-violet-500/50 shadow-sm shadow-violet-900/30 font-semibold'
+                : 'bg-card hover:bg-accent text-secondary hover:text-primary border-border'
+            }`}
+            title={t('containers.update_all')}
+          >
+            <DownloadCloud className={`w-3.5 h-3.5 ${isUpdatingAll ? 'animate-bounce text-violet-400' : pendingUpdatesCount > 0 ? 'text-violet-400' : ''}`} />
+            <span>{t('containers.update_all')}</span>
+            {pendingUpdatesCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                {pendingUpdatesCount}
+              </span>
+            )}
+          </button>
+
           <button 
             onClick={() => fetchContainers(true)}
             className="px-3 sm:px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
@@ -539,6 +622,72 @@ export function ContainerList() {
                     )}
                   </div>
 
+                  {/* Stack Network / Ports / Web Link row */}
+                  <div className="flex items-center justify-between text-xs text-secondary gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      {group.primaryContainer.ports && group.primaryContainer.ports.length > 0 ? (
+                        <div className="flex items-center gap-1 overflow-hidden">
+                          {group.primaryContainer.ports.slice(0, 2).map((p, idx) => {
+                            const targetUrl = resolveWebUrl(p.public_port || p.private_port);
+                            return (
+                              <div key={idx} className="flex items-center gap-1 font-mono text-[11px] bg-background px-1.5 py-0.5 rounded border border-border/50">
+                                {p.public_port ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(targetUrl, '_blank');
+                                    }}
+                                    className="text-orbit-400 hover:underline flex items-center gap-1"
+                                    title={`Abrir ${targetUrl}`}
+                                  >
+                                    <span>{p.public_port}:{p.private_port}</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </button>
+                                ) : (
+                                  <span>{p.private_port}/{p.typ}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {group.primaryContainer.ports.length > 2 && (
+                            <span className="text-[10px] text-secondary">+{group.primaryContainer.ports.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {group.webLink && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(resolveWebUrl(group.webLink), '_blank');
+                          }}
+                          className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
+                          title={`Abrir ${group.primaryContainer.name} (${group.webLink})`}
+                        >
+                          <Globe className="w-3 h-3 text-orbit-400" />
+                          <span className="truncate max-w-[70px]">{t('containers.open_app')}</span>
+                        </button>
+                      )}
+
+                      {group.webContainers && group.webContainers.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrimarySelectorModal({ isOpen: true, group });
+                          }}
+                          className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-orbit-300 transition-colors border border-border/50"
+                          title={`${t('containers.select_primary')} (${group.primaryContainer.name})`}
+                        >
+                          <Settings2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Group Action Controls */}
                   <div className="flex items-center justify-between pt-2 border-t border-border/50 gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
@@ -652,17 +801,17 @@ export function ContainerList() {
                     {c.ports && c.ports.length > 0 ? (
                       <div className="flex items-center gap-1 overflow-hidden">
                         {c.ports.slice(0, 2).map((p, idx) => {
-                          const ip = window.location.hostname;
+                          const targetUrl = resolveWebUrl(p.public_port || p.private_port);
                           return (
                             <div key={idx} className="flex items-center gap-1 font-mono text-[11px] bg-background px-1.5 py-0.5 rounded border border-border/50">
                               {p.public_port ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(`http://${ip}:${p.public_port}`, '_blank');
+                                    window.open(targetUrl, '_blank');
                                   }}
                                   className="text-orbit-400 hover:underline flex items-center gap-1"
-                                  title={`Abrir http://${ip}:${p.public_port}`}
+                                  title={`Abrir ${targetUrl}`}
                                 >
                                   <span>{p.public_port}:{p.private_port}</span>
                                   <ExternalLink className="w-2.5 h-2.5" />
@@ -678,7 +827,7 @@ export function ContainerList() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-zinc-500 font-mono">Sem portas públicas</span>
+                      <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>
                     )}
                   </div>
 
@@ -687,13 +836,13 @@ export function ContainerList() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(customLinks[c.id], '_blank');
+                          window.open(resolveWebUrl(customLinks[c.id]), '_blank');
                         }}
                         className="glass-button px-2 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30"
                         title={customLinks[c.id]}
                       >
                         <Globe className="w-3 h-3 text-orbit-400" />
-                        <span className="truncate max-w-[80px]">Abrir</span>
+                        <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
                       </button>
                       <button
                         onClick={(e) => handleSetCustomLink(e, c.id)}
@@ -1018,11 +1167,11 @@ export function ContainerList() {
                         {(() => {
                           const firstPublic = c.ports?.find(p => p.public_port);
                           if (firstPublic) {
-                            const ip = window.location.hostname;
+                            const targetUrl = resolveWebUrl(firstPublic.public_port);
                             return (
                               <button 
-                                onClick={(e) => { e.stopPropagation(); window.open(`http://${ip}:${firstPublic.public_port}`, '_blank'); }}
-                                className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title="IP:Porta"
+                                onClick={(e) => { e.stopPropagation(); window.open(targetUrl, '_blank'); }}
+                                className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title={`Abrir ${targetUrl}`}
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </button>
@@ -1035,7 +1184,7 @@ export function ContainerList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (customLinks[c.id]) {
-                              window.open(customLinks[c.id], '_blank');
+                              window.open(resolveWebUrl(customLinks[c.id]), '_blank');
                             } else {
                               handleSetCustomLink(e, c.id);
                             }
@@ -1220,6 +1369,90 @@ export function ContainerList() {
                 className="w-full sm:w-auto px-5 py-2.5 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-xl transition-all text-sm font-semibold shadow-md shadow-orbit-500/20 text-center"
               >
                 Salvar Link
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Primary Container Selector Modal for Stacks */}
+      {primarySelectorModal.isOpen && primarySelectorModal.group && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-md mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-primary">
+                    {t('containers.select_primary')}
+                  </h3>
+                  <p className="text-xs text-secondary">{primarySelectorModal.group.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
+                className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {primarySelectorModal.group.containers.map(sub => {
+                const isSelected = primarySelectorModal.group?.primaryContainer.id === sub.id;
+                const ports = sub.ports?.filter(p => p.public_port) || [];
+                const link = customLinks[sub.id] || (ports.length > 0 ? resolveWebUrl(ports[0].public_port) : '');
+
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => handleSelectStackPrimary(primarySelectorModal.group!.groupKey, sub.id, sub.name)}
+                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
+                      isSelected
+                        ? 'bg-orbit-500/20 border-orbit-500/60 text-white shadow-sm'
+                        : 'bg-background hover:bg-accent/50 border-border text-zinc-300'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm truncate">{sub.name}</span>
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded-full bg-orbit-500 text-white text-[10px] font-bold">
+                            {t('containers.primary')}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-secondary font-mono block truncate mt-0.5">
+                        {link ? link : t('containers.no_public_ports')}
+                      </span>
+                    </div>
+
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                      isSelected ? 'border-orbit-500 bg-orbit-500 text-white' : 'border-zinc-600'
+                    }`}>
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
+                className="px-4 py-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/50 transition-colors text-sm font-medium"
+              >
+                {t('common.close')}
               </button>
             </div>
           </div>

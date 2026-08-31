@@ -115,24 +115,32 @@ pub async fn delete_container(
     let mut image_id = None;
     let mut network_names = Vec::new();
 
-    if query.image.unwrap_or(false) || query.network.unwrap_or(false) {
-        if let Ok(inspect) = docker.inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>).await {
-            if query.image.unwrap_or(false) {
-                image_id = inspect.image;
+    // 1. Inspect container to check running state and collect image/network if requested
+    if let Ok(inspect) = docker.inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>).await {
+        // Stop container if running or paused before removal
+        if let Some(st) = inspect.state {
+            if st.running.unwrap_or(false) || st.paused.unwrap_or(false) {
+                let stop_opts = Some(bollard::query_parameters::StopContainerOptions { t: Some(5), signal: None });
+                let _ = docker.stop_container(&id, stop_opts).await;
             }
-            if query.network.unwrap_or(false) {
-                if let Some(network_settings) = inspect.network_settings {
-                    if let Some(networks) = network_settings.networks {
-                        network_names = networks.keys().cloned().collect();
-                    }
+        }
+
+        if query.image.unwrap_or(false) {
+            image_id = inspect.image;
+        }
+        if query.network.unwrap_or(false) {
+            if let Some(network_settings) = inspect.network_settings {
+                if let Some(networks) = network_settings.networks {
+                    network_names = networks.keys().cloned().collect();
                 }
             }
         }
     }
 
+    // 2. Remove the stopped container
     let remove_volumes = query.v.unwrap_or(false);
     let options = Some(bollard::query_parameters::RemoveContainerOptions {
-        force: true, // Force removal if running
+        force: true,
         v: remove_volumes,
         link: false,
     });
@@ -151,7 +159,7 @@ pub async fn delete_container(
         }
     }
 
-    (StatusCode::OK, "Container removed successfully").into_response()
+    (StatusCode::OK, "Container stopped and removed successfully").into_response()
 }
 
 pub async fn update_container_env(

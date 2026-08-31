@@ -166,7 +166,18 @@ export const en = {
     command: "Entry Command",
     entrypoint: "Entrypoint",
     working_dir: "Working Directory",
-    privileged_mode: "Privileged Mode"
+    privileged_mode: "Privileged Mode",
+    update_all: "Update All",
+    update_all_progress: "Updating container {{current}} of {{total}}: {{name}}...",
+    update_all_success: "All containers updated successfully!",
+    all_up_to_date: "All containers are already on the latest version!",
+    select_primary: "Select Primary Container",
+    primary: "Primary",
+    set_as_primary: "Set as Primary",
+    primary_selected: "Container '{{name}}' set as primary for this stack!",
+    no_public_ports: "No public ports",
+    open_app: "Open",
+    stopping_and_deleting: "Stopping and deleting container safely..."
   },
   store: {
     title: "App Store",

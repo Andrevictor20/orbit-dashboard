@@ -9,6 +9,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { formatBytes } from '../utils/format';
+import { resolveWebUrl } from '../utils/url';
 
 interface ContainerData {
   id: string;
@@ -357,7 +358,7 @@ export function ContainerDetail() {
   const executeDelete = async () => {
     if (!container) return;
     setActionLoading(true);
-    const loadingToast = toast.loading('Excluindo container...');
+    const loadingToast = toast.loading('Parando e excluindo container com segurança...');
     try {
       const token = localStorage.getItem('orbit_token');
       
@@ -520,8 +521,9 @@ export function ContainerDetail() {
         if (hostBindings) {
           for (const binding of (hostBindings as any[])) {
             const hostPort = binding.HostPort;
+            const targetUrl = resolveWebUrl(hostPort);
             links.push(
-              <a key={`${containerPort}-${hostPort}`} href={`http://${window.location.hostname}:${hostPort}`} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">
+              <a key={`${containerPort}-${hostPort}`} href={targetUrl} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">
                 {hostPort} → {containerPort}
               </a>
             );
@@ -533,8 +535,9 @@ export function ContainerDetail() {
       if (exposed) {
         for (const portKey of Object.keys(exposed)) {
           const hostPort = portKey.split('/')[0];
+          const targetUrl = resolveWebUrl(hostPort);
           links.push(
-            <a key={`host-${hostPort}`} href={`http://${window.location.hostname}:${hostPort}`} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">
+            <a key={`host-${hostPort}`} href={targetUrl} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">
               {hostPort} (Host Network)
             </a>
           );
