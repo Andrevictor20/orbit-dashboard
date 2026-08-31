@@ -6,6 +6,7 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::io::{Read, Write};
+use std::net::ToSocketAddrs;
 use tokio::sync::mpsc;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
@@ -14,6 +15,19 @@ use serde::Deserialize;
 struct InitMessage {
     user: Option<String>,
     pass: Option<String>,
+    host: Option<String>,
+    port: Option<u16>,
+    cols: Option<u16>,
+    rows: Option<u16>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ControlMessage {
+    #[serde(rename = "type")]
+    #[allow(dead_code)]
+    msg_type: Option<String>,
+    cols: Option<u16>,
+    rows: Option<u16>,
 }
 
 pub async fn terminal_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -30,6 +44,35 @@ fn is_executable_in_path(cmd: &str) -> bool {
         }
     }
     false
+}
+
+fn resolve_default_ssh_host(custom_host: Option<String>) -> String {
+    if let Some(h) = custom_host {
+        let trimmed = h.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+
+    if let Ok(h) = std::env::var("SSH_HOST") {
+        let trimmed = h.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+
+    // Try resolving host.docker.internal first
+    if ("host.docker.internal", 22).to_socket_addrs().is_ok() {
+        return "host.docker.internal".to_string();
+    }
+
+    // Fallback 1: Docker default bridge gateway
+    if ("172.17.0.1", 22).to_socket_addrs().is_ok() {
+        return "172.17.0.1".to_string();
+    }
+
+    // Fallback 2: 127.0.0.1
+    "127.0.0.1".to_string()
 }
 
 async fn handle_socket(socket: WebSocket) {
@@ -62,6 +105,10 @@ async fn handle_socket(socket: WebSocket) {
         }
     };
 
+    let cols = init_msg.cols.unwrap_or(100).max(10).min(500);
+    let rows = init_msg.rows.unwrap_or(30).max(5).min(200);
+    let port = init_msg.port.unwrap_or(22);
+
     // 2. Setup command based on Init message
     let cmd = if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
         if !is_executable_in_path("sshpass") {
@@ -69,13 +116,14 @@ async fn handle_socket(socket: WebSocket) {
             return;
         }
 
-        // Determine target SSH host (prioritize SSH_HOST env var, fallback to host.docker.internal)
-        let ssh_host = std::env::var("SSH_HOST").unwrap_or_else(|_| "host.docker.internal".to_string());
+        let ssh_host = resolve_default_ssh_host(init_msg.host);
 
         let mut builder = CommandBuilder::new("sshpass");
         builder.arg("-p");
         builder.arg(pass);
         builder.arg("ssh");
+        builder.arg("-p");
+        builder.arg(port.to_string());
         builder.arg("-o");
         builder.arg("StrictHostKeyChecking=no");
         builder.arg("-o");
@@ -93,10 +141,10 @@ async fn handle_socket(socket: WebSocket) {
 
     let pty_system = native_pty_system();
     
-    // Create a new pty
+    // Create a new pty with initial dimensions from client
     let pair = match pty_system.openpty(PtySize {
-        rows: 24,
-        cols: 80,
+        rows,
+        cols,
         pixel_width: 0,
         pixel_height: 0,
     }) {
@@ -129,14 +177,17 @@ async fn handle_socket(socket: WebSocket) {
         Err(_) => return,
     };
 
-    // Notify frontend we are ready
+    let master = Arc::new(Mutex::new(pair.master));
+    let writer = Arc::new(Mutex::new(writer));
+
+    // Notify frontend we are connected
     let _ = sender.send(Message::Text("\x1b[1;32mConnected!\x1b[0m\r\n".into())).await;
 
-    let (tx, mut rx) = mpsc::channel::<String>(100);
+    let (tx, mut rx) = mpsc::channel::<String>(256);
 
     // Thread to read from PTY and send to WS
     thread::spawn(move || {
-        let mut buf = [0u8; 1024];
+        let mut buf = [0u8; 4096];
         loop {
             match reader.read(&mut buf) {
                 Ok(n) if n > 0 => {
@@ -150,7 +201,7 @@ async fn handle_socket(socket: WebSocket) {
         }
     });
 
-    let writer = Arc::new(Mutex::new(writer));
+    let master_clone = master.clone();
     let writer_clone = writer.clone();
 
     // Tokio task to forward messages from PTY to WS
@@ -162,15 +213,42 @@ async fn handle_socket(socket: WebSocket) {
         }
     });
 
-    // Tokio task to forward WS messages to PTY
+    // Tokio task to forward WS messages to PTY / handle resize
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
-            if let Message::Text(text) = msg {
-                let mut w = writer_clone.lock().unwrap();
-                let _ = w.write_all(text.as_bytes());
-            } else if let Message::Binary(bin) = msg {
-                let mut w = writer_clone.lock().unwrap();
-                let _ = w.write_all(&bin);
+            match msg {
+                Message::Text(text) => {
+                    // Check if this is a resize control message
+                    if text.starts_with('{') && text.contains("cols") && text.contains("rows") {
+                        if let Ok(ctrl) = serde_json::from_str::<ControlMessage>(&text) {
+                            if let (Some(c), Some(r)) = (ctrl.cols, ctrl.rows) {
+                                if let Ok(m) = master_clone.lock() {
+                                    let _ = m.resize(PtySize {
+                                        rows: r.max(5).min(500),
+                                        cols: c.max(10).min(1000),
+                                        pixel_width: 0,
+                                        pixel_height: 0,
+                                    });
+                                }
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Regular terminal input
+                    if let Ok(mut w) = writer_clone.lock() {
+                        let _ = w.write_all(text.as_bytes());
+                        let _ = w.flush();
+                    }
+                }
+                Message::Binary(bin) => {
+                    if let Ok(mut w) = writer_clone.lock() {
+                        let _ = w.write_all(&bin);
+                        let _ = w.flush();
+                    }
+                }
+                Message::Close(_) => break,
+                _ => {}
             }
         }
     });
