@@ -176,6 +176,8 @@ export const fr = {
     primary_selected: "Conteneur '{{name}}' défini comme principal !",
     no_public_ports: "Aucun port public",
     open_app: "Ouvrir",
+    edit_link: "Configurer le Lien",
+    manage_stack_routes: "Gérer les Routes et Conteneur Principal",
     stopping_and_deleting: "Arrêt et suppression du conteneur en toute sécurité..."
   },
   store: {

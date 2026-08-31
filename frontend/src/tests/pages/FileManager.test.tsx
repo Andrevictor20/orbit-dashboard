@@ -185,8 +185,10 @@ describe('FileManager Page Component', () => {
     const viewToggleBtn = screen.getByTestId('view-mode-toggle');
     fireEvent.click(viewToggleBtn);
 
-    // List view table headers
-    expect(screen.getByText(/Tamanho|Size/i)).toBeTruthy();
-    expect(screen.getByText(/Modificado|Modified/i)).toBeTruthy();
+    await waitFor(() => {
+      // List view table headers
+      expect(screen.getByText(/Tamanho|Size/i)).toBeTruthy();
+      expect(screen.getByText(/Modificado|Modified/i)).toBeTruthy();
+    });
   });
 });

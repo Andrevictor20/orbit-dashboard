@@ -177,6 +177,8 @@ export const pt = {
     primary_selected: "Container '{{name}}' definido como principal da stack!",
     no_public_ports: "Sem portas públicas",
     open_app: "Abrir",
+    edit_link: "Configurar Link",
+    manage_stack_routes: "Gerenciar Rotas & Container Principal",
     stopping_and_deleting: "Parando e excluindo container com segurança..."
   },
   store: {

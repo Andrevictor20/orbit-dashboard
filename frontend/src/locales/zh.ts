@@ -176,6 +176,8 @@ export const zh = {
     primary_selected: "已将容器 '{{name}}' 设为主容器！",
     no_public_ports: "无公开端口",
     open_app: "打开",
+    edit_link: "配置链接",
+    manage_stack_routes: "管理路由与主容器",
     stopping_and_deleting: "正在安全停止并删除容器..."
   },
   store: {

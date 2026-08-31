@@ -176,6 +176,8 @@ export const it = {
     primary_selected: "Container '{{name}}' impostato come principale!",
     no_public_ports: "Nessuna porta pubblica",
     open_app: "Apri",
+    edit_link: "Configura Link",
+    manage_stack_routes: "Gestisci Percorsi e Container Principale",
     stopping_and_deleting: "Arresto ed eliminazione sicura del container..."
   },
   store: {

@@ -177,6 +177,8 @@ export const en = {
     primary_selected: "Container '{{name}}' set as primary for this stack!",
     no_public_ports: "No public ports",
     open_app: "Open",
+    edit_link: "Configure Link",
+    manage_stack_routes: "Manage Routes & Primary Container",
     stopping_and_deleting: "Stopping and deleting container safely..."
   },
   store: {

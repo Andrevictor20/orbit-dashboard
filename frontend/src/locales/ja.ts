@@ -176,6 +176,8 @@ export const ja = {
     primary_selected: "コンテナ '{{name}}' をプライマリに設定しました！",
     no_public_ports: "公開ポートなし",
     open_app: "開く",
+    edit_link: "リンク設定",
+    manage_stack_routes: "ルートとメインコンテナの管理",
     stopping_and_deleting: "コンテナを安全に停止して削除中..."
   },
   store: {

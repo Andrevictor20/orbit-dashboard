@@ -176,6 +176,8 @@ export const ru = {
     primary_selected: "Контейнер '{{name}}' назначен основным для стека!",
     no_public_ports: "Нет публичных портов",
     open_app: "Открыть",
+    edit_link: "Настроить ссылку",
+    manage_stack_routes: "Управление маршрутами и основным контейнером",
     stopping_and_deleting: "Безопасная остановка и удаление контейнера..."
   },
   store: {

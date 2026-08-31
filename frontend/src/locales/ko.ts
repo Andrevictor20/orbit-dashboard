@@ -176,6 +176,8 @@ export const ko = {
     primary_selected: "컨테이너 '{{name}}'이(가) 스택의 기본으로 설정되었습니다!",
     no_public_ports: "공개 포트 없음",
     open_app: "열기",
+    edit_link: "링크 설정",
+    manage_stack_routes: "경로 및 기본 컨테이너 관리",
     stopping_and_deleting: "컨테이너를 안전하게 중지하고 삭제하는 중..."
   },
   store: {

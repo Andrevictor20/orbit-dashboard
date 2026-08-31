@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   X, Layers, Play, Square, RotateCw, Pause, 
   ExternalLink, ArrowRight, Activity, Cpu, HardDrive, 
-  RefreshCw, Box, Radio
+  RefreshCw, Box, Radio, Settings2
 } from 'lucide-react';
 import type { GroupContainerItem, ContainerLike } from '../../utils/containerGroups';
 import { formatRAM } from '../../utils/format';
@@ -15,6 +15,7 @@ interface AppGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRefresh?: () => void;
+  onEditLink?: (containerId: string) => void;
   customLinks?: Record<string, string>;
 }
 
@@ -23,6 +24,7 @@ export function AppGroupModal({
   isOpen,
   onClose,
   onRefresh,
+  onEditLink,
   customLinks = {},
 }: AppGroupModalProps) {
   const navigate = useNavigate();
@@ -333,11 +335,24 @@ export function AppGroupModal({
                             e.stopPropagation();
                             window.open(webLink, '_blank');
                           }}
-                          className="px-2 py-1 rounded-lg text-orbit-300 hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/30 transition-all flex items-center gap-1 text-[11px] font-sans font-medium mr-1"
+                          className="px-2 py-1 rounded-lg text-orbit-300 hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/30 transition-all flex items-center gap-1 text-[11px] font-sans font-medium"
                           title={`Abrir Web UI (${webLink})`}
                         >
                           <ExternalLink className="w-3 h-3" />
-                          <span>Abrir</span>
+                          <span>{t('containers.open_app')}</span>
+                        </button>
+                      )}
+
+                      {onEditLink && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditLink(c.id);
+                          }}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5 hover:bg-orbit-500/20 border border-white/10 transition-colors"
+                          title={t('containers.edit_link')}
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
                         </button>
                       )}
 

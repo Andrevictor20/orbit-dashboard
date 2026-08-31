@@ -133,4 +133,25 @@ describe('AppGroupModal Component', () => {
       );
     });
   });
+
+  it('triggers onEditLink when clicking the settings/edit route button for a sub-container', () => {
+    const onEditLink = vi.fn();
+
+    render(
+      <BrowserRouter>
+        <AppGroupModal
+          group={mockGroup}
+          isOpen={true}
+          onClose={vi.fn()}
+          onEditLink={onEditLink}
+        />
+      </BrowserRouter>
+    );
+
+    const editButtons = screen.getAllByTitle('Configurar Link');
+    expect(editButtons.length).toBe(2);
+    fireEvent.click(editButtons[0]);
+
+    expect(onEditLink).toHaveBeenCalledWith('c11111111111');
+  });
 });

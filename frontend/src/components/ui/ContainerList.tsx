@@ -673,18 +673,16 @@ export function ContainerList() {
                         </button>
                       )}
 
-                      {group.webContainers && group.webContainers.length > 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPrimarySelectorModal({ isOpen: true, group });
-                          }}
-                          className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-orbit-300 transition-colors border border-border/50"
-                          title={`${t('containers.select_primary')} (${group.primaryContainer.name})`}
-                        >
-                          <Settings2 className="w-3 h-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPrimarySelectorModal({ isOpen: true, group });
+                        }}
+                        className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-orbit-300 transition-colors border border-border/50"
+                        title={`${t('containers.select_primary')} (${group.primaryContainer.name})`}
+                      >
+                        <Settings2 className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
 
@@ -1249,6 +1247,7 @@ export function ContainerList() {
         isOpen={Boolean(selectedGroupModal)}
         onClose={() => setSelectedGroupModal(null)}
         onRefresh={() => fetchContainers(false)}
+        onEditLink={(id) => handleSetCustomLink({ stopPropagation: () => {} } as any, id)}
         customLinks={customLinks}
       />
       
@@ -1383,7 +1382,7 @@ export function ContainerList() {
           onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
         >
           <div
-            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-md mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-lg mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
@@ -1407,42 +1406,71 @@ export function ContainerList() {
               </button>
             </div>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2.5 mb-4">
               {primarySelectorModal.group.containers.map(sub => {
                 const isSelected = primarySelectorModal.group?.primaryContainer.id === sub.id;
                 const ports = sub.ports?.filter(p => p.public_port) || [];
                 const link = customLinks[sub.id] || (ports.length > 0 ? resolveWebUrl(ports[0].public_port) : '');
 
                 return (
-                  <button
+                  <div
                     key={sub.id}
-                    onClick={() => handleSelectStackPrimary(primarySelectorModal.group!.groupKey, sub.id, sub.name)}
-                    className={`w-full p-3 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
+                    className={`w-full p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
                       isSelected
-                        ? 'bg-orbit-500/20 border-orbit-500/60 text-white shadow-sm'
-                        : 'bg-background hover:bg-accent/50 border-border text-zinc-300'
+                        ? 'bg-orbit-500/15 border-orbit-500/60 text-white shadow-sm'
+                        : 'bg-background hover:bg-accent/40 border-border text-zinc-300'
                     }`}
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm truncate">{sub.name}</span>
-                        {isSelected && (
-                          <span className="px-2 py-0.5 rounded-full bg-orbit-500 text-white text-[10px] font-bold">
-                            {t('containers.primary')}
-                          </span>
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStackPrimary(primarySelectorModal.group!.groupKey, sub.id, sub.name)}
+                      className="flex-1 text-left min-w-0 flex items-center gap-3"
+                    >
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-orbit-500 bg-orbit-500 text-white' : 'border-zinc-600'
+                      }`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
-                      <span className="text-xs text-secondary font-mono block truncate mt-0.5">
-                        {link ? link : t('containers.no_public_ports')}
-                      </span>
-                    </div>
 
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                      isSelected ? 'border-orbit-500 bg-orbit-500 text-white' : 'border-zinc-600'
-                    }`}>
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm truncate">{sub.name}</span>
+                          {isSelected && (
+                            <span className="px-2 py-0.5 rounded-full bg-orbit-500 text-white text-[10px] font-bold">
+                              {t('containers.primary')}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-secondary font-mono block truncate mt-0.5">
+                          {link ? link : t('containers.no_public_ports')}
+                        </span>
+                      </div>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {link && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(link, '_blank');
+                          }}
+                          className="p-1.5 rounded-lg text-orbit-300 hover:text-white bg-orbit-500/10 hover:bg-orbit-500/25 border border-orbit-500/30 transition-all"
+                          title={t('containers.open_app')}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleSetCustomLink(e, sub.id)}
+                        className="p-1.5 rounded-lg text-secondary hover:text-primary bg-accent/50 hover:bg-accent border border-border transition-all"
+                        title={t('containers.edit_link')}
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
