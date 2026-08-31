@@ -8,28 +8,30 @@ pub fn sanitize_path(raw: &str) -> Result<PathBuf, StatusCode> {
     let trimmed = raw.trim();
     let p = if trimmed.is_empty() { "/" } else { trimmed };
 
-    if Path::new(p).exists() {
-        return Ok(PathBuf::from(p));
-    }
-
     // If running inside a container where host root is mounted at /host
     if Path::new("/host").is_dir() {
         if p == "/" || p == "/host" {
             return Ok(PathBuf::from("/host"));
         }
-        if p.starts_with("/host/") || p == "/host" {
+        if p.starts_with("/host/") {
             return Ok(PathBuf::from(p));
         }
-        // If path is under /mnt or /media or /app or /tmp, check if local mount exists first
-        if (p.starts_with("/mnt") || p.starts_with("/media") || p.starts_with("/app") || p.starts_with("/tmp")) && Path::new(p).exists() {
-            return Ok(PathBuf::from(p));
-        }
-        // Map host path: e.g. /home/user -> /host/home/user
+        // Map host path: e.g. /home/user -> /host/home/user, /mnt -> /host/mnt
         let clean = p.trim_start_matches('/');
         let mapped = Path::new("/host").join(clean);
-        if mapped.exists() || !Path::new(p).exists() {
+        if mapped.exists() {
             return Ok(mapped);
         }
+    }
+
+    if Path::new(p).exists() {
+        return Ok(PathBuf::from(p));
+    }
+
+    // Fallback: if /host exists, map to /host/<clean> even if it doesn't exist yet
+    if Path::new("/host").is_dir() {
+        let clean = p.trim_start_matches('/');
+        return Ok(Path::new("/host").join(clean));
     }
 
     Ok(PathBuf::from(p))

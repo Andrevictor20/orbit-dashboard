@@ -283,15 +283,53 @@ pub async fn unmount_storage(Json(req): Json<UnmountRequest>) -> Result<Json<ser
     Ok(Json(serde_json::json!({ "success": true, "unmounted": req.mount_point })))
 }
 
-pub fn get_dir_size_recursive(p: &Path) -> u64 {
-    let mut total = 0;
-    if let Ok(entries) = fs::read_dir(p) {
-        for entry in entries.flatten() {
-            if let Ok(meta) = entry.metadata() {
-                if meta.is_dir() {
-                    total += get_dir_size_recursive(&entry.path());
-                } else {
-                    total += meta.len();
+pub fn is_skipped_path(p: &Path) -> bool {
+    let s = p.to_string_lossy();
+    s.starts_with("/proc")
+        || s.starts_with("/sys")
+        || s.starts_with("/dev")
+        || s.starts_with("/run")
+        || s.starts_with("/host/proc")
+        || s.starts_with("/host/sys")
+        || s.starts_with("/host/dev")
+        || s.starts_with("/host/run")
+}
+
+pub fn get_dir_size_recursive(root: &Path) -> u64 {
+    if is_skipped_path(root) {
+        return 0;
+    }
+
+    let mut total = 0u64;
+    let mut stack = vec![root.to_path_buf()];
+    let mut visited_count = 0usize;
+    const MAX_VISITED_FILES: usize = 1_000_000;
+
+    while let Some(current) = stack.pop() {
+        if is_skipped_path(&current) {
+            continue;
+        }
+
+        if let Ok(entries) = fs::read_dir(&current) {
+            for entry in entries.flatten() {
+                visited_count += 1;
+                if visited_count > MAX_VISITED_FILES {
+                    return total;
+                }
+
+                if let Ok(ft) = entry.file_type() {
+                    // Do not follow symlinks to avoid infinite loops and circular trees
+                    if ft.is_symlink() {
+                        continue;
+                    }
+
+                    if ft.is_dir() {
+                        stack.push(entry.path());
+                    } else if ft.is_file() {
+                        if let Ok(meta) = entry.metadata() {
+                            total += meta.len();
+                        }
+                    }
                 }
             }
         }
@@ -300,56 +338,77 @@ pub fn get_dir_size_recursive(p: &Path) -> u64 {
 }
 
 pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<DiskAnalysisResponse>, StatusCode> {
-    let target = q.path.as_deref().unwrap_or("/");
-    let path = sanitize_path(target)?;
+    let target = q.path.as_deref().unwrap_or("/").to_string();
+    let path = sanitize_path(&target)?;
 
     if !path.exists() || !path.is_dir() {
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let entries = fs::read_dir(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let mut raw_items = Vec::new();
-    let mut total_size = 0u64;
+    let target_clone = target.clone();
+    let path_clone = path.clone();
 
-    for entry in entries.flatten() {
-        let meta = entry.metadata().ok();
-        let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
-        let name = entry.file_name().to_string_lossy().to_string();
-        let item_path = entry.path();
-
-        let size = if is_dir {
-            get_dir_size_recursive(&item_path)
-        } else {
-            meta.as_ref().map(|m| m.len()).unwrap_or(0)
+    // Offload CPU-intensive filesystem traversal to tokio threadpool so server doesn't freeze
+    let result = tokio::task::spawn_blocking(move || {
+        let entries = match fs::read_dir(&path_clone) {
+            Ok(e) => e,
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
         };
 
-        total_size += size;
-        raw_items.push((name, to_display_path(&item_path), is_dir, size));
-    }
+        let mut raw_items = Vec::new();
+        let mut total_size = 0u64;
 
-    let mut items = Vec::new();
-    for (name, item_path, is_dir, size) in raw_items {
-        let percentage = if total_size > 0 {
-            (size as f32 / total_size as f32) * 100.0
-        } else {
-            0.0
-        };
+        for entry in entries.flatten() {
+            let ft = match entry.file_type() {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
 
-        items.push(DiskItemStat {
-            name,
-            path: item_path,
-            is_dir,
-            size,
-            percentage,
-        });
-    }
+            let is_symlink = ft.is_symlink();
+            let is_dir = ft.is_dir() && !is_symlink;
+            let name = entry.file_name().to_string_lossy().to_string();
+            let item_path = entry.path();
 
-    items.sort_by(|a, b| b.size.cmp(&a.size));
+            let size = if is_dir {
+                get_dir_size_recursive(&item_path)
+            } else if !is_symlink {
+                entry.metadata().map(|m| m.len()).unwrap_or(0)
+            } else {
+                0
+            };
 
-    Ok(Json(DiskAnalysisResponse {
-        path: target.to_string(),
-        total_size,
-        item_count: items.len(),
-        items,
-    }))
+            total_size += size;
+            raw_items.push((name, to_display_path(&item_path), is_dir, size));
+        }
+
+        let mut items = Vec::new();
+        for (name, item_path, is_dir, size) in raw_items {
+            let percentage = if total_size > 0 {
+                (size as f32 / total_size as f32) * 100.0
+            } else {
+                0.0
+            };
+
+            items.push(DiskItemStat {
+                name,
+                path: item_path,
+                is_dir,
+                size,
+                percentage,
+            });
+        }
+
+        items.sort_by(|a, b| b.size.cmp(&a.size));
+
+        Ok(DiskAnalysisResponse {
+            path: target_clone,
+            total_size,
+            item_count: items.len(),
+            items,
+        })
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)??;
+
+    Ok(Json(result))
 }

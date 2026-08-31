@@ -79,30 +79,29 @@ describe('DiskAnalyzer Page Component', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders disk mounts, total size summary, and ncdu-style directory items', async () => {
+  it('renders disk mounts, total size summary, and directory items', async () => {
     render(
       <BrowserRouter>
         <DiskAnalyzer />
       </BrowserRouter>
     );
 
-    // Page title and mode badge
+    // Page title
     expect(await screen.findByText('Analisador de Espaço em Disco')).toBeTruthy();
-    expect(screen.getByText('ncdu-mode')).toBeTruthy();
 
     // Storage disks
     expect(await screen.findByText('SSD NVMe')).toBeTruthy();
-    expect(screen.getByText(/HD Externo/i)).toBeTruthy();
+    expect(screen.getAllByText(/HD Externo/i).length).toBeGreaterThan(0);
 
-    // Tree breakdown items
-    expect(await screen.findByText('var')).toBeTruthy();
-    expect(screen.getByText('usr')).toBeTruthy();
-    expect(screen.getByText('home')).toBeTruthy();
-    expect(screen.getByText('boot')).toBeTruthy();
+    // Tree breakdown items (using getAllByText because var/usr also appear in Top Consumers)
+    expect(await screen.findAllByText('var')).toBeTruthy();
+    expect(screen.getAllByText('usr').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('home').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('boot').length).toBeGreaterThan(0);
 
     // Visual percentage
-    expect(screen.getByText('58.3%')).toBeTruthy();
-    expect(screen.getByText('25.0%')).toBeTruthy();
+    expect(screen.getAllByText('58.3%').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('25.0%').length).toBeGreaterThan(0);
   });
 
   it('drills down into subdirectories upon folder click', async () => {
@@ -113,18 +112,18 @@ describe('DiskAnalyzer Page Component', () => {
     );
 
     // Click on 'var' folder row
-    const varFolder = await screen.findByText('var');
-    fireEvent.click(varFolder);
+    const varFolders = await screen.findAllByText('var');
+    fireEvent.click(varFolders[0]);
 
     // Should load /var subfolders (lib, log, cache)
     await waitFor(() => {
-      expect(screen.getByText('lib')).toBeTruthy();
-      expect(screen.getByText('log')).toBeTruthy();
-      expect(screen.getByText('cache')).toBeTruthy();
+      expect(screen.getAllByText('lib').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('log').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('cache').length).toBeGreaterThan(0);
     });
   });
 
-  it('switches between tabs (ncdu tree, smart insights, safety guardrails)', async () => {
+  it('switches between tabs (tree, smart insights, safety guardrails)', async () => {
     render(
       <BrowserRouter>
         <DiskAnalyzer />
@@ -137,15 +136,15 @@ describe('DiskAnalyzer Page Component', () => {
     const insightsTabBtn = screen.getByText(/Insights & Dicas/i);
     fireEvent.click(insightsTabBtn);
 
-    expect(await screen.findByText('Imagens e Cache do Docker')).toBeTruthy();
-    expect(screen.getByText('Logs Rotacionados & Journals')).toBeTruthy();
-    expect(screen.getByText('Caches de Pacotes (APT / npm / pip)')).toBeTruthy();
+    expect(await screen.findByText(/Docker: Limpeza de Imagens & Cache Órfãos/i)).toBeTruthy();
+    expect(screen.getByText(/Logs Rotacionados & Systemd Journals/i)).toBeTruthy();
+    expect(screen.getByText(/Cache de Pacotes \(APT \/ npm \/ pip\)/i)).toBeTruthy();
 
     // Switch to Safety tab
     const safetyTabBtn = screen.getByText(/O que NÃO Mexer/i);
     fireEvent.click(safetyTabBtn);
 
-    expect(await screen.findByText(/Atenção Máxima: Diretórios Fundamentais do Sistema Linux/i)).toBeTruthy();
+    expect(await screen.findByText(/Diretrizes de Proteção do Sistema de Arquivos Linux/i)).toBeTruthy();
     expect(screen.getByText('/var/lib/docker/overlay2')).toBeTruthy();
     expect(screen.getByText('/boot')).toBeTruthy();
     expect(screen.getByText('/etc')).toBeTruthy();

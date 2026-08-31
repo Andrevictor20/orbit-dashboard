@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   PieChart, 
@@ -8,25 +8,23 @@ import {
   Music, 
   Image as ImageIcon, 
   Archive, 
-  ArrowRight,
-  HardDrive,
-  Loader2,
-  RefreshCw,
-  FolderTree,
-  AlertTriangle,
-  ShieldCheck,
+  HardDrive, 
+  RefreshCw, 
+  FolderTree, 
+  Sparkles, 
+  Trash2, 
+  Terminal, 
+  ExternalLink, 
+  ArrowUpLeft, 
+  Search, 
+  FileCode, 
   ShieldAlert,
-  Sparkles,
-  Trash2,
-  Terminal,
-  ExternalLink,
-  ChevronRight,
-  ArrowUpLeft,
-  Search,
-  Box,
-  Layers,
-  FileCode,
-  Info
+  ArrowRight,
+  Flame,
+  CornerDownRight,
+  FolderSearch,
+  Clock,
+  Compass
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatBytes, formatStorage, getFriendlyDiskName, isPhysicalStorage } from '../utils/format';
@@ -135,9 +133,11 @@ export function DiskAnalyzer() {
   const initialPath = searchParams.get('path') || '/';
 
   const [currentPath, setCurrentPath] = useState<string>(initialPath);
+  const [customInputPath, setCustomInputPath] = useState<string>(initialPath);
   const [data, setData] = useState<DiskAnalysisResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
   const [storages, setStorages] = useState<MountItem[]>([]);
   const [activeTab, setActiveTab] = useState<'ncdu' | 'insights' | 'safety'>('ncdu');
@@ -150,6 +150,23 @@ export function DiskAnalyzer() {
   // Prune / Cleanup loading states
   const [isPruningDocker, setIsPruningDocker] = useState<boolean>(false);
   const [isCleaningTrash, setIsCleaningTrash] = useState<boolean>(false);
+
+  // Elapsed timer for scanning progress
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (loading) {
+      setElapsedSeconds(0);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [loading]);
 
   // Fetch mount points
   const loadMounts = () => {
@@ -175,8 +192,10 @@ export function DiskAnalyzer() {
       if (!res.ok) throw new Error(`Falha ao analisar o diretório ${targetPath}`);
       const json: DiskAnalysisResponse = await res.json();
       setData(json);
-      setCurrentPath(json.path || targetPath);
-      setSearchParams({ path: json.path || targetPath }, { replace: true });
+      const resPath = json.path || targetPath;
+      setCurrentPath(resPath);
+      setCustomInputPath(resPath);
+      setSearchParams({ path: resPath }, { replace: true });
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados do analisador');
     } finally {
@@ -196,6 +215,13 @@ export function DiskAnalyzer() {
   const handleNavigate = (path: string) => {
     setSearchFilter('');
     fetchAnalysis(path);
+  };
+
+  // Handle custom path form submit
+  const handleCustomPathSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customInputPath.trim()) return;
+    handleNavigate(customInputPath.trim());
   };
 
   // Navigate one level up
@@ -221,6 +247,14 @@ export function DiskAnalyzer() {
     });
     return crumbs;
   }, [currentPath]);
+
+  // Top 5 Largest Consumers in the current directory
+  const topConsumers = useMemo(() => {
+    if (!data?.items || data.items.length === 0) return [];
+    return [...data.items]
+      .sort((a, b) => b.size - a.size)
+      .slice(0, 5);
+  }, [data]);
 
   // Filtered and Sorted Items
   const filteredItems = useMemo(() => {
@@ -319,6 +353,17 @@ export function DiskAnalyzer() {
     }
   };
 
+  // Quick Preset Folders
+  const presetFolders = [
+    { label: 'Sistema (/)', path: '/' },
+    { label: 'Início (/home)', path: '/home' },
+    { label: 'Docker (/var/lib/docker)', path: '/var/lib/docker' },
+    { label: 'Logs (/var/log)', path: '/var/log' },
+    { label: 'Cache APT (/var/cache/apt)', path: '/var/cache/apt' },
+    { label: 'Temporários (/tmp)', path: '/tmp' },
+    { label: 'HD Externo (/mnt)', path: '/mnt' },
+  ];
+
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* Top Header Card */}
@@ -328,14 +373,11 @@ export function DiskAnalyzer() {
             <PieChart className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-primary flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-primary">
               Analisador de Espaço em Disco
-              <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
-                ncdu-mode
-              </span>
             </h1>
             <p className="text-xs text-secondary mt-0.5">
-              Análise hierárquica precisa, insights inteligentes e diretrizes de segurança do sistema de arquivos
+              Análise hierárquica precisa, maiores consumidores de espaço e diretrizes de segurança
             </p>
           </div>
         </div>
@@ -351,7 +393,7 @@ export function DiskAnalyzer() {
             }`}
           >
             <FolderTree className="w-3.5 h-3.5" />
-            <span>Árvore de Pastas (ncdu)</span>
+            <span>Árvore de Pastas</span>
           </button>
           <button
             onClick={() => setActiveTab('insights')}
@@ -428,546 +470,580 @@ export function DiskAnalyzer() {
         </div>
       )}
 
-      {/* TAB 1: NCDU DIRECTORY TREE BREAKDOWN */}
-      {activeTab === 'ncdu' && (
-        <div className="flex-1 flex flex-col bg-card/60 border border-border/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl min-h-[500px]">
-          {/* Breadcrumb Navigation & Controls Toolbar */}
-          <div className="p-3 sm:p-4 border-b border-border/70 bg-card/40 flex flex-wrap items-center justify-between gap-3">
-            {/* Left: Breadcrumbs & Up Button */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <button
-                onClick={handleGoUp}
-                disabled={currentPath === '/' || !currentPath}
-                className="p-1.5 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 transition-colors"
-                title="Subir um diretório (..)"
-              >
-                <ArrowUpLeft className="w-4 h-4" />
-              </button>
+      {/* DIRECT PATH INPUT & QUICK PRESET CHIPS */}
+      <div className="bg-card/50 border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3">
+        <form onSubmit={handleCustomPathSubmit} className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <FolderSearch className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={customInputPath}
+              onChange={(e) => setCustomInputPath(e.target.value)}
+              placeholder="Digite qualquer caminho de pasta (ex: /var/lib/docker, /home, /var/log, /mnt)..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-neutral-900 border border-border text-xs text-primary font-mono placeholder-zinc-500 focus:outline-none focus:border-orbit-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/20 transition-all disabled:opacity-50 shrink-0"
+          >
+            <span>Analisar Pasta</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </form>
 
-              <div className="flex items-center gap-1 overflow-x-auto text-xs font-mono scrollbar-none py-1 truncate">
-                {breadcrumbSegments.map((crumb, idx, arr) => (
-                  <div key={crumb.path} className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleNavigate(crumb.path)}
-                      className={`hover:text-orbit-400 transition-colors px-2 py-0.5 rounded-lg ${
-                        idx === arr.length - 1
-                          ? 'bg-orbit-500/15 text-orbit-400 font-bold border border-orbit-500/30'
-                          : 'text-secondary hover:bg-neutral-800'
+        {/* Preset Chips */}
+        <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+          <span className="text-secondary font-medium mr-1 flex items-center gap-1">
+            <Compass className="w-3 h-3 text-orbit-400" />
+            Atalhos Rápidos:
+          </span>
+          {presetFolders.map((p) => (
+            <button
+              key={p.path}
+              onClick={() => handleNavigate(p.path)}
+              className={`px-2.5 py-1 rounded-lg border transition-all font-mono ${
+                currentPath === p.path
+                  ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 font-semibold'
+                  : 'bg-neutral-900/60 text-secondary border-border/60 hover:text-primary hover:bg-neutral-800'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* TAB 1: DIRECTORY TREE & TOP CONSUMERS */}
+      {activeTab === 'ncdu' && (
+        <div className="space-y-4">
+          {/* TOP 5 SPACE CONSUMERS DECK */}
+          {!loading && topConsumers.length > 0 && (
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-lg">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-rose-400" />
+                  <h3 className="text-sm font-bold text-primary">
+                    Top Maiores Consumidores de Espaço em <span className="font-mono text-orbit-400">{currentPath}</span>
+                  </h3>
+                </div>
+                <span className="text-xs text-secondary font-mono">
+                  {formatBytes(data?.total_size || 0)} analisados
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                {topConsumers.map((item, idx) => {
+                  const medal = idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`;
+                  return (
+                    <div
+                      key={item.path}
+                      onClick={() => item.is_dir && handleNavigate(item.path)}
+                      className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                        item.is_dir
+                          ? 'bg-neutral-900/80 border-border/80 hover:border-orbit-500/50 hover:bg-neutral-800/90 cursor-pointer group shadow-sm hover:shadow-md'
+                          : 'bg-neutral-900/50 border-border/60'
                       }`}
                     >
-                      {crumb.label}
-                    </button>
-                    {idx < arr.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />}
-                  </div>
-                ))}
-              </div>
-            </div>
+                      <div className="flex items-center justify-between gap-1 mb-2">
+                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-orbit-500/10 text-orbit-300 border border-orbit-500/20">
+                          {medal}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-rose-400">
+                          {item.percentage.toFixed(1)}%
+                        </span>
+                      </div>
 
-            {/* Right: Search, Sort, Refresh & File Manager Link */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Search Filter */}
-              <div className="relative w-32 sm:w-48">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Filtrar nesta pasta..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1 rounded-xl bg-neutral-900 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500"
-                />
-              </div>
+                      <div className="flex items-center gap-2 mb-2 min-w-0">
+                        {getItemIcon(item.name, item.is_dir)}
+                        <span className="text-xs font-bold text-primary truncate group-hover:text-orbit-400 transition-colors" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
 
-              {/* Sort Mode */}
-              <div className="flex items-center bg-neutral-900 border border-border rounded-xl p-0.5 text-xs">
-                <button
-                  onClick={() => {
-                    if (sortBy === 'size') setSortAsc(!sortAsc);
-                    else { setSortBy('size'); setSortAsc(false); }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                    sortBy === 'size' ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary'
-                  }`}
-                  title="Ordenar por tamanho"
-                >
-                  Tamanho {sortBy === 'size' && (sortAsc ? '↑' : '↓')}
-                </button>
-                <button
-                  onClick={() => {
-                    if (sortBy === 'name') setSortAsc(!sortAsc);
-                    else { setSortBy('name'); setSortAsc(true); }
-                  }}
-                  className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                    sortBy === 'name' ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary'
-                  }`}
-                  title="Ordenar por nome"
-                >
-                  Nome {sortBy === 'name' && (sortAsc ? '↑' : '↓')}
-                </button>
-              </div>
+                      <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden mb-1.5">
+                        <div
+                          className="h-full rounded-full bg-rose-500"
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
 
-              {/* Refresh */}
-              <button
-                onClick={() => fetchAnalysis(currentPath)}
-                className="p-1.5 rounded-xl border border-border bg-neutral-900 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
-                title="Atualizar análise"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-orbit-400' : ''}`} />
-              </button>
-
-              {/* Open in File Manager */}
-              <button
-                onClick={() => navigate(`/files?path=${encodeURIComponent(currentPath)}`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-secondary hover:text-primary hover:bg-neutral-800 text-xs font-semibold transition-colors"
-                title="Explorar no Gerenciador de Arquivos"
-              >
-                <Folder className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Gerenciador</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Current Path Summary Bar */}
-          {data && (
-            <div className="px-4 py-2 bg-neutral-900/50 border-b border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs text-secondary font-mono">
-              <div className="flex items-center gap-3">
-                <span>Tamanho Total: <strong className="text-primary">{formatBytes(data.total_size)}</strong></span>
-                <span>Itens: <strong className="text-primary">{data.item_count}</strong></span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-500 font-sans">Dica: clique em uma pasta para navegar hierarquicamente</span>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-secondary">
+                        <span className="font-semibold text-primary">{formatBytes(item.size)}</span>
+                        {item.is_dir && (
+                          <span className="text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                            Explorar <CornerDownRight className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Content Body / Table */}
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-24 text-secondary">
-                <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
-                <p className="text-xs font-medium font-mono">Calculando uso de disco recursivo em {currentPath}...</p>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-20 text-rose-400">
-                <AlertTriangle className="w-10 h-10" />
-                <p className="text-sm font-semibold">{error}</p>
+          {/* NCDU DIRECTORY TREE BREAKDOWN */}
+          <div className="flex-1 flex flex-col bg-card/60 border border-border/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl min-h-[450px]">
+            {/* Breadcrumb Navigation & Controls Toolbar */}
+            <div className="p-3 sm:p-4 border-b border-border/70 bg-card/40 flex flex-wrap items-center justify-between gap-3">
+              {/* Left: Breadcrumbs & Up Button */}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <button
-                  onClick={() => handleNavigate('/')}
-                  className="px-4 py-1.5 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600"
+                  onClick={handleGoUp}
+                  disabled={currentPath === '/' || !currentPath}
+                  className="p-1.5 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 transition-colors"
+                  title="Subir um diretório (..)"
                 >
-                  Voltar para a Raiz (/)
+                  <ArrowUpLeft className="w-4 h-4" />
                 </button>
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-20 text-secondary">
-                <Folder className="w-10 h-10 stroke-[1.5] text-zinc-600" />
-                <p className="text-sm font-semibold text-primary">Nenhum item encontrado neste diretório</p>
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-neutral-900/80 text-secondary border-b border-border/80 font-mono font-semibold sticky top-0 z-10 backdrop-blur-md">
-                  <tr>
-                    <th className="py-2.5 px-4 font-bold">Nome & Caminho</th>
-                    <th className="py-2.5 px-4 font-bold text-right w-28">Tamanho</th>
-                    <th className="py-2.5 px-4 font-bold w-48 sm:w-64">Uso Visual (ncdu)</th>
-                    <th className="py-2.5 px-4 font-bold text-center w-32 hidden md:table-cell">Segurança</th>
-                    <th className="py-2.5 px-4 font-bold text-right w-24">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {filteredItems.map((item) => {
-                    const safety = getPathSafetyInfo(item.path);
-                    const pct = Math.round(item.percentage);
 
-                    return (
-                      <tr
-                        key={item.path}
-                        onClick={() => {
-                          if (item.is_dir) handleNavigate(item.path);
-                        }}
-                        className={`group hover:bg-neutral-800/50 transition-colors ${
-                          item.is_dir ? 'cursor-pointer' : ''
+                <div className="flex items-center gap-1 overflow-x-auto text-xs font-mono scrollbar-none py-1 truncate">
+                  {breadcrumbSegments.map((crumb, idx, arr) => (
+                    <div key={crumb.path} className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleNavigate(crumb.path)}
+                        className={`hover:text-orbit-400 transition-colors px-1 py-0.5 rounded ${
+                          idx === arr.length - 1 ? 'font-bold text-primary bg-neutral-800' : 'text-secondary'
                         }`}
                       >
-                        {/* Name & Type */}
-                        <td className="py-2.5 px-4">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {getItemIcon(item.name, item.is_dir)}
-                            <span 
-                              className={`font-semibold truncate max-w-xs sm:max-w-md ${
-                                item.is_dir ? 'text-primary group-hover:text-orbit-400 transition-colors' : 'text-zinc-300'
-                              }`}
-                              title={item.name}
+                        {crumb.label}
+                      </button>
+                      {idx < arr.length - 1 && <span className="text-zinc-600">&gt;</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Search Filter & Sort Tools */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {/* Instant Filter input */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filtrar nesta pasta..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 w-40 sm:w-52"
+                  />
+                </div>
+
+                {/* Sort Toggle buttons */}
+                <div className="flex items-center bg-neutral-900/80 border border-border/80 rounded-xl p-0.5 text-xs">
+                  <button
+                    onClick={() => {
+                      if (sortBy === 'size') setSortAsc(!sortAsc);
+                      else {
+                        setSortBy('size');
+                        setSortAsc(false);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
+                      sortBy === 'size' ? 'bg-orbit-500 text-white font-semibold' : 'text-secondary hover:text-primary'
+                    }`}
+                  >
+                    Tamanho {sortBy === 'size' ? (sortAsc ? '↑' : '↓') : ''}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (sortBy === 'name') setSortAsc(!sortAsc);
+                      else {
+                        setSortBy('name');
+                        setSortAsc(true);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
+                      sortBy === 'name' ? 'bg-orbit-500 text-white font-semibold' : 'text-secondary hover:text-primary'
+                    }`}
+                  >
+                    Nome {sortBy === 'name' ? (sortAsc ? '↑' : '↓') : ''}
+                  </button>
+                </div>
+
+                {/* Refresh button */}
+                <button
+                  onClick={() => fetchAnalysis(currentPath)}
+                  className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                  title="Recarregar"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+
+                {/* Open in File Manager shortcut */}
+                <button
+                  onClick={() => navigate(`/files?path=${encodeURIComponent(currentPath)}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-semibold transition-all"
+                  title="Abrir pasta no Gerenciador de Arquivos"
+                >
+                  <Folder className="w-3.5 h-3.5" />
+                  <span>Gerenciador</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tree Summary Bar */}
+            <div className="px-4 py-2 bg-neutral-950/60 border-b border-border/60 flex items-center justify-between text-xs font-mono text-secondary">
+              <div>
+                <span>Tamanho Total: <strong className="text-primary">{formatBytes(data?.total_size || 0)}</strong></span>
+                <span className="mx-2 text-zinc-700">•</span>
+                <span>Itens: <strong className="text-primary">{data?.item_count || 0}</strong></span>
+              </div>
+              <div className="hidden sm:block text-[11px] text-zinc-500">
+                Dica: clique em uma pasta para navegar hierarquicamente
+              </div>
+            </div>
+
+            {/* Content List Area */}
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full border-2 border-orbit-500/20 border-t-orbit-500 animate-spin" />
+                    <Compass className="w-6 h-6 text-orbit-400 absolute inset-0 m-auto animate-pulse" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-semibold text-primary">
+                      Calculando uso recursivo em <span className="font-mono text-orbit-400">{currentPath}</span>
+                    </p>
+                    <p className="text-xs text-secondary flex items-center justify-center gap-1.5">
+                      <Clock className="w-3 h-3 text-orbit-400" />
+                      Tempo decorrido: <span className="font-mono font-bold text-primary">{elapsedSeconds}s</span>
+                    </p>
+                    <p className="text-[11px] text-zinc-500 max-w-sm pt-1">
+                      Varrendo subdiretórios com segurança e calculando ocupação real...
+                    </p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
+                  <ShieldAlert className="w-10 h-10 text-rose-500" />
+                  <p className="text-sm font-bold text-rose-400">{error}</p>
+                  <button
+                    onClick={() => handleNavigate('/')}
+                    className="px-4 py-2 rounded-xl bg-neutral-900 border border-border text-xs text-primary hover:bg-neutral-800"
+                  >
+                    Voltar para Raiz (/)
+                  </button>
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-secondary space-y-3">
+                  <Folder className="w-12 h-12 stroke-[1.2] text-zinc-600" />
+                  <p className="text-sm font-medium">Nenhum item encontrado neste diretório</p>
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      onClick={handleGoUp}
+                      className="px-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-xs text-primary hover:bg-neutral-800"
+                    >
+                      Subir de Pasta
+                    </button>
+                    <button
+                      onClick={() => handleNavigate('/')}
+                      className="px-3 py-1.5 rounded-xl bg-orbit-500 text-white text-xs font-semibold"
+                    >
+                      Ir para Raiz (/)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/40 font-mono text-xs">
+                  {filteredItems.map((item) => {
+                    const safety = getPathSafetyInfo(item.path);
+                    const filledBlocks = Math.round(item.percentage / 10);
+                    const emptyBlocks = Math.max(0, 10 - filledBlocks);
+                    const barGraphic = '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+
+                    return (
+                      <div
+                        key={item.path}
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-4 hover:bg-accent/40 transition-colors gap-2"
+                      >
+                        {/* Left: Icon, Name & Safety Badge */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {item.is_dir ? (
+                            <button
+                              onClick={() => handleNavigate(item.path)}
+                              className="p-1 rounded-lg hover:bg-neutral-800 text-amber-400 transition-colors"
+                              title="Explorar pasta"
                             >
-                              {item.name}
-                              {item.is_dir && <span className="text-secondary/60 ml-0.5">/</span>}
-                            </span>
-                          </div>
-                        </td>
+                              <Folder className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <div className="p-1">{getItemIcon(item.name, item.is_dir)}</div>
+                          )}
 
-                        {/* Size */}
-                        <td className="py-2.5 px-4 text-right font-mono font-semibold text-primary whitespace-nowrap">
-                          {formatBytes(item.size)}
-                        </td>
-
-                        {/* ncdu Progress Bar */}
-                        <td className="py-2.5 px-4 font-mono">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2.5 bg-neutral-900 rounded-full overflow-hidden border border-border/40">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  pct > 70
-                                    ? 'bg-rose-500'
-                                    : pct > 40
-                                    ? 'bg-amber-500'
-                                    : 'bg-orbit-500'
-                                }`}
-                                style={{ width: `${Math.min(pct, 100)}%` }}
-                              />
-                            </div>
-                            <span className="text-[11px] font-bold text-secondary w-12 text-right">
-                              {item.percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Safety Badge */}
-                        <td className="py-2.5 px-4 text-center hidden md:table-cell">
                           <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            onClick={() => item.is_dir && handleNavigate(item.path)}
+                            className={`font-semibold truncate ${
+                              item.is_dir ? 'text-primary hover:text-orbit-400 cursor-pointer underline-offset-2 hover:underline' : 'text-zinc-300'
+                            }`}
+                            title={item.name}
+                          >
+                            {item.name}
+                            {item.is_dir && '/'}
+                          </span>
+
+                          {/* Safety Status Pill */}
+                          <span
+                            className={`text-[9px] font-sans font-semibold px-2 py-0.5 rounded-full border shrink-0 hidden md:inline-block ${
                               safety.level === 'critical'
                                 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                 : safety.level === 'safe'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                : 'bg-neutral-800 text-zinc-400 border-border'
+                                : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50'
                             }`}
                             title={safety.description}
                           >
-                            {safety.level === 'critical' ? (
-                              <ShieldAlert className="w-3 h-3 text-rose-400" />
-                            ) : safety.level === 'safe' ? (
-                              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                            ) : (
-                              <Info className="w-3 h-3 text-zinc-400" />
-                            )}
                             {safety.tag}
                           </span>
-                        </td>
+                        </div>
 
-                        {/* Action buttons */}
-                        <td className="py-2.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {item.is_dir && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/terminal?cwd=${encodeURIComponent(item.path)}`);
-                                }}
-                                className="p-1 rounded-lg text-secondary hover:text-emerald-400 hover:bg-neutral-800"
-                                title="Abrir no Terminal"
-                              >
-                                <Terminal className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/files?path=${encodeURIComponent(item.path)}`);
-                              }}
-                              className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800"
-                              title="Ver no Gerenciador de Arquivos"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </button>
-                            {safety.level !== 'critical' && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteItem(item);
-                                }}
-                                className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10"
-                                title="Mover para a lixeira"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                        {/* Middle: NCDU Visual Percentage Bar */}
+                        <div className="flex items-center gap-3 shrink-0 sm:w-64">
+                          <span className="text-zinc-500 font-mono tracking-tighter text-xs hidden sm:inline">
+                            [{barGraphic}]
+                          </span>
+                          <div className="w-20 sm:w-24 text-right">
+                            <span className="font-bold text-primary">{formatBytes(item.size)}</span>
                           </div>
-                        </td>
-                      </tr>
+                          <div className="w-12 text-right">
+                            <span className="text-secondary text-[11px] font-semibold">{item.percentage.toFixed(1)}%</span>
+                          </div>
+                        </div>
+
+                        {/* Right: Quick Action Controls */}
+                        <div className="flex items-center gap-1 justify-end shrink-0 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          {item.is_dir ? (
+                            <button
+                              onClick={() => handleNavigate(item.path)}
+                              className="px-2 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-orbit-400 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-border"
+                              title="Navegar para este diretório"
+                            >
+                              <span>Abrir</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          ) : null}
+
+                          <button
+                            onClick={() => navigate(`/terminal?path=${encodeURIComponent(item.path)}`)}
+                            className="p-1.5 rounded hover:bg-neutral-800 text-secondary hover:text-emerald-400 transition-colors"
+                            title="Abrir no Terminal"
+                          >
+                            <Terminal className="w-3.5 h-3.5" />
+                          </button>
+
+                          {safety.level !== 'critical' && (
+                            <button
+                              onClick={() => handleDeleteItem(item)}
+                              className="p-1.5 rounded hover:bg-rose-500/10 text-secondary hover:text-rose-400 transition-colors"
+                              title="Mover para a lixeira"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: SMART INSIGHTS & SPACE-SAVING RECOMMENDATIONS */}
+      {/* TAB 2: SMART INSIGHTS & CLEANUP ADVISOR */}
       {activeTab === 'insights' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Card 1: Docker EcoSystem Cleanup */}
-          <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                    <Box className="w-5 h-5" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Docker Prune Card */}
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-primary">Imagens e Cache do Docker</h3>
-                    <p className="text-xs text-secondary">Imagens não referenciadas e caches de build</p>
+                    <h3 className="font-bold text-sm text-primary">Docker: Limpeza de Imagens & Cache Órfãos</h3>
+                    <span className="text-[11px] text-emerald-400 font-mono">Liberação média: 2 a 15 GB</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Seguro
-                </span>
+                <p className="text-xs text-secondary leading-relaxed mb-4">
+                  O Docker acumula camadas antigas de build, imagens não utilizadas (<code className="text-sky-300">dangling</code>) e containers parados. Esta ação limpa tudo que não está em uso ativo sem afetar seus containers em execução.
+                </p>
               </div>
 
-              <p className="text-xs text-secondary leading-relaxed">
-                Containers atualizados frequentemente deixam imagens antigas e camadas órfãs em disco. A limpeza automática remove apenas imagens sem uso (`dangling`), mantendo todos os seus containers intactos.
-              </p>
-
-              <div className="p-3 rounded-xl bg-neutral-900/70 border border-border/60 text-xs font-mono space-y-1">
-                <div className="text-zinc-400">💡 Comando CLI equivalente:</div>
-                <div className="text-orbit-400 font-bold">docker image prune -a</div>
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 font-mono">POST /api/docker/images/prune</span>
+                <button
+                  onClick={handleDockerPrune}
+                  disabled={isPruningDocker}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-sky-500/20 transition-all disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isPruningDocker ? 'animate-spin' : ''}`} />
+                  <span>{isPruningDocker ? 'Limpando...' : 'Executar Prune'}</span>
+                </button>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border/60 mt-4 flex items-center justify-between">
-              <span className="text-xs text-secondary font-mono">Liberação média: 2 a 15 GB</span>
-              <button
-                onClick={handleDockerPrune}
-                disabled={isPruningDocker}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold transition-all disabled:opacity-50"
-              >
-                {isPruningDocker ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                <span>{isPruningDocker ? 'Limpando Docker...' : 'Limpar Imagens Órfãs'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Card 2: System Logs & Journal Vacuum */}
-          <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <Layers className="w-5 h-5" />
+            {/* System Logs & Journals Card */}
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-primary">Logs Rotacionados & Journals</h3>
-                    <p className="text-xs text-secondary">Arquivos compactados em /var/log</p>
+                    <h3 className="font-bold text-sm text-primary">Logs Rotacionados & Systemd Journals</h3>
+                    <span className="text-[11px] text-amber-400 font-mono">Liberação média: 500 MB a 5 GB</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Seguro
-                </span>
+                <p className="text-xs text-secondary leading-relaxed mb-4">
+                  Arquivos em <code className="text-amber-300">/var/log</code> e journals do Linux podem crescer indefinidamente. Arquivos compactados (<code className="text-zinc-400">.gz</code>, <code className="text-zinc-400">.log.1</code>) são seguros para exclusão.
+                </p>
               </div>
 
-              <p className="text-xs text-secondary leading-relaxed">
-                Logs de serviços (`.log.1`, `.gz`, `journal/`) podem crescer indefinidamente ao longo dos meses. Manter apenas os últimos 3 dias de log libera espaço substancial sem perder auditoria recente.
-              </p>
-
-              <div className="p-3 rounded-xl bg-neutral-900/70 border border-border/60 text-xs font-mono space-y-1">
-                <div className="text-zinc-400">💡 Comando CLI para aspirar journals:</div>
-                <div className="text-orbit-400 font-bold">journalctl --vacuum-time=3d</div>
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 font-mono">journalctl --vacuum-time=3d</span>
+                <button
+                  onClick={() => handleNavigate('/var/log')}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
+                >
+                  <span>Inspecionar /var/log</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border/60 mt-4 flex items-center justify-between">
-              <span className="text-xs text-secondary font-mono">Localização: /var/log</span>
-              <button
-                onClick={() => handleNavigate('/var/log')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
-              >
-                <span>Inspecionar /var/log</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: Package Manager & Runtime Caches */}
-          <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
-                    <FileCode className="w-5 h-5" />
+            {/* Package Manager Cache Card */}
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                    <Archive className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-primary">Caches de Pacotes (APT / npm / pip)</h3>
-                    <p className="text-xs text-secondary">Arquivos .deb e módulos temporários baixados</p>
+                    <h3 className="font-bold text-sm text-primary">Cache de Pacotes (APT / npm / pip)</h3>
+                    <span className="text-[11px] text-violet-400 font-mono">Liberação média: 1 a 4 GB</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Seguro
-                </span>
+                <p className="text-xs text-secondary leading-relaxed mb-4">
+                  O gerenciador de pacotes retém arquivos <code className="text-violet-300">.deb</code> baixados em <code className="text-zinc-400">/var/cache/apt/archives</code>.
+                </p>
               </div>
 
-              <p className="text-xs text-secondary leading-relaxed">
-                Quando pacotes são instalados via `apt install`, os arquivos `.deb` ficam retidos em `/var/cache/apt/archives`. Limpar o cache não remove os programas instalados.
-              </p>
-
-              <div className="p-3 rounded-xl bg-neutral-900/70 border border-border/60 text-xs font-mono space-y-1">
-                <div className="text-zinc-400">💡 Comando CLI de limpeza de pacotes:</div>
-                <div className="text-orbit-400 font-bold">apt-get clean && apt-get autoclean</div>
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 font-mono">apt clean / apt autoclean</span>
+                <button
+                  onClick={() => handleNavigate('/var/cache')}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
+                >
+                  <span>Inspecionar /var/cache</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border/60 mt-4 flex items-center justify-between">
-              <span className="text-xs text-secondary font-mono">Localização: /var/cache</span>
-              <button
-                onClick={() => handleNavigate('/var/cache')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
-              >
-                <span>Inspecionar /var/cache</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Card 4: System Trash & Temporary Directory */}
-          <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            {/* Trash & Temporary Files Card */}
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
                     <Trash2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-primary">Lixeira do Sistema & /tmp</h3>
-                    <p className="text-xs text-secondary">Arquivos descartados mantidos em quarentena</p>
+                    <h3 className="font-bold text-sm text-primary">Lixeira do Sistema & Temporários</h3>
+                    <span className="text-[11px] text-rose-400 font-mono">Esvaziamento Permanente</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Seguro
-                </span>
+                <p className="text-xs text-secondary leading-relaxed mb-4">
+                  Itens apagados pelo Gerenciador de Arquivos ficam na lixeira segura. Esvazie para recuperar o espaço físico permanentemente.
+                </p>
               </div>
 
-              <p className="text-xs text-secondary leading-relaxed">
-                Itens movidos para a Lixeira continuam consumindo espaço no disco até que sejam esvaziados permanentemente.
-              </p>
-
-              <div className="p-3 rounded-xl bg-neutral-900/70 border border-border/60 text-xs font-mono space-y-1">
-                <div className="text-zinc-400">💡 Localização comum da Lixeira:</div>
-                <div className="text-orbit-400 font-bold">~/.local/share/Trash</div>
+              <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="text-[11px] text-zinc-500 font-mono">DELETE /api/files/trash</span>
+                <button
+                  onClick={handleEmptyTrash}
+                  disabled={isCleaningTrash}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-rose-500/20 transition-all disabled:opacity-50"
+                >
+                  <Trash2 className={`w-3.5 h-3.5 ${isCleaningTrash ? 'animate-spin' : ''}`} />
+                  <span>{isCleaningTrash ? 'Esvaziando...' : 'Esvaziar Lixeira'}</span>
+                </button>
               </div>
-            </div>
-
-            <div className="pt-4 border-t border-border/60 mt-4 flex items-center justify-between">
-              <button
-                onClick={() => navigate('/files?path=__trash__')}
-                className="text-xs text-secondary hover:text-primary hover:underline"
-              >
-                Ver Lixeira
-              </button>
-              <button
-                onClick={handleEmptyTrash}
-                disabled={isCleaningTrash}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 active:scale-95 text-xs font-semibold transition-all disabled:opacity-50"
-              >
-                {isCleaningTrash ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                <span>{isCleaningTrash ? 'Esvaziando...' : 'Esvaziar Lixeira'}</span>
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 3: FILESYSTEM SAFETY GUARDRAILS (O QUE NÃO MEXER) */}
+      {/* TAB 3: FILESYSTEM SAFETY GUIDE */}
       {activeTab === 'safety' && (
         <div className="space-y-4">
-          {/* Critical Warning Banner */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-3.5">
-            <ShieldAlert className="w-6 h-6 shrink-0 text-rose-400 mt-0.5" />
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5 backdrop-blur-xl flex items-start gap-3.5">
+            <ShieldAlert className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-rose-200">
-                Atenção Máxima: Diretórios Fundamentais do Sistema Linux
-              </h3>
-              <p className="text-xs leading-relaxed text-rose-300/90">
-                A exclusão acidental de qualquer um dos diretórios listados em vermelho causará parada imediata do servidor (Kernel Panic), perda permanente de serviços ou corrupção irreversível do banco de dados do Docker.
+              <h3 className="text-sm font-bold text-rose-300">Diretrizes de Proteção do Sistema de Arquivos Linux</h3>
+              <p className="text-xs text-rose-200/80 leading-relaxed">
+                O Orbit bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que <strong>NUNCA</strong> deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.
               </p>
             </div>
           </div>
 
-          {/* Detailed Directory Safety Rules Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Rule 1: /boot */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /boot
-                </span>
-                <span className="text-xs font-bold text-primary">Kernel do Linux & Grub</span>
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <ShieldAlert className="w-4 h-4" />
+                <span>Pastas Críticas (Perigo Máximo 🔴)</span>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Contém as imagens do kernel (`vmlinuz`), arquivos `initramfs` e o carregador de inicialização. Se apagado, o computador ou VPS não inicializará após o reboot.
-              </p>
+              <ul className="space-y-2.5 text-xs text-secondary">
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-primary font-mono block">/boot</strong>
+                  Contém os kernels do Linux, Initramfs e Grub. Se apagado, o servidor não inicializará.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-primary font-mono block">/var/lib/docker/overlay2</strong>
+                  Camadas internas do Docker. Nunca use <code className="text-rose-400">rm -rf</code> diretamente aqui. Use sempre <code className="text-sky-400">docker system prune</code>.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-primary font-mono block">/etc</strong>
+                  Configurações globais do sistema operacional (<code className="text-zinc-300">fstab</code>, <code className="text-zinc-300">passwd</code>, rede, etc.).
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-primary font-mono block">/lib e /usr/lib</strong>
+                  Bibliotecas compartilhadas (.so) necessárias para a execução de praticamente todos os binários do sistema.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-primary font-mono block">/proc e /sys</strong>
+                  Sistemas de arquivos virtuais gerados em memória RAM pelo kernel. Não ocupam espaço real em disco.
+                </li>
+              </ul>
             </div>
 
-            {/* Rule 2: /var/lib/docker/overlay2 */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /var/lib/docker/overlay2
-                </span>
-                <span className="text-xs font-bold text-primary">Camadas Internas do Docker</span>
+            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <Sparkles className="w-4 h-4" />
+                <span>Pastas de Atenção & Limpeza Segura (🟡 / 🟢)</span>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                É onde o Docker armazena os sistemas de arquivos dos containers em execução. <strong>NUNCA</strong> execute `rm -rf` nesta pasta diretamente; utilize os comandos da aba "Insights & Dicas" ou o menu do Orbit para podar imagens de forma segura.
-              </p>
-            </div>
-
-            {/* Rule 3: /etc */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /etc
-                </span>
-                <span className="text-xs font-bold text-primary">Configurações Globais</span>
-              </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Armazena arquivos de configuração vitais (`/etc/fstab`, `/etc/passwd`, `/etc/network`, `/etc/docker`). Ocupa muito pouco espaço (poucos megabytes) e nunca deve ser limpo para ganhar espaço.
-              </p>
-            </div>
-
-            {/* Rule 4: /lib, /lib64, /usr/lib */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /lib e /usr/lib
-                </span>
-                <span className="text-xs font-bold text-primary">Bibliotecas Dinâmicas (.so)</span>
-              </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Bibliotecas essenciais exigidas por quase todos os executáveis do sistema operacional. Apagar qualquer arquivo aqui quebra utilitários básicos como `ls`, `cat`, `docker` e o próprio `orbit`.
-              </p>
-            </div>
-
-            {/* Rule 5: /bin, /sbin, /usr/bin */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /bin e /sbin
-                </span>
-                <span className="text-xs font-bold text-primary">Binários do Sistema</span>
-              </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Contém todos os executáveis de linha de comando (`bash`, `sh`, `systemctl`, `iptables`, `ip`).
-              </p>
-            </div>
-
-            {/* Rule 6: /proc, /sys, /dev */}
-            <div className="bg-card/60 border border-rose-500/30 rounded-2xl p-4 sm:p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  /proc e /sys
-                </span>
-                <span className="text-xs font-bold text-primary">Sistemas Virtuais em RAM</span>
-              </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Estes diretórios não consom espaço real em disco (são interfaces virtuais em memória do kernel). Não tente analisá-los ou apagá-los.
-              </p>
+              <ul className="space-y-2.5 text-xs text-secondary">
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-emerald-400 font-mono block">/tmp e /var/tmp (🟢 Seguro)</strong>
+                  Arquivos temporários de sessões e processos. Podem ser limpos com segurança.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-emerald-400 font-mono block">~/.cache (🟢 Seguro)</strong>
+                  Caches de navegadores e ferramentas CLI. Podem ser excluídos sem perda de dados permanentes.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-amber-400 font-mono block">/var/lib (🟡 Atenção)</strong>
+                  Contém dados de bancos de dados ativos (Postgres, MySQL, Redis) e volumes de aplicações.
+                </li>
+                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                  <strong className="text-amber-400 font-mono block">~/.config (🟡 Atenção)</strong>
+                  Preferências de usuário e chaves de configurações de aplicativos.
+                </li>
+              </ul>
             </div>
           </div>
         </div>
