@@ -88,4 +88,18 @@ describe('Login component', () => {
       expect(JSON.parse(loginCall[1].body)).toEqual({ username: 'André', password: 'andre1234' });
     });
   });
+
+  it('renders update success banner when ?updated=true is present in url', () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/login?updated=true&version=1.9.8']}>
+          <Login />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    expect(screen.getByText('Orbit Atualizado com Sucesso!')).toBeInTheDocument();
+    expect(screen.getByText('v1.9.8')).toBeInTheDocument();
+    expect(screen.getByText(/O sistema foi atualizado para a versão mais recente/i)).toBeInTheDocument();
+  });
 });

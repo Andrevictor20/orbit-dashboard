@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export function Login() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const isUpdated = searchParams.get('updated') === 'true';
+  const updatedVersion = searchParams.get('version') || localStorage.getItem('orbit_last_updated_version');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -82,6 +85,27 @@ export function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
         <div className="bg-card/40 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
+          {isUpdated && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-left animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  {t('auth.update_success_banner_title', 'Orbit Atualizado com Sucesso!')}
+                  {updatedVersion && (
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      v{updatedVersion.replace(/^v/, '')}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-emerald-200/80 mt-1 leading-relaxed">
+                  {t('auth.update_success_banner_msg', 'O sistema foi atualizado para a versão mais recente. Faça login para acessar o painel.')}
+                </p>
+              </div>
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             
             {error && (

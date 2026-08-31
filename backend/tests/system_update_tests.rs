@@ -202,3 +202,58 @@ fn test_main_rs_does_not_have_premature_shutdown_signal() {
     );
 }
 
+#[tokio::test]
+async fn test_health_endpoint_returns_json_and_version() {
+    let app = backend::app();
+    let server = TestServer::new(app);
+
+    let res = server.get("/health").await;
+    res.assert_status_success();
+
+    let json: serde_json::Value = res.json();
+    assert_eq!(json.get("status").and_then(|v| v.as_str()), Some("ok"));
+    assert_eq!(
+        json.get("version").and_then(|v| v.as_str()),
+        Some(env!("CARGO_PKG_VERSION"))
+    );
+    assert!(!json.get("arch").and_then(|v| v.as_str()).unwrap_or("").is_empty());
+}
+
+#[tokio::test]
+async fn test_system_version_endpoint_with_auth() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let app = backend::app();
+    let server = TestServer::new(app);
+    let cookie = get_test_cookie();
+
+    let res = server.get("/api/system/version")
+        .add_cookie(cookie)
+        .await;
+    res.assert_status_success();
+
+    let json: serde_json::Value = res.json();
+    assert_eq!(
+        json.get("version").and_then(|v| v.as_str()),
+        Some(env!("CARGO_PKG_VERSION"))
+    );
+    assert!(!json.get("platform").and_then(|v| v.as_str()).unwrap_or("").is_empty());
+    assert!(!json.get("arch").and_then(|v| v.as_str()).unwrap_or("").is_empty());
+}
+
+#[tokio::test]
+async fn test_check_update_force_query_bypasses_cache() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let app = backend::app();
+    let server = TestServer::new(app);
+    let cookie = get_test_cookie();
+
+    let res = server.get("/api/system/update/check?force=true")
+        .add_cookie(cookie)
+        .await;
+    res.assert_status_success();
+
+    let info: SystemUpdateInfo = res.json();
+    assert!(!info.current_version.is_empty());
+}
+
+

@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -207,7 +207,21 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     info
 }
 
-pub async fn check_update_handler(State(state): State<AppState>) -> impl IntoResponse {
+#[derive(Deserialize, Debug, Default)]
+pub struct CheckUpdateParams {
+    pub force: Option<bool>,
+}
+
+pub async fn check_update_handler(
+    Query(params): Query<CheckUpdateParams>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    if params.force.unwrap_or(false) {
+        if let Ok(mut guard) = UPDATE_CACHE.write() {
+            *guard = None;
+        }
+    }
+
     let mut info = get_system_update_info().await;
 
     // Only check remote registry if CI is not actively building
@@ -506,10 +520,22 @@ fi
     }))).into_response()
 }
 
+pub async fn get_system_version_handler() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "version": env!("CARGO_PKG_VERSION"),
+            "platform": get_host_platform(),
+            "arch": std::env::consts::ARCH
+        }))
+    ).into_response()
+}
+
 pub mod processes;
 
 pub fn router() -> axum::Router<AppState> {
     axum::Router::new()
+        .route("/api/system/version", axum::routing::get(get_system_version_handler))
         .route("/api/system/update/check", axum::routing::get(check_update_handler))
         .route("/api/system/update/status", axum::routing::get(get_update_status_handler))
         .route("/api/system/update", axum::routing::post(perform_system_update))

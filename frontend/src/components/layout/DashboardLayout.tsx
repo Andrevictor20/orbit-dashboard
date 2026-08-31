@@ -99,9 +99,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const checkUpdates = () => {
+  const checkUpdates = (force = false) => {
     const token = localStorage.getItem('orbit_token');
-    fetch('/api/system/update/check', {
+    const url = force ? '/api/system/update/check?force=true' : '/api/system/update/check';
+    fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     })
       .then(res => (res.ok ? res.json() : null))
@@ -356,7 +357,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         isOpen={isUpdateModalOpen}
         onClose={() => setIsUpdateModalOpen(false)}
         updateInfo={updateInfo}
-        onRefreshInfo={checkUpdates}
+        onRefreshInfo={() => checkUpdates(true)}
       />
     </div>
   );

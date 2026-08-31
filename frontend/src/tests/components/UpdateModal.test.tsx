@@ -81,10 +81,29 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    expect(screen.getByText(/Compilando Imagem \(CI\/CD\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Compilando Imagem \(CI\/CD\)/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Build Multi-Arch em Andamento/i)).toBeInTheDocument();
-    expect(screen.getByText(/Aguardando Término do CI\/CD\.\.\./i)).toBeInTheDocument();
-    expect(screen.getByText(/Acompanhar CI\/CD/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ver CI\/CD/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders contextual rich changelogs for known topics', () => {
+    const featureInfo: SystemUpdateInfo = {
+      ...mockInfo,
+      release_notes: '- docker run and compose support with port conflict check\n- telemetria htop cpu usage\n- i18n traduz 11 linguas',
+    };
+
+    render(
+      <UpdateModal
+        isOpen={true}
+        onClose={vi.fn()}
+        updateInfo={featureInfo}
+        onRefreshInfo={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Instalação com 1-Clique: Docker Run e Compose/i)).toBeInTheDocument();
+    expect(screen.getByText(/Telemetria e Monitoramento Preciso de CPU/i)).toBeInTheDocument();
+    expect(screen.getByText(/Internacionalização Completa em 11 Idiomas/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {

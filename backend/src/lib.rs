@@ -14,6 +14,7 @@ pub use state::AppState;
 use axum::{
     http::{header, HeaderName, HeaderValue, Method, StatusCode},
     routing::get,
+    Json,
     Router,
 };
 use bollard::Docker;
@@ -54,7 +55,16 @@ pub fn app() -> Router {
         .with_state(state);
 
     Router::new()
-        .route("/health", get(|| async { StatusCode::OK }))
+        .route("/health", get(|| async { 
+            (
+                StatusCode::OK, 
+                Json(serde_json::json!({
+                    "status": "ok",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "arch": std::env::consts::ARCH
+                }))
+            ) 
+        }))
         .route("/api/logs", get(logs::get_logs))
         .route("/api/logs/clear", axum::routing::post(logs::clear_logs))
         .merge(auth::public_router())
