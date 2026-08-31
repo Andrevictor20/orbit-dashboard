@@ -63,3 +63,19 @@ async fn test_delete_container_endpoint_mapping() {
     // As long as it is NOT 401 Unauthorized and NOT 405 Method Not Allowed, the routing is correct.
     assert_eq!(response.status_code(), 500);
 }
+
+#[tokio::test]
+async fn test_stats_history_endpoint() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let server = TestServer::new(app());
+    let auth_cookie = get_test_cookie();
+
+    let response = server.get("/api/docker/stats/history?limit=10")
+        .add_cookie(auth_cookie)
+        .await;
+
+    response.assert_status_ok();
+    let json: Vec<serde_json::Value> = response.json();
+    // Should return JSON array (empty or with items)
+    assert!(json.len() <= 10);
+}

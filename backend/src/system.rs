@@ -48,6 +48,12 @@ static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock:
     error: None,
 }));
 
+pub fn get_app_version() -> String {
+    std::env::var("APP_VERSION")
+        .or_else(|_| std::env::var("ORBIT_VERSION"))
+        .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string())
+}
+
 pub async fn get_system_update_info() -> SystemUpdateInfo {
     // Check cache
     if let Ok(guard) = UPDATE_CACHE.read() {
@@ -58,7 +64,7 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
         }
     }
 
-    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let current_version = get_app_version();
     let platform = get_host_platform().to_string();
     let arch = std::env::consts::ARCH.to_string();
 
@@ -524,7 +530,7 @@ pub async fn get_system_version_handler() -> impl IntoResponse {
     (
         StatusCode::OK,
         Json(serde_json::json!({
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": get_app_version(),
             "platform": get_host_platform(),
             "arch": std::env::consts::ARCH
         }))

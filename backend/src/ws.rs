@@ -1,13 +1,14 @@
 use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State},
+    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Query, State},
     response::IntoResponse,
 };
 use sysinfo::{System, Disks, Networks, Components};
+use std::collections::VecDeque;
 use std::time::Duration;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use tokio::time;
 use tokio::sync::broadcast;
 use once_cell::sync::Lazy;
@@ -15,7 +16,7 @@ use bollard::Docker;
 use crate::docker::AppState;
 use futures::StreamExt;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DiskStat {
     pub name: String,
     pub mount_point: String,
@@ -23,7 +24,7 @@ pub struct DiskStat {
     pub total: u64,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SystemStats {
     pub cpu_usage: f32,
     pub memory_used: u64,
@@ -40,12 +41,18 @@ pub struct SystemStats {
     pub orbit_memory: u64,
 }
 
-// Global Broadcaster and Cache for O(1) CPU/RAM scaling across all clients/tabs
+#[derive(Deserialize, Default)]
+pub struct StatsHistoryQuery {
+    pub limit: Option<usize>,
+}
+
+// Global Broadcaster, Ring Buffer History and Cache for O(1) CPU/RAM scaling across all clients/tabs
 static STATS_TX: Lazy<broadcast::Sender<Arc<String>>> = Lazy::new(|| {
     let (tx, _) = broadcast::channel(32);
     tx
 });
 static LATEST_STATS: Lazy<RwLock<Option<Arc<String>>>> = Lazy::new(|| RwLock::new(None));
+static STATS_HISTORY: Lazy<RwLock<VecDeque<SystemStats>>> = Lazy::new(|| RwLock::new(VecDeque::with_capacity(3600)));
 static COLLECTOR_INITIALIZED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 pub fn ensure_stats_collector(docker: Arc<Docker>) {
@@ -59,6 +66,26 @@ pub fn ensure_stats_collector(docker: Arc<Docker>) {
 pub async fn stats_handler(State(state): State<AppState>, ws: WebSocketUpgrade) -> impl IntoResponse {
     ensure_stats_collector(state.docker.clone());
     ws.on_upgrade(move |socket| handle_socket(socket))
+}
+
+pub async fn get_stats_history_handler(
+    State(state): State<AppState>,
+    Query(params): Query<StatsHistoryQuery>,
+) -> impl IntoResponse {
+    ensure_stats_collector(state.docker.clone());
+    let limit = params.limit.unwrap_or(300).clamp(1, 3600);
+    let history: Vec<SystemStats> = if let Ok(guard) = STATS_HISTORY.read() {
+        let count = guard.len();
+        if count <= limit {
+            guard.iter().cloned().collect()
+        } else {
+            guard.iter().skip(count - limit).cloned().collect()
+        }
+    } else {
+        Vec::new()
+    };
+
+    (axum::http::StatusCode::OK, axum::Json(history))
 }
 
 async fn handle_socket(mut socket: WebSocket) {
@@ -111,10 +138,11 @@ fn read_private_memory(pid: u32) -> u64 {
     0
 }
 
-/// Scans /proc once to find the vite/node frontend PID.
-fn find_vite_pid() -> Option<u32> {
+/// Scans /proc to discover all PIDs associated with Orbit (Rust Backend, child worker processes, and Frontend dev/node/vite processes).
+fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
+    let mut pids = vec![backend_pid];
     let Ok(proc_entries) = std::fs::read_dir("/proc") else {
-        return None;
+        return pids;
     };
     for entry in proc_entries.flatten() {
         let fname = entry.file_name();
@@ -126,22 +154,41 @@ fn find_vite_pid() -> Option<u32> {
             Ok(p) => p,
             Err(_) => continue,
         };
+        if pid_num == backend_pid {
+            continue;
+        }
 
-        let exe_path = std::fs::read_link(format!("/proc/{}/exe", pid_num))
-            .map(|p| p.to_string_lossy().to_lowercase())
-            .unwrap_or_default();
+        // 1. Child of backend process (e.g. background runners, rclone, docker helpers)
+        if let Ok(stat) = std::fs::read_to_string(format!("/proc/{}/stat", pid_num)) {
+            let parts: Vec<&str> = stat.split_whitespace().collect();
+            if let Some(ppid_str) = parts.get(3) {
+                if let Ok(ppid) = ppid_str.parse::<u32>() {
+                    if ppid == backend_pid {
+                        pids.push(pid_num);
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // 2. Frontend runtime / dev server (vite, node, npm, bun, esbuild, pnpm, yarn)
         let cmdline = std::fs::read_to_string(format!("/proc/{}/cmdline", pid_num))
             .unwrap_or_default()
             .replace('\0', " ")
             .to_lowercase();
 
         let is_frontend = cmdline.contains("vite")
-            && (exe_path.ends_with("/node") || exe_path.contains("/bin/node"));
+            || cmdline.contains("orbit-dashboard")
+            || (cmdline.contains("frontend") && (cmdline.contains("node") || cmdline.contains("npm") || cmdline.contains("dev")))
+            || (cmdline.contains("esbuild") && cmdline.contains("orbit"));
+
         if is_frontend {
-            return Some(pid_num);
+            pids.push(pid_num);
         }
     }
-    None
+    pids.sort_unstable();
+    pids.dedup();
+    pids
 }
 
 fn read_host_network_bytes() -> (u64, u64) {
@@ -178,9 +225,9 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut components = Components::new_with_refreshed_list();
 
     let backend_pid = std::process::id();
-    let mut vite_pid: Option<u32> = find_vite_pid();
-    let mut vite_pid_ticks: u32 = 0;
-    const VITE_REFRESH_EVERY: u32 = 10;
+    let mut orbit_pids = find_orbit_pids(backend_pid);
+    let mut orbit_pids_ticks: u32 = 0;
+    const ORBIT_PIDS_REFRESH_EVERY: u32 = 10;
 
     let mut prev_cpu_stats = std::collections::HashMap::new();
     let mut prev_host_rx = 0u64;
@@ -191,9 +238,9 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut first_tick = true;
 
     loop {
-        // Adaptive sleep: 3s if active subscribers, 8s if idle (power/CPU conservation)
+        // Adaptive sleep: 2s if active subscribers, 6s if idle (power/CPU conservation)
         let has_subscribers = STATS_TX.receiver_count() > 0;
-        let sleep_duration = if has_subscribers { Duration::from_secs(3) } else { Duration::from_secs(8) };
+        let sleep_duration = if has_subscribers { Duration::from_secs(2) } else { Duration::from_secs(6) };
         time::sleep(sleep_duration).await;
 
         let now = std::time::Instant::now();
@@ -211,33 +258,22 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         let sys_mem = sys.used_memory();
         let num_cores = sys.cpus().len() as f32;
 
-        vite_pid_ticks += 1;
-        if vite_pid_ticks >= VITE_REFRESH_EVERY {
-            vite_pid = find_vite_pid();
-            vite_pid_ticks = 0;
+        orbit_pids_ticks += 1;
+        if orbit_pids_ticks >= ORBIT_PIDS_REFRESH_EVERY {
+            orbit_pids = find_orbit_pids(backend_pid);
+            orbit_pids_ticks = 0;
             // Periodically reclaim unused arena memory back to the Linux OS
             crate::store::catalog::trim_memory();
         }
 
-        let orbit_cpu = {
-            let mut cpu = sys.process(sysinfo::Pid::from_u32(backend_pid))
-                .map(|p| p.cpu_usage() / num_cores)
-                .unwrap_or(0.0);
-            if let Some(vpid) = vite_pid {
-                cpu += sys.process(sysinfo::Pid::from_u32(vpid))
-                    .map(|p| p.cpu_usage() / num_cores)
-                    .unwrap_or(0.0);
-            }
-            cpu
-        };
+        let orbit_cpu: f32 = orbit_pids.iter()
+            .filter_map(|&p| sys.process(sysinfo::Pid::from_u32(p)))
+            .map(|proc| proc.cpu_usage() / num_cores)
+            .sum();
 
-        let orbit_memory = {
-            let mut mem = read_private_memory(backend_pid);
-            if let Some(vpid) = vite_pid {
-                mem += read_private_memory(vpid);
-            }
-            mem
-        };
+        let orbit_memory: u64 = orbit_pids.iter()
+            .map(|&p| read_private_memory(p))
+            .sum();
 
         let (mut host_raw_rx, mut host_raw_tx) = read_host_network_bytes();
         if host_raw_rx == 0 && host_raw_tx == 0 {
@@ -424,6 +460,13 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             orbit_cpu,
             orbit_memory,
         };
+
+        if let Ok(mut hist) = STATS_HISTORY.write() {
+            if hist.len() >= 3600 {
+                hist.pop_front();
+            }
+            hist.push_back(stats.clone());
+        }
 
         if let Ok(j) = serde_json::to_string(&stats) {
             let msg_arc = Arc::new(j);

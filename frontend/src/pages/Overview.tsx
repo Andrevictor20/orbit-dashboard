@@ -37,9 +37,8 @@ interface OverviewContainer {
 export function Overview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { stats, isConnected } = useStats();
+  const { stats, history: statsHistory, isConnected } = useStats();
 
-  const [history, setHistory] = useState<ChartDataPoint[]>([]);
   const [containers, setContainers] = useState<OverviewContainer[]>([]);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
   const [selectedGroup, setSelectedGroup] = useState<GroupContainerItem | null>(null);
@@ -69,24 +68,15 @@ export function Overview() {
     return groupContainers(containers, customLinks, getIconForImage);
   }, [containers, customLinks]);
 
-  useEffect(() => {
-    if (stats) {
-      setHistory(prev => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const newPoint: ChartDataPoint = {
-          time: timeStr,
-          cpu: stats.cpu_usage,
-          memory: stats.memory_total > 0 ? (stats.memory_used / stats.memory_total) * 100 : 0
-        };
-        const updated = [...prev, newPoint];
-        if (updated.length > 20) {
-          return updated.slice(updated.length - 20);
-        }
-        return updated;
-      });
-    }
-  }, [stats]);
+  const history: ChartDataPoint[] = useMemo(() => {
+    if (!statsHistory || statsHistory.length === 0) return [];
+    const recent = statsHistory.slice(-30);
+    return recent.map(p => ({
+      time: p.time,
+      cpu: p.cpu,
+      memory: stats && stats.memory_total > 0 ? (p.memory / stats.memory_total) * 100 : 0,
+    }));
+  }, [statsHistory, stats]);
 
   // Derived metrics
   const cpuPercent = stats ? stats.cpu_usage.toFixed(1) : '0.0';

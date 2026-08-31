@@ -43,6 +43,7 @@ pub fn app() -> Router {
         .route("/api/docker/links", get(links::get_links))
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
+        .route("/api/docker/stats/history", get(ws::get_stats_history_handler))
         .route("/api/ssh", get(ssh::terminal_handler));
 
     let protected_routes = Router::new()
@@ -60,7 +61,7 @@ pub fn app() -> Router {
                 StatusCode::OK, 
                 Json(serde_json::json!({
                     "status": "ok",
-                    "version": env!("CARGO_PKG_VERSION"),
+                    "version": system::get_app_version(),
                     "arch": std::env::consts::ARCH
                 }))
             ) 
