@@ -7,13 +7,14 @@ use once_cell::sync::Lazy;
 use std::fs;
 use std::io::{Cursor, Read};
 use std::sync::RwLock;
+use tracing::{info, warn};
 use zip::ZipArchive;
 use super::parser::parse_casaos_compose;
 use super::types::AppStoreItem;
 
 pub static APPS_CACHE: Lazy<RwLock<Vec<AppStoreItem>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
-const REPOSITORIES: &[(&str, &str)] = &[
+const REPOSITORIES: &[(&str, &str); 7] = &[
     ("official", "https://github.com/IceWhaleTech/CasaOS-AppStore/archive/refs/heads/main.zip"),
     ("linuxserver", "https://casaos-appstore.paodayag.dev/linuxserver.zip"),
     ("bigbear", "https://github.com/bigbeartechworld/big-bear-casaos/archive/refs/heads/master.zip"),
@@ -38,7 +39,7 @@ pub fn load_cached_apps_from_disk() -> bool {
             if !apps.is_empty() {
                 if let Ok(mut cache) = APPS_CACHE.write() {
                     *cache = apps;
-                    tracing::info!("App Store cache loaded from disk ({} apps)", cache.len());
+                    info!("App Store cache loaded from disk ({} apps)", cache.len());
                     trim_memory();
                     return true;
                 }
@@ -59,12 +60,12 @@ pub async fn sync_repositories() {
 
     // Process repositories sequentially with immediate memory cleanup per archive
     for &(store_name, repo_url) in REPOSITORIES {
-        tracing::info!("Syncing repository: {} ({})", repo_url, store_name);
+        info!("Syncing repository: {} ({})", repo_url, store_name);
 
         let res = match client.get(repo_url).send().await {
             Ok(r) => r,
             Err(e) => {
-                tracing::warn!("Failed to download {}: {}", repo_url, e);
+                warn!("Failed to download {}: {}", repo_url, e);
                 continue;
             }
         };
@@ -72,7 +73,7 @@ pub async fn sync_repositories() {
         let bytes = match res.bytes().await {
             Ok(b) => b,
             Err(e) => {
-                tracing::warn!("Failed to read bytes from {}: {}", repo_url, e);
+                warn!("Failed to read bytes from {}: {}", repo_url, e);
                 continue;
             }
         };
@@ -82,7 +83,7 @@ pub async fn sync_repositories() {
             let mut archive = match ZipArchive::new(reader) {
                 Ok(a) => a,
                 Err(e) => {
-                    tracing::warn!("Failed to open zip archive from {}: {}", repo_url, e);
+                    warn!("Failed to open zip archive from {}: {}", repo_url, e);
                     continue;
                 }
             };
@@ -118,7 +119,7 @@ pub async fn sync_repositories() {
     if !all_apps.is_empty() {
         if let Ok(mut cache) = APPS_CACHE.write() {
             *cache = all_apps.clone();
-            tracing::info!("App Store cache updated with {} apps", cache.len());
+            info!("App Store cache updated with {} apps", cache.len());
         }
         
         // Save to disk
@@ -126,7 +127,7 @@ pub async fn sync_repositories() {
             let _ = fs::write("data/cached_apps.json", json);
         }
     } else {
-        tracing::warn!("No apps found during sync.");
+        warn!("No apps found during sync.");
     }
 
     // Free heap memory back to OS immediately

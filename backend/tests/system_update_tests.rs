@@ -20,7 +20,7 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(b"super_secret" as &[u8]),
+        &EncodingKey::from_secret(&b"super_secret"[..]),
     ).unwrap();
 
     axum_extra::extract::cookie::Cookie::new("auth_token", token)
