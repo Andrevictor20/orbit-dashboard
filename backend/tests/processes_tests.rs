@@ -1,26 +1,19 @@
 use axum_test::TestServer;
-use backend::auth::Claims;
-use jsonwebtoken::{encode, Header, EncodingKey};
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use backend::app;
+use backend::auth::{Claims, get_jwt_secret};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use axum::http::StatusCode;
 
 fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
-    let expiration = SystemTime::now()
-        .checked_add(Duration::from_secs(3600))
-        .unwrap()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as usize;
-
     let claims = Claims {
         sub: "admin".to_string(),
-        exp: expiration,
+        exp: 10_000_000_000,
     };
 
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(&b"super_secret"[..]),
+        &EncodingKey::from_secret(get_jwt_secret()),
     ).unwrap();
 
     axum_extra::extract::cookie::Cookie::new("auth_token", token)
@@ -28,8 +21,7 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
 
 #[tokio::test]
 async fn test_system_processes_endpoint_requires_auth() {
-    let app = backend::app();
-    let server = TestServer::new(app);
+    let server = TestServer::new(app());
     let response = server.get("/api/system/processes").await;
     assert_eq!(response.status_code(), StatusCode::UNAUTHORIZED);
 }
@@ -37,8 +29,7 @@ async fn test_system_processes_endpoint_requires_auth() {
 #[tokio::test]
 async fn test_system_processes_endpoint_with_auth() {
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
-    let app = backend::app();
-    let server = TestServer::new(app);
+    let server = TestServer::new(app());
     let cookie = get_test_cookie();
 
     let response = server
@@ -69,8 +60,7 @@ async fn test_system_processes_endpoint_with_auth() {
 #[tokio::test]
 async fn test_kill_process_safety_guards() {
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
-    let app = backend::app();
-    let server = TestServer::new(app);
+    let server = TestServer::new(app());
     let cookie = get_test_cookie();
 
     // Trying to kill PID 1 or 0 should be rejected by safety check

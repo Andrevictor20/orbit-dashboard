@@ -409,23 +409,25 @@ export function Terminal() {
         {/* Terminal Titlebar */}
         <div className="h-11 bg-[#0d1117] border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-2 select-none shrink-0">
           
-          {/* Left: Window Dots & Session Info */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div className="w-3 h-3 rounded-full bg-rose-500/80 hover:opacity-100 transition-opacity" />
-              <div className="w-3 h-3 rounded-full bg-amber-500/80 hover:opacity-100 transition-opacity" />
-              <div className="w-3 h-3 rounded-full bg-emerald-500/80 hover:opacity-100 transition-opacity" />
+          {/* Left: Orbit System Badge & Session Info */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${
+                connState === 'connected'
+                  ? 'bg-emerald-500 animate-pulse'
+                  : connState === 'connecting'
+                  ? 'bg-amber-500 animate-ping'
+                  : 'bg-zinc-500'
+              }`} />
+              <TerminalIcon className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
             </div>
 
-            <div className="h-4 w-px bg-border/80 mx-0.5 hidden sm:block" />
-
-            <div className="flex items-center gap-2 min-w-0">
-              <TerminalIcon className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
-              <span className="text-xs font-mono font-semibold text-zinc-300 truncate">
-                {connState === 'connected' ? `${username}@${host}:${port}` : 'Orbit Shell Host'}
+            <div className="flex items-center gap-2 min-w-0 font-mono">
+              <span className="text-xs font-semibold text-zinc-200 truncate">
+                {connState === 'connected' ? `${username}@${host}:${port}` : 'Orbit Terminal Shell'}
               </span>
               {connState === 'connected' && (
-                <span className="text-[11px] font-mono text-secondary px-1.5 py-0.2 rounded bg-white/5 border border-white/10 hidden md:inline-block">
+                <span className="text-[11px] font-mono text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10 hidden md:inline-block">
                   {dimensions.cols}x{dimensions.rows}
                 </span>
               )}

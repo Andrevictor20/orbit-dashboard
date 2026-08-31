@@ -53,6 +53,7 @@ const mockShortcutsResponse = {
 
 describe('FileManager Page Component', () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.stubGlobal('fetch', vi.fn((url: string) => {
       if (url.includes('/api/files/list')) {
         return Promise.resolve({
