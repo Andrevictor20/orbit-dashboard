@@ -9,6 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "i18n:sync": "node scripts/sync-i18n.mjs",
+    "i18n:check": "node scripts/sync-i18n.mjs --check",
     "test:e2e": "playwright test --ignore-snapshots -g '^(?!.*Visual Regression).*'",
     "test:e2e:ui": "playwright test --ui",
     "test:visual": "playwright test visual.spec.ts --update-snapshots",
