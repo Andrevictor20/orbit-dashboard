@@ -42,6 +42,8 @@ async fn test_system_processes_endpoint_with_auth() {
     let json: serde_json::Value = response.json();
     assert!(json.get("processes").is_some());
     assert!(json.get("total_processes").is_some());
+    assert!(json.get("user_processes_count").is_some());
+    assert!(json.get("kernel_threads_count").is_some());
     assert!(json.get("running_processes").is_some());
     assert!(json.get("total_memory_used").is_some());
 
@@ -55,6 +57,7 @@ async fn test_system_processes_endpoint_with_auth() {
     assert!(first.get("memory_rss").is_some());
     assert!(first.get("memory_percent").is_some());
     assert!(first.get("status").is_some());
+    assert!(first.get("is_kernel_thread").is_some());
 }
 
 #[tokio::test]

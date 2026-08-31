@@ -18,6 +18,7 @@ export interface ProcessInfo {
   memory_vms: number;
   memory_percent: number;
   status: string;
+  is_kernel_thread?: boolean;
   container_id?: string;
   container_name?: string;
   start_time: number;
@@ -35,6 +36,8 @@ export interface TopProcessSummary {
 export interface ProcessesResponse {
   processes: ProcessInfo[];
   total_processes: number;
+  user_processes_count?: number;
+  kernel_threads_count?: number;
   running_processes: number;
   sleeping_processes: number;
   zombie_processes: number;
@@ -153,8 +156,10 @@ export function ProcessMonitor() {
     return data.processes
       .filter(p => {
         // Scope Filter
+        if (selectedScope === 'user_only' && p.is_kernel_thread) return false;
+        if (selectedScope === 'kthread_only' && !p.is_kernel_thread) return false;
         if (selectedScope === 'host' && p.container_name) return false;
-        if (selectedScope !== 'all' && selectedScope !== 'host' && p.container_name !== selectedScope) return false;
+        if (selectedScope !== 'all' && selectedScope !== 'user_only' && selectedScope !== 'kthread_only' && selectedScope !== 'host' && p.container_name !== selectedScope) return false;
 
         // Status Filter
         if (selectedStatus !== 'all' && p.status.toLowerCase() !== selectedStatus.toLowerCase()) return false;
@@ -236,8 +241,12 @@ export function ProcessMonitor() {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary font-mono">{data?.total_processes ?? '—'}</span>
-            <span className="text-xs text-secondary">tarefas ativas</span>
+            <span className="text-2xl font-bold text-primary font-mono">
+              {data?.user_processes_count ?? data?.total_processes ?? '—'}
+            </span>
+            <span className="text-xs text-secondary">
+              {data?.kernel_threads_count ? `tarefas (${data.total_processes} total)` : 'tarefas ativas'}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-border/50 text-[11px] flex-wrap">
             <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 font-medium">
@@ -246,6 +255,11 @@ export function ProcessMonitor() {
             <span className="px-1.5 py-0.5 rounded-md bg-background text-secondary border border-border/50">
               {data?.sleeping_processes ?? 0} dormindo
             </span>
+            {Boolean(data?.kernel_threads_count) && (
+              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 font-medium" title="Threads do kernel Linux (kthr)">
+                {data?.kernel_threads_count} kthr
+              </span>
+            )}
             {Boolean(data?.zombie_processes) && (
               <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold">
                 {data?.zombie_processes} zumbis
@@ -366,9 +380,13 @@ export function ProcessMonitor() {
             <select
               value={selectedScope}
               onChange={(e) => setSelectedScope(e.target.value)}
-              className="bg-transparent text-xs text-primary font-medium outline-none cursor-pointer max-w-[150px] truncate"
+              className="bg-transparent text-xs text-primary font-medium outline-none cursor-pointer max-w-[170px] truncate"
             >
               <option value="all">Todos ({data?.total_processes ?? 0})</option>
+              <option value="user_only">Apps & Usuários ({data?.user_processes_count ?? (data?.total_processes ?? 0)})</option>
+              {Boolean(data?.kernel_threads_count) && (
+                <option value="kthread_only">Kernel Threads ({data?.kernel_threads_count})</option>
+              )}
               <option value="host">Host / Raspberry ({data?.host_processes_count ?? 0})</option>
               {containerNames.map(cName => (
                 <option key={cName} value={cName}>Container: {cName}</option>
@@ -512,9 +530,16 @@ export function ProcessMonitor() {
                     {/* Process / Command */}
                     <td className="px-3.5 py-2.5">
                       <div className="flex flex-col min-w-0 max-w-[320px] lg:max-w-[420px]">
-                        <span className="font-semibold text-primary truncate" title={p.name}>
-                          {p.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-primary truncate" title={p.name}>
+                            {p.name}
+                          </span>
+                          {p.is_kernel_thread && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-sans font-medium bg-blue-500/15 text-blue-300 border border-blue-500/30 shrink-0">
+                              kthr
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-zinc-500 truncate" title={p.cmd.join(' ') || p.exe}>
                           {p.cmd.join(' ') || p.exe || '—'}
                         </span>

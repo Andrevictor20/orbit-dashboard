@@ -7,7 +7,14 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sysinfo::{System, Users, ProcessStatus};
 use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::Instant;
+use once_cell::sync::Lazy;
 use crate::state::AppState;
+
+static PROCESS_CPU_HISTORY: Lazy<Mutex<HashMap<u32, (u64, Instant)>>> = Lazy::new(|| {
+    Mutex::new(HashMap::new())
+});
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProcessInfo {
@@ -22,6 +29,7 @@ pub struct ProcessInfo {
     pub memory_vms: u64,
     pub memory_percent: f32,
     pub status: String,
+    pub is_kernel_thread: bool,
     pub container_id: Option<String>,
     pub container_name: Option<String>,
     pub start_time: u64,
@@ -41,6 +49,8 @@ pub struct TopProcessSummary {
 pub struct ProcessesResponse {
     pub processes: Vec<ProcessInfo>,
     pub total_processes: usize,
+    pub user_processes_count: usize,
+    pub kernel_threads_count: usize,
     pub running_processes: usize,
     pub sleeping_processes: usize,
     pub zombie_processes: usize,
@@ -51,6 +61,61 @@ pub struct ProcessesResponse {
     pub total_cpu_usage: f32,
     pub total_memory_used: u64,
     pub total_memory_available: u64,
+}
+
+fn get_system_uptime_seconds(proc_root: &str) -> f32 {
+    let uptime_path = format!("{}/uptime", proc_root);
+    if let Ok(content) = std::fs::read_to_string(&uptime_path) {
+        if let Some(first) = content.split_whitespace().next() {
+            if let Ok(val) = first.parse::<f32>() {
+                return val;
+            }
+        }
+    }
+    if let Ok(content) = std::fs::read_to_string("/proc/uptime") {
+        if let Some(first) = content.split_whitespace().next() {
+            if let Ok(val) = first.parse::<f32>() {
+                return val;
+            }
+        }
+    }
+    0.0
+}
+
+fn calculate_process_cpu(
+    pid: u32,
+    utime: u64,
+    stime: u64,
+    start_time_ticks: u64,
+    system_uptime: f32,
+    num_cores: f32,
+    now: Instant,
+    history: &mut HashMap<u32, (u64, Instant)>,
+) -> f32 {
+    let total_ticks = utime.saturating_add(stime);
+    let clk_tck = 100.0f32; // Standard Linux USER_HZ / CLK_TCK (100 Hz on Linux)
+
+    let raw_cpu = if let Some(&(prev_ticks, prev_time)) = history.get(&pid) {
+        let dt = now.duration_since(prev_time).as_secs_f32();
+        if dt >= 0.15 && dt <= 120.0 {
+            let delta_ticks = total_ticks.saturating_sub(prev_ticks) as f32;
+            // Instantaneous CPU % over elapsed delta time across cores (matching htop)
+            (delta_ticks / (dt * clk_tck * num_cores)) * 100.0
+        } else {
+            // Lifetime average CPU %
+            let proc_age_secs = (system_uptime - (start_time_ticks as f32 / clk_tck)).max(1.0);
+            (total_ticks as f32 / (proc_age_secs * clk_tck * num_cores)) * 100.0
+        }
+    } else {
+        // First sample for this PID: calculate lifetime average CPU %
+        let proc_age_secs = (system_uptime - (start_time_ticks as f32 / clk_tck)).max(1.0);
+        (total_ticks as f32 / (proc_age_secs * clk_tck * num_cores)) * 100.0
+    };
+
+    history.insert(pid, (total_ticks, now));
+
+    // Clamp between 0.0% and 100.0% and round to 1 decimal place
+    ((raw_cpu.max(0.0).min(100.0) * 10.0).round()) / 10.0
 }
 
 fn get_process_container_id_from_root(proc_root: &str, pid: u32) -> Option<String> {
@@ -100,6 +165,9 @@ fn scan_proc_directory(
 ) -> Option<Vec<ProcessInfo>> {
     let entries = std::fs::read_dir(proc_root).ok()?;
     let mut processes = Vec::new();
+    let system_uptime = get_system_uptime_seconds(proc_root);
+    let now = Instant::now();
+    let mut cpu_history = PROCESS_CPU_HISTORY.lock().unwrap_or_else(|e| e.into_inner());
 
     for entry in entries.flatten() {
         let file_name = entry.file_name();
@@ -218,9 +286,20 @@ fn scan_proc_directory(
             }
         }
 
-        // CPU approximation from clock ticks
-        let total_ticks = (utime + stime) as f32;
-        let cpu_usage = ((total_ticks / (num_cores * 100.0)).min(100.0) * 10.0).round() / 10.0;
+        // Kernel thread classification (ppid == 2 or empty cmd with 0 RSS/VMS)
+        let is_kernel_thread = ppid == Some(2) || (pid != 1 && cmd.is_empty() && memory_rss == 0 && memory_vms == 0);
+
+        // Precise CPU calculation (Delta sampling & lifetime average)
+        let cpu_usage = calculate_process_cpu(
+            pid,
+            utime,
+            stime,
+            start_time,
+            system_uptime,
+            num_cores,
+            now,
+            &mut cpu_history,
+        );
 
         // Container mapping
         let mut container_id = None;
@@ -253,6 +332,7 @@ fn scan_proc_directory(
             memory_vms,
             memory_percent,
             status: status_str,
+            is_kernel_thread,
             container_id,
             container_name,
             start_time,
@@ -375,6 +455,7 @@ pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoRe
                 memory_vms,
                 memory_percent,
                 status: status_str,
+                is_kernel_thread: ppid == Some(2),
                 container_id,
                 container_name,
                 start_time: proc_data.start_time(),
@@ -385,6 +466,8 @@ pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoRe
         list
     };
 
+    let mut user_count = 0usize;
+    let mut kthread_count = 0usize;
     let mut running_count = 0usize;
     let mut sleeping_count = 0usize;
     let mut zombie_count = 0usize;
@@ -397,6 +480,12 @@ pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoRe
     let mut top_mem = None;
 
     for p in &proc_list {
+        if p.is_kernel_thread {
+            kthread_count += 1;
+        } else {
+            user_count += 1;
+        }
+
         match p.status.as_str() {
             "Running" => running_count += 1,
             "Sleeping" | "Idle" => sleeping_count += 1,
@@ -440,6 +529,8 @@ pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoRe
 
     let response = ProcessesResponse {
         total_processes: proc_list.len(),
+        user_processes_count: user_count,
+        kernel_threads_count: kthread_count,
         running_processes: running_count,
         sleeping_processes: sleeping_count,
         zombie_processes: zombie_count,
