@@ -3,12 +3,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { Terminal } from '../../pages/Terminal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-}));
-
 const mockXTerm = {
   open: vi.fn(),
   loadAddon: vi.fn(),

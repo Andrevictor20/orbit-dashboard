@@ -46,14 +46,14 @@ describe('Login component', () => {
 
   it('renders login form', () => {
     renderComponent();
-    expect(screen.getByPlaceholderText('Seu usuário')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Sua senha')).toBeTruthy();
+    expect(screen.getByLabelText('Usuário')).toBeTruthy();
+    expect(screen.getByLabelText('Senha')).toBeTruthy();
     expect(screen.getByText('Entrar no Dashboard')).toBeTruthy();
   });
 
   it('shows error on empty fields', async () => {
     renderComponent();
-    fireEvent.click(screen.getByText('Entrar no Dashboard'));
+    fireEvent.submit(screen.getByRole('button', { name: /Entrar no Dashboard/i }).closest('form')!);
     
     await waitFor(() => {
       expect(screen.getByText('Por favor, preencha todos os campos.')).toBeTruthy();
@@ -63,10 +63,10 @@ describe('Login component', () => {
   it('shows error on invalid credentials', async () => {
     renderComponent();
     
-    fireEvent.change(screen.getByPlaceholderText('Seu usuário'), { target: { value: 'admin' } });
-    fireEvent.change(screen.getByPlaceholderText('Sua senha'), { target: { value: 'wrong' } });
+    fireEvent.change(screen.getByLabelText('Usuário'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'wrong' } });
     
-    fireEvent.click(screen.getByText('Entrar no Dashboard'));
+    fireEvent.click(screen.getByRole('button', { name: /Entrar no Dashboard/i }));
     
     await waitFor(() => {
       expect(screen.getByText('Credenciais inválidas.')).toBeTruthy();
@@ -76,10 +76,10 @@ describe('Login component', () => {
   it('successfully submits valid credentials', async () => {
     renderComponent();
     
-    fireEvent.change(screen.getByPlaceholderText('Seu usuário'), { target: { value: 'André' } });
-    fireEvent.change(screen.getByPlaceholderText('Sua senha'), { target: { value: 'andre1234' } });
+    fireEvent.change(screen.getByLabelText('Usuário'), { target: { value: 'André' } });
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'andre1234' } });
     
-    fireEvent.click(screen.getByText('Entrar no Dashboard'));
+    fireEvent.click(screen.getByRole('button', { name: /Entrar no Dashboard/i }));
     
     await waitFor(() => {
       // It should call fetch with correct credentials

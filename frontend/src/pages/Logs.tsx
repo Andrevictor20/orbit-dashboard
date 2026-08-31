@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Terminal as TerminalIcon, 
   RefreshCw, 
@@ -32,6 +33,7 @@ type LogSource = 'orbit' | 'system' | 'docker' | 'dmesg' | 'all';
 type LogLevel = 'all' | 'info' | 'warn' | 'error';
 
 export function Logs() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -205,10 +207,10 @@ export function Logs() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  Logs do Sistema e do Orbit
+                  {t('logs.title')}
                 </h1>
                 <p className="text-secondary text-xs sm:text-sm mt-0.5">
-                  Monitoramento em tempo real de logs da aplicação Orbit, sistema operacional, Docker e kernel
+                  {t('logs.subtitle')}
                 </p>
               </div>
             </div>
@@ -219,40 +221,40 @@ export function Logs() {
               onClick={handleCopyLogs}
               disabled={logs.length === 0}
               className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-secondary hover:text-white transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
-              title="Copiar todos os logs visíveis"
+              title={t('common.copy')}
             >
               {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+              <span>{copied ? t('common.copied') : t('common.copy')}</span>
             </button>
 
             <button
               onClick={handleDownloadLogs}
               disabled={logs.length === 0}
               className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-secondary hover:text-white transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
-              title="Baixar arquivo de log (.log)"
+              title={t('common.download')}
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Baixar</span>
+              <span>{t('common.download')}</span>
             </button>
 
             <button
               onClick={handleClearLogs}
               disabled={clearing}
               className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40 text-secondary transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
-              title={source === 'orbit' ? "Limpar arquivo de log do Orbit" : "Limpar e compactar logs do sistema (liberar espaço)"}
+              title={t('common.clear')}
             >
               <Trash2 className={`w-3.5 h-3.5 ${clearing ? 'animate-spin' : ''}`} />
-              <span>{source === 'orbit' ? 'Limpar' : 'Limpar / Vacuum'}</span>
+              <span>{t('common.clear')}</span>
             </button>
 
             <button
               onClick={() => fetchLogs(true)}
               disabled={loading}
               className="px-3.5 py-1.5 bg-orbit-600 hover:bg-orbit-500 text-white rounded-xl transition-all shadow-md shadow-orbit-900/20 text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
-              title="Atualizar logs agora"
+              title={t('common.refresh')}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Atualizar</span>
+              <span>{t('common.refresh')}</span>
             </button>
           </div>
         </div>

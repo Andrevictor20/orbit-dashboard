@@ -3,13 +3,6 @@ import { FileManager } from '../../pages/FileManager';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 
-// Mock translation
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 // Mock AuthContext
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({

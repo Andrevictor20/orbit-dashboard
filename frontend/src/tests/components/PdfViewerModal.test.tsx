@@ -2,12 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PdfViewerModal } from '../../components/files/PdfViewerModal';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 describe('PdfViewerModal Component', () => {
   const mockFile = {
     name: 'document.pdf',

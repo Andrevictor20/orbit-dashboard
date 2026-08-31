@@ -162,11 +162,11 @@ export function Overview() {
           icon={Activity}
         />
         <StatCard
-          title="Temperatura"
+          title={t('metrics.temperature')}
           value={`${tempC}°C`}
           trend="Sys"
           trendUp={parseFloat(tempC) < 75}
-          subText="Sensores"
+          subText={t('metrics.temperature')}
           icon={Activity}
         />
         <StatCard
@@ -178,11 +178,11 @@ export function Overview() {
           icon={HardDrive}
         />
         <StatCard
-          title="Rede (TX/RX)"
+          title={t('dashboard.network_traffic')}
           value={`${(stats ? stats.network_tx / 1024 / 1024 : 0).toFixed(1)} MB`}
           trend={`${(stats ? stats.network_rx / 1024 / 1024 : 0).toFixed(1)} MB`}
           trendUp={true}
-          subText="Transferência"
+          subText={t('dashboard.network_traffic')}
           icon={Box}
         />
         <StatCard
@@ -237,7 +237,7 @@ export function Overview() {
               className="text-xs text-orbit-400 hover:text-orbit-300 font-medium flex items-center gap-1 transition-colors"
             >
               <FolderOpen className="w-3.5 h-3.5" />
-              <span>Ver todos</span>
+              <span>{t('common.all')}</span>
             </button>
           </div>
           <div className="flex-1 flex flex-col gap-3">
@@ -278,8 +278,8 @@ export function Overview() {
                     </div>
 
                     <div className="flex justify-between items-center text-[11px] text-secondary font-mono">
-                      <span>{usedFormatted} usado</span>
-                      <span>{totalFormatted} total</span>
+                      <span>{usedFormatted} {t('common.used').toLowerCase()}</span>
+                      <span>{totalFormatted} {t('common.total').toLowerCase()}</span>
                     </div>
                   </div>
                 );
@@ -287,7 +287,7 @@ export function Overview() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-secondary text-xs gap-2 py-8">
                 <HardDrive className="w-8 h-8 stroke-[1.5] text-zinc-600" />
-                <span>Nenhum disco detectado</span>
+                <span>{t('volumes.no_volumes')}</span>
               </div>
             )}
           </div>
@@ -299,7 +299,7 @@ export function Overview() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-orbit-400" />
-            <h3 className="text-base sm:text-lg font-semibold text-primary">Aplicativos Instalados</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-primary">{t('dashboard.apps_grid')}</h3>
             <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-secondary font-mono">
               {containers.length}
             </span>
@@ -310,14 +310,14 @@ export function Overview() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 transition-all text-xs font-semibold"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Instalar App</span>
+              <span>{t('store.install_app')}</span>
             </button>
             <button
               onClick={() => navigate('/containers')}
               className="text-xs text-secondary hover:text-primary transition-colors flex items-center gap-1 font-medium px-2 py-1"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Gerenciar</span>
+              <span>{t('sidebar.containers')}</span>
             </button>
           </div>
         </div>
@@ -330,7 +330,7 @@ export function Overview() {
                   key={item.id}
                   onClick={() => setSelectedGroup(item)}
                   className="group relative bg-card/60 hover:bg-accent/70 border border-border/70 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                  title={`${item.name} (Stack com ${item.totalCount} containers)`}
+                  title={`${item.name} (${t('dashboard.container_count', { count: item.totalCount })})`}
                 >
                   {/* Top-right stack count badge & running indicator */}
                   <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
@@ -366,10 +366,10 @@ export function Overview() {
                   <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
                     {item.anyRunning ? (
                       <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5">
-                        {item.runningCount}/{item.totalCount} ativos
+                        {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
                       </span>
                     ) : (
-                      <span className="text-zinc-500">Parado</span>
+                      <span className="text-zinc-500">{t('common.stopped')}</span>
                     )}
                   </div>
                 </div>
@@ -420,13 +420,13 @@ export function Overview() {
                   {isRunning ? (
                     webLink ? (
                       <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5">
-                        Abrir <ExternalLink className="w-2.5 h-2.5 inline" />
+                        {t('common.open')} <ExternalLink className="w-2.5 h-2.5 inline" />
                       </span>
                     ) : (
-                      <span className="text-emerald-400">Ativo</span>
+                      <span className="text-emerald-400">{t('common.active')}</span>
                     )
                   ) : (
-                    <span className="text-zinc-500">Parado</span>
+                    <span className="text-zinc-500">{t('common.stopped')}</span>
                   )}
                 </div>
               </div>
@@ -442,7 +442,7 @@ export function Overview() {
               <Plus className="w-5 h-5" />
             </div>
             <span className="text-xs font-semibold text-secondary group-hover:text-primary transition-colors">
-              Adicionar App
+              {t('store.install_app')}
             </span>
           </div>
         </div>

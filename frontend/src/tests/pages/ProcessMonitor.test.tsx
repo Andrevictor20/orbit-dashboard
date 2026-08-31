@@ -118,7 +118,7 @@ describe('ProcessMonitor Component', () => {
       expect(screen.getAllByText('ar-saude-coletor').length).toBeGreaterThan(0);
     });
 
-    const searchInput = screen.getByPlaceholderText(/Buscar por PID/);
+    const searchInput = screen.getByPlaceholderText(/PID/i);
     fireEvent.change(searchInput, { target: { value: 'journald' } });
 
     await waitFor(() => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, Trash2, HardDrive, ShieldAlert, Search, ArrowUpDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useTasks } from '../contexts/InstallContext';
@@ -17,6 +18,7 @@ type StatusFilter = 'all' | 'used' | 'unused';
 type SortOption = 'size_desc' | 'size_asc' | 'name' | 'status';
 
 export function Images() {
+  const { t } = useTranslation();
   const { startTask } = useTasks();
   const [images, setImages] = useState<ImageInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -254,25 +256,25 @@ export function Images() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-primary">
             <Package className="h-6 w-6 text-orbit-500" />
-            Inventário de Imagens
+            {t('images.title')}
           </h2>
-          <p className="text-xs sm:text-sm text-secondary mt-1">Gerencie as imagens Docker e visualize o consumo em disco</p>
+          <p className="text-xs sm:text-sm text-secondary mt-1">{t('images.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button 
             onClick={confirmBuildPrune}
             className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 text-xs sm:text-sm font-medium transition-colors"
-            title="Limpar cache de compilação Docker (BuildKit)"
+            title={t('images.prune_build_cache')}
           >
             <HardDrive className="w-4 h-4" />
-            Limpar Build Cache
+            {t('images.prune_build_cache')}
           </button>
           <button 
             onClick={confirmPrune}
             className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs sm:text-sm font-medium transition-colors"
           >
             <ShieldAlert className="w-4 h-4" />
-            Limpar Não Utilizadas (Prune)
+            {t('images.prune_unused')}
           </button>
         </div>
       </div>
@@ -284,7 +286,7 @@ export function Images() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar por tag ou ID da imagem..."
+            placeholder={t('images.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 transition-colors font-mono"
@@ -298,21 +300,21 @@ export function Images() {
               onClick={() => setStatusFilter('all')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
             >
-              Todas ({images.length})
+              {t('common.all')} ({images.length})
             </button>
             <button
               onClick={() => setStatusFilter('used')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Em uso ({usedCount})
+              {t('images.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Não usadas ({unusedCount})
+              {t('images.unused')} ({unusedCount})
             </button>
           </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStats } from '../contexts/StatsContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Network, Cpu, HardDrive, LayoutGrid, Monitor, Box, Rocket, Terminal } from 'lucide-react';
@@ -21,6 +22,7 @@ interface MetricPoint {
 type TabType = 'overview' | 'system' | 'containers' | 'orbit' | 'processes';
 
 export function Metrics() {
+  const { t } = useTranslation();
   const { stats, isConnected } = useStats();
   const [history, setHistory] = useState<MetricPoint[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -92,9 +94,9 @@ export function Metrics() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight flex items-center gap-2">
             <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-            Métricas do Sistema
+            {t('metrics.title')}
           </h2>
-          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Análise detalhada de performance e uso de recursos</p>
+          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">{t('metrics.subtitle')}</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -104,7 +106,7 @@ export function Metrics() {
               className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              Geral
+              {t('common.all')}
             </button>
             <button 
               onClick={() => setActiveTab('system')}
@@ -118,7 +120,7 @@ export function Metrics() {
               className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <Box className="w-3.5 h-3.5" />
-              Containers
+              {t('sidebar.containers')}
             </button>
             <button 
               onClick={() => setActiveTab('orbit')}
@@ -132,14 +134,14 @@ export function Metrics() {
               className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'processes' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
             >
               <Terminal className="w-3.5 h-3.5" />
-              Processos
+              {t('metrics.process_monitor')}
             </button>
           </div>
 
           <div className="flex items-center gap-2 px-2.5 py-1.5 bg-card border border-border rounded-lg shadow-sm">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
             <span className="text-xs font-medium text-secondary whitespace-nowrap">
-              {isConnected ? 'Real-time' : 'Desconectado'}
+              {isConnected ? t('dashboard.live') : t('dashboard.disconnected')}
             </span>
           </div>
         </div>
@@ -153,7 +155,7 @@ export function Metrics() {
           <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col">
             <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4 flex items-center gap-2">
               <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-              Evolução de CPU (%)
+              {t('metrics.cpu_usage_history')}
             </h3>
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
@@ -189,7 +191,7 @@ export function Metrics() {
           <div className="glass-panel rounded-xl p-6 h-[350px] flex flex-col">
             <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <HardDrive className="w-5 h-5 text-emerald-500" />
-              Evolução de Memória (RAM Real)
+              {t('metrics.memory_usage_history')}
             </h3>
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">

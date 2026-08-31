@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Network, Server, Trash2, AlertCircle, Search, ArrowUpDown, CheckCircle2 } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useTasks } from '../contexts/InstallContext';
@@ -16,6 +17,7 @@ type StatusFilter = 'all' | 'used' | 'unused';
 type SortOption = 'status' | 'name' | 'driver';
 
 export function Networks() {
+  const { t } = useTranslation();
   const { startTask } = useTasks();
   const [networks, setNetworks] = useState<NetworkInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,9 +206,9 @@ export function Networks() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-primary">
             <Network className="h-6 w-6 text-orbit-500" />
-            Redes Docker
+            {t('networks.title')}
           </h2>
-          <p className="text-xs sm:text-sm text-secondary mt-1">Listagem de redes virtuais gerenciadas pelo Docker e isolamento de tráfego</p>
+          <p className="text-xs sm:text-sm text-secondary mt-1">{t('networks.subtitle')}</p>
         </div>
         <div>
           <button
@@ -214,7 +216,7 @@ export function Networks() {
             className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs sm:text-sm font-medium transition-colors"
           >
             <AlertCircle className="h-4 w-4" />
-            Limpar Não Utilizadas (Prune)
+            {t('networks.prune_unused')}
           </button>
         </div>
       </div>
@@ -226,7 +228,7 @@ export function Networks() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar por nome da rede, ID ou driver..."
+            placeholder={t('networks.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 transition-colors font-mono"
@@ -240,21 +242,21 @@ export function Networks() {
               onClick={() => setStatusFilter('all')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
             >
-              Todas ({networks.length})
+              {t('common.all')} ({networks.length})
             </button>
             <button
               onClick={() => setStatusFilter('used')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Em uso ({usedCount})
+              {t('networks.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Não usadas ({unusedCount})
+              {t('networks.unused')} ({unusedCount})
             </button>
           </div>
 

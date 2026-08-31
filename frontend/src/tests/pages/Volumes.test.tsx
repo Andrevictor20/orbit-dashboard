@@ -1,10 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '../../i18n';
 import { Volumes } from '../../pages/Volumes';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key })
-}));
 
 describe('Volumes component', () => {
   let originalFetch: typeof window.fetch;

@@ -22,11 +22,13 @@ import {
   CheckCircle2,
   Maximize,
   Minimize,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
 import { useTheme } from '../ThemeProvider';
+import { supportedLanguages } from '../../i18n';
 import { InstallProgressModal } from '../InstallProgressModal';
 import { ProfileModal } from '../ProfileModal';
 import { UpdateModal, type SystemUpdateInfo } from '../UpdateModal';
@@ -118,10 +120,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'pt' ? 'en' : 'pt');
   };
 
   return (
@@ -293,17 +291,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <option value="tokyonight">Tokyo Night</option>
               </select>
             </div>
-            <button 
-              onClick={toggleLanguage} 
-              className="text-xs font-bold text-secondary hover:text-primary transition-all duration-200 active:scale-[0.95] px-1.5 py-1 rounded hover:bg-accent"
-              aria-label="Alternar idioma"
-            >
-              {i18n.language === 'pt' ? 'PT-BR' : 'EN'}
-            </button>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary shrink-0" />
+              <select 
+                value={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')} 
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                className="bg-background border shad-border text-secondary text-xs rounded-md py-1 px-1.5 sm:px-2 outline-none transition-colors duration-200 focus:border-orbit-500 focus-visible:ring-2 focus-visible:ring-orbit-500/50 cursor-pointer max-w-[120px] sm:max-w-[150px] truncate"
+                aria-label={t('header.switch_language')}
+              >
+                {supportedLanguages.map(lang => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.nativeName}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
-              aria-label="Alternar modo claro/escuro"
+              aria-label={t('header.toggle_theme')}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>

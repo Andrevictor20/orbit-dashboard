@@ -2,12 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { AudioPlayerModal } from '../../components/files/AudioPlayerModal';
 import { vi, describe, it, expect } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 describe('AudioPlayerModal Component', () => {
   const mockFile = {
     name: 'track.mp3',

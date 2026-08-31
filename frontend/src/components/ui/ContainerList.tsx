@@ -1,5 +1,6 @@
 import React, { Fragment, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, 
   PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, 
@@ -43,6 +44,7 @@ export function resetContainerCache() {
 
 export function ContainerList() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [containers, setContainers] = useState<Container[]>(() => globalContainerCache || []);
   const [loading, setLoading] = useState(() => !globalContainerCache || globalContainerCache.length === 0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -335,9 +337,9 @@ export function ContainerList() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h3 className="text-xl font-bold text-primary flex items-center gap-2">
-            Inventário de Containers
+            {t('containers.title')}
           </h3>
-          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Gerencie e monitore o consumo dos serviços</p>
+          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">{t('containers.subtitle')}</p>
         </div>
         <div className="flex gap-2 items-center self-start sm:self-auto flex-wrap">
           {/* Stack Grouping Toggle */}
@@ -348,24 +350,24 @@ export function ContainerList() {
                 ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 shadow-sm' 
                 : 'bg-card text-secondary hover:text-primary border-border'
             }`}
-            title="Agrupar containers que pertencem à mesma stack/projeto"
+            title={t('dashboard.group_managed')}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Agrupar Stacks</span>
+            <span>{t('dashboard.group_managed')}</span>
           </button>
 
           <div className="flex bg-card p-1 rounded-md border border-border">
             <button 
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
-              aria-label="Visualização em grade"
+              aria-label="Grid"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
-              aria-label="Visualização em tabela"
+              aria-label="Table"
             >
               <List className="w-4 h-4" />
             </button>
@@ -375,17 +377,17 @@ export function ContainerList() {
             className="px-3 sm:px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
+            {t('common.refresh')}
           </button>
 
           {/* New Docker Install Modal Button */}
           <button
             onClick={() => setIsDockerInstallOpen(true)}
             className="px-3 sm:px-4 py-2 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-lg flex items-center gap-1.5 transition-all text-xs sm:text-sm font-semibold shadow-sm shadow-orbit-500/20"
-            title="Instalar container via comando docker run ou docker compose"
+            title={t('docker_install.title')}
           >
             <Terminal className="w-3.5 h-3.5" />
-            <span>Novo Container</span>
+            <span>{t('containers.new_container')}</span>
           </button>
         </div>
       </div>
@@ -395,29 +397,29 @@ export function ContainerList() {
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Buscar por nome..."
+            placeholder={t('containers.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary"
           />
         </div>
         <div className="flex gap-2 items-center">
-          <span className="text-xs sm:text-sm text-secondary font-medium whitespace-nowrap">Ordenar por:</span>
+          <span className="text-xs sm:text-sm text-secondary font-medium whitespace-nowrap">{t('common.filter')}:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             className="bg-background border border-border rounded-md px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary flex-1 sm:flex-none"
           >
-            <option value="name">Nome</option>
+            <option value="name">{t('common.name')}</option>
             <option value="cpu">CPU</option>
-            <option value="ram">Memória</option>
-            <option value="disk">Disco</option>
+            <option value="ram">RAM</option>
+            <option value="disk">{t('dashboard.storage')}</option>
           </select>
           <button
             onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
             className="px-3 py-2 bg-background border border-border rounded-md hover:bg-accent text-secondary hover:text-primary transition-colors text-sm font-medium"
-            title={`Ordem ${sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}`}
-            aria-label="Alternar ordem de classificação"
+            title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+            aria-label="Sort order"
           >
             {sortOrder === 'asc' ? '↑' : '↓'}
           </button>

@@ -383,10 +383,10 @@ export function Terminal() {
               <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">{t('sidebar.terminal')}</h2>
               <span className="px-2 py-0.5 rounded-full bg-orbit-500/15 border border-orbit-500/30 text-orbit-300 text-xs font-semibold flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-orbit-400" />
-                SSH Seguro
+                {t('terminal.secure_ssh')}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-secondary mt-0.5">Acesso direto e terminal interativo ao host do sistema</p>
+            <p className="text-xs sm:text-sm text-secondary mt-0.5">{t('terminal.subtitle')}</p>
           </div>
 
           {/* Quick connection state indicators */}
@@ -600,9 +600,9 @@ export function Terminal() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-center text-primary mb-1">Conexão SSH</h3>
+                <h3 className="text-xl font-bold text-center text-primary mb-1">{t('terminal.ssh_connection', 'Conexão SSH')}</h3>
                 <p className="text-xs sm:text-sm text-secondary text-center mb-6">
-                  Autentique-se com as credenciais do host para iniciar o terminal.
+                  {t('terminal.auth_prompt')}
                 </p>
 
                 {errorMessage && (
@@ -614,7 +614,7 @@ export function Terminal() {
 
                 <form onSubmit={connect} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">Usuário</label>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">{t('terminal.user')}</label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                       <input
@@ -629,7 +629,7 @@ export function Terminal() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">Senha</label>
+                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">{t('terminal.password')}</label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                       <input
@@ -651,7 +651,7 @@ export function Terminal() {
                     >
                       <span className="flex items-center gap-1.5">
                         <Server className="w-3.5 h-3.5 text-orbit-400" />
-                        Configurações Avançadas (Host / Porta)
+                        {t('terminal.advanced_settings', 'Configurações Avançadas (Host / Port)')}
                       </span>
                       {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
@@ -659,24 +659,21 @@ export function Terminal() {
                     {showAdvanced && (
                       <div className="p-3.5 pt-1 border-t border-border/40 grid grid-cols-3 gap-3">
                         <div className="col-span-2">
-                          <label className="text-[11px] text-zinc-400 block mb-1">Host SSH</label>
+                          <label className="text-[11px] text-zinc-400 block mb-1">Host</label>
                           <div className="relative">
                             <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
                             <input
                               type="text"
                               value={host}
                               onChange={e => setHost(e.target.value)}
-                              placeholder="localhost (Host do Sistema)"
+                              placeholder="localhost"
                               className="w-full bg-[#0d1117] border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-white focus:outline-none focus:border-orbit-500 font-mono"
                             />
                           </div>
-                          <span className="text-[10px] text-zinc-500 mt-1 block">
-                            Deixe 'localhost' para o Raspberry Pi / Servidor host, ou informe outro IP.
-                          </span>
                         </div>
 
                         <div>
-                          <label className="text-[11px] text-zinc-400 block mb-1">Porta</label>
+                          <label className="text-[11px] text-zinc-400 block mb-1">Port</label>
                           <input
                             type="number"
                             value={port}
@@ -694,7 +691,7 @@ export function Terminal() {
                     className="w-full py-2.5 px-4 bg-orbit-600 hover:bg-orbit-500 active:scale-[0.98] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-orbit-900/30 flex items-center justify-center gap-2 mt-2 cursor-pointer"
                   >
                     <TerminalIcon className="w-4 h-4" />
-                    <span>Conectar via SSH</span>
+                    <span>{t('terminal.connect')}</span>
                   </button>
                 </form>
               </div>
@@ -706,7 +703,7 @@ export function Terminal() {
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#161b22]/95 border border-border/90 rounded-2xl px-5 py-3 shadow-2xl backdrop-blur-md flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200 z-20">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <span className="text-xs font-semibold text-zinc-200">Sessão Finalizada</span>
+                <span className="text-xs font-semibold text-zinc-200">{t('dashboard.disconnected')}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -715,13 +712,13 @@ export function Terminal() {
                   className="px-3 py-1.5 bg-orbit-600 hover:bg-orbit-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  Reconectar
+                  {t('terminal.reconnect')}
                 </button>
                 <button
                   onClick={() => setConnState('idle')}
                   className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
                 >
-                  Alterar Acesso
+                  {t('common.filter')}
                 </button>
               </div>
             </div>

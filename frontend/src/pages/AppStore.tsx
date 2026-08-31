@@ -1,4 +1,5 @@
 import { useState, useEffect, useDeferredValue, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, Download, Search, RefreshCw, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
@@ -15,6 +16,7 @@ interface AppStoreItem {
 }
 
 export function AppStore() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [apps, setApps] = useState<AppStoreItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,26 +119,26 @@ export function AppStore() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">App Store</h1>
-          <p className="text-secondary mt-1">Instale aplicativos com 1 clique ou via comandos Docker.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('store.title')}</h1>
+          <p className="text-secondary mt-1">{t('store.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setIsDockerInstallOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm shadow-orbit-500/20 transition-all active:scale-[0.98]"
-            title="Instalar container personalizado colando comandos docker run ou compose"
+            title={t('docker_install.title')}
           >
             <Terminal className="w-3.5 h-3.5" />
-            <span>Instalar via Comando / Compose</span>
+            <span>{t('store.install_custom')}</span>
           </button>
           <button
             onClick={handleSync}
             disabled={syncing}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium bg-card/60 hover:bg-card border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50"
-            title="Sincronizar lojas de aplicativos"
+            title={t('store.sync_stores')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-400' : ''}`} />
-            <span>{syncing ? 'Sincronizando Lojas...' : 'Sincronizar Lojas'}</span>
+            <span>{syncing ? t('store.syncing_stores') : t('store.sync_stores')}</span>
           </button>
         </div>
       </div>
@@ -151,7 +153,7 @@ export function AppStore() {
             className="px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500"
           >
             {stores.map(store => (
-              <option key={store} value={store}>{store === 'All' ? 'All Stores' : store}</option>
+              <option key={store} value={store}>{store === 'All' ? t('store.all_stores') : store}</option>
             ))}
           </select>
 
@@ -161,7 +163,7 @@ export function AppStore() {
             className="px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500"
           >
             {categories.map(category => (
-              <option key={category} value={category}>{category === 'All' ? 'All Categories' : category}</option>
+              <option key={category} value={category}>{category === 'All' ? t('store.all_categories') : category}</option>
             ))}
           </select>
         </div>
@@ -170,7 +172,7 @@ export function AppStore() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
           <input
             type="text"
-            placeholder="Search apps..."
+            placeholder={t('store.search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"

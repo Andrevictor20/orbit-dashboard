@@ -2,12 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TextEditorModal } from '../../components/files/TextEditorModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 describe('TextEditorModal Component', () => {
   const mockFile = {
     name: 'README.md',

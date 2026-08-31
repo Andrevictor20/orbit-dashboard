@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Search, RefreshCw, Cpu, HardDrive, Filter, 
   Terminal, ShieldAlert, X, Layers, Box, Monitor, AlertTriangle, 
@@ -51,6 +52,7 @@ export interface ProcessesResponse {
 }
 
 export function ProcessMonitor() {
+  const { t } = useTranslation();
   const [data, setData] = useState<ProcessesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState<number>(3000); // 3s default
@@ -235,7 +237,7 @@ export function ProcessMonitor() {
         {/* Total Tasks */}
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Total de Processos</span>
+            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.total_processes')}</span>
             <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-400">
               <Layers className="w-4 h-4" />
             </div>
@@ -245,24 +247,24 @@ export function ProcessMonitor() {
               {data?.user_processes_count ?? data?.total_processes ?? '—'}
             </span>
             <span className="text-xs text-secondary">
-              {data?.kernel_threads_count ? `tarefas (${data.total_processes} total)` : 'tarefas ativas'}
+              {data?.kernel_threads_count ? `(${data.total_processes} ${t('common.total').toLowerCase()})` : t('metrics.user_tasks')}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-border/50 text-[11px] flex-wrap">
             <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 font-medium">
-              {data?.running_processes ?? 0} rodando
+              {data?.running_processes ?? 0} {t('common.running').toLowerCase()}
             </span>
             <span className="px-1.5 py-0.5 rounded-md bg-background text-secondary border border-border/50">
-              {data?.sleeping_processes ?? 0} dormindo
+              {data?.sleeping_processes ?? 0} {t('common.paused').toLowerCase()}
             </span>
             {Boolean(data?.kernel_threads_count) && (
-              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 font-medium" title="Threads do kernel Linux (kthr)">
+              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 font-medium" title="Kernel Threads (kthr)">
                 {data?.kernel_threads_count} kthr
               </span>
             )}
             {Boolean(data?.zombie_processes) && (
               <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold">
-                {data?.zombie_processes} zumbis
+                {data?.zombie_processes} zombie
               </span>
             )}
           </div>
@@ -271,7 +273,7 @@ export function ProcessMonitor() {
         {/* Top CPU Consumer */}
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Maior Consumo CPU</span>
+            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.cpu_usage_history')}</span>
             <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
               <Cpu className="w-4 h-4" />
             </div>
@@ -288,10 +290,10 @@ export function ProcessMonitor() {
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
-            Origem: {data?.top_cpu_process?.container_name ? (
+            {t('logs.source')}: {data?.top_cpu_process?.container_name ? (
               <span className="text-orbit-400 font-medium">{data.top_cpu_process.container_name}</span>
             ) : (
-              <span className="text-zinc-400 font-medium">Host / Raspberry</span>
+              <span className="text-zinc-400 font-medium">Host</span>
             )}
           </div>
         </div>
@@ -299,7 +301,7 @@ export function ProcessMonitor() {
         {/* Top RAM Consumer */}
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Maior Consumo RAM</span>
+            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.memory_usage_history')}</span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
               <HardDrive className="w-4 h-4" />
             </div>
@@ -316,10 +318,10 @@ export function ProcessMonitor() {
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
-            Origem: {data?.top_memory_process?.container_name ? (
+            {t('logs.source')}: {data?.top_memory_process?.container_name ? (
               <span className="text-orbit-400 font-medium">{data.top_memory_process.container_name}</span>
             ) : (
-              <span className="text-zinc-400 font-medium">Host / Raspberry</span>
+              <span className="text-zinc-400 font-medium">Host</span>
             )}
           </div>
         </div>
@@ -327,7 +329,7 @@ export function ProcessMonitor() {
         {/* Host vs Containers Distribution */}
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Origem dos Processos</span>
+            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.system_overview')}</span>
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
               <Box className="w-4 h-4" />
             </div>
@@ -352,7 +354,7 @@ export function ProcessMonitor() {
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary flex items-center justify-between">
-            <span>Uso Global CPU: <span className="text-primary font-mono">{data?.total_cpu_usage?.toFixed(1) || '0.0'}%</span></span>
+            <span>CPU: <span className="text-primary font-mono">{data?.total_cpu_usage?.toFixed(1) || '0.0'}%</span></span>
             <span>RAM: <span className="text-primary font-mono">{formatRAM(data?.total_memory_used)}</span></span>
           </div>
         </div>
@@ -365,7 +367,7 @@ export function ProcessMonitor() {
           <Search className="w-4 h-4 text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar por PID, nome, comando, usuário ou container..."
+            placeholder={t('metrics.search_processes')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-background border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all font-mono"
@@ -376,18 +378,18 @@ export function ProcessMonitor() {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-background border border-border rounded-lg px-2.5 py-1.5">
             <Filter className="w-3.5 h-3.5 text-secondary shrink-0" />
-            <span className="text-xs text-secondary font-medium whitespace-nowrap">Origem:</span>
+            <span className="text-xs text-secondary font-medium whitespace-nowrap">{t('logs.source')}:</span>
             <select
               value={selectedScope}
               onChange={(e) => setSelectedScope(e.target.value)}
               className="bg-transparent text-xs text-primary font-medium outline-none cursor-pointer max-w-[170px] truncate"
             >
-              <option value="all">Todos ({data?.total_processes ?? 0})</option>
-              <option value="user_only">Apps & Usuários ({data?.user_processes_count ?? (data?.total_processes ?? 0)})</option>
+              <option value="all">{t('common.all')} ({data?.total_processes ?? 0})</option>
+              <option value="user_only">{t('metrics.user_tasks')} ({data?.user_processes_count ?? (data?.total_processes ?? 0)})</option>
               {Boolean(data?.kernel_threads_count) && (
-                <option value="kthread_only">Kernel Threads ({data?.kernel_threads_count})</option>
+                <option value="kthread_only">{t('metrics.kernel_threads')} ({data?.kernel_threads_count})</option>
               )}
-              <option value="host">Host / Raspberry ({data?.host_processes_count ?? 0})</option>
+              <option value="host">Host ({data?.host_processes_count ?? 0})</option>
               {containerNames.map(cName => (
                 <option key={cName} value={cName}>Container: {cName}</option>
               ))}
@@ -396,16 +398,16 @@ export function ProcessMonitor() {
 
           {/* Status Selector */}
           <div className="flex items-center gap-1.5 bg-background border border-border rounded-lg px-2.5 py-1.5">
-            <span className="text-xs text-secondary font-medium whitespace-nowrap">Status:</span>
+            <span className="text-xs text-secondary font-medium whitespace-nowrap">{t('common.status')}:</span>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="bg-transparent text-xs text-primary font-medium outline-none cursor-pointer"
             >
-              <option value="all">Todos</option>
-              <option value="Running">Executando</option>
-              <option value="Sleeping">Dormindo</option>
-              <option value="Zombie">Zumbi</option>
+              <option value="all">{t('common.all')}</option>
+              <option value="Running">{t('common.running')}</option>
+              <option value="Sleeping">{t('common.paused')}</option>
+              <option value="Zombie">Zombie</option>
             </select>
           </div>
 

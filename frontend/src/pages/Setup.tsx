@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { User, KeyRound, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 export function Setup() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,17 +18,17 @@ export function Setup() {
     setError('');
 
     if (!username || !password || !confirmPassword) {
-      setError('Por favor, preencha todos os campos.');
+      setError(t('auth.required_fields', 'Por favor, preencha todos os campos.'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError(t('auth.password_mismatch', 'As senhas não coincidem.'));
       return;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter no mínimo 6 caracteres.');
+      setError(t('auth.password_min_length', 'A senha deve ter no mínimo 6 caracteres.'));
       return;
     }
 
@@ -40,7 +42,7 @@ export function Setup() {
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao configurar usuário. Pode já existir.');
+        throw new Error(t('auth.setup_error', 'Erro ao configurar usuário. Pode já existir.'));
       }
 
       await response.json();
@@ -51,7 +53,7 @@ export function Setup() {
       // Hard refresh to reload contexts and skip setup check
       window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'Erro ao realizar setup inicial.');
+      setError(err.message || t('auth.setup_error', 'Erro ao realizar setup inicial.'));
     } finally {
       setLoading(false);
     }
@@ -72,10 +74,10 @@ export function Setup() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
-          Bem-vindo ao Orbit
+          {t('auth.welcome_orbit', 'Bem-vindo ao Orbit')}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-400">
-          Crie seu usuário administrador para começar
+          {t('auth.setup_subtitle', 'Crie seu usuário administrador para começar')}
         </p>
       </div>
 
@@ -92,7 +94,7 @@ export function Setup() {
 
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-300">
-                Usuário
+                {t('auth.username', 'Usuário')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -102,18 +104,19 @@ export function Setup() {
                   id="username"
                   name="username"
                   type="text"
+                  required
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 bg-background/50 border border-border rounded-lg py-2.5 text-gray-200 focus:ring-2 focus:ring-orbit-500 focus:border-orbit-500 sm:text-sm transition-all"
-                  placeholder="Defina seu usuário"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-background/50 border border-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  placeholder={t('auth.username', 'admin')}
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                Senha
+                {t('auth.password', 'Senha')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -123,16 +126,17 @@ export function Setup() {
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
+                  required
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 bg-background/50 border border-border rounded-lg py-2.5 text-gray-200 focus:ring-2 focus:ring-orbit-500 focus:border-orbit-500 sm:text-sm transition-all"
-                  placeholder="Defina sua senha"
+                  className="block w-full pl-10 pr-10 bg-background/50 border border-border rounded-xl py-2.5 text-white placeholder-gray-500 focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -145,7 +149,7 @@ export function Setup() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300">
-                Confirmar Senha
+                {t('auth.confirm_password', 'Confirmar Senha')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -155,11 +159,12 @@ export function Setup() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showPassword ? "text" : "password"}
+                  required
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 bg-background/50 border border-border rounded-lg py-2.5 text-gray-200 focus:ring-2 focus:ring-orbit-500 focus:border-orbit-500 sm:text-sm transition-all"
-                  placeholder="Confirme sua senha"
+                  className="block w-full pl-10 pr-10 bg-background/50 border border-border rounded-xl py-2.5 text-white placeholder-gray-500 focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
@@ -168,14 +173,14 @@ export function Setup() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center items-center space-x-2 rounded-lg bg-orbit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orbit-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orbit-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full justify-center items-center space-x-2 rounded-xl bg-orbit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orbit-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orbit-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
                     <ShieldCheck className="w-5 h-5" />
-                    <span>Concluir Setup</span>
+                    <span>{t('auth.create_account_sign_in', 'Criar Conta e Entrar')}</span>
                   </>
                 )}
               </button>

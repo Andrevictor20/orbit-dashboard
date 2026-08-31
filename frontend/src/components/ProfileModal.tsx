@@ -62,7 +62,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-secondary">Senha Atual</label>
+              <label className="text-sm font-medium text-secondary">{t('profile.current_password')}</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
@@ -75,7 +75,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-secondary">Nova Senha</label>
+              <label className="text-sm font-medium text-secondary">{t('profile.new_password')}</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
@@ -94,7 +94,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               className="w-full bg-orbit-500 hover:bg-orbit-600 text-white font-medium py-2 rounded-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               {isChangingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
-              Alterar Senha
+              {t('profile.change_password')}
             </button>
           </form>
         </div>

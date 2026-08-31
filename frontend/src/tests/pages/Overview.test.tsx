@@ -27,13 +27,6 @@ vi.mock('../../contexts/StatsContext', () => ({
   StatsProvider: ({ children }: any) => children,
 }));
 
-// Mock useTranslation
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-}));
-
 import { useStats } from '../../contexts/StatsContext';
 
 describe('Overview Component', () => {
@@ -59,8 +52,8 @@ describe('Overview Component', () => {
     );
     
     // Check titles
-    expect(screen.getByText('dashboard.title')).toBeTruthy();
-    expect(screen.getByText('dashboard.disconnected')).toBeTruthy();
+    expect(screen.getByText('Orbit Dashboard')).toBeTruthy();
+    expect(screen.getByText('Desconectado')).toBeTruthy();
     
     // Check default zeros
     expect(screen.getAllByText('0.0%').length).toBeGreaterThan(0); // CPU and Memory
@@ -91,7 +84,7 @@ describe('Overview Component', () => {
       </BrowserRouter>
     );
     
-    expect(screen.getByText('dashboard.connected')).toBeTruthy();
+    expect(screen.getByText('Conectado')).toBeTruthy();
     expect(screen.getByText('25.5%')).toBeTruthy(); // CPU
     expect(screen.getByText('45.0°C')).toBeTruthy(); // Temp
     expect(screen.getByText('1.00 GB')).toBeTruthy(); // Mem used

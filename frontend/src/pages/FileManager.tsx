@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Folder, 
   File, 
@@ -76,7 +77,8 @@ interface CloudAccount {
 
 interface ShortcutPlace {
   id: string;
-  label: string;
+  labelKey?: string;
+  label?: string;
   path: string;
   icon: string;
 }
@@ -95,6 +97,7 @@ const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'];
 const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'gz', 'tgz', 'rar', '7z'];
 
 export function FileManager() {
+  const { t } = useTranslation();
   const { startTask } = useTasks();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPath = searchParams.get('path');
@@ -105,13 +108,13 @@ export function FileManager() {
   const [storages, setStorages] = useState<MountItem[]>([]);
   const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
   const [places, setPlaces] = useState<ShortcutPlace[]>([
-    { id: 'home', label: 'Início', path: '/', icon: 'home' },
-    { id: 'documents', label: 'Documentos', path: '/Documents', icon: 'file-text' },
-    { id: 'downloads', label: 'Downloads', path: '/Downloads', icon: 'download' },
-    { id: 'pictures', label: 'Imagens', path: '/Pictures', icon: 'image' },
-    { id: 'music', label: 'Músicas', path: '/Music', icon: 'music' },
-    { id: 'videos', label: 'Vídeos', path: '/Videos', icon: 'film' },
-    { id: 'root', label: 'Sistema (Raiz)', path: '/', icon: 'hard-drive' },
+    { id: 'home', labelKey: 'files.home', label: 'Início', path: '/', icon: 'home' },
+    { id: 'documents', labelKey: 'files.documents', label: 'Documentos', path: '/Documents', icon: 'file-text' },
+    { id: 'downloads', labelKey: 'files.downloads', label: 'Downloads', path: '/Downloads', icon: 'download' },
+    { id: 'pictures', labelKey: 'files.pictures', label: 'Imagens', path: '/Pictures', icon: 'image' },
+    { id: 'music', labelKey: 'files.music', label: 'Músicas', path: '/Music', icon: 'music' },
+    { id: 'videos', labelKey: 'files.videos', label: 'Vídeos', path: '/Videos', icon: 'film' },
+    { id: 'root', labelKey: 'files.root', label: 'Sistema (Raiz)', path: '/', icon: 'hard-drive' },
   ]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -764,7 +767,7 @@ export function FileManager() {
           {/* Section: Favoritos / Places */}
           <div>
             <h3 className="text-xs font-bold text-secondary uppercase tracking-wider px-3 mb-2">
-              Favoritos
+              {t('files.favorites')}
             </h3>
             <div className="space-y-0.5">
               {places.map((place) => {
@@ -787,7 +790,7 @@ export function FileManager() {
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{place.label}</span>
+                    <span className="truncate">{place.labelKey ? t(place.labelKey) : (place.label || place.id)}</span>
                   </button>
                 );
               })}
@@ -805,7 +808,7 @@ export function FileManager() {
                 }`}
               >
                 <Trash2 className="w-4 h-4 shrink-0 text-rose-400" />
-                <span className="truncate">Lixeira</span>
+                <span className="truncate">{t('files.trash')}</span>
               </button>
             </div>
           </div>
@@ -814,7 +817,7 @@ export function FileManager() {
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <h3 className="text-xs font-bold text-secondary uppercase tracking-wider">
-                Unidades
+                {t('files.units')}
               </h3>
               <button
                 onClick={() => setShowLocationMenu(!showLocationMenu)}

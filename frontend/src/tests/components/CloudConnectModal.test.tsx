@@ -3,12 +3,6 @@ import '@testing-library/jest-dom';
 import { CloudConnectModal } from '../../components/files/CloudConnectModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 describe('CloudConnectModal Component', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn((url: string, opts?: any) => {

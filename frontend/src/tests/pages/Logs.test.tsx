@@ -3,12 +3,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { Logs } from '../../pages/Logs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
-}));
-
 describe('Logs Page Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +34,7 @@ describe('Logs Page Component', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Logs do Sistema e do Orbit')).toBeTruthy();
+    expect(screen.getByText('Logs do Sistema')).toBeTruthy();
     expect(screen.getByText('Orbit Backend')).toBeTruthy();
     expect(screen.getByText('Sistema Linux')).toBeTruthy();
     expect(screen.getByText('Docker Daemon')).toBeTruthy();
@@ -101,7 +95,7 @@ describe('Logs Page Component', () => {
       expect(screen.getByText(/Orbit backend started/)).toBeTruthy();
     });
 
-    const copyBtn = screen.getByTitle('Copiar todos os logs visíveis');
+    const copyBtn = screen.getByTitle('Copiar');
     fireEvent.click(copyBtn);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalled();

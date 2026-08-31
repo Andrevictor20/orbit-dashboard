@@ -2,12 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { VideoPlayerModal } from '../../components/files/VideoPlayerModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultVal?: string) => defaultVal || key,
-  }),
-}));
-
 describe('VideoPlayerModal Component', () => {
   const mockFile = {
     name: 'movie.mkv',

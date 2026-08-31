@@ -55,9 +55,9 @@ describe('Metrics Component', () => {
     expect(screen.getByText('Desconectado')).toBeTruthy();
     
     // Check panels exist
-    expect(screen.getByText(/Evolução de CPU/)).toBeTruthy();
-    expect(screen.getByText(/Evolução de Memória/)).toBeTruthy();
-    expect(screen.getByText(/Tráfego de Rede/)).toBeTruthy();
+    expect(screen.getByText(/CPU/i)).toBeTruthy();
+    expect(screen.getByText(/Memória/i)).toBeTruthy();
+    expect(screen.getByText(/Rede/i)).toBeTruthy();
   });
 
   it('renders connected state', () => {
@@ -80,7 +80,7 @@ describe('Metrics Component', () => {
 
     render(<Metrics />);
     
-    expect(screen.getByText('Real-time')).toBeTruthy();
+    expect(screen.getByText('Ao vivo')).toBeTruthy();
   });
 
   it('switches to Processos tab when button is clicked', () => {
@@ -91,7 +91,7 @@ describe('Metrics Component', () => {
 
     render(<Metrics />);
 
-    const processesTabBtn = screen.getByText('Processos');
+    const processesTabBtn = screen.getByRole('button', { name: /Processos/i });
     expect(processesTabBtn).toBeTruthy();
 
     fireEvent.click(processesTabBtn);

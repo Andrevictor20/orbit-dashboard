@@ -75,7 +75,7 @@ describe('AppStore', () => {
 
     await screen.findByRole('heading', { name: /AdGuard Home/i });
 
-    const searchInput = screen.getByPlaceholderText('Search apps...');
+    const searchInput = screen.getByPlaceholderText(/buscar|search/i);
     fireEvent.change(searchInput, { target: { value: 'Pi-hole' } });
 
     await screen.findByRole('heading', { name: /Pi-hole/i });

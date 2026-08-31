@@ -209,7 +209,7 @@ export function Volumes() {
             <HardDrive className="h-6 w-6 text-orbit-500" />
             {t('sidebar.volumes')}
           </h2>
-          <p className="text-xs sm:text-sm text-secondary mt-1">Gerencie a persistência de dados e volumes montados pelos containers</p>
+          <p className="text-xs sm:text-sm text-secondary mt-1">{t('volumes.subtitle')}</p>
         </div>
         <div>
           <button 
@@ -217,7 +217,7 @@ export function Volumes() {
             className="glass-button px-3.5 py-2 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs sm:text-sm font-medium transition-colors"
           >
             <ShieldAlert className="w-4 h-4" />
-            Limpar Não Utilizados (Prune)
+            {t('volumes.prune_unused')}
           </button>
         </div>
       </div>
@@ -229,7 +229,7 @@ export function Volumes() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar por nome, ponto de montagem ou driver..."
+            placeholder={t('volumes.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 transition-colors font-mono"
@@ -243,21 +243,21 @@ export function Volumes() {
               onClick={() => setStatusFilter('all')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
             >
-              Todos ({volumes.length})
+              {t('common.all')} ({volumes.length})
             </button>
             <button
               onClick={() => setStatusFilter('used')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Em uso ({usedCount})
+              {t('volumes.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
               className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Não usados ({unusedCount})
+              {t('volumes.unused')} ({unusedCount})
             </button>
           </div>
 

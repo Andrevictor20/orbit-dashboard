@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export function Login() {
     setError('');
     
     if (!username || !password) {
-      setError('Por favor, preencha todos os campos.');
+      setError(t('auth.required_fields', 'Por favor, preencha todos os campos.'));
       return;
     }
 
@@ -36,23 +38,21 @@ export function Login() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Credenciais inválidas.');
+          throw new Error(t('auth.invalid_credentials', 'Credenciais inválidas.'));
         } else if (response.status === 429) {
-          throw new Error('Muitas tentativas (Proteção de Força-Bruta ativada). Aguarde 5 minutos e tente novamente.');
+          throw new Error(t('auth.too_many_attempts', 'Muitas tentativas. Aguarde 5 minutos.'));
         } else {
-          throw new Error('Erro ao conectar com o servidor.');
+          throw new Error(t('auth.server_error', 'Erro ao conectar com o servidor.'));
         }
       }
 
       await response.json();
       
-      // We simulate storing a token because the actual auth is in HttpOnly cookie
-      // The backend could return a dummy token or we just store 'logged_in'
       login('logged_in_token');
       
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Erro ao realizar login.');
+      setError(err.message || t('auth.login_error', 'Erro ao realizar login.'));
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ export function Login() {
           Orbit
         </h2>
         <p className="mt-2 text-center text-sm text-gray-400">
-          Painel de Controle de Contêineres
+          {t('auth.login_subtitle', 'Painel de Controle de Contêineres')}
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export function Login() {
 
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-300">
-                Usuário
+                {t('auth.username', 'Usuário')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -103,58 +103,42 @@ export function Login() {
                   id="username"
                   name="username"
                   type="text"
+                  required
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 bg-background/50 border border-border rounded-lg py-2.5 text-gray-200 focus:ring-2 focus:ring-orbit-500 focus:border-orbit-500 sm:text-sm transition-all"
-                  placeholder="Seu usuário"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-background/50 border border-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  placeholder={t('auth.username', 'Seu usuário')}
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                Senha
+                {t('auth.password', 'Senha')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <KeyRound className="h-5 w-5 text-gray-500" />
+                  <Lock className="h-5 w-5 text-gray-500" />
                 </div>
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
+                  required
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 bg-background/50 border border-border rounded-lg py-2.5 text-gray-200 focus:ring-2 focus:ring-orbit-500 focus:border-orbit-500 sm:text-sm transition-all"
-                  placeholder="Sua senha"
+                  className="block w-full pl-10 pr-10 py-2.5 bg-background/50 border border-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-border bg-card text-orbit-500 focus:ring-orbit-500"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
-                  Lembrar-me
-                </label>
               </div>
             </div>
 
@@ -162,19 +146,35 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center items-center space-x-2 rounded-lg bg-orbit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orbit-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orbit-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>{t('auth.signing_in', 'Entrando...')}</span>
+                  </div>
                 ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    <span>Entrar no Dashboard</span>
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <KeyRound className="w-4 h-4" />
+                    <span>{t('auth.sign_in', 'Entrar no Dashboard')}</span>
+                  </div>
                 )}
               </button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-card/40 text-gray-500 text-xs">
+                  {t('auth.secure_panel', 'Painel Seguro')}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
