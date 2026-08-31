@@ -181,10 +181,65 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         'Fix Cargo mtime cache bug: touch all .rs files': 'Correção: Bug de cache de tempo (mtime) do Cargo resolvido via touch',
         'Fix CI/CD cache bug: force backend recompile on every push': 'Correção: Bug de cache do CI/CD forçando recompilação do backend',
         'Fix silent restart loop: restore safe graceful shutdown': 'Correção: Loop de reinício silencioso resolvido com desligamento seguro',
-        'Fix premature ExitCode 0 container restart loop': 'Correção: Loop de reinício prematuro (código 0) do contêiner resolvido'
+        'Fix premature ExitCode 0 container restart loop': 'Correção: Loop de reinício prematuro (código 0) do contêiner resolvido',
+        'fix visual layout, sync dynamic PTY resize and add clipboard copy paste': 'Correção do layout visual, redimensionamento dinâmico do terminal e suporte a copiar/colar',
+        'implement auto-grouping of related container stacks': 'Agrupamento automático de stacks e sub-containers relacionados',
+        'add process monitor tab and system processes api': 'Nova aba de monitor de processos detalhado (estilo htop) e telemetria',
+        'redesign container inventory actions and update badge': 'Redesign da barra de ações dos containers e badge de atualização',
+        'redesign logs screen to integrate with orbit design system and remove mac os buttons': 'Redesign da tela de logs integrado ao Orbit e remoção dos botões de janela macOS',
+        'resolve slice typing in catalog and system update tests': 'Ajuste na tipagem de fatias de memória nos testes do sistema',
+        'restructure updatemodal tabs for whats new and history': 'Reestruturação das abas de novidades e histórico de atualizações',
       };
 
       if (exactMap[text]) return exactMap[text];
+
+      // Handle conventional commits: feat(scope): message or fix: message
+      const convMatch = text.match(/^(feat|fix|perf|refactor|docs|style|test|chore|ci)(\((.*?)\))?:\s*(.*)$/i);
+      if (convMatch) {
+        const scope = (convMatch[3] || '').trim().toLowerCase();
+        let message = (convMatch[4] || '').trim();
+
+        if (exactMap[message]) {
+          message = exactMap[message];
+        } else {
+          message = message
+            .replace(/^fix\s+/i, 'Correção de ')
+            .replace(/^add\s+/i, 'Adicionado ')
+            .replace(/^update\s+/i, 'Atualizado ')
+            .replace(/^implement\s+/i, 'Implementado ')
+            .replace(/^optimize\s+/i, 'Otimizado ')
+            .replace(/^redesign\s+/i, 'Redesign de ')
+            .replace(/^remove\s+/i, 'Removido ')
+            .replace(/clipboard copy paste/gi, 'copiar e colar')
+            .replace(/visual layout/gi, 'layout visual')
+            .replace(/dynamic PTY resize/gi, 'redimensionamento dinâmico do terminal (PTY)')
+            .replace(/process monitor/gi, 'monitor de processos')
+            .replace(/auto-grouping/gi, 'agrupamento automático')
+            .replace(/container stacks/gi, 'stacks de containers')
+            .replace(/mac os buttons/gi, 'botões estilo macOS')
+            .replace(/cache bug/gi, 'bug de cache')
+            .replace(/restart loop/gi, 'loop de reinicialização')
+            .replace(/graceful shutdown/gi, 'desligamento seguro')
+            .replace(/unit tests/gi, 'testes unitários');
+        }
+
+        const scopeMap: Record<string, string> = {
+          terminal: 'Terminal Web',
+          containers: 'Containers',
+          container: 'Containers',
+          metrics: 'Métricas do Sistema',
+          logs: 'Logs do Sistema',
+          ui: 'Interface Visual',
+          docker: 'Docker Engine',
+          backend: 'Backend & API',
+          system: 'Sistema Operacional',
+          security: 'Segurança',
+          auth: 'Autenticação',
+        };
+
+        const localizedScope = scopeMap[scope] || (scope ? scope.toUpperCase() : '');
+        return localizedScope ? `${localizedScope}: ${message}` : message;
+      }
 
       text = text
         .replace(/^Add\s+/i, 'Adicionado: ')
@@ -193,7 +248,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         .replace(/^Remove\s+/i, 'Removido: ')
         .replace(/^Implement\s+/i, 'Implementado: ')
         .replace(/^Optimize\s+/i, 'Otimizado: ')
+        .replace(/^Redesign\s+/i, 'Redesign: ')
         .replace(/^Bump\s+/i, 'Atualização de versão para: ')
+        .replace(/clipboard copy paste/gi, 'copiar e colar')
+        .replace(/visual layout/gi, 'layout visual')
+        .replace(/process monitor/gi, 'monitor de processos')
         .replace(/cache bug/gi, 'bug de cache')
         .replace(/restart loop/gi, 'loop de reinicialização')
         .replace(/graceful shutdown/gi, 'desligamento seguro')

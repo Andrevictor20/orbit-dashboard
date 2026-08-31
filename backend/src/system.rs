@@ -99,20 +99,30 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
             }
         }
 
-        // 2. If no release tag difference found, check latest commit message
-        if !has_update {
-            let commits_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/commits/main";
-            if let Ok(resp) = client.get(commits_url).send().await {
-                if resp.status().is_success() {
-                    if let Ok(json) = resp.json::<serde_json::Value>().await {
-                        if let Some(commit) = json.get("commit") {
-                            let message = commit.get("message").and_then(|v| v.as_str()).unwrap_or("");
-                            let date = commit.get("committer").and_then(|c| c.get("date")).and_then(|d| d.as_str());
-                            if let Some(d) = date {
-                                published_at = Some(d.to_string());
+        // 2. Fetch recent commits list to build comprehensive changelog
+        let commits_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/commits?per_page=15";
+        if let Ok(resp) = client.get(commits_url).send().await {
+            if resp.status().is_success() {
+                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                    if let Some(commits_arr) = json.as_array() {
+                        let mut lines = Vec::new();
+                        for c_obj in commits_arr {
+                            if let Some(commit) = c_obj.get("commit") {
+                                let msg = commit.get("message").and_then(|v| v.as_str()).unwrap_or("");
+                                let first_line = msg.lines().next().unwrap_or("").trim();
+                                if !first_line.is_empty() && !lines.contains(&format!("- {}", first_line)) {
+                                    lines.push(format!("- {}", first_line));
+                                }
+                                if published_at.is_none() {
+                                    if let Some(d) = commit.get("committer").and_then(|c| c.get("date")).and_then(|d| d.as_str()) {
+                                        published_at = Some(d.to_string());
+                                    }
+                                }
                             }
-                            if !message.is_empty() {
-                                release_notes = format!("Últimas alterações no repositório:\n\n{}", message);
+                        }
+                        if !lines.is_empty() {
+                            release_notes = format!("Últimas alterações no repositório:\n\n{}", lines.join("\n"));
+                            if !has_update {
                                 release_name = "Versão Mais Recente (GitHub Main)".to_string();
                             }
                         }
