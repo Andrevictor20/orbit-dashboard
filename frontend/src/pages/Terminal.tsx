@@ -666,10 +666,13 @@ export function Terminal() {
                               type="text"
                               value={host}
                               onChange={e => setHost(e.target.value)}
-                              placeholder="localhost"
+                              placeholder="localhost (Host do Sistema)"
                               className="w-full bg-[#0d1117] border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-white focus:outline-none focus:border-orbit-500 font-mono"
                             />
                           </div>
+                          <span className="text-[10px] text-zinc-500 mt-1 block">
+                            Deixe 'localhost' para o Raspberry Pi / Servidor host, ou informe outro IP.
+                          </span>
                         </div>
 
                         <div>

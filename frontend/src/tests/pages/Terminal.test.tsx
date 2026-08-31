@@ -79,7 +79,7 @@ describe('Terminal Page', () => {
 
     // Expand
     fireEvent.click(advancedToggle);
-    expect(screen.getByPlaceholderText('localhost')).toBeTruthy();
+    expect(screen.getByPlaceholderText(/localhost/i)).toBeTruthy();
     expect(screen.getByPlaceholderText('22')).toBeTruthy();
   });
 

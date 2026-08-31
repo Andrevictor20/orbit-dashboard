@@ -46,33 +46,98 @@ fn is_executable_in_path(cmd: &str) -> bool {
     false
 }
 
-fn resolve_default_ssh_host(custom_host: Option<String>) -> String {
+pub fn get_docker_gateway_ip() -> Option<String> {
+    if let Ok(content) = std::fs::read_to_string("/proc/net/route") {
+        for line in content.lines().skip(1) {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            if fields.len() >= 3 && fields[1] == "00000000" {
+                if let Ok(gw_hex) = u32::from_str_radix(fields[2], 16) {
+                    if gw_hex != 0 {
+                        // gw_hex is little-endian in /proc/net/route on x86/ARM
+                        let b0 = (gw_hex & 0xFF) as u8;
+                        let b1 = ((gw_hex >> 8) & 0xFF) as u8;
+                        let b2 = ((gw_hex >> 16) & 0xFF) as u8;
+                        let b3 = ((gw_hex >> 24) & 0xFF) as u8;
+                        return Some(format!("{}.{}.{}.{}", b0, b1, b2, b3));
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+pub fn resolve_ssh_target_host(custom_host: Option<String>, port: u16) -> String {
     if let Some(h) = custom_host {
         let trimmed = h.trim();
-        if !trimmed.is_empty() {
+        // If the user specified a custom external IP or hostname that is NOT localhost/127.0.0.1, use it!
+        if !trimmed.is_empty() 
+            && trimmed != "localhost" 
+            && trimmed != "127.0.0.1" 
+            && trimmed != "0.0.0.0" 
+            && trimmed != "::1" 
+        {
             return trimmed.to_string();
         }
     }
 
-    if let Ok(h) = std::env::var("SSH_HOST") {
-        let trimmed = h.trim();
+    let mut candidates: Vec<String> = Vec::new();
+
+    // 1. SSH_HOST env var if set
+    if let Ok(env_host) = std::env::var("SSH_HOST") {
+        let trimmed = env_host.trim();
+        if !trimmed.is_empty() && trimmed != "localhost" && trimmed != "127.0.0.1" {
+            candidates.push(trimmed.to_string());
+        }
+    }
+
+    // 2. host.docker.internal
+    candidates.push("host.docker.internal".to_string());
+
+    // 3. Docker container gateway IP from /proc/net/route
+    if let Some(gw) = get_docker_gateway_ip() {
+        if !candidates.contains(&gw) {
+            candidates.push(gw);
+        }
+    }
+
+    // 4. Common Docker bridge gateways
+    for fallback_ip in &["172.17.0.1", "172.18.0.1", "172.19.0.1", "172.20.0.1", "172.21.0.1", "172.22.0.1"] {
+        let ip_str = fallback_ip.to_string();
+        if !candidates.contains(&ip_str) {
+            candidates.push(ip_str);
+        }
+    }
+
+    // 5. Bare-metal localhost / 127.0.0.1 (if running directly on host)
+    candidates.push("127.0.0.1".to_string());
+    candidates.push("localhost".to_string());
+
+    // Probe candidates via fast TCP connect (300ms timeout) to see which one has SSH port open!
+    for candidate in &candidates {
+        let addr_str = format!("{}:{}", candidate, port);
+        if let Ok(addrs) = addr_str.to_socket_addrs() {
+            for addr in addrs {
+                if std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(300)).is_ok() {
+                    tracing::info!("[SSH] Probed and selected reachable SSH host '{}' ({}) on port {}", candidate, addr, port);
+                    return candidate.clone();
+                }
+            }
+        }
+    }
+
+    // If no TCP probe succeeded, pick the most appropriate default candidate
+    if let Ok(env_host) = std::env::var("SSH_HOST") {
+        let trimmed = env_host.trim();
         if !trimmed.is_empty() {
             return trimmed.to_string();
         }
     }
-
-    // Try resolving host.docker.internal first
-    if ("host.docker.internal", 22).to_socket_addrs().is_ok() {
-        return "host.docker.internal".to_string();
+    if let Some(gw) = get_docker_gateway_ip() {
+        return gw;
     }
 
-    // Fallback 1: Docker default bridge gateway
-    if ("172.17.0.1", 22).to_socket_addrs().is_ok() {
-        return "172.17.0.1".to_string();
-    }
-
-    // Fallback 2: 127.0.0.1
-    "127.0.0.1".to_string()
+    "host.docker.internal".to_string()
 }
 
 async fn handle_socket(socket: WebSocket) {
@@ -110,13 +175,14 @@ async fn handle_socket(socket: WebSocket) {
     let port = init_msg.port.unwrap_or(22);
 
     // 2. Setup command based on Init message
-    let cmd = if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
+    let (cmd, target_host) = if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
         if !is_executable_in_path("sshpass") {
             let _ = sender.send(Message::Text("Error: sshpass not found in container image\r\n".into())).await;
             return;
         }
 
-        let ssh_host = resolve_default_ssh_host(init_msg.host);
+        let ssh_host = resolve_ssh_target_host(init_msg.host, port);
+        tracing::info!("[SSH] Connecting to {}@{} on port {}", user, ssh_host, port);
 
         let mut builder = CommandBuilder::new("sshpass");
         builder.arg("-p");
@@ -133,7 +199,7 @@ async fn handle_socket(socket: WebSocket) {
         builder.arg("-o");
         builder.arg("ConnectTimeout=10");
         builder.arg(format!("{}@{}", user, ssh_host));
-        builder
+        (builder, ssh_host)
     } else {
         let _ = sender.send(Message::Text("Missing credentials for SSH\r\n".into())).await;
         return;
@@ -181,7 +247,7 @@ async fn handle_socket(socket: WebSocket) {
     let writer = Arc::new(Mutex::new(writer));
 
     // Notify frontend we are connected
-    let _ = sender.send(Message::Text("\x1b[1;32mConnected!\x1b[0m\r\n".into())).await;
+    let _ = sender.send(Message::Text(format!("\x1b[1;32mConnected!\x1b[0m \x1b[1;30m(Host: {}:{})\x1b[0m\r\n", target_host, port).into())).await;
 
     let (tx, mut rx) = mpsc::channel::<String>(256);
 
