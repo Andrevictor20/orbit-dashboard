@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { TextEditorModal } from '../../components/files/TextEditorModal';
+import { TextEditorModal } from '../../../components/files/TextEditorModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('TextEditorModal Component', () => {

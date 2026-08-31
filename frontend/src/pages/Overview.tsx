@@ -7,7 +7,7 @@ import { useStats } from '../contexts/StatsContext';
 import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
 import { groupContainers, type GroupContainerItem } from '../utils/containerGroups';
-import { AppGroupModal } from '../components/ui/AppGroupModal';
+import { AppGroupModal } from '../components/docker/AppGroupModal';
 import {
   AreaChart,
   Area,

@@ -26,6 +26,8 @@ pub struct DiskStat {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SystemStats {
+    #[serde(default)]
+    pub timestamp: u64,
     pub cpu_usage: f32,
     pub memory_used: u64,
     pub memory_total: u64,
@@ -445,7 +447,13 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             temperature /= temp_count as f32;
         }
 
+        let now_millis = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+
         let stats = SystemStats {
+            timestamp: now_millis,
             cpu_usage: sys_cpu,
             memory_used: sys_mem,
             memory_total: sys.total_memory(),

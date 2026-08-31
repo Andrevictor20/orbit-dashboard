@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { InstallProvider } from '../../contexts/InstallContext';
-import { ThemeProvider } from '../../components/ThemeProvider';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 
 vi.mock('../../contexts/AuthContext', async () => {
   const actual = await vi.importActual('../../contexts/AuthContext');

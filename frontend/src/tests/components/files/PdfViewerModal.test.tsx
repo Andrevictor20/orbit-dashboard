@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PdfViewerModal } from '../../components/files/PdfViewerModal';
+import { PdfViewerModal } from '../../../components/files/PdfViewerModal';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('PdfViewerModal Component', () => {

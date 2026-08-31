@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { CloudConnectModal } from '../../components/files/CloudConnectModal';
+import { CloudConnectModal } from '../../../components/files/CloudConnectModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('CloudConnectModal Component', () => {

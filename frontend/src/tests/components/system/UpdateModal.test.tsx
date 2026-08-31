@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import '../../i18n';
-import { UpdateModal, type SystemUpdateInfo } from '../../components/UpdateModal';
+import '../../../i18n';
+import { UpdateModal, type SystemUpdateInfo } from '../../../components/system/UpdateModal';
 
 describe('UpdateModal Component', () => {
   beforeEach(() => {

@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { DockerInstallModal } from '../../components/docker/DockerInstallModal';
+import { DockerInstallModal } from '../../../components/docker/DockerInstallModal';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const mockStartInstall = vi.fn();
-vi.mock('../../contexts/InstallContext', () => ({
+vi.mock('../../../contexts/InstallContext', () => ({
   useInstall: () => ({
     startInstall: mockStartInstall,
   }),

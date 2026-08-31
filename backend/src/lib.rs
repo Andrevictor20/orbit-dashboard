@@ -39,6 +39,9 @@ pub fn app() -> Router {
         docker: Arc::new(docker),
     };
 
+    // Start background stats collector immediately so metrics history is populated continuously
+    ws::ensure_stats_collector(state.docker.clone());
+
     let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))

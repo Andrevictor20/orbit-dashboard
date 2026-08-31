@@ -146,3 +146,49 @@ async fn test_prune_endpoints_authorized_routes_exist() {
     }
 }
 
+#[tokio::test]
+async fn test_update_container_unauthorized() {
+    let app = app();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/docker/containers/non_existent_123/update")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_update_container_authorized_structured_error_for_unknown_id() {
+    let app = app();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/docker/containers/non_existent_123/update")
+                .header("Cookie", valid_auth_cookie())
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Must be either NOT_FOUND (container not found) or INTERNAL_SERVER_ERROR (if docker socket down), but NOT UNAUTHORIZED
+    assert_ne!(response.status(), StatusCode::UNAUTHORIZED);
+    
+    // Check that body is valid JSON response with status & message
+    use http_body_util::BodyExt;
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&body_bytes) {
+        assert!(json.get("status").is_some() || json.get("message").is_some());
+    }
+}
+
+

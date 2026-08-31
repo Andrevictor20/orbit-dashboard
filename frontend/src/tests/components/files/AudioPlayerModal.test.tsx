@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AudioPlayerModal } from '../../components/files/AudioPlayerModal';
+import { AudioPlayerModal } from '../../../components/files/AudioPlayerModal';
 import { vi, describe, it, expect } from 'vitest';
 
 describe('AudioPlayerModal Component', () => {

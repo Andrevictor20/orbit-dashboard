@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ImageGalleryModal } from '../../components/files/ImageGalleryModal';
-import type { FileItem } from '../../pages/FileManager';
+import { ImageGalleryModal } from '../../../components/files/ImageGalleryModal';
+import type { FileItem } from '../../../pages/FileManager';
 
 describe('ImageGalleryModal', () => {
   const mockFiles: FileItem[] = [

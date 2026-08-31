@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { InstallProgressModal } from '../../components/InstallProgressModal';
+import { InstallProgressModal } from '../../../components/docker/InstallProgressModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { useInstall } from '../../contexts/InstallContext';
+import { useInstall } from '../../../contexts/InstallContext';
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -10,7 +10,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 // Mock InstallContext
-vi.mock('../../contexts/InstallContext', () => ({
+vi.mock('../../../contexts/InstallContext', () => ({
   useInstall: vi.fn()
 }));
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 
-interface SystemStats {
+export interface SystemStats {
+  timestamp?: number;
   cpu_usage: number;
   memory_used: number;
   memory_total: number;

@@ -6,7 +6,7 @@ import { InstallProvider } from './contexts/InstallContext';
 import { StatsProvider } from './contexts/StatsContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
-import { ThemeProvider } from './components/ThemeProvider';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Loader2 } from 'lucide-react';
 
 // Code Splitting & Dynamic Route Imports for Minimal Memory Footprint
@@ -22,6 +22,7 @@ const Metrics = lazy(() => import('./pages/Metrics').then(m => ({ default: m.Met
 const Volumes = lazy(() => import('./pages/Volumes').then(m => ({ default: m.Volumes })));
 const Logs = lazy(() => import('./pages/Logs').then(m => ({ default: m.Logs })));
 const FileManager = lazy(() => import('./pages/FileManager').then(m => ({ default: m.FileManager })));
+const DiskAnalyzer = lazy(() => import('./pages/DiskAnalyzer').then(m => ({ default: m.DiskAnalyzer })));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup })));
 
@@ -66,6 +67,7 @@ function App() {
                               <Route path="/networks" element={<Networks />} />
                               <Route path="/volumes" element={<Volumes />} />
                               <Route path="/files" element={<FileManager />} />
+                              <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
                               <Route path="/terminal" element={<Terminal />} />
                               <Route path="/logs" element={<Logs />} />
                               <Route path="*" element={<Navigate to="/" replace />} />

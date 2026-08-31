@@ -19,6 +19,7 @@ import {
   List, 
   Search, 
   ChevronRight, 
+  ChevronLeft,
   Trash2, 
   Edit3, 
   Copy, 
@@ -29,7 +30,6 @@ import {
   FilePlus, 
   FolderPlus, 
   Loader2, 
-  ChevronDown, 
   X, 
   RefreshCw, 
   Code, 
@@ -41,7 +41,10 @@ import {
   Share2,
   Terminal,
   RotateCcw,
-  Package
+  Package,
+  Share,
+  Sparkles,
+  FolderGit2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AudioPlayerModal } from '../components/files/AudioPlayerModal';
@@ -95,6 +98,7 @@ interface TrashItem {
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'];
 const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'gz', 'tgz', 'rar', '7z'];
+const CODE_EXTENSIONS = ['js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'json', 'yaml', 'yml', 'sh', 'html', 'css', 'toml', 'env', 'sql', 'c', 'cpp', 'go'];
 
 export function FileManager() {
   const { t } = useTranslation();
@@ -126,6 +130,14 @@ export function FileManager() {
   const [selectedItems, setSelectedItems] = useState<FileItem[]>([]);
   const [clipboard, setClipboard] = useState<{ items: FileItem[]; action: 'copy' | 'cut' } | null>(null);
 
+  // History Navigation (< >)
+  const [history, setHistory] = useState<string[]>([urlPath || '/']);
+  const [historyIndex, setHistoryIndex] = useState<number>(0);
+
+  // Path Editing State
+  const [isEditingPath, setIsEditingPath] = useState(false);
+  const [manualPathInput, setManualPathInput] = useState('');
+
   // Dropdown states
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -148,16 +160,42 @@ export function FileManager() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
-  const navigateTo = (newPath: string) => {
+  const navigateTo = (newPath: string, pushHistory = true) => {
     const clean = newPath || '/';
     setSearchQuery('');
     setCurrentPath(clean);
     setSearchParams({ path: clean }, { replace: true });
+    setIsEditingPath(false);
+
+    if (pushHistory) {
+      setHistory(prev => {
+        const next = prev.slice(0, historyIndex + 1);
+        return [...next, clean];
+      });
+      setHistoryIndex(prev => prev + 1);
+    }
+  };
+
+  const handleGoBack = () => {
+    if (historyIndex > 0) {
+      const prevPath = history[historyIndex - 1];
+      setHistoryIndex(prev => prev - 1);
+      navigateTo(prevPath, false);
+    }
+  };
+
+  const handleGoForward = () => {
+    if (historyIndex < history.length - 1) {
+      const nextPath = history[historyIndex + 1];
+      setHistoryIndex(prev => prev + 1);
+      navigateTo(nextPath, false);
+    }
   };
 
   const navigateToTrash = () => {
     setSearchQuery('');
     setSearchParams({ path: '__trash__' }, { replace: true });
+    setIsEditingPath(false);
   };
 
   const loadStoragesAndCloud = () => {
@@ -626,13 +664,28 @@ export function FileManager() {
       });
   }, [files, showHiddenFiles, searchQuery, sortBy, sortAsc]);
 
+  // Current folder name & item count
+  const currentFolderName = useMemo(() => {
+    if (isTrashView) return t('files.trash') || 'Lixeira';
+    if (currentPath === '/' || !currentPath) return 'Raiz (/)';
+    const parts = currentPath.split('/').filter(Boolean);
+    return parts[parts.length - 1] || 'Arquivos';
+  }, [currentPath, isTrashView, t]);
+
+  // Primary Storage Capacity calculation
+  const primaryStorage = useMemo(() => {
+    if (storages.length === 0) return null;
+    const match = storages.find(s => s.mount_point === '/' || currentPath.startsWith(s.mount_point)) || storages[0];
+    return match;
+  }, [storages, currentPath]);
+
   // Breadcrumbs calculation
   const breadcrumbSegments = () => {
     if (isTrashView) {
       return [{ label: 'Lixeira do Sistema', path: '__trash__' }];
     }
     if (currentPath === '/' || !currentPath) {
-      return [{ label: 'Raiz (/)', path: '/' }];
+      return [{ label: 'Raiz', path: '/' }];
     }
     const parts = currentPath.split('/').filter(Boolean);
     const crumbs = [{ label: 'Raiz', path: '/' }];
@@ -663,30 +716,109 @@ export function FileManager() {
     }
   };
 
-  const getFileIcon = (item: FileItem) => {
+  const getPlaceColorClass = (iconName: string, isActive: boolean) => {
+    if (isActive) return 'text-orbit-400';
+    switch (iconName.toLowerCase()) {
+      case 'documents':
+      case 'file-text': return 'text-amber-400';
+      case 'downloads':
+      case 'download': return 'text-sky-400';
+      case 'pictures':
+      case 'image': return 'text-violet-400';
+      case 'videos':
+      case 'film': return 'text-rose-400';
+      case 'music': return 'text-emerald-400';
+      default: return 'text-secondary';
+    }
+  };
+
+  const getFileBadgeVisual = (item: FileItem) => {
     if (item.is_dir) {
-      return <Folder className="w-9 h-9 sm:w-11 sm:h-11 text-sky-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+      return (
+        <div className="relative group-hover:scale-105 transition-transform">
+          {/* Modern Folder Graphic */}
+          <div className="w-14 h-12 sm:w-16 sm:h-14 relative flex items-center justify-center">
+            <div className="absolute top-0 left-1 w-6 h-2 bg-amber-600 rounded-t-md opacity-90" />
+            <div className="w-full h-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-2xl shadow-md flex items-center justify-center border border-amber-300/40">
+              <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-amber-950/40 fill-amber-950/20" />
+            </div>
+          </div>
+        </div>
+      );
     }
+
     const ext = item.extension.toLowerCase();
+
+    if (IMAGE_EXTENSIONS.includes(ext)) {
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-border/70 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
+          <img
+            src={`/api/files/raw?path=${encodeURIComponent(item.path)}`}
+            alt={item.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.currentTarget as HTMLElement).style.display = 'none';
+            }}
+          />
+          <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 rounded text-[9px] font-bold text-violet-300 uppercase">
+            {ext}
+          </div>
+        </div>
+      );
+    }
+
     if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
-      return <Music className="w-9 h-9 sm:w-11 sm:h-11 text-violet-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 via-purple-600/30 to-black border border-violet-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <Music className="w-6 h-6 text-violet-400" />
+          <span className="text-[9px] font-bold text-violet-300 uppercase mt-0.5">{ext}</span>
+        </div>
+      );
     }
+
     if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
-      return <Film className="w-9 h-9 sm:w-11 sm:h-11 text-rose-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-orange-600/30 to-black border border-rose-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <Film className="w-6 h-6 text-rose-400" />
+          <span className="text-[9px] font-bold text-rose-300 uppercase mt-0.5">{ext}</span>
+        </div>
+      );
     }
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-      return <ImageIcon className="w-9 h-9 sm:w-11 sm:h-11 text-amber-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
-    }
+
     if (ARCHIVE_EXTENSIONS.includes(ext)) {
-      return <Archive className="w-9 h-9 sm:w-11 sm:h-11 text-orange-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 via-amber-600/30 to-black border border-orange-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <Archive className="w-6 h-6 text-orange-400" />
+          <span className="text-[9px] font-bold text-orange-300 uppercase mt-0.5">{ext}</span>
+        </div>
+      );
     }
-    if (['pdf'].includes(ext)) {
-      return <FileText className="w-9 h-9 sm:w-11 sm:h-11 text-red-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+
+    if (ext === 'pdf') {
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-red-500/20 via-rose-700/30 to-black border border-red-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <FileText className="w-6 h-6 text-red-400" />
+          <span className="text-[9px] font-bold text-red-300 uppercase mt-0.5">PDF</span>
+        </div>
+      );
     }
-    if (['js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'json', 'yaml', 'yml', 'sh', 'html', 'css', 'toml', 'env'].includes(ext)) {
-      return <Code className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+
+    if (CODE_EXTENSIONS.includes(ext)) {
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-700/30 to-black border border-emerald-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <Code className="w-6 h-6 text-emerald-400" />
+          <span className="text-[9px] font-bold text-emerald-300 uppercase mt-0.5">{ext}</span>
+        </div>
+      );
     }
-    return <File className="w-9 h-9 sm:w-11 sm:h-11 text-zinc-400 drop-shadow-sm transition-transform group-hover:scale-105" />;
+
+    return (
+      <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-black border border-border/70 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+        <File className="w-6 h-6 text-zinc-400" />
+        <span className="text-[9px] font-bold text-zinc-400 uppercase mt-0.5">{ext || 'FILE'}</span>
+      </div>
+    );
   };
 
   const isSelected = (item: FileItem) => selectedItems.some(i => i.path === item.path);
@@ -708,9 +840,16 @@ export function FileManager() {
     }
   };
 
+  const handleManualPathSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualPathInput.trim()) {
+      navigateTo(manualPathInput.trim());
+    }
+  };
+
   return (
     <div 
-      className="flex h-[calc(100vh-5.5rem)] w-full rounded-2xl overflow-hidden border border-border bg-card/40 backdrop-blur-xl text-primary shadow-2xl"
+      className="flex flex-col h-[calc(100vh-5.5rem)] w-full rounded-3xl overflow-hidden border border-border/80 bg-card/40 backdrop-blur-xl text-primary shadow-2xl relative"
       onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
       onDragLeave={() => setIsDraggingOver(false)}
       onDrop={handleDrop}
@@ -738,871 +877,1003 @@ export function FileManager() {
       {isStorageDrawerOpen && (
         <div 
           onClick={() => setIsStorageDrawerOpen(false)}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden animate-in fade-in"
+          className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm lg:hidden animate-in fade-in"
         />
       )}
 
-      {/* SIDEBAR (NAUTILUS STYLE) */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 md:w-72 bg-card/95 lg:bg-card/30 backdrop-blur-2xl border-r border-border flex flex-col justify-between p-3.5 transition-transform duration-300 ease-in-out ${
-          isStorageDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        <div className="flex-1 overflow-y-auto space-y-5 pr-1 scrollbar-thin">
-          {/* Mobile Drawer Header */}
-          <div className="flex items-center justify-between lg:hidden pb-2 border-b border-border">
-            <span className="text-sm font-bold text-primary flex items-center gap-2">
-              <HardDrive className="w-4 h-4 text-orbit-400" />
-              Locais & Discos
-            </span>
-            <button
-              onClick={() => setIsStorageDrawerOpen(false)}
-              className="p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-              aria-label="Fechar gaveta de locais"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Section: Favoritos / Places */}
-          <div>
-            <h3 className="text-xs font-bold text-secondary uppercase tracking-wider px-3 mb-2">
-              {t('files.favorites')}
-            </h3>
-            <div className="space-y-0.5">
-              {places.map((place) => {
-                const Icon = getPlaceIcon(place.icon);
-                const isActive = !isTrashView && currentPath === place.path;
-                return (
-                  <button
-                    key={place.id}
-                    onClick={() => {
-                      navigateTo(place.path);
-                      setIsStorageDrawerOpen(false);
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-orbit-500/20'); }}
-                    onDragLeave={(e) => e.currentTarget.classList.remove('bg-orbit-500/20')}
-                    onDrop={(e) => { e.currentTarget.classList.remove('bg-orbit-500/20'); handleInternalDrop(e, place.path); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                      isActive
-                        ? 'bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 font-semibold shadow-sm'
-                        : 'text-secondary hover:text-primary hover:bg-accent/60'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{place.labelKey ? t(place.labelKey) : (place.label || place.id)}</span>
-                  </button>
-                );
-              })}
-
-              {/* Lixeira / Trash Shortcut */}
-              <button
-                onClick={() => {
-                  navigateToTrash();
-                  setIsStorageDrawerOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                  isTrashView
-                    ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold shadow-sm'
-                    : 'text-secondary hover:text-primary hover:bg-accent/60'
-                }`}
-              >
-                <Trash2 className="w-4 h-4 shrink-0 text-rose-400" />
-                <span className="truncate">{t('files.trash')}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Section: Unidades de Armazenamento */}
-          <div>
-            <div className="flex items-center justify-between px-3 mb-2">
-              <h3 className="text-xs font-bold text-secondary uppercase tracking-wider">
-                {t('files.units')}
-              </h3>
-              <button
-                onClick={() => setShowLocationMenu(!showLocationMenu)}
-                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                title="Adicionar armazenamento em nuvem"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Location Dropdown Menu */}
-            {showLocationMenu && (
-              <div className="mb-2 p-1 bg-card border border-border rounded-xl shadow-xl text-xs space-y-0.5 animate-in fade-in">
+      {/* BODY SPLIT: SIDEBAR + MAIN AREA */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* SIDEBAR (ZIMA / NAUTILUS HYBRID DESIGN) */}
+        <aside
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card/95 lg:bg-card/25 backdrop-blur-2xl border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
+            isStorageDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          <div className="flex-1 overflow-y-auto space-y-5 pr-1 scrollbar-thin">
+            {/* Sidebar Top: Logo & Instant Search */}
+            <div className="space-y-3 pb-2 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-400 shadow-inner">
+                    <FolderGit2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold tracking-tight text-primary">Arquivos</h2>
+                    <p className="text-[10px] text-secondary">Orbit Storage</p>
+                  </div>
+                </div>
+                
                 <button
-                  onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors font-medium flex items-center gap-2"
+                  onClick={() => setIsStorageDrawerOpen(false)}
+                  className="lg:hidden p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
+                  aria-label="Fechar gaveta de locais"
                 >
-                  <Cloud className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Conectar Nuvem / SMB</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            )}
 
-            {/* Mounted Disks List */}
-            <div className="space-y-1.5">
-              {storages.map((st, idx) => {
-                const usedFormatted = formatStorage(st.used_bytes, 1);
-                const totalFormatted = formatStorage(st.total_bytes, 1);
-                const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;
-                const isActive = !isTrashView && (currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`));
-                const friendlyName = getFriendlyDiskName(st.name, st.mount_point);
-
-                return (
+              {/* Instant Search Bar */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary/70 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-neutral-900/80 border border-border/70 text-xs text-primary placeholder-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-colors"
+                />
+                {searchQuery && (
                   <button
-                    key={idx}
-                    onClick={() => {
-                      navigateTo(st.mount_point);
-                      setIsStorageDrawerOpen(false);
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-orbit-500'); }}
-                    onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-orbit-500')}
-                    onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-orbit-500'); handleInternalDrop(e, st.mount_point); }}
-                    className={`w-full text-left p-2.5 rounded-xl border transition-all ${
-                      isActive
-                        ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
-                        : 'bg-accent/20 border-border hover:bg-accent/50 text-primary'
-                    }`}
+                    data-testid="clear-search-input-btn"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary p-0.5"
+                    title="Limpar busca"
                   >
-                    <div className="flex items-center gap-2.5 mb-1.5">
-                      <HardDrive className="w-4 h-4 shrink-0 text-orbit-400" />
-                      <span className="text-xs truncate font-medium">{friendlyName}</span>
-                    </div>
-                    {st.total_bytes > 0 && (
-                      <>
-                        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-1">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
-                            }`}
-                            style={{ width: `${Math.min(pct, 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-[10px] text-secondary font-mono">
-                          <span>{usedFormatted} / {totalFormatted}</span>
-                          <span>{pct}%</span>
-                        </div>
-                      </>
-                    )}
+                    <X className="w-3 h-3" />
                   </button>
-                );
-              })}
+                )}
+              </div>
+            </div>
 
-              {/* Connected Cloud Accounts */}
-              {cloudAccounts.map((acc) => {
-                const isCurrent = acc.mount_point && currentPath.startsWith(acc.mount_point);
-                const isGoogle = acc.provider === 'google_drive';
-                const isOneDrive = acc.provider === 'onedrive';
-                const isDropbox = acc.provider === 'dropbox';
+            {/* Section: Compartilhamento / Shared */}
+            <div>
+              <div className="space-y-0.5">
+                <button
+                  onClick={() => {
+                    setIsCloudModalOpen(true);
+                    setIsStorageDrawerOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-secondary hover:text-primary hover:bg-neutral-800/60 transition-all group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Share className="w-4 h-4 text-violet-400 group-hover:scale-105 transition-transform" />
+                    <span>Compartilhado via Link/Samba</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-secondary/40 group-hover:text-primary transition-colors" />
+                </button>
+              </div>
+            </div>
 
-                return (
-                  <div
-                    key={acc.id}
-                    className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
-                      isCurrent
-                        ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
-                        : 'border-border bg-accent/20 hover:bg-accent/50 text-primary'
-                    }`}
-                  >
+            {/* Section: Favoritos / Starred Folders */}
+            <div>
+              <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider px-3 mb-2 flex items-center justify-between">
+                <span>{t('files.favorites')}</span>
+                <Sparkles className="w-3 h-3 text-amber-400/70" />
+              </h3>
+              <div className="space-y-0.5">
+                {places.map((place) => {
+                  const Icon = getPlaceIcon(place.icon);
+                  const isActive = !isTrashView && currentPath === place.path;
+                  const colorClass = getPlaceColorClass(place.icon, isActive);
+                  return (
                     <button
+                      key={place.id}
                       onClick={() => {
-                        if (acc.mount_point) navigateTo(acc.mount_point);
+                        navigateTo(place.path);
                         setIsStorageDrawerOpen(false);
                       }}
-                      className="flex-1 text-left flex items-center gap-2.5 min-w-0 pr-1"
-                      title={acc.name}
+                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-orbit-500/20'); }}
+                      onDragLeave={(e) => e.currentTarget.classList.remove('bg-orbit-500/20')}
+                      onDrop={(e) => { e.currentTarget.classList.remove('bg-orbit-500/20'); handleInternalDrop(e, place.path); }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-orbit-500 text-white font-semibold shadow-md shadow-orbit-500/25'
+                          : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+                      }`}
                     >
-                      <div className={`p-1.5 rounded-lg border shrink-0 ${
-                        isGoogle ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        isOneDrive ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
-                        isDropbox ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      }`}>
-                        <Cloud className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-2.5 truncate">
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : colorClass}`} />
+                        <span className="truncate">{place.labelKey ? t(place.labelKey) : (place.label || place.id)}</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs truncate block">{acc.name}</span>
-                        <span className="text-[10px] text-secondary capitalize block">{acc.provider.replace('_', ' ')}</span>
-                      </div>
+                      {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
                     </button>
+                  );
+                })}
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDisconnectCloud(acc.id, acc.name);
-                      }}
-                      className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title={`Desconectar ${acc.name}`}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                {/* Lixeira / Trash Shortcut */}
+                <button
+                  onClick={() => {
+                    navigateToTrash();
+                    setIsStorageDrawerOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                    isTrashView
+                      ? 'bg-rose-500 text-white font-semibold shadow-md shadow-rose-500/25'
+                      : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <Trash2 className={`w-4 h-4 shrink-0 ${isTrashView ? 'text-white' : 'text-rose-400'}`} />
+                    <span className="truncate">{t('files.trash')}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Bottom Controls */}
-        <div className="pt-3 border-t border-border space-y-1">
-          <button
-            data-testid="toggle-hidden-btn"
-            onClick={() => setShowHiddenFiles(!showHiddenFiles)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors font-medium ${
-              showHiddenFiles
-                ? 'bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 font-semibold'
-                : 'text-secondary hover:text-primary hover:bg-accent/60'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {showHiddenFiles ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-              <span>Arquivos ocultos</span>
-            </div>
-            <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? 'Visíveis' : 'Ocultos'}</span>
-          </button>
-          
-          <button
-            onClick={() => loadFiles(currentPath)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-accent/60 transition-colors font-medium"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Atualizar lista</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN VIEWPORT */}
-      <main className="flex-1 flex flex-col min-w-0 bg-background/40 overflow-hidden relative">
-        {/* Top Navbar */}
-        <header className="py-2.5 px-4 sm:px-6 border-b border-border bg-card/30 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 sm:gap-4 shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-            {/* Mobile Toggle Locations Button */}
-            <button
-              onClick={() => setIsStorageDrawerOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-accent/60 text-secondary hover:text-primary transition-colors flex items-center gap-1.5 text-xs shrink-0 border border-border"
-              aria-label="Abrir locais de armazenamento"
-            >
-              <HardDrive className="w-4 h-4 text-orbit-400" />
-              <span className="hidden xs:inline font-medium">Locais</span>
-            </button>
-
-            {/* Breadcrumb Navigation */}
-            <div className="flex items-center gap-1 overflow-x-auto py-1 text-xs sm:text-sm scrollbar-none font-medium min-w-0">
-              {breadcrumbSegments().map((crumb, idx, arr) => (
-                <React.Fragment key={crumb.path}>
-                  <button
-                    onClick={() => crumb.path === '__trash__' ? navigateToTrash() : navigateTo(crumb.path)}
-                    className={`hover:text-orbit-400 transition-colors px-2.5 py-1 rounded-lg truncate max-w-[100px] xs:max-w-[140px] sm:max-w-[200px] ${
-                      idx === arr.length - 1 ? 'text-primary font-bold bg-accent/60 border border-border/50' : 'text-secondary hover:bg-accent/40'
-                    }`}
-                  >
-                    {crumb.label}
-                  </button>
-                  {idx < arr.length - 1 && (
-                    <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  {trashItems.length > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isTrashView ? 'bg-white/20 text-white' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                      {trashItems.length}
+                    </span>
                   )}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Toolbar */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {!isTrashView && (
-              <>
-                {/* Search Input */}
-                <div className="relative w-28 xs:w-36 sm:w-48 md:w-56">
-                  <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-accent/40 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 transition-colors"
-                  />
-                  {searchQuery && (
-                    <button
-                      data-testid="clear-search-input-btn"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary p-0.5"
-                      title="Limpar busca"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Disk Space Analyzer Button */}
-                <button
-                  onClick={() => setIsDiskAnalyzerOpen(true)}
-                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-violet-400 hover:bg-accent/80 transition-colors"
-                  title="Analisador de Espaço em Disco"
-                >
-                  <PieChart className="w-4 h-4" />
                 </button>
-
-                {/* Open in Terminal Button */}
-                <Link
-                  to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
-                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-emerald-400 hover:bg-accent/80 transition-colors"
-                  title="Abrir Terminal Aqui"
-                >
-                  <Terminal className="w-4 h-4" />
-                </Link>
-
-                {/* Clipboard Paste button */}
-                {clipboard && (
-                  <button
-                    onClick={handlePaste}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
-                    title={`Colar ${clipboard.items.length} item(s)`}
-                  >
-                    <Clipboard className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">Colar ({clipboard.items.length})</span>
-                  </button>
-                )}
-
-                {/* Sort Menu */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                    title="Ordenar arquivos"
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                  </button>
-
-                  {showSortMenu && (
-                    <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                      <button
-                        onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                      >
-                        <span>Nome</span>
-                        {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
-                      </button>
-                      <button
-                        onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                      >
-                        <span>Tamanho</span>
-                        {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
-                      </button>
-                      <button
-                        onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                      >
-                        <span>Modificado</span>
-                        {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* View Mode Toggle */}
-                <button
-                  data-testid="view-mode-toggle"
-                  onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
-                  className="p-2 rounded-xl border border-border bg-card text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                  title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
-                >
-                  {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
-                </button>
-
-                {/* Create / Upload Menu */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowCreateMenu(!showCreateMenu)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/25 text-xs font-semibold transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden xs:inline">Criar</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-
-                  {showCreateMenu && (
-                    <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                      <button
-                        onClick={() => {
-                          setShowCreateMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                      >
-                        <Upload className="w-4 h-4 text-orbit-400" />
-                        <span>Carregar arquivos</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCreateMenu(false);
-                          folderInputRef.current?.click();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                      >
-                        <Folder className="w-4 h-4 text-amber-400" />
-                        <span>Carregar pasta</span>
-                      </button>
-                      <div className="w-full h-[1px] bg-border my-1" />
-                      <button
-                        onClick={() => {
-                          setShowCreateMenu(false);
-                          setOpTargetItem(null);
-                          setOpModalType('new_folder');
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                      >
-                        <FolderPlus className="w-4 h-4 text-sky-400" />
-                        <span>Nova pasta</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCreateMenu(false);
-                          setOpTargetItem(null);
-                          setOpModalType('new_file');
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent/80 transition-colors"
-                      >
-                        <FilePlus className="w-4 h-4 text-emerald-400" />
-                        <span>Novo arquivo</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {isTrashView && (
-              <button
-                onClick={handleEmptyTrash}
-                disabled={trashItems.length === 0}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 active:scale-95 text-xs font-semibold transition-all disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Esvaziar Lixeira</span>
-              </button>
-            )}
-          </div>
-        </header>
-
-        {/* Selected Batch Action Bar */}
-        {selectedItems.length > 0 && !isTrashView && (
-          <div className="px-4 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-400 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={selectAll}
-                className="flex items-center gap-1.5 font-semibold hover:underline text-primary"
-              >
-                {selectedItems.length === filteredFiles.length ? (
-                  <CheckSquare className="w-4 h-4 text-orbit-400" />
-                ) : (
-                  <Square className="w-4 h-4" />
-                )}
-                <span>{selectedItems.length} item(s) selecionado(s)</span>
-              </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button
-                onClick={handleCompressSelection}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-                title="Compactar itens selecionados em .zip"
-              >
-                <Package className="w-3.5 h-3.5 text-amber-400" /> <span className="hidden xs:inline">Compactar (.zip)</span>
-              </button>
-              <button
-                onClick={() => handleCopy(selectedItems)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-              >
-                <Copy className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Copiar</span>
-              </button>
-              <button
-                onClick={() => handleCut(selectedItems)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-              >
-                <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Recortar</span>
-              </button>
-              <button
-                onClick={() => handleMoveToTrash(selectedItems)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
-                title="Mover itens para a lixeira"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> <span>Lixeira</span>
-              </button>
-              <button
-                onClick={() => setSelectedItems([])}
-                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent ml-1"
-                title="Desmarcar todos"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Drag & Drop Overlay */}
-        {isDraggingOver && (
-          <div className="absolute inset-4 z-40 border-2 border-dashed border-orbit-500 bg-orbit-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
-            <Upload className="w-12 h-12 text-orbit-400 animate-bounce" />
-            <p className="font-semibold text-primary text-base">Solte os arquivos aqui para carregar</p>
-          </div>
-        )}
-
-        {/* Content Body */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto relative scrollbar-thin">
-          {isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-              <Loader2 className="w-9 h-9 animate-spin text-orbit-400" />
-              <span className="text-sm font-medium">Carregando arquivos...</span>
-            </div>
-          ) : isTrashView ? (
-            /* TRASH VIEW */
+            {/* Section: Unidades de Armazenamento / Storage */}
             <div>
-              {trashItems.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-                  <Trash2 className="w-14 h-14 stroke-[1.5] text-zinc-600" />
-                  <p className="text-base font-semibold text-primary">A Lixeira está vazia</p>
-                  <p className="text-xs text-secondary max-w-sm text-center">
-                    Os itens excluídos aparecerão aqui e poderão ser restaurados a qualquer momento.
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-card/60 border border-border rounded-2xl overflow-hidden shadow-md">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-accent/40 text-secondary border-b border-border select-none font-semibold">
-                      <tr>
-                        <th className="py-3 px-4 font-bold">Nome</th>
-                        <th className="py-3 px-4 font-bold">Local Original</th>
-                        <th className="py-3 px-4 font-bold">Tamanho</th>
-                        <th className="py-3 px-4 font-bold text-right">Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {trashItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-accent/50 transition-colors">
-                          <td className="py-2.5 px-4 flex items-center gap-2.5">
-                            {item.is_dir ? <Folder className="w-4 h-4 text-sky-400" /> : <File className="w-4 h-4 text-zinc-400" />}
-                            <span className="font-semibold text-primary truncate max-w-xs">{item.name}</span>
-                          </td>
-                          <td className="py-2.5 px-4 text-secondary font-mono truncate max-w-xs">{item.original_path}</td>
-                          <td className="py-2.5 px-4 text-secondary font-mono">{formatBytes(item.size)}</td>
-                          <td className="py-2.5 px-4 text-right">
-                            <button
-                              onClick={() => handleRestoreTrash([item.id])}
-                              className="px-3 py-1.5 rounded-lg bg-orbit-500/15 text-orbit-400 hover:bg-orbit-500/25 border border-orbit-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Restaurar</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="flex items-center justify-between px-3 mb-2">
+                <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider">
+                  {t('files.units')}
+                </h3>
+                <button
+                  onClick={() => setShowLocationMenu(!showLocationMenu)}
+                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                  title="Conectar Nuvem / LAN"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Location Dropdown Menu */}
+              {showLocationMenu && (
+                <div className="mb-2 p-1 bg-card border border-border/80 rounded-xl shadow-xl text-xs space-y-0.5 animate-in fade-in">
+                  <button
+                    onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Conectar Nuvem / SMB</span>
+                  </button>
                 </div>
               )}
+
+              {/* Mounted Disks List */}
+              <div className="space-y-1.5">
+                {storages.map((st, idx) => {
+                  const usedFormatted = formatStorage(st.used_bytes, 1);
+                  const totalFormatted = formatStorage(st.total_bytes, 1);
+                  const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;
+                  const isActive = !isTrashView && (currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`));
+                  const friendlyName = getFriendlyDiskName(st.name, st.mount_point);
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        navigateTo(st.mount_point);
+                        setIsStorageDrawerOpen(false);
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-orbit-500'); }}
+                      onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-orbit-500')}
+                      onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-orbit-500'); handleInternalDrop(e, st.mount_point); }}
+                      className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                        isActive
+                          ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
+                          : 'bg-neutral-900/40 border-border/60 hover:bg-neutral-800/60 text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <HardDrive className="w-4 h-4 shrink-0 text-orbit-400" />
+                        <span className="text-xs truncate font-medium">{friendlyName}</span>
+                      </div>
+                      {st.total_bytes > 0 && (
+                        <>
+                          <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden mb-1">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
+                              }`}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-secondary font-mono">
+                            <span>{usedFormatted} / {totalFormatted}</span>
+                            <span>{pct}%</span>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* Connected Cloud Accounts */}
+                {cloudAccounts.map((acc) => {
+                  const isCurrent = acc.mount_point && currentPath.startsWith(acc.mount_point);
+                  const isGoogle = acc.provider === 'google_drive';
+                  const isOneDrive = acc.provider === 'onedrive';
+                  const isDropbox = acc.provider === 'dropbox';
+
+                  return (
+                    <div
+                      key={acc.id}
+                      className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
+                        isCurrent
+                          ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
+                          : 'border-border/60 bg-neutral-900/40 hover:bg-neutral-800/60 text-primary'
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          if (acc.mount_point) navigateTo(acc.mount_point);
+                          setIsStorageDrawerOpen(false);
+                        }}
+                        className="flex-1 text-left flex items-center gap-2.5 min-w-0 pr-1"
+                        title={acc.name}
+                      >
+                        <div className={`p-1.5 rounded-lg border shrink-0 ${
+                          isGoogle ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                          isOneDrive ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
+                          isDropbox ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          <Cloud className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs truncate block font-medium">{acc.name}</span>
+                          <span className="text-[10px] text-secondary capitalize block">{acc.provider.replace('_', ' ')}</span>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDisconnectCloud(acc.id, acc.name);
+                        }}
+                        className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={`Desconectar ${acc.name}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Add Cloud / LAN Button */}
+                <button
+                  onClick={() => setIsCloudModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-border/70 hover:border-orbit-500/50 hover:bg-neutral-800/40 text-xs text-secondary hover:text-primary transition-all group"
+                >
+                  <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-orbit-400" />
+                  <span>+ Cloud, LAN ou USB</span>
+                </button>
+              </div>
             </div>
-          ) : filteredFiles.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-              {searchQuery ? (
+          </div>
+
+          {/* Sidebar Bottom Controls */}
+          <div className="pt-3 border-t border-border/60 space-y-1">
+            <button
+              data-testid="toggle-hidden-btn"
+              onClick={() => setShowHiddenFiles(!showHiddenFiles)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors font-medium ${
+                showHiddenFiles
+                  ? 'bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 font-semibold'
+                  : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {showHiddenFiles ? <Eye className="w-3.5 h-3.5 text-orbit-400" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span>Arquivos ocultos</span>
+              </div>
+              <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? 'Visíveis' : 'Ocultos'}</span>
+            </button>
+            
+            <button
+              onClick={() => loadFiles(currentPath)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-neutral-800/60 transition-colors font-medium"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Atualizar lista</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* MAIN VIEWPORT */}
+        <main className="flex-1 flex flex-col min-w-0 bg-background/30 overflow-hidden relative">
+          {/* Top Navigation Bar */}
+          <header className="py-3 px-4 sm:px-6 border-b border-border/70 bg-card/30 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+            {/* Left Section: Back/Forward history & Current Folder Title */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Mobile Drawer Trigger */}
+              <button
+                onClick={() => setIsStorageDrawerOpen(true)}
+                className="lg:hidden p-2 rounded-xl bg-neutral-900 border border-border text-secondary hover:text-primary transition-colors flex items-center gap-1.5 text-xs shrink-0"
+                aria-label="Abrir locais de armazenamento"
+              >
+                <HardDrive className="w-4 h-4 text-orbit-400" />
+              </button>
+
+              {/* History Back/Forward */}
+              <div className="flex items-center gap-1 bg-neutral-900/70 border border-border/70 p-0.5 rounded-xl shrink-0">
+                <button
+                  onClick={handleGoBack}
+                  disabled={historyIndex <= 0}
+                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  title="Voltar"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleGoForward}
+                  disabled={historyIndex >= history.length - 1}
+                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  title="Avançar"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Folder Title & Count */}
+              <div className="flex items-center gap-2.5 truncate">
+                <h1 className="text-base sm:text-lg font-bold text-primary tracking-tight truncate">
+                  {currentFolderName}
+                </h1>
+                {!isTrashView && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-neutral-800 text-secondary border border-border/50 shrink-0">
+                    {filteredFiles.length} {filteredFiles.length === 1 ? 'item' : 'itens'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Right Action Toolbar */}
+            <div className="flex items-center gap-2 shrink-0">
+              {!isTrashView && (
                 <>
-                  <Search className="w-12 h-12 stroke-[1.5] text-zinc-600" />
-                  <p className="text-sm font-semibold text-primary">Nenhum arquivo encontrado para "{searchQuery}"</p>
-                  <button
-                    data-testid="clear-search-btn"
-                    onClick={() => setSearchQuery('')}
-                    className="px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 text-xs font-semibold hover:bg-orbit-500/25 transition-colors"
+                  {/* Create / New Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowCreateMenu(!showCreateMenu)}
+                      className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                      title="Novo arquivo ou pasta"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+
+                    {showCreateMenu && (
+                      <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
+                        <button
+                          onClick={() => {
+                            setShowCreateMenu(false);
+                            setOpTargetItem(null);
+                            setOpModalType('new_folder');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                        >
+                          <FolderPlus className="w-4 h-4 text-amber-400" />
+                          <span>Nova pasta</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowCreateMenu(false);
+                            setOpTargetItem(null);
+                            setOpModalType('new_file');
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                        >
+                          <FilePlus className="w-4 h-4 text-emerald-400" />
+                          <span>Novo arquivo</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Disk Space Analyzer Button */}
+                  <Link
+                    to={`/disk-analyzer?path=${encodeURIComponent(currentPath)}`}
+                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-violet-400 hover:bg-neutral-800 transition-colors"
+                    title="Analisador de Espaço em Disco"
                   >
-                    Limpar pesquisa
+                    <PieChart className="w-4 h-4" />
+                  </Link>
+
+                  {/* Open in Terminal Button */}
+                  <Link
+                    to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
+                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-emerald-400 hover:bg-neutral-800 transition-colors"
+                    title="Abrir Terminal Aqui"
+                  >
+                    <Terminal className="w-4 h-4" />
+                  </Link>
+
+                  {/* Refresh Button */}
+                  <button
+                    onClick={() => loadFiles(currentPath)}
+                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                    title="Atualizar pasta"
+                  >
+                    <RefreshCw className="w-4 h-4" />
                   </button>
-                </>
-              ) : (
-                <>
-                  <Folder className="w-14 h-14 stroke-[1.5] text-zinc-600" />
-                  <p className="text-base font-semibold text-primary">Esta pasta está vazia</p>
-                  <p className="text-xs text-secondary max-w-sm text-center">
-                    Arraste e solte arquivos aqui ou use o botão Criar para começar.
-                  </p>
+
+                  {/* Primary CTA: Import / Upload Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-2 px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors shadow-md shadow-orbit-500/20"
+                    className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all active:scale-95"
+                    title="Importar ou carregar arquivos"
                   >
-                    Carregar arquivos
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Importar</span>
+                  </button>
+
+                  {/* Clipboard Paste button */}
+                  {clipboard && (
+                    <button
+                      onClick={handlePaste}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
+                      title={`Colar ${clipboard.items.length} item(s)`}
+                    >
+                      <Clipboard className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Colar ({clipboard.items.length})</span>
+                    </button>
+                  )}
+
+                  {/* Sort Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowSortMenu(!showSortMenu)}
+                      className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                      title="Ordenar arquivos"
+                    >
+                      <ArrowUpDown className="w-4 h-4" />
+                    </button>
+
+                    {showSortMenu && (
+                      <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
+                        <button
+                          onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                        >
+                          <span>Nome</span>
+                          {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
+                        </button>
+                        <button
+                          onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                        >
+                          <span>Tamanho</span>
+                          {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
+                        </button>
+                        <button
+                          onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                        >
+                          <span>Modificado</span>
+                          {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* View Mode Toggle */}
+                  <button
+                    data-testid="view-mode-toggle"
+                    onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
+                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                    title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
+                  >
+                    {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
                   </button>
                 </>
               )}
+
+              {isTrashView && (
+                <button
+                  onClick={handleEmptyTrash}
+                  disabled={trashItems.length === 0}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 active:scale-95 text-xs font-semibold transition-all disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Esvaziar Lixeira</span>
+                </button>
+              )}
             </div>
-          ) : viewMode === 'grid' ? (
-            /* GRID VIEW */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
-              {filteredFiles.map((item) => {
-                const selected = isSelected(item);
-                const isImage = IMAGE_EXTENSIONS.includes(item.extension.toLowerCase());
-                const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
+          </header>
 
-                return (
-                  <div
-                    key={item.path}
-                    draggable={true}
-                    onDragStart={(e) => {
-                      const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
-                      e.dataTransfer.setData('text/plain', JSON.stringify(list));
-                    }}
-                    onDragOver={(e) => {
-                      if (item.is_dir) {
-                        e.preventDefault();
-                        e.currentTarget.classList.add('ring-2', 'ring-orbit-500');
-                      }
-                    }}
-                    onDragLeave={(e) => {
-                      if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
-                    }}
-                    onDrop={(e) => {
-                      if (item.is_dir) {
-                        e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
-                        handleInternalDrop(e, item.path);
-                      }
-                    }}
-                    onClick={() => handleItemClick(item)}
-                    className={`group relative flex flex-col items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
-                      selected
-                        ? 'bg-orbit-500/15 border-orbit-500/40 ring-2 ring-orbit-500/30 shadow-lg'
-                        : item.is_hidden
-                        ? 'bg-card/40 border-border/60 opacity-60 hover:opacity-100 hover:bg-card hover:border-zinc-700'
-                        : 'bg-card/60 border-border hover:bg-card hover:border-zinc-700 hover:shadow-xl hover:-translate-y-0.5'
-                    }`}
-                  >
-                    {/* Selection Checkbox */}
-                    <button
-                      onClick={(e) => toggleSelect(e, item)}
-                      className={`absolute top-2 left-2 z-10 w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
-                        selected
-                          ? 'bg-orbit-500 border-orbit-500 text-white'
-                          : 'border-border bg-card/90 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
-                      }`}
-                      title={selected ? 'Desmarcar' : 'Selecionar'}
-                    >
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </button>
+          {/* Selected Batch Action Bar */}
+          {selectedItems.length > 0 && !isTrashView && (
+            <div className="px-4 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-400 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={selectAll}
+                  className="flex items-center gap-1.5 font-semibold hover:underline text-primary"
+                >
+                  {selectedItems.length === filteredFiles.length ? (
+                    <CheckSquare className="w-4 h-4 text-orbit-400" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                  <span>{selectedItems.length} item(s) selecionado(s)</span>
+                </button>
+              </div>
 
-                    {/* Item Visual (Real Thumbnail or Icon) */}
-                    <div className="my-2 flex items-center justify-center">
-                      {isImage ? (
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-black/20 flex items-center justify-center border border-border/50 shadow-inner">
-                          <img
-                            src={`/api/files/raw?path=${encodeURIComponent(item.path)}`}
-                            alt={item.name}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="p-2 rounded-2xl">
-                          {getFileIcon(item)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Item Metadata */}
-                    <div className="w-full text-center min-w-0">
-                      <span 
-                        className="block text-xs font-semibold text-primary truncate px-1"
-                        title={item.name}
-                      >
-                        {item.name}
-                      </span>
-                      <span className="text-[10px] text-secondary font-mono block mt-0.5">
-                        {item.is_dir ? 'Pasta' : formatBytes(item.size)}
-                      </span>
-                    </div>
-
-                    {/* Quick Action Overlay on hover */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 rounded-lg p-0.5 shadow-md border border-border z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShareFile(item);
-                        }}
-                        className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-accent/80"
-                        title="Compartilhar"
-                      >
-                        <Share2 className="w-3 h-3" />
-                      </button>
-                      {isArchive && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleExtractArchive(item);
-                          }}
-                          className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-accent/80"
-                          title="Extrair Arquivo"
-                        >
-                          <Archive className="w-3 h-3" />
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(item);
-                        }}
-                        className="p-1 rounded text-secondary hover:text-primary hover:bg-accent/80"
-                        title="Download"
-                      >
-                        <Download className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpTargetItem(item);
-                          setOpModalType('rename');
-                        }}
-                        className="p-1 rounded text-secondary hover:text-primary hover:bg-accent/80"
-                        title="Renomear"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* LIST VIEW */
-            <div className="bg-card/60 border border-border rounded-2xl overflow-hidden shadow-md">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-accent/40 text-secondary border-b border-border select-none font-semibold">
-                    <tr>
-                      <th className="py-3 px-4 w-8">
-                        <button onClick={selectAll} className="p-0.5 rounded hover:bg-accent">
-                          {selectedItems.length === filteredFiles.length && filteredFiles.length > 0 ? (
-                            <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
-                          ) : (
-                            <Square className="w-3.5 h-3.5 text-secondary" />
-                          )}
-                        </button>
-                      </th>
-                      <th className="py-3 px-4 font-bold">Nome</th>
-                      <th className="py-3 px-4 font-bold">Tamanho</th>
-                      <th className="py-3 px-4 font-bold hidden sm:table-cell">Modificado</th>
-                      <th className="py-3 px-4 font-bold text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredFiles.map((item) => {
-                      const selected = isSelected(item);
-                      const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
-                      return (
-                        <tr
-                          key={item.path}
-                          draggable={true}
-                          onDragStart={(e) => {
-                            const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
-                            e.dataTransfer.setData('text/plain', JSON.stringify(list));
-                          }}
-                          onDragOver={(e) => {
-                            if (item.is_dir) {
-                              e.preventDefault();
-                              e.currentTarget.classList.add('bg-orbit-500/10');
-                            }
-                          }}
-                          onDragLeave={(e) => {
-                            if (item.is_dir) e.currentTarget.classList.remove('bg-orbit-500/10');
-                          }}
-                          onDrop={(e) => {
-                            if (item.is_dir) {
-                              e.currentTarget.classList.remove('bg-orbit-500/10');
-                              handleInternalDrop(e, item.path);
-                            }
-                          }}
-                          onClick={() => handleItemClick(item)}
-                          className={`hover:bg-accent/50 transition-colors cursor-pointer ${
-                            selected ? 'bg-orbit-500/10' : ''
-                          } ${item.is_hidden ? 'opacity-60 hover:opacity-100' : ''}`}
-                        >
-                          <td className="py-2.5 px-4" onClick={(e) => toggleSelect(e, item)}>
-                            <button className="p-0.5 rounded">
-                              {selected ? (
-                                <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
-                              ) : (
-                                <Square className="w-3.5 h-3.5 text-secondary opacity-40 hover:opacity-100" />
-                              )}
-                            </button>
-                          </td>
-                          <td className="py-2.5 px-4 flex items-center gap-2.5">
-                            <div className="shrink-0">{getFileIcon(item)}</div>
-                            <span className="font-semibold text-primary truncate max-w-[180px] xs:max-w-xs md:max-w-md">
-                              {item.name}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap">
-                            {item.is_dir ? '-' : formatBytes(item.size)}
-                          </td>
-                          <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap hidden sm:table-cell">
-                            {item.modified ? new Date(item.modified).toLocaleDateString() : '-'}
-                          </td>
-                          <td className="py-2.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShareFile(item);
-                                }}
-                                className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-accent"
-                                title="Compartilhar"
-                              >
-                                <Share2 className="w-3.5 h-3.5" />
-                              </button>
-                              {isArchive && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleExtractArchive(item);
-                                  }}
-                                  className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-accent"
-                                  title="Extrair"
-                                >
-                                  <Archive className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownload(item);
-                                }}
-                                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                                title="Download"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpTargetItem(item);
-                                  setOpModalType('rename');
-                                }}
-                                className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                                title="Renomear"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={handleCompressSelection}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
+                  title="Compactar itens selecionados em .zip"
+                >
+                  <Package className="w-3.5 h-3.5 text-amber-400" /> <span className="hidden xs:inline">Compactar (.zip)</span>
+                </button>
+                <button
+                  onClick={() => handleCopy(selectedItems)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
+                >
+                  <Copy className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Copiar</span>
+                </button>
+                <button
+                  onClick={() => handleCut(selectedItems)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
+                >
+                  <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Recortar</span>
+                </button>
+                <button
+                  onClick={() => handleMoveToTrash(selectedItems)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
+                  title="Mover itens para a lixeira"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> <span>Lixeira</span>
+                </button>
+                <button
+                  onClick={() => setSelectedItems([])}
+                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent ml-1"
+                  title="Desmarcar todos"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
-        </div>
-      </main>
+
+          {/* Drag & Drop Overlay */}
+          {isDraggingOver && (
+            <div className="absolute inset-4 z-40 border-2 border-dashed border-orbit-500 bg-orbit-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
+              <Upload className="w-12 h-12 text-orbit-400 animate-bounce" />
+              <p className="font-semibold text-primary text-base">Solte os arquivos aqui para carregar</p>
+            </div>
+          )}
+
+          {/* Content Body */}
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto relative scrollbar-thin">
+            {isLoading ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
+                <Loader2 className="w-9 h-9 animate-spin text-orbit-400" />
+                <span className="text-xs font-medium">Carregando arquivos...</span>
+              </div>
+            ) : isTrashView ? (
+              /* TRASH VIEW */
+              <div>
+                {trashItems.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
+                    <Trash2 className="w-14 h-14 stroke-[1.5] text-zinc-600" />
+                    <p className="text-base font-semibold text-primary">A Lixeira está vazia</p>
+                    <p className="text-xs text-secondary max-w-sm text-center">
+                      Os itens excluídos aparecerão aqui e poderão ser restaurados a qualquer momento.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-card/60 border border-border rounded-2xl overflow-hidden shadow-md">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-accent/40 text-secondary border-b border-border select-none font-semibold">
+                        <tr>
+                          <th className="py-3 px-4 font-bold">Nome</th>
+                          <th className="py-3 px-4 font-bold">Local Original</th>
+                          <th className="py-3 px-4 font-bold">Tamanho</th>
+                          <th className="py-3 px-4 font-bold text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {trashItems.map((item) => (
+                          <tr key={item.id} className="hover:bg-accent/50 transition-colors">
+                            <td className="py-2.5 px-4 flex items-center gap-2.5">
+                              {item.is_dir ? <Folder className="w-4 h-4 text-sky-400" /> : <File className="w-4 h-4 text-zinc-400" />}
+                              <span className="font-semibold text-primary truncate max-w-xs">{item.name}</span>
+                            </td>
+                            <td className="py-2.5 px-4 text-secondary font-mono truncate max-w-xs">{item.original_path}</td>
+                            <td className="py-2.5 px-4 text-secondary font-mono">{formatBytes(item.size)}</td>
+                            <td className="py-2.5 px-4 text-right">
+                              <button
+                                onClick={() => handleRestoreTrash([item.id])}
+                                className="px-3 py-1.5 rounded-lg bg-orbit-500/15 text-orbit-400 hover:bg-orbit-500/25 border border-orbit-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Restaurar</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : filteredFiles.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
+                {searchQuery ? (
+                  <>
+                    <Search className="w-12 h-12 stroke-[1.5] text-zinc-600" />
+                    <p className="text-sm font-semibold text-primary">Nenhum arquivo encontrado para "{searchQuery}"</p>
+                    <button
+                      data-testid="clear-search-btn"
+                      onClick={() => setSearchQuery('')}
+                      className="px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 text-xs font-semibold hover:bg-orbit-500/25 transition-colors"
+                    >
+                      Limpar pesquisa
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Folder className="w-14 h-14 stroke-[1.5] text-zinc-600" />
+                    <p className="text-base font-semibold text-primary">Esta pasta está vazia</p>
+                    <p className="text-xs text-secondary max-w-sm text-center">
+                      Arraste e solte arquivos aqui ou use o botão Importar para começar.
+                    </p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-2 px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors shadow-md shadow-orbit-500/20"
+                    >
+                      Carregar arquivos
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : viewMode === 'grid' ? (
+              /* GRID VIEW (ZIMA/CASAOS INSPIRED HIGH FIDELITY) */
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+                {filteredFiles.map((item) => {
+                  const selected = isSelected(item);
+                  const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
+
+                  return (
+                    <div
+                      key={item.path}
+                      draggable={true}
+                      onDragStart={(e) => {
+                        const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
+                        e.dataTransfer.setData('text/plain', JSON.stringify(list));
+                      }}
+                      onDragOver={(e) => {
+                        if (item.is_dir) {
+                          e.preventDefault();
+                          e.currentTarget.classList.add('ring-2', 'ring-orbit-500');
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+                      }}
+                      onDrop={(e) => {
+                        if (item.is_dir) {
+                          e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+                          handleInternalDrop(e, item.path);
+                        }
+                      }}
+                      onClick={() => handleItemClick(item)}
+                      className={`group relative flex flex-col items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                        selected
+                          ? 'bg-orbit-500/15 border-orbit-500/50 ring-2 ring-orbit-500/30 shadow-lg'
+                          : item.is_hidden
+                          ? 'bg-neutral-900/30 border-border/60 opacity-60 hover:opacity-100 hover:bg-neutral-900/60 hover:border-border'
+                          : 'bg-neutral-900/40 border-border/70 hover:bg-neutral-900/80 hover:border-orbit-500/40 hover:shadow-xl hover:-translate-y-0.5'
+                      }`}
+                    >
+                      {/* Selection Checkbox */}
+                      <button
+                        onClick={(e) => toggleSelect(e, item)}
+                        className={`absolute top-2.5 left-2.5 z-10 w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
+                          selected
+                            ? 'bg-orbit-500 border-orbit-500 text-white'
+                            : 'border-border bg-black/60 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
+                        }`}
+                        title={selected ? 'Desmarcar' : 'Selecionar'}
+                      >
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </button>
+
+                      {/* Item Visual Graphic */}
+                      <div className="my-2.5 flex items-center justify-center">
+                        {getFileBadgeVisual(item)}
+                      </div>
+
+                      {/* Item Metadata */}
+                      <div className="w-full text-center min-w-0">
+                        <span 
+                          className="block text-xs font-semibold text-primary truncate px-1 group-hover:text-orbit-400 transition-colors"
+                          title={item.name}
+                        >
+                          {item.name}
+                        </span>
+                        <span className="text-[10px] text-secondary font-mono block mt-0.5">
+                          {item.is_dir ? (
+                            item.modified ? new Date(item.modified).toLocaleDateString() : 'Pasta'
+                          ) : (
+                            formatBytes(item.size)
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Quick Action Overlay on hover */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-neutral-900/95 rounded-lg p-0.5 shadow-md border border-border/80 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShareFile(item);
+                          }}
+                          className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-neutral-800"
+                          title="Compartilhar"
+                        >
+                          <Share2 className="w-3 h-3" />
+                        </button>
+                        {isArchive && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExtractArchive(item);
+                            }}
+                            className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-neutral-800"
+                            title="Extrair Arquivo"
+                          >
+                            <Archive className="w-3 h-3" />
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(item);
+                          }}
+                          className="p-1 rounded text-secondary hover:text-primary hover:bg-neutral-800"
+                          title="Download"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpTargetItem(item);
+                            setOpModalType('rename');
+                          }}
+                          className="p-1 rounded text-secondary hover:text-primary hover:bg-neutral-800"
+                          title="Renomear"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* LIST VIEW */
+              <div className="bg-neutral-900/40 border border-border/70 rounded-2xl overflow-hidden shadow-md">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-900/70 text-secondary border-b border-border/80 select-none font-semibold">
+                      <tr>
+                        <th className="py-3 px-4 w-8">
+                          <button onClick={selectAll} className="p-0.5 rounded hover:bg-accent">
+                            {selectedItems.length === filteredFiles.length && filteredFiles.length > 0 ? (
+                              <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
+                            ) : (
+                              <Square className="w-3.5 h-3.5 text-secondary" />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-3 px-4 font-bold">Nome</th>
+                        <th className="py-3 px-4 font-bold">Tamanho</th>
+                        <th className="py-3 px-4 font-bold hidden sm:table-cell">Modificado</th>
+                        <th className="py-3 px-4 font-bold text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {filteredFiles.map((item) => {
+                        const selected = isSelected(item);
+                        const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
+                        return (
+                          <tr
+                            key={item.path}
+                            draggable={true}
+                            onDragStart={(e) => {
+                              const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
+                              e.dataTransfer.setData('text/plain', JSON.stringify(list));
+                            }}
+                            onDragOver={(e) => {
+                              if (item.is_dir) {
+                                e.preventDefault();
+                                e.currentTarget.classList.add('bg-orbit-500/10');
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              if (item.is_dir) e.currentTarget.classList.remove('bg-orbit-500/10');
+                            }}
+                            onDrop={(e) => {
+                              if (item.is_dir) {
+                                e.currentTarget.classList.remove('bg-orbit-500/10');
+                                handleInternalDrop(e, item.path);
+                              }
+                            }}
+                            onClick={() => handleItemClick(item)}
+                            className={`hover:bg-neutral-800/40 transition-colors cursor-pointer ${
+                              selected ? 'bg-orbit-500/10' : ''
+                            } ${item.is_hidden ? 'opacity-60 hover:opacity-100' : ''}`}
+                          >
+                            <td className="py-2.5 px-4" onClick={(e) => toggleSelect(e, item)}>
+                              <button className="p-0.5 rounded">
+                                {selected ? (
+                                  <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
+                                ) : (
+                                  <Square className="w-3.5 h-3.5 text-secondary opacity-40 hover:opacity-100" />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-2.5 px-4 flex items-center gap-2.5">
+                              <div className="shrink-0 scale-75 origin-left">{getFileBadgeVisual(item)}</div>
+                              <span className="font-semibold text-primary truncate max-w-[180px] xs:max-w-xs md:max-w-md">
+                                {item.name}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap">
+                              {item.is_dir ? '-' : formatBytes(item.size)}
+                            </td>
+                            <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap hidden sm:table-cell">
+                              {item.modified ? new Date(item.modified).toLocaleDateString() : '-'}
+                            </td>
+                            <td className="py-2.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShareFile(item);
+                                  }}
+                                  className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-neutral-800"
+                                  title="Compartilhar"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                </button>
+                                {isArchive && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExtractArchive(item);
+                                    }}
+                                    className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-neutral-800"
+                                    title="Extrair"
+                                  >
+                                    <Archive className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(item);
+                                  }}
+                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800"
+                                  title="Download"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpTargetItem(item);
+                                    setOpModalType('rename');
+                                  }}
+                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800"
+                                  title="Renomear"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* BOTTOM BAR: PATH BREADCRUMB & CAPACITY VIEW */}
+          <footer className="py-2 px-4 sm:px-6 border-t border-border/70 bg-card/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+            {/* Left: Path View & Edit */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <button
+                onClick={() => {
+                  setManualPathInput(currentPath);
+                  setIsEditingPath(!isEditingPath);
+                }}
+                className={`p-1 rounded-md transition-colors ${
+                  isEditingPath ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary hover:bg-neutral-800'
+                }`}
+                title="Editar caminho manualmente"
+              >
+                <Edit3 className="w-3 h-3" />
+              </button>
+
+              {isEditingPath ? (
+                <form onSubmit={handleManualPathSubmit} className="flex-1 max-w-md flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={manualPathInput}
+                    onChange={(e) => setManualPathInput(e.target.value)}
+                    className="w-full px-2.5 py-1 rounded-lg bg-neutral-900 border border-orbit-500 text-xs text-primary focus:outline-none"
+                    autoFocus
+                  />
+                  <button type="submit" className="px-2 py-1 rounded-lg bg-orbit-500 text-white text-xs font-semibold">
+                    Ir
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditingPath(false)}
+                    className="p-1 rounded-lg text-secondary hover:text-primary"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              ) : (
+                <div className="flex items-center gap-1 overflow-x-auto text-xs text-secondary font-mono scrollbar-none truncate">
+                  {breadcrumbSegments().map((crumb, idx, arr) => (
+                    <React.Fragment key={crumb.path}>
+                      <button
+                        onClick={() => crumb.path === '__trash__' ? navigateToTrash() : navigateTo(crumb.path)}
+                        className={`hover:text-orbit-400 transition-colors truncate ${
+                          idx === arr.length - 1 ? 'text-primary font-bold' : ''
+                        }`}
+                      >
+                        {crumb.label}
+                      </button>
+                      {idx < arr.length - 1 && (
+                        <span className="text-zinc-600">/</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Storage Capacity View */}
+            {primaryStorage && primaryStorage.total_bytes > 0 && (
+              <div className="flex items-center gap-2.5 text-secondary font-mono text-[11px] shrink-0 bg-neutral-900/60 px-3 py-1 rounded-xl border border-border/60">
+                <div className="w-16 sm:w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden shrink-0">
+                  <div
+                    className="h-full bg-orbit-500 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(
+                        Math.round((primaryStorage.used_bytes / primaryStorage.total_bytes) * 100),
+                        100
+                      )}%`
+                    }}
+                  />
+                </div>
+                <span>
+                  <strong className="text-primary">
+                    {formatStorage(primaryStorage.available_bytes || (primaryStorage.total_bytes - primaryStorage.used_bytes), 1)}
+                  </strong>
+                  {' '}Disponível / {formatStorage(primaryStorage.total_bytes, 1)}
+                </span>
+              </div>
+            )}
+          </footer>
+        </main>
+      </div>
 
       {/* MODALS */}
       {activeImageFile && (

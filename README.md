@@ -81,7 +81,7 @@ Caso prefira iniciar manualmente:
 services:
   orbit:
     image: ghcr.io/andrevictor20/orbit-dashboard:latest
-    container_name: orbit
+    container_name: orbit-dashboard
     restart: unless-stopped
     ports:
       - "5172:5172"

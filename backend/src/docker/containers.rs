@@ -534,24 +534,41 @@ pub async fn update_container(
     // 1. Inspect existing container
     let inspect = match docker.inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>).await {
         Ok(i) => i,
-        Err(e) => return (StatusCode::NOT_FOUND, format!("Container not found: {}", e)).into_response(),
+        Err(e) => return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "id": id,
+                "status": "error",
+                "message": format!("Container não encontrado: {}", e),
+                "details": e.to_string()
+            }))
+        ).into_response(),
     };
 
     let name = inspect.name.clone().unwrap_or_else(|| id.clone());
-    let clean_name = name.trim_start_matches('/');
+    let clean_name = name.trim_start_matches('/').to_string();
 
-    // Check if it is a compose app in /data/apps/
+    // Check if it is a compose app in /data/apps/ or host directories
     let compose_dir = inspect.config.as_ref()
         .and_then(|c| c.labels.as_ref())
         .and_then(|l| l.get("com.docker.compose.project.working_dir"));
 
     if let Some(dir) = compose_dir {
-        if std::path::Path::new(dir).exists() {
-            tracing::info!("Updating compose app in directory: {}", dir);
+        let host_dir_candidate = format!("/host{}", dir);
+        let actual_dir = if std::path::Path::new(dir).exists() {
+            Some(dir.as_str())
+        } else if std::path::Path::new(&host_dir_candidate).exists() {
+            Some(host_dir_candidate.as_str())
+        } else {
+            None
+        };
+
+        if let Some(target_dir) = actual_dir {
+            tracing::info!("Updating compose app in directory: {}", target_dir);
             let pull_res = tokio::process::Command::new("docker")
                 .arg("compose")
                 .arg("pull")
-                .current_dir(dir)
+                .current_dir(target_dir)
                 .output()
                 .await;
 
@@ -561,7 +578,7 @@ pub async fn update_container(
                         .arg("compose")
                         .arg("up")
                         .arg("-d")
-                        .current_dir(dir)
+                        .current_dir(target_dir)
                         .output()
                         .await;
 
@@ -569,10 +586,18 @@ pub async fn update_container(
                         if uo.status.success() {
                             return (StatusCode::OK, Json(serde_json::json!({
                                 "id": id,
+                                "name": clean_name,
+                                "status": "success",
                                 "message": "Container atualizado e reiniciado com sucesso via Docker Compose!"
                             }))).into_response();
+                        } else {
+                            let stderr_msg = String::from_utf8_lossy(&uo.stderr).to_string();
+                            tracing::warn!("docker compose up failed: {}", stderr_msg);
                         }
                     }
+                } else {
+                    let stderr_msg = String::from_utf8_lossy(&o.stderr).to_string();
+                    tracing::warn!("docker compose pull failed: {}", stderr_msg);
                 }
             }
         }
@@ -581,34 +606,134 @@ pub async fn update_container(
     // Standard standalone container update:
     let config = match inspect.config {
         Some(c) => c,
-        None => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to read container configuration").into_response(),
+        None => return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "id": id,
+                "name": clean_name,
+                "status": "error",
+                "message": "Falha ao ler configuração do container",
+                "details": "Container inspect retornou config vazia"
+            }))
+        ).into_response(),
     };
 
     let image_name = match &config.image {
         Some(img) => img.clone(),
-        None => return (StatusCode::BAD_REQUEST, "Container has no image specified").into_response(),
+        None => return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "id": id,
+                "name": clean_name,
+                "status": "error",
+                "message": "Container não possui imagem definida",
+                "details": "Nenhum nome de imagem foi especificado na configuração"
+            }))
+        ).into_response(),
     };
 
     let platform = get_host_platform();
     tracing::info!("Pulling updated image {} for platform {}", image_name, platform);
 
-    // Pull new image with host platform
+    // 2. Safe Image Pull with stream validation BEFORE touching the existing container
     let create_image_options = bollard::query_parameters::CreateImageOptions {
         from_image: Some(image_name.clone()),
         platform: platform.to_string(),
         ..Default::default()
     };
     let mut pull_stream = docker.create_image(Some(create_image_options), None, None);
+    let mut pull_failed = false;
+    let mut pull_error_msg = String::new();
+
     while let Some(res) = pull_stream.next().await {
-        if let Err(e) = res {
-            tracing::warn!("Pull warning: {}", e);
+        match res {
+            Ok(info) => {
+                if let Some(err) = info.error_detail.and_then(|ed| ed.message) {
+                    pull_failed = true;
+                    pull_error_msg = err;
+                    break;
+                }
+            }
+            Err(e) => {
+                pull_failed = true;
+                pull_error_msg = e.to_string();
+                break;
+            }
         }
     }
+
+    // If pull with platform failed (e.g. registry doesn't accept platform parameter or single-arch image), retry without platform constraint
+    if pull_failed {
+        tracing::warn!("Pull with platform {} for {} failed ({}), retrying without platform parameter...", platform, image_name, pull_error_msg);
+        let fallback_options = bollard::query_parameters::CreateImageOptions {
+            from_image: Some(image_name.clone()),
+            ..Default::default()
+        };
+        let mut fallback_stream = docker.create_image(Some(fallback_options), None, None);
+        let mut fallback_failed = false;
+        let mut fallback_error_msg = String::new();
+
+        while let Some(res) = fallback_stream.next().await {
+            match res {
+                Ok(info) => {
+                    if let Some(err) = info.error_detail.and_then(|ed| ed.message) {
+                        fallback_failed = true;
+                        fallback_error_msg = err;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    fallback_failed = true;
+                    fallback_error_msg = e.to_string();
+                    break;
+                }
+            }
+        }
+
+        if fallback_failed {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "id": id,
+                    "name": clean_name,
+                    "image": image_name,
+                    "status": "error",
+                    "message": format!("Falha ao baixar imagem atualizada '{}'", image_name),
+                    "details": fallback_error_msg
+                }))
+            ).into_response();
+        }
+    }
+
+    // 3. Multi-Network Handling & Sanitization
+    // Docker daemon create_container only accepts 1 network in NetworkingConfig.
+    // We isolate the first network for create_container and attach additional networks after creation.
+    let all_networks = inspect.network_settings
+        .and_then(|ns| ns.networks)
+        .unwrap_or_default();
+
+    let mut net_iter = all_networks.into_iter();
+    let primary_network = net_iter.next();
+    let secondary_networks: Vec<(String, bollard::models::EndpointSettings)> = net_iter.collect();
+
+    let initial_networking_config = primary_network.map(|(net_name, ep)| {
+        let sanitized_ep = bollard::models::EndpointSettings {
+            aliases: ep.aliases,
+            ipam_config: ep.ipam_config,
+            links: ep.links,
+            ..Default::default()
+        };
+        let mut map = std::collections::HashMap::new();
+        map.insert(net_name, sanitized_ep);
+        bollard::models::NetworkingConfig {
+            endpoints_config: Some(map),
+        }
+    });
 
     let new_config = bollard::models::ContainerCreateBody {
         hostname: config.hostname,
         domainname: config.domainname,
-        image: Some(image_name),
+        image: Some(image_name.clone()),
         cmd: config.cmd,
         entrypoint: config.entrypoint,
         user: config.user,
@@ -624,51 +749,122 @@ pub async fn update_container(
         stop_timeout: config.stop_timeout,
         shell: config.shell,
         host_config: inspect.host_config,
-        networking_config: inspect.network_settings.map(|ns| bollard::models::NetworkingConfig {
-            endpoints_config: ns.networks,
-            ..Default::default()
-        }),
+        networking_config: initial_networking_config,
         ..Default::default()
     };
 
-    // Stop container
-    let _ = docker.stop_container(&id, None).await;
+    // 4. Stop container with graceful timeout
+    let stop_options = bollard::query_parameters::StopContainerOptions {
+        t: Some(10),
+        ..Default::default()
+    };
+    let _ = docker.stop_container(&id, Some(stop_options)).await;
 
-    // Remove old container
+    // 5. Remove old container
     let remove_options = bollard::query_parameters::RemoveContainerOptions {
         force: true,
         v: false,
         link: false,
     };
     if let Err(e) = docker.remove_container(&id, Some(remove_options)).await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to remove old container: {}", e)).into_response();
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "id": id,
+                "name": clean_name,
+                "image": image_name,
+                "status": "error",
+                "message": format!("Falha ao remover container antigo: {}", e),
+                "details": e.to_string()
+            }))
+        ).into_response();
     }
 
-    // Create new container
+    // 6. Create new container
     let create_options = bollard::query_parameters::CreateContainerOptions {
         name: Some(clean_name.to_string()),
         platform: platform.to_string(),
         ..Default::default()
     };
 
-    let created = match docker.create_container(Some(create_options), new_config).await {
+    let created = match docker.create_container(Some(create_options), new_config.clone()).await {
         Ok(c) => c,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create updated container: {}", e)).into_response(),
+        Err(e) => {
+            // If creation failed with platform error, retry create without platform parameter
+            let fallback_create_options = bollard::query_parameters::CreateContainerOptions {
+                name: Some(clean_name.to_string()),
+                ..Default::default()
+            };
+            match docker.create_container(Some(fallback_create_options), new_config).await {
+                Ok(c) => c,
+                Err(e2) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({
+                            "id": id,
+                            "name": clean_name,
+                            "image": image_name,
+                            "status": "error",
+                            "message": format!("Falha ao recriar container: {}", e2),
+                            "details": format!("Primary create error: {}. Fallback error: {}", e, e2)
+                        }))
+                    ).into_response();
+                }
+            }
+        }
     };
 
-    // Start new container
+    // 7. Attach secondary networks if any
+    for (sec_net_name, sec_ep) in secondary_networks {
+        let sanitized_sec_ep = bollard::models::EndpointSettings {
+            aliases: sec_ep.aliases,
+            ipam_config: sec_ep.ipam_config,
+            links: sec_ep.links,
+            ..Default::default()
+        };
+        let connect_opts = bollard::models::NetworkConnectRequest {
+            container: created.id.clone(),
+            endpoint_config: Some(sanitized_sec_ep),
+        };
+        if let Err(e) = docker.connect_network(&sec_net_name, connect_opts).await {
+            tracing::warn!("Failed to attach secondary network {} to container {}: {}", sec_net_name, created.id, e);
+        }
+    }
+
+    // 8. Start new container
     match docker.start_container(&created.id, None::<bollard::query_parameters::StartContainerOptions>).await {
         Ok(_) => {
-            // Prune dangling images to keep storage clean
-            let mut filters = std::collections::HashMap::new();
-            filters.insert("dangling".to_string(), vec!["true".to_string()]);
-            let _ = docker.prune_images(Some(bollard::query_parameters::PruneImagesOptions { filters: Some(filters) })).await;
+            // Invalidate memory update cache for this image
+            if let Ok(mut cache) = UPDATE_CACHE.write() {
+                cache.remove(&image_name);
+            }
+
+            // Prune dangling images asynchronously to keep storage clean
+            let docker_clone = docker.clone();
+            tokio::spawn(async move {
+                let mut filters = std::collections::HashMap::new();
+                filters.insert("dangling".to_string(), vec!["true".to_string()]);
+                let _ = docker_clone.prune_images(Some(bollard::query_parameters::PruneImagesOptions { filters: Some(filters) })).await;
+            });
 
             (StatusCode::OK, Json(serde_json::json!({
                 "id": created.id,
+                "name": clean_name,
+                "image": image_name,
+                "status": "success",
                 "message": "Container atualizado e reiniciado com sucesso!"
             }))).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to start updated container: {}", e)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "id": created.id,
+                "name": clean_name,
+                "image": image_name,
+                "status": "error",
+                "message": format!("Falha ao iniciar container atualizado: {}", e),
+                "details": e.to_string()
+            }))
+        ).into_response(),
     }
 }

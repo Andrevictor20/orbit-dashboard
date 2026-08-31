@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { AppGroupModal } from '../../../components/ui/AppGroupModal';
+import { AppGroupModal } from '../../../components/docker/AppGroupModal';
 import type { GroupContainerItem } from '../../../utils/containerGroups';
 
 describe('AppGroupModal Component', () => {

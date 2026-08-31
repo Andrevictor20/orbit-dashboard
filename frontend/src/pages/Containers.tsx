@@ -1,4 +1,4 @@
-import { ContainerList } from '../components/ui/ContainerList';
+import { ContainerList } from '../components/docker/ContainerList';
 
 export function Containers() {
   return (

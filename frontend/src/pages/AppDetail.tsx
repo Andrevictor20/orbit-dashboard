@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, ArrowLeft, Settings, ChevronDown, Package } from 'lucide-react';
-import { CustomInstallModal } from '../components/CustomInstallModal';
+import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import { useInstall } from '../contexts/InstallContext';
 
 interface AppStoreItem {

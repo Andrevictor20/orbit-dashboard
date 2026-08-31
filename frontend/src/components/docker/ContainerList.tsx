@@ -13,7 +13,8 @@ import { getIconForImage } from '../../utils/icons';
 import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
 import { resolveWebUrl } from '../../utils/url';
 import { AppGroupModal } from './AppGroupModal';
-import { DockerInstallModal } from '../docker/DockerInstallModal';
+import { DockerInstallModal } from './DockerInstallModal';
+import { BatchUpdateModal } from './BatchUpdateModal';
 
 interface PortInfo {
   ip?: string;
@@ -56,8 +57,7 @@ export function ContainerList() {
   const [primarySelectorModal, setPrimarySelectorModal] = useState<{ isOpen: boolean; group: GroupContainerItem | null }>({ isOpen: false, group: null });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
-  const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(null);
-  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const [batchUpdateModal, setBatchUpdateModal] = useState<{ isOpen: boolean; initialId?: string }>({ isOpen: false });
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
   const [linkModal, setLinkModal] = useState<{ isOpen: boolean, containerId: string | null }>({ isOpen: false, containerId: null });
   const [linkInput, setLinkInput] = useState('');
@@ -220,49 +220,8 @@ export function ContainerList() {
     return containers.filter(c => updatesMap[c.id]?.has_update).length;
   }, [containers, updatesMap]);
 
-  const handleUpdateAllContainers = async () => {
-    const outdated = containers.filter(c => updatesMap[c.id]?.has_update);
-    if (outdated.length === 0) {
-      await fetchUpdates();
-      toast.success(t('containers.all_up_to_date'));
-      return;
-    }
-
-    setIsUpdatingAll(true);
-    const toastId = toast.loading(
-      t('containers.update_all_progress', { current: 1, total: outdated.length, name: outdated[0].name })
-    );
-
-    const token = localStorage.getItem('orbit_token');
-    let successCount = 0;
-
-    for (let i = 0; i < outdated.length; i++) {
-      const c = outdated[i];
-      toast.loading(
-        t('containers.update_all_progress', { current: i + 1, total: outdated.length, name: c.name }),
-        { id: toastId }
-      );
-      try {
-        const res = await fetch(`/api/docker/containers/${c.id}/update`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          successCount++;
-          setUpdatesMap(prev => ({ ...prev, [c.id]: { has_update: false } }));
-        }
-      } catch (err) {
-        console.error(`Failed updating container ${c.name}`, err);
-      }
-    }
-
-    setIsUpdatingAll(false);
-    if (successCount > 0) {
-      toast.success(t('containers.update_all_success'), { id: toastId });
-      await fetchContainers(false);
-    } else {
-      toast.error(t('common.error'), { id: toastId });
-    }
+  const handleUpdateAllContainers = () => {
+    setBatchUpdateModal({ isOpen: true });
   };
 
   const handleSelectStackPrimary = (groupKey: string, containerId: string, containerName: string) => {
@@ -273,28 +232,9 @@ export function ContainerList() {
     setContainers(prev => [...prev]);
   };
 
-  const handleUpdateContainer = async (e: React.MouseEvent, id: string) => {
+  const handleUpdateContainer = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setUpdatingContainerId(id);
-    try {
-      const token = localStorage.getItem('orbit_token');
-      const res = await fetch(`/api/docker/containers/${id}/update`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        setUpdatesMap(prev => ({ ...prev, [id]: { has_update: false } }));
-        await fetchContainers(false);
-      } else {
-        const err = await res.text();
-        toast.error(`Erro ao atualizar container: ${err}`);
-      }
-    } catch (err) {
-      console.error('Failed to update container', err);
-      toast.error('Erro na requisição de atualização');
-    } finally {
-      setUpdatingContainerId(null);
-    }
+    setBatchUpdateModal({ isOpen: true, initialId: id });
   };
 
   useEffect(() => {
@@ -438,7 +378,6 @@ export function ContainerList() {
           {/* Bulk Update All Containers Button */}
           <button
             onClick={handleUpdateAllContainers}
-            disabled={isUpdatingAll}
             className={`px-3 sm:px-4 py-2 rounded-md flex items-center gap-2 transition-all text-xs sm:text-sm font-medium border ${
               pendingUpdatesCount > 0
                 ? 'bg-violet-600/25 hover:bg-violet-600/40 text-violet-300 border-violet-500/50 shadow-sm shadow-violet-900/30 font-semibold'
@@ -446,7 +385,7 @@ export function ContainerList() {
             }`}
             title={t('containers.update_all')}
           >
-            <DownloadCloud className={`w-3.5 h-3.5 ${isUpdatingAll ? 'animate-bounce text-violet-400' : pendingUpdatesCount > 0 ? 'text-violet-400' : ''}`} />
+            <DownloadCloud className={`w-3.5 h-3.5 ${pendingUpdatesCount > 0 ? 'text-violet-400' : ''}`} />
             <span>{t('containers.update_all')}</span>
             {pendingUpdatesCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
@@ -767,12 +706,11 @@ export function ContainerList() {
                   {updatesMap[c.id]?.has_update && (
                     <button
                       onClick={(e) => handleUpdateContainer(e, c.id)}
-                      disabled={updatingContainerId === c.id}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shadow-violet-900/20 shrink-0"
                       title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
                     >
-                      <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
-                      <span>{updatingContainerId === c.id ? '...' : 'Atualizar'}</span>
+                      <DownloadCloud className="w-3.5 h-3.5" />
+                      <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
                     </button>
                   )}
                 </div>
@@ -1197,11 +1135,10 @@ export function ContainerList() {
                         {updatesMap[c.id]?.has_update && (
                           <button 
                             onClick={(e) => handleUpdateContainer(e, c.id)}
-                            disabled={updatingContainerId === c.id}
                             className="p-1.5 rounded glass-button text-violet-300 hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1" 
                             title="Atualizar container"
                           >
-                            <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
+                            <DownloadCloud className="w-3.5 h-3.5" />
                           </button>
                         )}
 
@@ -1493,6 +1430,19 @@ export function ContainerList() {
         isOpen={isDockerInstallOpen}
         onClose={() => setIsDockerInstallOpen(false)}
         onSuccess={() => fetchContainers(false)}
+      />
+
+      {/* Batch Container Update Modal */}
+      <BatchUpdateModal
+        isOpen={batchUpdateModal.isOpen}
+        onClose={() => setBatchUpdateModal({ isOpen: false })}
+        containers={containers}
+        updatesMap={updatesMap}
+        initialSelectedId={batchUpdateModal.initialId}
+        onUpdateComplete={async () => {
+          await fetchContainers(false);
+          await fetchUpdates();
+        }}
       />
     </div>
   );

@@ -10,6 +10,7 @@ export interface DiskStat {
 }
 
 export interface SystemStats {
+  timestamp?: number;
   cpu_usage: number;
   memory_used: number;
   memory_total: number;
@@ -68,13 +69,15 @@ export function StatsProvider({ children }: { children: ReactNode }) {
       .then((data: SystemStats[]) => {
         if (Array.isArray(data) && data.length > 0) {
           const now = Date.now();
-          const stepMs = 2000;
           const initialPoints: MetricHistoryPoint[] = data.map((item, index) => {
-            const pointTime = new Date(now - (data.length - 1 - index) * stepMs);
-            const timeStr = `${pointTime.getHours().toString().padStart(2, '0')}:${pointTime.getMinutes().toString().padStart(2, '0')}:${pointTime.getSeconds().toString().padStart(2, '0')}`;
+            const pointTimestamp = item.timestamp && item.timestamp > 0
+              ? item.timestamp
+              : (now - (data.length - 1 - index) * 2000);
+            const pointDate = new Date(pointTimestamp);
+            const timeStr = `${pointDate.getHours().toString().padStart(2, '0')}:${pointDate.getMinutes().toString().padStart(2, '0')}:${pointDate.getSeconds().toString().padStart(2, '0')}`;
             return {
               time: timeStr,
-              timestamp: pointTime.getTime(),
+              timestamp: pointTimestamp,
               cpu: item.cpu_usage || 0,
               dockerCpu: item.docker_cpu || 0,
               orbitCpu: item.orbit_cpu || 0,
@@ -97,11 +100,12 @@ export function StatsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (stats) {
       setHistory(prev => {
-        const now = new Date();
+        const pointTimestamp = stats.timestamp && stats.timestamp > 0 ? stats.timestamp : Date.now();
+        const now = new Date(pointTimestamp);
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
         const newPoint: MetricHistoryPoint = {
           time: timeStr,
-          timestamp: now.getTime(),
+          timestamp: pointTimestamp,
           cpu: stats.cpu_usage,
           dockerCpu: stats.docker_cpu,
           orbitCpu: stats.orbit_cpu,

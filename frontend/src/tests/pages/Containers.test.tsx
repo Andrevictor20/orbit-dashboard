@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Containers } from '../../pages/Containers';
-import { resetContainerCache } from '../../components/ui/ContainerList';
+import { resetContainerCache } from '../../components/docker/ContainerList';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 declare const global: any;

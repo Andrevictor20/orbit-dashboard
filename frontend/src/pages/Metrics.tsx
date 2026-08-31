@@ -14,21 +14,41 @@ export function Metrics() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [timeRange, setTimeRange] = useState<TimeRangeType>('5m');
 
-  // Filter history based on selected time range
+  // Filter history based on selected time range using exact timestamps
   const filteredHistory = useMemo(() => {
     if (!history || history.length === 0) return [];
-    const limitMap: Record<TimeRangeType, number> = {
-      '1m': 30,
-      '5m': 150,
-      '15m': 450,
-      '30m': 900,
-      '1h': 1800,
+
+    const durationMap: Record<TimeRangeType, number> = {
+      '1m': 60 * 1000,
+      '5m': 5 * 60 * 1000,
+      '15m': 15 * 60 * 1000,
+      '30m': 30 * 60 * 1000,
+      '1h': 60 * 60 * 1000,
     };
-    const maxPoints = limitMap[timeRange] || 150;
-    if (history.length > maxPoints) {
-      return history.slice(history.length - maxPoints);
+
+    const durationMs = durationMap[timeRange] || 5 * 60 * 1000;
+    const latestTimestamp = history[history.length - 1]?.timestamp || Date.now();
+    const cutoff = latestTimestamp - durationMs;
+
+    let points = history.filter(p => p.timestamp >= cutoff);
+    if (points.length === 0) {
+      points = history.slice(-30);
     }
-    return history;
+
+    // Downsample if there are more than 150 points to maintain high chart rendering performance
+    if (points.length > 150) {
+      const step = Math.ceil(points.length / 100);
+      const sampled: typeof history = [];
+      for (let i = 0; i < points.length; i += step) {
+        sampled.push(points[i]);
+      }
+      if (sampled[sampled.length - 1] !== points[points.length - 1]) {
+        sampled.push(points[points.length - 1]);
+      }
+      return sampled;
+    }
+
+    return points;
   }, [history, timeRange]);
 
   const formatDecimal = (val: any) => (typeof val === 'number' ? val.toFixed(2) : '0.00');

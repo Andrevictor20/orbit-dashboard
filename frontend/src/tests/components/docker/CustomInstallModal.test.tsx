@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { CustomInstallModal } from '../../components/CustomInstallModal';
+import { CustomInstallModal } from '../../../components/docker/CustomInstallModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('CustomInstallModal Component', () => {

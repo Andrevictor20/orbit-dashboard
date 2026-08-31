@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { VideoPlayerModal } from '../../components/files/VideoPlayerModal';
+import { VideoPlayerModal } from '../../../components/files/VideoPlayerModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('VideoPlayerModal Component', () => {

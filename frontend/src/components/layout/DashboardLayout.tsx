@@ -18,6 +18,7 @@ import {
   FileText,
   Loader2,
   FolderOpen,
+  PieChart,
   AlertCircle,
   CheckCircle2,
   Maximize,
@@ -27,11 +28,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
-import { useTheme } from '../ThemeProvider';
+import { useTheme } from '../../contexts/ThemeContext';
 import { supportedLanguages } from '../../i18n';
-import { InstallProgressModal } from '../InstallProgressModal';
-import { ProfileModal } from '../ProfileModal';
-import { UpdateModal, type SystemUpdateInfo } from '../UpdateModal';
+import { InstallProgressModal } from '../docker/InstallProgressModal';
+import { ProfileModal } from './ProfileModal';
+import { UpdateModal, type SystemUpdateInfo } from '../system/UpdateModal';
 
 interface SidebarSectionProps {
   title: string;
@@ -174,6 +175,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarItem icon={LayoutDashboard} label={t('sidebar.overview')} to="/" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={FolderOpen} label={t('sidebar.files')} to="/files" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+            <SidebarItem icon={PieChart} label={t('sidebar.disk_analyzer')} to="/disk-analyzer" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={FileText} label={t('sidebar.logs')} to="/logs" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
           </SidebarSection>
 

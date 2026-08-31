@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertCircle, Copy, Check, ExternalLink, Loader2, Minimize2 } from 'lucide-react';
-import { useInstall } from '../contexts/InstallContext';
+import { useInstall } from '../../contexts/InstallContext';
 import { useNavigate } from 'react-router-dom';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -17,9 +17,6 @@ const STATUS_LABELS: Record<string, string> = {
 const getStatusLabel = (status: string, type?: string) => {
   if (status === 'done') {
     return type && type !== 'app_install' ? 'Operação concluída!' : 'Instalação concluída!';
-  }
-  if (status === 'error') {
-    return type && type !== 'app_install' ? 'Falha na operação' : 'Falha na instalação';
   }
   return STATUS_LABELS[status] || status;
 };
@@ -156,7 +153,7 @@ export function InstallProgressModal() {
             }`}
           >
             {task?.logs && task.logs.length > 0 ? (
-              task.logs.map((line, i) => {
+              task.logs.map((line: string, i: number) => {
                 const isErrLine = line.startsWith('[ERROR]');
                 const isSuccessLine = line.startsWith('[SUCCESS]');
                 const isInfoLine = line.startsWith('[INFO]');
