@@ -39,8 +39,14 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
     }
 
     let task_id_clone = task_id.clone();
+    spawn_compose_installation(id, app.compose_file.clone(), task_id_clone);
 
-    // Spawn background task for actual installation
+    // Return task_id immediately (202 Accepted)
+    (StatusCode::ACCEPTED, Json(serde_json::json!({ "task_id": task_id }))).into_response()
+}
+
+pub fn spawn_compose_installation(id: String, raw_compose: String, task_id: String) {
+    let task_id_clone = task_id;
     tokio::spawn(async move {
         let safe_id = id.replace("..", "").replace('/', "-").replace('\\', "-");
         let app_dir = format!("data/apps/{}", safe_id);
@@ -64,7 +70,7 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
             return;
         }
 
-        let mut compose_content = app.compose_file.clone();
+        let mut compose_content = raw_compose;
         compose_content = compose_content.replace("/DATA/AppData/$AppID", ".");
         compose_content = compose_content.replace("/DATA/AppData/${AppID}", ".");
         
@@ -72,7 +78,7 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
         compose_content = compose_content.replace("network_mode: host", "");
         compose_content = compose_content.replace("network_mode: \"host\"", "");
 
-        // Force :latest tag for all images
+        // Force :latest tag for all images if no tag
         let re_image = regex::Regex::new(r#"(?m)^(\s*image:\s*"?)([a-zA-Z0-9_\-\./]+):([a-zA-Z0-9_\-\.]+)(.*)$"#).unwrap();
         compose_content = re_image.replace_all(&compose_content, "${1}${2}:latest${4}").to_string();
 
@@ -259,9 +265,6 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
             }
         }
     });
-
-    // Return task_id immediately (202 Accepted)
-    (StatusCode::ACCEPTED, Json(serde_json::json!({ "task_id": task_id }))).into_response()
 }
 
 pub async fn uninstall_app(Path(id): Path<String>) -> impl IntoResponse {

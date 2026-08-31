@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { 
   Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, 
   PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, 
-  DownloadCloud, Layers, ChevronDown, ChevronRight 
+  DownloadCloud, Layers, ChevronDown, ChevronRight, Terminal 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
 import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
 import { AppGroupModal } from './AppGroupModal';
+import { DockerInstallModal } from '../docker/DockerInstallModal';
 
 interface PortInfo {
   ip?: string;
@@ -57,6 +58,7 @@ export function ContainerList() {
   const [linkMode, setLinkMode] = useState<'builder' | 'raw'>('builder');
   const [linkSubdomain, setLinkSubdomain] = useState('');
   const [linkDomain, setLinkDomain] = useState('');
+  const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
   
   // New filtering and sorting states
   const [searchQuery, setSearchQuery] = useState('');
@@ -374,6 +376,16 @@ export function ContainerList() {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
+          </button>
+
+          {/* New Docker Install Modal Button */}
+          <button
+            onClick={() => setIsDockerInstallOpen(true)}
+            className="px-3 sm:px-4 py-2 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-lg flex items-center gap-1.5 transition-all text-xs sm:text-sm font-semibold shadow-sm shadow-orbit-500/20"
+            title="Instalar container via comando docker run ou docker compose"
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Novo Container</span>
           </button>
         </div>
       </div>
@@ -1212,6 +1224,13 @@ export function ContainerList() {
         </div>,
         document.body
       )}
+
+      {/* Docker Run / Compose Auto-Install Modal */}
+      <DockerInstallModal
+        isOpen={isDockerInstallOpen}
+        onClose={() => setIsDockerInstallOpen(false)}
+        onSuccess={() => fetchContainers(false)}
+      />
     </div>
   );
 }

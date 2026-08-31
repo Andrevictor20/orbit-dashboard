@@ -5,6 +5,9 @@ pub mod images;
 pub mod networks;
 pub mod volumes;
 pub mod exec;
+pub mod parser;
+pub mod ports;
+pub mod compose;
 
 pub use types::*;
 pub use stats::*;
@@ -13,6 +16,9 @@ pub use images::*;
 pub use networks::*;
 pub use volumes::*;
 pub use exec::*;
+pub use parser::*;
+pub use ports::*;
+pub use compose::*;
 pub use crate::state::AppState;
 
 use axum::{
@@ -33,6 +39,9 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/containers/{id}/exec", get(container_exec_ws))
         .route("/api/docker/containers/{id}/{action}", post(container_action))
         .route("/api/docker/containers/stats/snapshot", get(snapshot_stats))
+        .route("/api/docker/compose/parse", post(compose::parse_compose_or_command_handler))
+        .route("/api/docker/ports/check", post(compose::check_ports_handler))
+        .route("/api/docker/compose/install", post(compose::install_custom_compose_handler))
         .route("/api/docker/images", get(list_images))
         .route("/api/docker/images/{id}", delete(delete_image))
         .route("/api/docker/images/prune", post(prune_images))

@@ -1,7 +1,8 @@
 import { useState, useEffect, useDeferredValue, useMemo } from 'react';
-import { Package, Download, Search, RefreshCw } from 'lucide-react';
+import { Package, Download, Search, RefreshCw, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
+import { DockerInstallModal } from '../components/docker/DockerInstallModal';
 import toast from 'react-hot-toast';
 
 interface AppStoreItem {
@@ -24,6 +25,7 @@ export function AppStore() {
   const deferredSearch = useDeferredValue(search);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedStore, setSelectedStore] = useState<string>('All');
+  const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
 
   useEffect(() => {
     fetchApps();
@@ -102,9 +104,8 @@ export function AppStore() {
 
   const filteredApps = useMemo(() => {
     return apps.filter(app => {
-      const searchLower = deferredSearch.toLowerCase();
-      const matchesSearch = app.name.toLowerCase().includes(searchLower) || 
-                            app.description.toLowerCase().includes(searchLower);
+      const matchesSearch = app.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                            app.description.toLowerCase().includes(deferredSearch.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || app.category === selectedCategory;
       const matchesStore = selectedStore === 'All' || app.store === selectedStore;
       
@@ -117,18 +118,30 @@ export function AppStore() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">App Store</h1>
-          <p className="text-secondary mt-1">One-click install applications.</p>
+          <p className="text-secondary mt-1">Instale aplicativos com 1 clique ou via comandos Docker.</p>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium bg-card/60 hover:bg-card border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50"
-          title="Sincronizar lojas de aplicativos"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-400' : ''}`} />
-          <span>{syncing ? 'Sincronizando Lojas...' : 'Sincronizar Lojas'}</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setIsDockerInstallOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm shadow-orbit-500/20 transition-all active:scale-[0.98]"
+            title="Instalar container personalizado colando comandos docker run ou compose"
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Instalar via Comando / Compose</span>
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium bg-card/60 hover:bg-card border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50"
+            title="Sincronizar lojas de aplicativos"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-400' : ''}`} />
+            <span>{syncing ? 'Sincronizando Lojas...' : 'Sincronizar Lojas'}</span>
+          </button>
+        </div>
       </div>
+
+      <DockerInstallModal isOpen={isDockerInstallOpen} onClose={() => setIsDockerInstallOpen(false)} />
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
         <div className="flex gap-2">
