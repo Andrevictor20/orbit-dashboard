@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, DownloadCloud } from 'lucide-react';
+import { 
+  Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, 
+  PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, 
+  DownloadCloud, Layers, ChevronDown, ChevronRight 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
+import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
+import { AppGroupModal } from './AppGroupModal';
 
 interface PortInfo {
   ip?: string;
@@ -30,11 +36,18 @@ interface Container {
 // Global memory cache for instantaneous tab switching (SWR)
 let globalContainerCache: Container[] | null = null;
 
+export function resetContainerCache() {
+  globalContainerCache = null;
+}
+
 export function ContainerList() {
   const navigate = useNavigate();
   const [containers, setContainers] = useState<Container[]>(() => globalContainerCache || []);
   const [loading, setLoading] = useState(() => !globalContainerCache || globalContainerCache.length === 0);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [groupByStack, setGroupByStack] = useState<boolean>(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [selectedGroupModal, setSelectedGroupModal] = useState<GroupContainerItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
   const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(null);
@@ -76,10 +89,10 @@ export function ContainerList() {
         fetch('/api/docker/containers/stats/snapshot')
           .then(r => r.ok ? r.json() : null)
           .then(statsData => {
-            if (statsData) {
+            if (Array.isArray(statsData)) {
               setContainers(prev => {
                 const merged = prev.map(c => {
-                  const stat = statsData.find((s: any) => s.id.startsWith(c.id));
+                  const stat = statsData.find((s: any) => s.id && s.id.startsWith(c.id));
                   if (stat) {
                     return { ...c, cpu_percent: stat.cpu_percent, memory_used: stat.memory_used, memory_limit: stat.memory_limit };
                   }
@@ -287,6 +300,34 @@ export function ContainerList() {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
+  const groupedItems = useMemo(() => {
+    if (!groupByStack) return null;
+    return groupContainers(filteredAndSortedContainers, customLinks, getIconForImage);
+  }, [filteredAndSortedContainers, groupByStack, customLinks]);
+
+  const toggleGroupExpanded = (groupKey: string) => {
+    setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  };
+
+  const handleGroupAction = async (
+    e: React.MouseEvent,
+    group: GroupContainerItem,
+    action: 'start' | 'stop' | 'restart'
+  ) => {
+    e.stopPropagation();
+    setActionLoading(`group:${group.groupKey}:${action}`);
+    try {
+      await Promise.allSettled(
+        group.containers.map(c => fetch(`/api/docker/containers/${c.id}/${action}`, { method: 'POST' }))
+      );
+      await fetchContainers(false);
+    } catch (err) {
+      console.error(`Failed to ${action} group ${group.name}`, err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -296,7 +337,21 @@ export function ContainerList() {
           </h3>
           <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">Gerencie e monitore o consumo dos serviços</p>
         </div>
-        <div className="flex gap-2 items-center self-start sm:self-auto">
+        <div className="flex gap-2 items-center self-start sm:self-auto flex-wrap">
+          {/* Stack Grouping Toggle */}
+          <button
+            onClick={() => setGroupByStack(!groupByStack)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              groupByStack 
+                ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 shadow-sm' 
+                : 'bg-card text-secondary hover:text-primary border-border'
+            }`}
+            title="Agrupar containers que pertencem à mesma stack/projeto"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Agrupar Stacks</span>
+          </button>
+
           <div className="flex bg-card p-1 rounded-md border border-border">
             <button 
               onClick={() => setViewMode('grid')}
@@ -387,161 +442,332 @@ export function ContainerList() {
 
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pb-4">
-          {filteredAndSortedContainers.map(c => (
-            <div 
-              key={c.id} 
-              onClick={() => navigate(`/containers/${c.id}`)}
-              className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 relative group hover:border-orbit-600 transition-colors cursor-pointer shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-14 h-14 bg-background rounded-xl flex items-center justify-center border border-border shadow-inner shrink-0">
-                    <img 
-                      src={getIconForImage(c.image, c.name)} 
-                      alt={c.name} 
-                      onError={(e) => {
-                        if (!e.currentTarget.src.endsWith('docker.png')) {
-                          e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-                        }
-                      }}
-                      className="w-10 h-10 object-contain drop-shadow-md" 
-                    />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-primary truncate max-w-[150px]" title={c.name}>{c.name}</span>
-                    <span className="text-[11px] text-zinc-400 truncate max-w-[150px]" title={c.image}>
-                      {c.labels?.['com.docker.compose.service'] || c.labels?.['io.casaos.app.name'] || c.image.split(':')[0].split('/').pop()}
+          {/* Render Grouped Items or Flat Items */}
+          {(groupedItems || filteredAndSortedContainers.map(c => ({ type: 'single' as const, id: c.id, name: c.name, container: c, iconUrl: getIconForImage(c.image, c.name), webLink: customLinks[c.id], isRunning: c.state === 'running' }))).map(item => {
+            if (item.type === 'group') {
+              const group = item;
+              const isGroupActionLoading = (action: string) => actionLoading === `group:${group.groupKey}:${action}`;
+
+              return (
+                <div
+                  key={group.id}
+                  onClick={() => setSelectedGroupModal(group)}
+                  className="bg-card border-2 border-orbit-500/30 hover:border-orbit-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-all cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5 overflow-hidden"
+                >
+                  {/* Top Layer indicator background glow */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orbit-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2 relative z-10">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-orbit-500/40 shadow-inner shrink-0 relative group-hover:scale-105 transition-transform">
+                        <img
+                          src={group.iconUrl}
+                          alt={group.name}
+                          onError={(e) => {
+                            if (!e.currentTarget.src.endsWith('docker.png')) {
+                              e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+                            }
+                          }}
+                          className="w-8 h-8 object-contain drop-shadow-md"
+                        />
+                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white shadow-sm">
+                          <Layers className="w-2.5 h-2.5" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-primary text-base truncate group-hover:text-orbit-400 transition-colors" title={group.name}>
+                          {group.name}
+                        </span>
+                        <span className="text-[11px] text-orbit-300 font-mono flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          <span>Stack ({group.totalCount} containers)</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className={`w-2 h-2 rounded-full ${group.allRunning ? 'bg-emerald-500 animate-pulse' : group.anyRunning ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                          <span className="text-xs text-secondary">{group.runningCount}/{group.totalCount} ativos</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-300 border border-orbit-500/40 text-[11px] font-bold font-mono shrink-0">
+                      Stack
                     </span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                      <span className="text-xs text-secondary capitalize">{c.state}</span>
+                  </div>
+
+                  {/* Resource Metrics */}
+                  <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-xl border border-border/60">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-purple-400 uppercase font-semibold tracking-wider">CPU</span>
+                      <span className="text-xs text-primary font-mono font-bold">{group.totalCpu.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-emerald-400 uppercase font-semibold tracking-wider">RAM</span>
+                      <span className="text-xs text-primary font-mono font-bold">{formatRAM(group.totalMemory)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
+                      <span className="text-xs text-primary font-mono font-bold">{formatBytes(group.totalDisk)}</span>
                     </div>
                   </div>
-                </div>
 
-                {updatesMap[c.id]?.has_update && (
-                  <button
-                    onClick={(e) => handleUpdateContainer(e, c.id)}
-                    disabled={updatingContainerId === c.id}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[10px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shadow-violet-900/20 shrink-0"
-                    title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
-                  >
-                    <DownloadCloud className={`w-3 h-3 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
-                    <span>{updatingContainerId === c.id ? '...' : 'Atualizar'}</span>
-                  </button>
-                )}
-              </div>
+                  {/* Sub-containers mini preview pills */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {group.containers.slice(0, 3).map(sub => (
+                      <span key={sub.id} className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent text-zinc-300 border border-border truncate max-w-[110px]" title={sub.name}>
+                        {sub.name.replace(`${group.groupKey}-`, '')}
+                      </span>
+                    ))}
+                    {group.containers.length > 3 && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orbit-500/15 text-orbit-300 font-semibold">
+                        +{group.containers.length - 3}
+                      </span>
+                    )}
+                  </div>
 
-              <div className="grid grid-cols-3 gap-2 bg-background p-3 rounded-lg border border-border/50">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-orbit-500 uppercase font-semibold">CPU</span>
-                  <span className="text-xs text-secondary font-mono">{c.cpu_percent?.toFixed(1) || '0.0'}%</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-orbit-500 uppercase font-semibold">RAM</span>
-                  <span className="text-xs text-secondary font-mono">{formatRAM(c.memory_used)}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-orbit-500 uppercase font-semibold">Disco</span>
-                  <span className="text-xs text-secondary font-mono">{formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}</span>
-                </div>
-              </div>
+                  {/* Group Action Controls */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50 gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setSelectedGroupModal(group)}
+                      className="glass-button px-3 py-1.5 text-xs rounded-lg text-orbit-300 hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/30 flex-1 flex items-center justify-center gap-1.5 font-medium transition-colors"
+                      title="Ver e gerenciar todos os sub-containers"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Ver Sub-containers</span>
+                    </button>
 
-              {/* Links Bar */}
-              <div className="flex items-center gap-2 mt-auto pt-2">
-                {(() => {
-                  const firstPublic = c.ports?.find(p => p.public_port);
-                  if (firstPublic) {
-                    const ip = window.location.hostname;
-                    return (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); window.open(`http://${ip}:${firstPublic.public_port}`, '_blank'); }}
-                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-primary flex-1 flex items-center justify-center gap-1.5 border border-border/50"
+                    <button
+                      onClick={(e) => handleGroupAction(e, group, 'restart')}
+                      disabled={Boolean(actionLoading)}
+                      className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                      title="Reiniciar todos os containers da stack"
+                    >
+                      {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <RotateCw className="w-3.5 h-3.5" />}
+                    </button>
+
+                    {group.anyRunning ? (
+                      <button
+                        onClick={(e) => handleGroupAction(e, group, 'stop')}
+                        disabled={Boolean(actionLoading)}
+                        className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Parar todos os containers da stack"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>IP:Porta</span>
+                        {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-400" /> : <Square className="w-3.5 h-3.5" />}
                       </button>
-                    );
-                  }
-                  return null;
-                })()}
-                
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (customLinks[c.id]) {
-                      window.open(customLinks[c.id], '_blank');
-                    } else {
-                      handleSetCustomLink(e, c.id);
-                    }
-                  }}
-                  className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-primary flex-1 flex items-center justify-center gap-1.5 border border-border/50"
-                >
-                  <LinkIcon className="w-3.5 h-3.5" />
-                  <span>{customLinks[c.id] ? 'Acessar App' : 'Add Link'}</span>
-                </button>
-                
-                {customLinks[c.id] && (
-                  <button 
-                    onClick={(e) => handleSetCustomLink(e, c.id)}
-                    className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50"
-                    title="Editar Link"
-                  >
-                    <Settings2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+                    ) : (
+                      <button
+                        onClick={(e) => handleGroupAction(e, group, 'start')}
+                        disabled={Boolean(actionLoading)}
+                        className="glass-button p-2 text-xs rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        title="Iniciar todos os containers da stack"
+                      >
+                        {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
 
-              {/* Explicit Actions Bottom Bar */}
-              <div className="flex items-center justify-between mt-2 pt-4 border-t border-border/50 gap-1.5">
-                {c.state?.toLowerCase() === 'running' ? (
-                  <>
-                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1" title="Parar container">
-                      <Square className="w-3.5 h-3.5" />
-                      <span>Parar</span>
-                    </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 flex-1 flex items-center justify-center gap-1" title="Pausar container">
-                      <Pause className="w-3.5 h-3.5" />
-                      <span>Pausar</span>
-                    </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 flex-1 flex items-center justify-center gap-1" title="Reiniciar container">
-                      <RotateCw className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
-                      <span>Reiniciar</span>
-                    </button>
-                    <button 
-                      onClick={(e) => handleUpdateContainer(e, c.id)} 
-                      disabled={updatingContainerId === c.id || actionLoading === c.id} 
-                      className={`glass-button px-2 py-1.5 text-xs rounded-lg flex-1 flex items-center justify-center gap-1 transition-all ${
-                        updatesMap[c.id]?.has_update 
-                          ? 'text-violet-300 bg-violet-500/20 border-violet-500/40 hover:bg-violet-500/30' 
-                          : 'text-secondary hover:text-primary'
-                      }`}
-                      title="Atualizar imagem e recriar container com suporte a arquitetura nativa"
+            const c = item.container;
+            return (
+              <div 
+                key={c.id} 
+                onClick={() => navigate(`/containers/${c.id}`)}
+                className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3.5 relative group hover:border-orbit-600 transition-all cursor-pointer shadow-sm overflow-hidden"
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-border/80 shadow-inner shrink-0 group-hover:border-orbit-500/30 transition-colors">
+                      <img 
+                        src={getIconForImage(c.image, c.name)} 
+                        alt={c.name} 
+                        onError={(e) => {
+                          if (!e.currentTarget.src.endsWith('docker.png')) {
+                            e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+                          }
+                        }}
+                        className="w-8 h-8 object-contain drop-shadow-md" 
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-primary text-sm truncate" title={c.name}>{c.name}</span>
+                      <span className="text-[11px] text-zinc-400 truncate" title={c.image}>
+                        {c.labels?.['com.docker.compose.service'] || c.labels?.['io.casaos.app.name'] || c.image.split(':')[0].split('/').pop()}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500 animate-pulse' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                        <span className="text-xs text-secondary capitalize">{c.state}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {updatesMap[c.id]?.has_update && (
+                    <button
+                      onClick={(e) => handleUpdateContainer(e, c.id)}
+                      disabled={updatingContainerId === c.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shadow-violet-900/20 shrink-0"
+                      title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
                     >
                       <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
                       <span>{updatingContainerId === c.id ? '...' : 'Atualizar'}</span>
                     </button>
-                  </>
-                ) : c.state?.toLowerCase() === 'paused' ? (
-                  <>
-                    <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 flex-1 flex items-center justify-center gap-1.5">
-                      <PlayCircle className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-                      <span>Retomar</span>
+                  )}
+                </div>
+
+                {/* Resource Metrics */}
+                <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-lg border border-border/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">CPU</span>
+                    <span className="text-xs text-primary font-mono font-medium">{c.cpu_percent?.toFixed(1) || '0.0'}%</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">RAM</span>
+                    <span className="text-xs text-primary font-mono font-medium">{formatRAM(c.memory_used)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
+                    <span className="text-xs text-primary font-mono font-medium">{formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}</span>
+                  </div>
+                </div>
+
+                {/* Network / Ports / Custom Link Status */}
+                <div className="flex items-center justify-between text-xs text-secondary">
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    {c.ports && c.ports.length > 0 ? (
+                      <div className="flex items-center gap-1 overflow-hidden">
+                        {c.ports.slice(0, 2).map((p, idx) => {
+                          const ip = window.location.hostname;
+                          return (
+                            <div key={idx} className="flex items-center gap-1 font-mono text-[11px] bg-background px-1.5 py-0.5 rounded border border-border/50">
+                              {p.public_port ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`http://${ip}:${p.public_port}`, '_blank');
+                                  }}
+                                  className="text-orbit-400 hover:underline flex items-center gap-1"
+                                  title={`Abrir http://${ip}:${p.public_port}`}
+                                >
+                                  <span>{p.public_port}:{p.private_port}</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </button>
+                              ) : (
+                                <span>{p.private_port}/{p.typ}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {c.ports.length > 2 && (
+                          <span className="text-[10px] text-secondary">+{c.ports.length - 2}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-500 font-mono">Sem portas públicas</span>
+                    )}
+                  </div>
+
+                  {customLinks[c.id] ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(customLinks[c.id], '_blank');
+                        }}
+                        className="glass-button px-2 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30"
+                        title={customLinks[c.id]}
+                      >
+                        <Globe className="w-3 h-3 text-orbit-400" />
+                        <span className="truncate max-w-[80px]">Abrir</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleSetCustomLink(e, c.id)}
+                        className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors"
+                        title="Configurar Link"
+                      >
+                        <Settings2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => handleSetCustomLink(e, c.id)}
+                      className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
+                      title="Editar Link"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 flex-1 flex items-center justify-center gap-1.5">
-                      <Square className="w-3.5 h-3.5" />
-                      <span>Parar</span>
+                  )}
+                </div>
+
+                {/* Action Controls Bar */}
+                <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50 gap-1.5">
+                  {c.state?.toLowerCase() === 'running' ? (
+                    <>
+                      <button 
+                        onClick={(e) => handleAction(e, c.id, 'stop')} 
+                        disabled={actionLoading === c.id} 
+                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
+                        title="Parar container"
+                      >
+                        <Square className="w-3.5 h-3.5 shrink-0" />
+                        <span>Parar</span>
+                      </button>
+                      <button 
+                        onClick={(e) => handleAction(e, c.id, 'pause')} 
+                        disabled={actionLoading === c.id} 
+                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
+                        title="Pausar container"
+                      >
+                        <Pause className="w-3.5 h-3.5 shrink-0" />
+                        <span>Pausar</span>
+                      </button>
+                      <button 
+                        onClick={(e) => handleAction(e, c.id, 'restart')} 
+                        disabled={actionLoading === c.id} 
+                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
+                        title="Reiniciar container"
+                      >
+                        <RotateCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
+                        <span>Reiniciar</span>
+                      </button>
+                    </>
+                  ) : c.state?.toLowerCase() === 'paused' ? (
+                    <>
+                      <button 
+                        onClick={(e) => handleAction(e, c.id, 'unpause')} 
+                        disabled={actionLoading === c.id} 
+                        className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1.5 transition-colors"
+                        title="Retomar execução do container"
+                      >
+                        <PlayCircle className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
+                        <span>Retomar</span>
+                      </button>
+                      <button 
+                        onClick={(e) => handleAction(e, c.id, 'stop')} 
+                        disabled={actionLoading === c.id} 
+                        className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1.5 transition-colors"
+                        title="Parar container"
+                      >
+                        <Square className="w-3.5 h-3.5" />
+                        <span>Parar</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={(e) => handleAction(e, c.id, 'start')} 
+                      disabled={actionLoading === c.id} 
+                      className="glass-button px-3 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 w-full flex items-center justify-center gap-1.5 font-medium transition-colors"
+                      title="Iniciar container"
+                    >
+                      <Play className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
+                      <span>Iniciar Container</span>
                     </button>
-                  </>
-                ) : (
-                  <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="glass-button px-2 py-1.5 text-xs rounded-lg text-emerald-500 hover:text-emerald-400 w-full flex items-center justify-center gap-1.5">
-                    <Play className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-                    <span>Iniciar Container</span>
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -559,127 +785,310 @@ export function ContainerList() {
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedContainers.map((c) => (
-                <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-white/5 transition-colors cursor-pointer">
-                  <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
-                    <img 
-                      src={getIconForImage(c.image, c.name)} 
-                      alt="" 
-                      onError={(e) => {
-                        if (!e.currentTarget.src.endsWith('docker.png')) {
-                          e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-                        }
-                      }}
-                      className="w-6 h-6 object-contain drop-shadow-sm" 
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-primary leading-tight">{c.name}</span>
-                        {updatesMap[c.id]?.has_update && (
-                          <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] font-semibold border border-violet-500/30">
-                            Atualização
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-secondary font-mono leading-tight">{c.image}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                      <span className="capitalize text-secondary">{c.state}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-primary font-mono">
-                    {c.cpu_percent?.toFixed(1) || '0.0'}%
-                  </td>
-                  <td className="px-4 py-4 text-primary font-mono">
-                    {formatRAM(c.memory_used)}
-                  </td>
-                  <td className="px-4 py-4 text-primary font-mono">
-                    {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex justify-end gap-2 items-center">
-                      {/* Tabela: Links Rápidos */}
-                      {(() => {
-                        const firstPublic = c.ports?.find(p => p.public_port);
-                        if (firstPublic) {
-                          const ip = window.location.hostname;
-                          return (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); window.open(`http://${ip}:${firstPublic.public_port}`, '_blank'); }}
-                              className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title="IP:Porta"
+              {(groupedItems || filteredAndSortedContainers.map(c => ({ type: 'single' as const, id: c.id, name: c.name, container: c, iconUrl: getIconForImage(c.image, c.name), webLink: customLinks[c.id], isRunning: c.state === 'running' }))).map((item) => {
+                if (item.type === 'group') {
+                  const group = item;
+                  const isExpanded = Boolean(expandedGroups[group.groupKey]);
+                  const isGroupActionLoading = (action: string) => actionLoading === `group:${group.groupKey}:${action}`;
+
+                  return (
+                    <Fragment key={group.id}>
+                      {/* Master Group Row */}
+                      <tr 
+                        onClick={() => toggleGroupExpanded(group.groupKey)} 
+                        className="border-b border-border bg-orbit-500/[0.04] hover:bg-orbit-500/[0.08] transition-colors cursor-pointer"
+                      >
+                        <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGroupExpanded(group.groupKey);
+                            }}
+                            className="p-1 rounded text-orbit-400 hover:text-white"
+                          >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </button>
+
+                          <div className="w-7 h-7 rounded-lg bg-background flex items-center justify-center border border-orbit-500/40 shrink-0 relative">
+                            <img 
+                              src={group.iconUrl} 
+                              alt="" 
+                              className="w-5 h-5 object-contain" 
+                            />
+                            <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white">
+                              <Layers className="w-2 h-2" />
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-primary leading-tight">{group.name}</span>
+                              <span className="px-2 py-0.5 rounded bg-orbit-500/20 text-orbit-300 text-[10px] font-bold border border-orbit-500/30">
+                                Stack ({group.totalCount} containers)
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-400 font-mono leading-tight">
+                              {group.containers.map(c => c.name).join(', ')}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${group.allRunning ? 'bg-emerald-500' : group.anyRunning ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                            <span className="text-secondary font-medium">{group.runningCount}/{group.totalCount} ativos</span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4 text-purple-400 font-mono font-bold">
+                          {group.totalCpu.toFixed(1)}%
+                        </td>
+
+                        <td className="px-4 py-4 text-emerald-400 font-mono font-bold">
+                          {formatRAM(group.totalMemory)}
+                        </td>
+
+                        <td className="px-4 py-4 text-orbit-400 font-mono font-bold">
+                          {formatBytes(group.totalDisk)}
+                        </td>
+
+                        <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-2 items-center">
+                            <button
+                              onClick={() => setSelectedGroupModal(group)}
+                              className="p-1.5 rounded glass-button text-orbit-300 hover:text-white bg-orbit-500/15 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1"
+                              title="Ver sub-containers"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>Sub-containers</span>
                             </button>
-                          );
-                        }
-                        return null;
-                      })()}
-                      
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (customLinks[c.id]) {
-                            window.open(customLinks[c.id], '_blank');
-                          } else {
-                            handleSetCustomLink(e, c.id);
+
+                            <button
+                              onClick={(e) => handleGroupAction(e, group, 'restart')}
+                              disabled={Boolean(actionLoading)}
+                              className="p-1.5 rounded glass-button hover:text-cyan-400 transition-colors"
+                              title="Reiniciar Stack"
+                            >
+                              {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+                            </button>
+
+                            {group.anyRunning ? (
+                              <button
+                                onClick={(e) => handleGroupAction(e, group, 'stop')}
+                                disabled={Boolean(actionLoading)}
+                                className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors"
+                                title="Parar Stack"
+                              >
+                                {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => handleGroupAction(e, group, 'start')}
+                                disabled={Boolean(actionLoading)}
+                                className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors"
+                                title="Iniciar Stack"
+                              >
+                                {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Sub-container Rows */}
+                      {isExpanded && group.containers.map(c => (
+                        <tr 
+                          key={c.id} 
+                          onClick={() => navigate(`/containers/${c.id}`)} 
+                          className="border-b border-border/60 bg-black/20 hover:bg-white/[0.04] transition-colors cursor-pointer text-xs"
+                        >
+                          <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-orbit-500/50">
+                            <img 
+                              src={getIconForImage(c.image, c.name)} 
+                              alt="" 
+                              className="w-5 h-5 object-contain" 
+                            />
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-medium text-zinc-200">{c.name}</span>
+                              <span className="text-[10px] text-zinc-500 font-mono">{c.image}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                              <span className="capitalize text-zinc-400 text-xs">{c.state}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3 font-mono text-zinc-300">
+                            {c.cpu_percent?.toFixed(1) || '0.0'}%
+                          </td>
+
+                          <td className="px-4 py-3 font-mono text-zinc-300">
+                            {formatRAM(c.memory_used)}
+                          </td>
+
+                          <td className="px-4 py-3 font-mono text-zinc-300">
+                            {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
+                          </td>
+
+                          <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1.5 items-center">
+                              {c.state === 'running' ? (
+                                <>
+                                  <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title="Parar">
+                                    <Square className="w-3 h-3" />
+                                  </button>
+                                  <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-400" title="Reiniciar">
+                                    <RotateCw className="w-3 h-3" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-400" title="Iniciar">
+                                  <Play className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                }
+
+                const c = item.container;
+                return (
+                  <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-white/5 transition-colors cursor-pointer">
+                    <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
+                      <img 
+                        src={getIconForImage(c.image, c.name)} 
+                        alt="" 
+                        onError={(e) => {
+                          if (!e.currentTarget.src.endsWith('docker.png')) {
+                            e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
                           }
                         }}
-                        className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title={customLinks[c.id] ? 'Acessar App' : 'Add Link'}
-                      >
-                        <LinkIcon className="w-3.5 h-3.5" />
-                      </button>
-
-                      <div className="w-px h-4 bg-border mx-1"></div>
-
-                      {updatesMap[c.id]?.has_update && (
+                        className="w-6 h-6 object-contain drop-shadow-sm" 
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary leading-tight">{c.name}</span>
+                          {updatesMap[c.id]?.has_update && (
+                            <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] font-semibold border border-violet-500/30">
+                              Atualização
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-secondary font-mono leading-tight">{c.image}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                        <span className="capitalize text-secondary">{c.state}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-primary font-mono">
+                      {c.cpu_percent?.toFixed(1) || '0.0'}%
+                    </td>
+                    <td className="px-4 py-4 text-primary font-mono">
+                      {formatRAM(c.memory_used)}
+                    </td>
+                    <td className="px-4 py-4 text-primary font-mono">
+                      {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="flex justify-end gap-2 items-center">
+                        {/* Tabela: Links Rápidos */}
+                        {(() => {
+                          const firstPublic = c.ports?.find(p => p.public_port);
+                          if (firstPublic) {
+                            const ip = window.location.hostname;
+                            return (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); window.open(`http://${ip}:${firstPublic.public_port}`, '_blank'); }}
+                                className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title="IP:Porta"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
                         <button 
-                          onClick={(e) => handleUpdateContainer(e, c.id)}
-                          disabled={updatingContainerId === c.id}
-                          className="p-1.5 rounded glass-button text-violet-300 hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1" 
-                          title="Atualizar container"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (customLinks[c.id]) {
+                              window.open(customLinks[c.id], '_blank');
+                            } else {
+                              handleSetCustomLink(e, c.id);
+                            }
+                          }}
+                          className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title={customLinks[c.id] ? 'Acessar App' : 'Add Link'}
                         >
-                          <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
+                          <LinkIcon className="w-3.5 h-3.5" />
                         </button>
-                      )}
 
-                      {c.state?.toLowerCase() === 'running' ? (
-                        <>
-                          <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
-                            <Square className="w-4 h-4" />
+                        <div className="w-px h-4 bg-border mx-1"></div>
+
+                        {updatesMap[c.id]?.has_update && (
+                          <button 
+                            onClick={(e) => handleUpdateContainer(e, c.id)}
+                            disabled={updatingContainerId === c.id}
+                            className="p-1.5 rounded glass-button text-violet-300 hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1" 
+                            title="Atualizar container"
+                          >
+                            <DownloadCloud className={`w-3.5 h-3.5 ${updatingContainerId === c.id ? 'animate-bounce' : ''}`} />
                           </button>
-                          <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-amber-400 transition-colors" title="Pausar">
-                            <Pause className="w-4 h-4" />
+                        )}
+
+                        {c.state?.toLowerCase() === 'running' ? (
+                          <>
+                            <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
+                              <Square className="w-4 h-4" />
+                            </button>
+                            <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-amber-400 transition-colors" title="Pausar">
+                              <Pause className="w-4 h-4" />
+                            </button>
+                            <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Reiniciar">
+                              <RotateCw className={`w-4 h-4 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
+                            </button>
+                          </>
+                        ) : c.state?.toLowerCase() === 'paused' ? (
+                          <>
+                            <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Retomar">
+                              <PlayCircle className="w-4 h-4" />
+                            </button>
+                            <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
+                              <Square className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors" title="Iniciar">
+                            <Play className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Reiniciar">
-                            <RotateCw className={`w-4 h-4 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
-                          </button>
-                        </>
-                      ) : c.state?.toLowerCase() === 'paused' ? (
-                        <>
-                          <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Retomar">
-                            <PlayCircle className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
-                            <Square className="w-4 h-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors" title="Iniciar">
-                          <Play className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
+      {/* App Group / Stack Modal */}
+      <AppGroupModal
+        group={selectedGroupModal}
+        isOpen={Boolean(selectedGroupModal)}
+        onClose={() => setSelectedGroupModal(null)}
+        onRefresh={() => fetchContainers(false)}
+        customLinks={customLinks}
+      />
+      
       {linkModal.isOpen && typeof document !== 'undefined' && createPortal(
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200" 
