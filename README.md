@@ -46,10 +46,12 @@ Explore uma loja com dezenas de aplicações populares (Plex, Pi-hole, Nextcloud
 | Tela | Prévia |
 | :--- | :--- |
 | **📈 Gráficos Detalhados de Métricas (CPU/RAM/Rede)** | ![Metrics Top](./docs/images/metrics_page_top_1788297959452.png) |
-| **💽 Análise de Disco e Processos** | ![Metrics Bottom](./docs/images/metrics_page_bottom_1788297978643.png) |
-| **📋 Logs Centralizados e Histórico** | ![System Logs](./docs/images/logs.png) |
-| **💻 Terminal Web Embutido (Xterm.js)** | ![Terminal](./docs/images/06_terminal_page_1788264323940.png) |
-| **🔐 Tela de Login Segura (Argon2id)** | ![Login Screen](./docs/images/login.png) |
+| **💽 Análise de Disco e Processos** | ![Disk Analyzer](./docs/images/disk_analyzer_agent.png) |
+| **📋 Logs Centralizados e Histórico** | ![System Logs](./docs/images/11_logs.png) |
+| **💻 Terminal Web Embutido (Xterm.js)** | ![Terminal](./docs/images/terminal_agent.png) |
+| **🔐 Tela de Login Segura (Argon2id)** | ![Login Screen](./docs/images/01_login_page_1788264242010.png) |
+| **📁 Gerenciador de Arquivos** | ![File Manager](./docs/images/file_manager_agent.png) |
+| **🎨 Mudanças de Temas** | ![Themes](./docs/images/themes_agent.png) |
 
 </details>
 
