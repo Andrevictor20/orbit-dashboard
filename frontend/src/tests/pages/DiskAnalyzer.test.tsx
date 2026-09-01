@@ -149,4 +149,39 @@ describe('DiskAnalyzer Page Component', () => {
     expect(screen.getByText('/boot')).toBeTruthy();
     expect(screen.getByText('/etc')).toBeTruthy();
   });
+
+  it('handles custom path submit and preset shortcut clicks', async () => {
+    render(
+      <BrowserRouter>
+        <DiskAnalyzer />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Analisador de Espaço em Disco');
+
+    // Click on Docker (/var/lib/docker) preset shortcut
+    const dockerPresetBtn = screen.getByText('Docker (/var/lib/docker)');
+    fireEvent.click(dockerPresetBtn);
+
+    // Should trigger fetch for /var/lib/docker
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/files/analyze?path=%2Fvar%2Flib%2Fdocker'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+
+    // Custom path input form submission
+    const input = screen.getByPlaceholderText(/Digite qualquer caminho de pasta/i);
+    fireEvent.change(input, { target: { value: '/var/log' } });
+    const analyzeBtn = screen.getByRole('button', { name: /Analisar Pasta/i });
+    fireEvent.click(analyzeBtn);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/files/analyze?path=%2Fvar%2Flog'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+  });
 });

@@ -130,10 +130,10 @@ function getPathSafetyInfo(path: string): SafetyInfo {
 export function DiskAnalyzer() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialPath = searchParams.get('path') || '/';
+  const currentUrlPath = searchParams.get('path') || '/';
 
-  const [currentPath, setCurrentPath] = useState<string>(initialPath);
-  const [customInputPath, setCustomInputPath] = useState<string>(initialPath);
+  const [currentPath, setCurrentPath] = useState<string>(currentUrlPath);
+  const [customInputPath, setCustomInputPath] = useState<string>(currentUrlPath);
   const [data, setData] = useState<DiskAnalysisResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -151,8 +151,9 @@ export function DiskAnalyzer() {
   const [isPruningDocker, setIsPruningDocker] = useState<boolean>(false);
   const [isCleaningTrash, setIsCleaningTrash] = useState<boolean>(false);
 
-  // Elapsed timer for scanning progress
+  // Elapsed timer and fetch abort controller for scanning progress
   const timerRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (loading) {
@@ -183,23 +184,33 @@ export function DiskAnalyzer() {
       .catch(() => {});
   };
 
-  // Fetch analysis for target path
+  // Fetch analysis for target path with race-condition protection
   const fetchAnalysis = async (targetPath: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/files/analyze?path=${encodeURIComponent(targetPath)}`);
+      const res = await fetch(`/api/files/analyze?path=${encodeURIComponent(targetPath)}`, {
+        signal: abortController.signal,
+      });
       if (!res.ok) throw new Error(`Falha ao analisar o diretório ${targetPath}`);
       const json: DiskAnalysisResponse = await res.json();
       setData(json);
       const resPath = json.path || targetPath;
       setCurrentPath(resPath);
       setCustomInputPath(resPath);
-      setSearchParams({ path: resPath }, { replace: true });
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError(err.message || 'Erro ao carregar dados do analisador');
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === abortController) {
+        setLoading(false);
+      }
     }
   };
 
@@ -207,14 +218,20 @@ export function DiskAnalyzer() {
     loadMounts();
   }, []);
 
+  // React strictly to URL query parameter changes
   useEffect(() => {
-    fetchAnalysis(initialPath);
-  }, [initialPath]);
+    fetchAnalysis(currentUrlPath);
+  }, [currentUrlPath]);
 
-  // Navigate to another path
+  // Navigate to another path cleanly updating searchParams
   const handleNavigate = (path: string) => {
     setSearchFilter('');
-    fetchAnalysis(path);
+    const clean = path || '/';
+    if (clean === currentUrlPath) {
+      fetchAnalysis(clean);
+    } else {
+      setSearchParams({ path: clean });
+    }
   };
 
   // Handle custom path form submit
@@ -826,7 +843,7 @@ export function DiskAnalyzer() {
                           ) : null}
 
                           <button
-                            onClick={() => navigate(`/terminal?path=${encodeURIComponent(item.path)}`)}
+                            onClick={() => navigate(`/terminal?cwd=${encodeURIComponent(item.path)}`)}
                             className="p-1.5 rounded hover:bg-neutral-800 text-secondary hover:text-emerald-400 transition-colors"
                             title="Abrir no Terminal"
                           >
