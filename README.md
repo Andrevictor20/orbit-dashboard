@@ -13,52 +13,67 @@
 
 <br/>
 
-[🚀 Início Rápido](#-início-rápido) •
-[✨ Funcionalidades](#-funcionalidades) •
-[🏛️ Arquitetura](#-arquitetura) •
-[🛡️ Segurança](#-segurança) •
-[🧪 Testes](#-testes) •
-[🤝 Créditos & Inspiração](#-créditos--inspiração) •
+[🚀 Início Rápido](#-início-rápido-1-comando) •
+[✨ Funcionalidades](#-funcionalidades-completas) •
+[🏛️ Arquitetura](#-arquitetura--stack-tecnológica) •
+[🤝 Créditos](#-créditos--inspiração) •
 [📚 Documentação](#-documentação-completa)
 
 </div>
 
 ---
 
-## 📸 Demonstração Visual
+## 📸 Demonstração Visual & Funcionalidades
 
-<div align="center">
+Veja o Orbit em ação através de nossa interface fluida e focada em performance.
 
-### 🌌 Visão Geral & Telemetria em Tempo Real
-![Orbit Dashboard Overview](./docs/images/overview.png)
+### 🌌 Visão Geral & Dashboard Interativo
+Uma visão consolidada de todas as instâncias em execução, status do host (Uptime, IP) e atalhos rápidos para configurações vitais.
+![Orbit Overview](./docs/videos/orbit_overview_1788297817698.webp)
 
-</div>
+### 📦 Gerenciamento Completo de Contêineres
+Visualize todos os seus contêineres. Pare, inicie, reinicie ou pause com um clique. Acompanhe a saúde de cada serviço através de badges dinâmicos e consumo individualizado.
+![Orbit Containers](./docs/videos/orbit_containers_1788297861924.webp)
+
+### 🛍️ App Store Integrada (1-Click Install)
+Explore uma loja com dezenas de aplicações populares (Plex, Pi-hole, Nextcloud, Nginx Proxy Manager). Instalação via manifests otimizada e imediata sem precisar usar linha de comando.
+![Orbit App Store](./docs/videos/orbit_appstore_1788297896659.webp)
 
 <details>
-<summary><b>🔍 Clique para ver mais capturas de tela do sistema</b></summary>
+<summary><b>🔍 Clique para ver mais capturas de tela do sistema (Métricas, Logs e Terminal)</b></summary>
 <br/>
 
 | Tela | Prévia |
 | :--- | :--- |
-| **📦 Gerenciamento de Contêineres** | ![Containers](./docs/images/containers.png) |
-| **🛍️ App Store (1-Click Install)** | ![App Store](./docs/images/appstore.png) |
-| **📈 Gráficos Detalhados de Métricas** | ![Metrics](./docs/images/metrics.png) |
-| **📋 Logs Centralizados do Sistema** | ![System Logs](./docs/images/logs.png) |
-| **🔐 Tela de Login & Segurança** | ![Login Screen](./docs/images/login.png) |
+| **📈 Gráficos Detalhados de Métricas (CPU/RAM/Rede)** | ![Metrics Top](./docs/images/metrics_page_top_1788297959452.png) |
+| **💽 Análise de Disco e Processos** | ![Metrics Bottom](./docs/images/metrics_page_bottom_1788297978643.png) |
+| **📋 Logs Centralizados e Histórico** | ![System Logs](./docs/images/logs.png) |
+| **💻 Terminal Web Embutido (Xterm.js)** | ![Terminal](./docs/images/06_terminal_page_1788264323940.png) |
+| **🔐 Tela de Login Segura (Argon2id)** | ![Login Screen](./docs/images/login.png) |
 
 </details>
 
 ---
 
-## ✨ Funcionalidades Principais
+## ✨ Funcionalidades Completas
 
-- ⚡ **Desempenho Ultrarrápido:** Backend assíncrono em **Rust (Axum + Tokio)** consumindo menos de 15MB de memória RAM em repouso.
-- 📊 **Telemetria ao Vivo via WebSockets:** Gráficos interativos de CPU, Memória, I/O de Disco, Tráfego de Rede e Temperatura em tempo real.
-- 📦 **Controle Total do Docker:** Inicie, pare, reinicie, pause, visualize logs, edite variáveis de ambiente e mapeamentos de volumes sem sair do navegador.
-- 🛍️ **App Store Integrada:** Instale aplicações *self-hosted* populares (Pi-hole, Plex, Vaultwarden, Nginx Proxy Manager) com 1 clique.
-- 💻 **Terminal Web (Xterm.js):** Acesso direto ao shell do sistema host e `docker exec` interativo no navegador.
-- 🛡️ **Segurança Zero-Config:** Autenticação resistente com **Argon2id**, auto-geração de segredos JWT com CSPRNG e proteção contra força bruta (Rate Limiting).
-- 🔄 **Continuous Delivery Multi-Arch:** Imagens Docker compiladas automaticamente para arquiteturas **x86_64 (`linux/amd64`)** e **ARM64 (`linux/arm64`)**, ideal para Raspberry Pi e nós edge.
+O Orbit foi desenhado do zero para não deixar a desejar em nenhum aspecto crítico de homelabs e edge computing:
+
+- ⚡ **Desempenho Ultrarrápido:** Backend construído nativamente em **Rust (Axum + Tokio)**. Consome **menos de 15MB de memória RAM** em repouso e responde em microssegundos.
+- 📊 **Telemetria ao Vivo e Detalhada via WebSockets:** 
+  - Gráficos históricos interativos e em tempo real de **CPU**, **Memória RAM** e **Tráfego de Rede** (RX/TX).
+  - Listagem completa de discos montados com espaço disponível vs consumido.
+  - Monitor ativo dos **processos mais pesados** rodando no host.
+- 📦 **Controle Total do Ecossistema Docker:** 
+  - **Ações de Ciclo de Vida:** Inicie, pare, reinicie, pause e destrua contêineres e imagens.
+  - **Inspetor de Contêineres:** Visualize logs detalhados, variáveis de ambiente configuradas, mapeamentos de volumes (bind mounts) e portas ativas sem sair do navegador.
+- 🛍️ **App Store Nativa:** Instale ferramentas *self-hosted* essenciais com um único clique (Vaultwarden, AdGuard Home, Jellyfin, etc.). O instalador valida portas e gerencia toda a complexidade do compose internamente.
+- 💻 **Terminal Web Avançado (Xterm.js):** Conexões WebSocket seguras que provém acesso direto ao shell de qualquer contêiner rodando (`docker exec` direto no browser) ou terminal SSH do host local.
+- 🛡️ **Segurança Zero-Config by Default:** 
+  - Autenticação local fortalecida com o algoritmo **Argon2id** (padrão de mercado para hashes seguros).
+  - Gestão de Sessão: Geração automática rotacionada de segredos JWT com CSPRNG.
+  - Rate Limiting e proteções automáticas contra brute-force embutidas na fundação HTTP.
+- 🔄 **Multi-Arch (Edge Computing e IoT):** Imagens Docker empacotadas via CI para **x86_64 (`linux/amd64`)** e **ARM64 (`linux/arm64`)**, garantindo suporte de classe mundial para Raspberry Pi, Orange Pi e mini-PCs.
 
 ---
 
@@ -75,7 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/
 
 ### 🐳 Instalação Manual via Docker Compose
 
-Caso prefira iniciar manualmente:
+Caso prefira iniciar manualmente, utilize a stack declarativa abaixo:
 
 ```yaml
 services:
