@@ -36,3 +36,4 @@ backend/data/
 # Documentation
 docs/
 *.md
+!LATEST_RELEASE.md
