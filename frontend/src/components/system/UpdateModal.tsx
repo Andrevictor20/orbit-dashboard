@@ -535,13 +535,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 {/* Console Log Terminal */}
                 <div className="rounded-2xl bg-neutral-950 border border-border/80 overflow-hidden font-mono text-xs shadow-inner">
                   <div className="px-3.5 py-2 bg-neutral-900 border-b border-border/60 flex items-center justify-between text-[11px] text-secondary">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                      <span className="ml-2 font-medium text-zinc-400">Terminal de Atualização</span>
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-3.5 h-3.5 text-orbit-400" />
+                      <span className="font-medium text-zinc-300">Terminal de Atualização</span>
                     </div>
-                    <span>Docker Engine</span>
+                    <span className="text-zinc-500 font-mono text-[10px]">Docker Engine</span>
                   </div>
                   <div className="p-3.5 max-h-48 overflow-y-auto space-y-1 scrollbar-thin text-[11px]">
                     {taskState.logs.map((line, idx) => (
