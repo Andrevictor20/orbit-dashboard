@@ -503,6 +503,7 @@ pub async fn get_system_version_handler() -> impl IntoResponse {
 }
 
 pub mod processes;
+pub mod alerts;
 
 pub fn router() -> axum::Router<AppState> {
     axum::Router::new()
@@ -512,4 +513,5 @@ pub fn router() -> axum::Router<AppState> {
         .route("/api/system/update", axum::routing::post(perform_system_update))
         .route("/api/system/processes", axum::routing::get(processes::get_processes_handler))
         .route("/api/system/processes/{pid}/kill", axum::routing::post(processes::kill_process_handler))
+        .route("/api/system/alerts", axum::routing::get(alerts::get_alerts_handler))
 }

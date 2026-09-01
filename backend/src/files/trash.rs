@@ -78,7 +78,7 @@ pub async fn move_to_trash(Json(req): Json<MoveToTrashRequest>) -> Result<Json<s
 
         let meta = src.metadata().ok();
         let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
-        let size = if is_dir { get_dir_size_recursive(&src) } else { meta.map(|m| m.len()).unwrap_or(0) };
+        let size = if is_dir { get_dir_size_recursive(&src, None) } else { meta.map(|m| m.len()).unwrap_or(0) };
         let file_name = src.file_name().unwrap_or_default().to_string_lossy().to_string();
         let id = Uuid::new_v4().to_string();
         let trash_target = trash_dir.join(format!("{}_{}", id, file_name));

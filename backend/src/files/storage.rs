@@ -1,3 +1,10 @@
+use std::convert::Infallible;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
+use futures::stream::Stream;
+use tokio_stream::wrappers::ReceiverStream;
+use tokio::sync::mpsc;
+use axum::response::sse::{Event, Sse};
 use axum::{
     extract::Query,
     http::StatusCode,
@@ -295,7 +302,7 @@ pub fn is_skipped_path(p: &Path) -> bool {
         || s.starts_with("/host/run")
 }
 
-pub fn get_dir_size_recursive(root: &Path) -> u64 {
+pub fn get_dir_size_recursive(root: &Path, tx: Option<&mpsc::Sender<u64>>) -> u64 {
     if is_skipped_path(root) {
         return 0;
     }
@@ -327,7 +334,15 @@ pub fn get_dir_size_recursive(root: &Path) -> u64 {
                         stack.push(entry.path());
                     } else if ft.is_file() {
                         if let Ok(meta) = entry.metadata() {
-                            total += meta.len();
+                            #[cfg(unix)]
+                            let size = meta.blocks() * 512;
+                            #[cfg(not(unix))]
+                            let size = meta.len();
+                            
+                            total += size;
+                            if let Some(sender) = tx {
+                                let _ = sender.blocking_send(size);
+                            }
                         }
                     }
                 }
@@ -337,7 +352,8 @@ pub fn get_dir_size_recursive(root: &Path) -> u64 {
     total
 }
 
-pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<DiskAnalysisResponse>, StatusCode> {
+
+pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, StatusCode> {
     let target = q.path.as_deref().unwrap_or("/").to_string();
     let path = sanitize_path(&target)?;
 
@@ -348,11 +364,15 @@ pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<Dis
     let target_clone = target.clone();
     let path_clone = path.clone();
 
-    // Offload CPU-intensive filesystem traversal to tokio threadpool so server doesn't freeze
-    let result = tokio::task::spawn_blocking(move || {
-        let entries = match fs::read_dir(&path_clone) {
+    let (tx, mut rx) = mpsc::channel::<u64>(100);
+    let (event_tx, event_rx) = mpsc::channel::<Result<Event, Infallible>>(10);
+
+    // Background thread for computation
+    let event_tx_clone = event_tx.clone();
+tokio::task::spawn_blocking(move || {
+        let entries = match std::fs::read_dir(&path_clone) {
             Ok(e) => e,
-            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            Err(_) => return,
         };
 
         let mut raw_items = Vec::new();
@@ -370,9 +390,16 @@ pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<Dis
             let item_path = entry.path();
 
             let size = if is_dir {
-                get_dir_size_recursive(&item_path)
+                get_dir_size_recursive(&item_path, Some(&tx))
             } else if !is_symlink {
-                entry.metadata().map(|m| m.len()).unwrap_or(0)
+                let s = entry.metadata().map(|m| {
+                    #[cfg(unix)]
+                    return m.blocks() * 512;
+                    #[cfg(not(unix))]
+                    return m.len();
+                }).unwrap_or(0);
+                let _ = tx.blocking_send(s);
+                s
             } else {
                 0
             };
@@ -400,15 +427,44 @@ pub async fn analyze_directory(Query(q): Query<AnalyzeQuery>) -> Result<Json<Dis
 
         items.sort_by(|a, b| b.size.cmp(&a.size));
 
-        Ok(DiskAnalysisResponse {
+        let res = DiskAnalysisResponse {
             path: target_clone,
             total_size,
             item_count: items.len(),
             items,
-        })
-    })
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)??;
+        };
 
-    Ok(Json(result))
+        // We close tx here so the forwarder task knows we are done computing
+        drop(tx);
+
+        // We send the final result using a channel because we are blocking, but the forwarder task is async.
+        // Wait, event_tx is mpsc, we can block_send
+        let _ = event_tx.blocking_send(Ok(Event::default()
+            .event("complete")
+            .data(serde_json::to_string(&res).unwrap_or_default())));
+    });
+
+    // Async task to forward progress updates to SSE
+    tokio::spawn(async move {
+        let mut scanned_bytes = 0u64;
+        let mut last_sent_time = tokio::time::Instant::now();
+
+        while let Some(bytes) = rx.recv().await {
+            scanned_bytes += bytes;
+            
+            // Throttle updates to max 10 per second to avoid flooding SSE
+            if last_sent_time.elapsed().as_millis() > 100 {
+                let payload = serde_json::json!({ "scanned_bytes": scanned_bytes });
+                if event_tx_clone.send(Ok(Event::default()
+                    .event("progress")
+                    .data(payload.to_string()))).await.is_err() {
+                    break;
+                }
+                last_sent_time = tokio::time::Instant::now();
+            }
+        }
+    });
+
+    Ok(Sse::new(ReceiverStream::new(event_rx)).keep_alive(axum::response::sse::KeepAlive::default()))
 }
+

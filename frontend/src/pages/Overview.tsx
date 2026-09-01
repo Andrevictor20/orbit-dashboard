@@ -67,7 +67,9 @@ const AppCardItem = memo(function AppCardItem({
             loading="lazy"
             className="w-full h-full object-contain"
             onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
+              if (!e.currentTarget.src.endsWith('docker.png')) {
+                e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+              }
             }}
           />
           <div className="absolute -bottom-1 -right-1 p-0.5 rounded-md bg-orbit-500 text-white shadow-md">
@@ -117,7 +119,9 @@ const AppCardItem = memo(function AppCardItem({
           loading="lazy"
           className="w-full h-full object-contain"
           onError={(e) => {
-            (e.target as HTMLElement).style.display = 'none';
+            if (!e.currentTarget.src.endsWith('docker.png')) {
+              e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+            }
           }}
         />
       </div>

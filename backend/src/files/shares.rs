@@ -48,7 +48,7 @@ pub async fn create_share(Json(req): Json<CreateShareRequest>) -> Result<Json<Sh
 
     let meta = path.metadata().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let is_dir = meta.is_dir();
-    let size = if is_dir { get_dir_size_recursive(&path) } else { meta.len() };
+    let size = if is_dir { get_dir_size_recursive(&path, None) } else { meta.len() };
     let file_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
 
     let now_utc = time::OffsetDateTime::now_utc();

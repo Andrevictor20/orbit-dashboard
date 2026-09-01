@@ -548,10 +548,15 @@ pub async fn update_container(
     let name = inspect.name.clone().unwrap_or_else(|| id.clone());
     let clean_name = name.trim_start_matches('/').to_string();
 
-    // Check if it is a compose app in /data/apps/ or host directories
     let compose_dir = inspect.config.as_ref()
         .and_then(|c| c.labels.as_ref())
         .and_then(|l| l.get("com.docker.compose.project.working_dir"));
+
+    let compose_file_label = inspect.config.as_ref()
+        .and_then(|c| c.labels.as_ref())
+        .and_then(|l| l.get("com.docker.compose.project.config_files"))
+        .map(|f| f.split(',').next().unwrap_or("docker-compose.yml"))
+        .unwrap_or("docker-compose.yml");
 
     if let Some(dir) = compose_dir {
         let host_dir_candidate = format!("/host{}", dir);
@@ -565,10 +570,19 @@ pub async fn update_container(
 
         if let Some(target_dir) = actual_dir {
             tracing::info!("Updating compose app in directory: {}", target_dir);
+            let host_project_dir = target_dir.strip_prefix("/host").unwrap_or(target_dir);
+
+            let compose_file_host_path = if compose_file_label.starts_with('/') {
+                format!("/host{}", compose_file_label)
+            } else {
+                format!("{}/{}", target_dir, compose_file_label)
+            };
+
             let pull_res = tokio::process::Command::new("docker")
                 .arg("compose")
+                .arg("-f").arg(&compose_file_host_path)
+                .arg("--project-directory").arg(host_project_dir)
                 .arg("pull")
-                .current_dir(target_dir)
                 .output()
                 .await;
 
@@ -576,9 +590,10 @@ pub async fn update_container(
                 if o.status.success() {
                     let up_res = tokio::process::Command::new("docker")
                         .arg("compose")
+                        .arg("-f").arg(&compose_file_host_path)
+                        .arg("--project-directory").arg(host_project_dir)
                         .arg("up")
                         .arg("-d")
-                        .current_dir(target_dir)
                         .output()
                         .await;
 
@@ -593,13 +608,30 @@ pub async fn update_container(
                         } else {
                             let stderr_msg = String::from_utf8_lossy(&uo.stderr).to_string();
                             tracing::warn!("docker compose up failed: {}", stderr_msg);
+                            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                                "id": id,
+                                "name": clean_name,
+                                "status": "error",
+                                "message": "Falha ao reiniciar via docker compose",
+                                "details": stderr_msg
+                            }))).into_response();
                         }
                     }
                 } else {
                     let stderr_msg = String::from_utf8_lossy(&o.stderr).to_string();
                     tracing::warn!("docker compose pull failed: {}", stderr_msg);
+                    return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                        "id": id,
+                        "name": clean_name,
+                        "status": "error",
+                        "message": "Falha ao puxar imagem via docker compose",
+                        "details": stderr_msg
+                    }))).into_response();
                 }
             }
+        } else {
+            // Compose dir found in labels but path not found on disk.
+            tracing::warn!("Compose working dir label found ({}), but path does not exist. Falling back to standalone update.", dir);
         }
     }
 

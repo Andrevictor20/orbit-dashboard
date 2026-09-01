@@ -14,6 +14,7 @@ use tokio::sync::broadcast;
 use once_cell::sync::Lazy;
 use bollard::Docker;
 use crate::docker::AppState;
+use crate::system::alerts::{push_alert_if_needed, SystemAlert, get_current_timestamp};
 use futures::StreamExt;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -487,6 +488,55 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             orbit_cpu,
             orbit_memory,
         };
+
+        // Alert Evaluation
+        if stats.cpu_usage > 90.0 {
+            push_alert_if_needed(SystemAlert {
+                id: uuid::Uuid::new_v4().to_string(),
+                timestamp: get_current_timestamp(),
+                level: "critical".to_string(),
+                title: "Alto Consumo de CPU".to_string(),
+                message: format!("O consumo de CPU do host atingiu {:.1}%.", stats.cpu_usage),
+                source: "metrics".to_string(),
+            });
+        }
+
+        let memory_percent = (stats.memory_used as f64 / stats.memory_total.max(1) as f64) * 100.0;
+        if memory_percent > 90.0 {
+            push_alert_if_needed(SystemAlert {
+                id: uuid::Uuid::new_v4().to_string(),
+                timestamp: get_current_timestamp(),
+                level: "critical".to_string(),
+                title: "Alto Consumo de RAM".to_string(),
+                message: format!("O uso de memória RAM está em {:.1}%.", memory_percent),
+                source: "metrics".to_string(),
+            });
+        }
+
+        if stats.temperature > 80.0 {
+            push_alert_if_needed(SystemAlert {
+                id: uuid::Uuid::new_v4().to_string(),
+                timestamp: get_current_timestamp(),
+                level: "warning".to_string(),
+                title: "Alta Temperatura".to_string(),
+                message: format!("A temperatura do host atingiu {:.1}°C.", stats.temperature),
+                source: "metrics".to_string(),
+            });
+        }
+
+        for disk in &stats.disks {
+            let disk_percent = (disk.used as f64 / disk.total.max(1) as f64) * 100.0;
+            if disk_percent > 90.0 {
+                push_alert_if_needed(SystemAlert {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    timestamp: get_current_timestamp(),
+                    level: "warning".to_string(),
+                    title: "Disco Quase Cheio".to_string(),
+                    message: format!("O disco {} ({}) está com {:.1}% de uso.", disk.name, disk.mount_point, disk_percent),
+                    source: "metrics".to_string(),
+                });
+            }
+        }
 
         if let Ok(mut hist) = STATS_HISTORY.write() {
             if hist.len() >= 3600 {

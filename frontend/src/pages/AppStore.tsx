@@ -461,7 +461,7 @@ export function AppStore() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
                   {apps.slice(0, 4).map((app, index) => (
                     <div
                       key={`trending-${app.id}-${index}`}
@@ -510,7 +510,7 @@ export function AppStore() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                   {filteredApps.map((app, index) => renderAppCard(app, index))}
                 </div>
               </div>
@@ -529,7 +529,7 @@ export function AppStore() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
                 {filteredApps.map((app, index) => renderAppCard(app, index))}
                 
                 {filteredApps.length === 0 && (

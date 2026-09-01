@@ -4,6 +4,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { InstallProvider } from './contexts/InstallContext';
 import { StatsProvider } from './contexts/StatsContext';
+import { AlertsProvider } from './contexts/AlertsContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -54,26 +55,28 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <StatsProvider>
-                        <DashboardLayout>
-                          <Suspense fallback={<PageFallback />}>
-                            <Routes>
-                              <Route path="/" element={<Overview />} />
-                              <Route path="/metrics" element={<Metrics />} />
-                              <Route path="/containers" element={<Containers />} />
-                              <Route path="/containers/:id" element={<ContainerDetail />} />
-                              <Route path="/store" element={<AppStore />} />
-                              <Route path="/store/app/:id" element={<AppDetail />} />
-                              <Route path="/images" element={<Images />} />
-                              <Route path="/networks" element={<Networks />} />
-                              <Route path="/volumes" element={<Volumes />} />
-                              <Route path="/files" element={<FileManager />} />
-                              <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
-                              <Route path="/terminal" element={<Terminal />} />
-                              <Route path="/logs" element={<Logs />} />
-                              <Route path="*" element={<Navigate to="/" replace />} />
-                            </Routes>
-                          </Suspense>
-                        </DashboardLayout>
+                        <AlertsProvider>
+                          <DashboardLayout>
+                            <Suspense fallback={<PageFallback />}>
+                              <Routes>
+                                <Route path="/" element={<Overview />} />
+                                <Route path="/metrics" element={<Metrics />} />
+                                <Route path="/containers" element={<Containers />} />
+                                <Route path="/containers/:id" element={<ContainerDetail />} />
+                                <Route path="/store" element={<AppStore />} />
+                                <Route path="/store/app/:id" element={<AppDetail />} />
+                                <Route path="/images" element={<Images />} />
+                                <Route path="/networks" element={<Networks />} />
+                                <Route path="/volumes" element={<Volumes />} />
+                                <Route path="/files" element={<FileManager />} />
+                                <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
+                                <Route path="/terminal" element={<Terminal />} />
+                                <Route path="/logs" element={<Logs />} />
+                                <Route path="*" element={<Navigate to="/" replace />} />
+                              </Routes>
+                            </Suspense>
+                          </DashboardLayout>
+                        </AlertsProvider>
                       </StatsProvider>
                     </ProtectedRoute>
                   } 

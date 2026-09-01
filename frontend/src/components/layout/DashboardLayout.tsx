@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -24,7 +24,8 @@ import {
   Maximize,
   Minimize,
   Sparkles,
-  Globe
+  Globe,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
@@ -79,6 +80,52 @@ function SidebarItem({ icon: Icon, label, to, isCollapsed, onClick }: SidebarIte
       <Icon className="w-4 h-4 shrink-0" />
       {!isCollapsed && <span>{label}</span>}
     </NavLink>
+  );
+}
+
+
+function CustomDropdown({ icon: Icon, value, options, onChange, label }: { icon: any, value: string, options: {value: string, label: React.ReactNode}[], onChange: (val: string) => void, label?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border border-transparent hover:border-border hover:bg-neutral-900/50 transition-all duration-200 active:scale-[0.98] text-secondary hover:text-primary focus-visible:ring-2 focus-visible:ring-orbit-500"
+        aria-label={label}
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        <span className="text-xs font-medium max-w-[80px] sm:max-w-[120px] truncate">{selectedOption.label}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 origin-top-right">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs font-medium hover:bg-orbit-500/10 hover:text-orbit-400 transition-colors ${value === opt.value ? 'text-orbit-500 bg-orbit-500/5' : 'text-secondary'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -278,40 +325,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary shrink-0" />
-              <select 
-                value={color} 
-                onChange={(e) => setColor(e.target.value as any)}
-                className="bg-background border shad-border text-secondary text-xs rounded-md py-1 px-1.5 sm:px-2 outline-none transition-colors duration-200 focus:border-orbit-500 focus-visible:ring-2 focus-visible:ring-orbit-500/50 cursor-pointer"
-                aria-label="Selecionar tema de cores"
-              >
-                <option value="zinc">Zinc</option>
-                <option value="rose">Rose</option>
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-                <option value="catppuccin">Catppuccin</option>
-                <option value="tokyonight">Tokyo Night</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary shrink-0" />
-              <select 
-                value={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')} 
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
-                className="bg-background border shad-border text-secondary text-xs rounded-md py-1 px-1.5 sm:px-2 outline-none transition-colors duration-200 focus:border-orbit-500 focus-visible:ring-2 focus-visible:ring-orbit-500/50 cursor-pointer max-w-[120px] sm:max-w-[150px] truncate"
-                aria-label={t('header.switch_language')}
-              >
-                {supportedLanguages.map(lang => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.nativeName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CustomDropdown 
+              icon={Palette} 
+              value={color} 
+              onChange={(val) => setColor(val as any)} 
+              options={[
+                {value: 'zinc', label: 'Zinc'},
+                {value: 'rose', label: 'Rose'},
+                {value: 'blue', label: 'Blue'},
+                {value: 'green', label: 'Green'},
+                {value: 'catppuccin', label: 'Catppuccin'},
+                {value: 'tokyonight', label: 'Tokyo Night'}
+              ]}
+              label="Selecionar tema de cores"
+            />
+            <CustomDropdown 
+              icon={Globe} 
+              value={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')} 
+              onChange={(val) => i18n.changeLanguage(val)} 
+              options={supportedLanguages.map(lang => ({
+                value: lang.code,
+                label: `${lang.flag} ${lang.nativeName}`
+              }))}
+              label={t('header.switch_language')}
+            />
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-neutral-900/50 transition-all duration-300 text-secondary hover:text-primary spring-bounce focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
               aria-label={t('header.toggle_theme')}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -324,7 +364,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   document.exitFullscreen().catch(() => {});
                 }
               }}
-              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-accent transition-all duration-200 text-secondary active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              className="p-1.5 sm:p-2 rounded-md border shad-border hover:bg-neutral-900/50 transition-all duration-300 text-secondary hover:text-primary spring-bounce focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
               title="Alternar Tela Cheia"
               aria-label="Alternar tela cheia"
             >

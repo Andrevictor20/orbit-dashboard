@@ -1,14 +1,15 @@
-# Orbit Dashboard v1.9.9
+# Orbit Dashboard v2.0.0 (XP Kit Update)
 
-### ✨ Novidades
-- **Painel Geral Modernizado:** Novo visual com monitoramento em tempo real e lançador de aplicativos com busca instantânea.
-- **Analisador de Espaço em Disco:** Nova aba para descobrir facilmente o que mais consome espaço no armazenamento e atalhos para examinar qualquer pasta.
-- **Gerenciador de Arquivos & Loja de Aplicativos:** Visual remodelado, navegação mais ágil e organizada.
+### ✨ Novidades (Premium Redesign & Insights)
+- **Design System Premium:** Todo o Orbit foi refatorado com um design "Double-Bezel" premium de alto contraste, física de molas (spring-bounce) nas interações e remoção de modais e selects nativos feios. O visual agora está no padrão "High-End".
+- **Terminal Web Avançado:** O Terminal ganhou suporte a múltiplas abas concorrentes, barra de ferramentas superior e espaçamento ideal.
+- **Alertas Preditivos (Insights):** Novo sistema de detecção inteligente em tempo real. O backend agora dispara alertas precisos quando houver pico de uso de CPU (>90%), RAM (>90%) e Alta Temperatura.
+- **Ícones de Fallback:** Aplicativos sem ícones customizados não ficam mais invisíveis ou como um quadrado preto; assumem automaticamente a logo do Docker de forma elegante.
 
-### ⚡ Desempenho
-- **Sistema Muito Mais Rápido:** Redução drástica no uso de processador (CPU) e memória em segundo plano.
-- **Rolagem e Animações Suaves:** Interface fluida a 60 FPS sem travamentos ou engasgos.
+### ⚡ Desempenho & Arquitetura
+- **Zero Bugs de React Hooks:** Refatoração pesada no gerenciamento de estado do Terminal e painel de análise, corrigindo deadlocks, renderizações quebradas e consumo excessivo do frontend.
+- **Correção de Precisão no Armazenamento:** A Análise de Disco agora conta blocos físicos de fato (como no `du -h`), e não cai mais nas armadilhas dos *sparse files* monstruosos do BTRFS/Docker (adeus aos 128 TB).
 
 ### 🛠️ Correções
-- **Reconhecimento de HDs e Armazenamento:** Identificação correta de HDs externos e cartões de memória.
-- **Estabilidade Geral:** Fim de travamentos durante análises de disco e melhorias de segurança.
+- Scrollbars nativas agressivas nos eixos horizontais e menus de abas foram exterminadas graças à regra CSS de ocultação.
+- Correção crítica da sobreposição no modal de Atualização de Múltiplos Containers.

@@ -4,6 +4,7 @@ import { useStats } from '../contexts/StatsContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Network, Cpu, HardDrive, LayoutGrid, Monitor, Box, Rocket, Terminal, Clock, Info } from 'lucide-react';
 import { ProcessMonitor } from '../components/metrics/ProcessMonitor';
+import { AlertsPanel } from '../components/metrics/AlertsPanel';
 
 type TabType = 'overview' | 'system' | 'containers' | 'orbit' | 'processes';
 type TimeRangeType = '1m' | '5m' | '15m' | '30m' | '1h';
@@ -168,6 +169,8 @@ export function Metrics() {
           </div>
         </div>
       </div>
+      
+      {activeTab !== 'processes' && <AlertsPanel />}
 
       {activeTab === 'orbit' && (
         <div className="bg-card/70 border border-yellow-500/20 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

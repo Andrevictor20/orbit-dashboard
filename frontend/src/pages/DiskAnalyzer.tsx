@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useDiskAnalyzerStore, diskAnalyzerStore } from '../stores/diskAnalyzerStore';
+import type { DiskItemStat } from '../stores/diskAnalyzerStore';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   PieChart, 
@@ -28,21 +30,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatBytes, formatStorage, getFriendlyDiskName, isPhysicalStorage } from '../utils/format';
-
-interface DiskItemStat {
-  name: string;
-  path: string;
-  is_dir: boolean;
-  size: number;
-  percentage: number;
-}
-
-interface DiskAnalysisResponse {
-  path: string;
-  total_size: number;
-  item_count: number;
-  items: DiskItemStat[];
-}
 
 interface MountItem {
   name: string;
@@ -132,11 +119,15 @@ export function DiskAnalyzer() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentUrlPath = searchParams.get('path') || '/';
 
-  const [currentPath, setCurrentPath] = useState<string>(currentUrlPath);
+  const store = useDiskAnalyzerStore();
+  const currentPath = store.targetPath || currentUrlPath;
   const [customInputPath, setCustomInputPath] = useState<string>(currentUrlPath);
-  const [data, setData] = useState<DiskAnalysisResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const data = store.results;
+  const loading = store.isScanning;
+  const error = store.error;
+  
+  
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
   const [storages, setStorages] = useState<MountItem[]>([]);
@@ -153,7 +144,7 @@ export function DiskAnalyzer() {
 
   // Elapsed timer and fetch abort controller for scanning progress
   const timerRef = useRef<any>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  
 
   useEffect(() => {
     if (loading) {
@@ -184,35 +175,27 @@ export function DiskAnalyzer() {
       .catch(() => {});
   };
 
-  // Fetch analysis for target path with race-condition protection
-  const fetchAnalysis = async (targetPath: string) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/files/analyze?path=${encodeURIComponent(targetPath)}`, {
-        signal: abortController.signal,
-      });
-      if (!res.ok) throw new Error(`Falha ao analisar o diretório ${targetPath}`);
-      const json: DiskAnalysisResponse = await res.json();
-      setData(json);
-      const resPath = json.path || targetPath;
-      setCurrentPath(resPath);
-      setCustomInputPath(resPath);
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      setError(err.message || 'Erro ao carregar dados do analisador');
-    } finally {
-      if (abortControllerRef.current === abortController) {
-        setLoading(false);
+  // Fetch analysis for target path
+  const fetchAnalysis = (targetPath: string) => {
+    setCustomInputPath(targetPath);
+    
+    // Find the disk for the target path to get total bytes
+    let totalBytes = 0;
+    if (storages.length > 0) {
+      const storage = storages.find(s => targetPath.startsWith(s.mount_point));
+      if (storage) {
+        totalBytes = storage.total_bytes;
       }
     }
+    diskAnalyzerStore.startAnalysis(targetPath, totalBytes);
   };
+
+  // Sync custom input path when store targetPath changes
+  useEffect(() => {
+    if (store.targetPath) {
+      setCustomInputPath(store.targetPath);
+    }
+  }, [store.targetPath]);
 
   useEffect(() => {
     loadMounts();
@@ -720,16 +703,24 @@ export function DiskAnalyzer() {
                     <div className="w-12 h-12 rounded-full border-2 border-orbit-500/20 border-t-orbit-500 animate-spin" />
                     <Compass className="w-6 h-6 text-orbit-400 absolute inset-0 m-auto animate-pulse" />
                   </div>
-                  <div className="text-center space-y-1">
+                  <div className="text-center space-y-1 w-full max-w-sm">
                     <p className="text-sm font-semibold text-primary">
-                      Calculando uso recursivo em <span className="font-mono text-orbit-400">{currentPath}</span>
+                      Calculando uso em <span className="font-mono text-orbit-400">{currentPath}</span>
                     </p>
-                    <p className="text-xs text-secondary flex items-center justify-center gap-1.5">
+                    {store.totalBytes > 0 && (
+                      <div className="w-full h-1.5 bg-neutral-900 rounded-full mt-3 mb-2 overflow-hidden border border-white/5">
+                        <div 
+                          className="h-full bg-orbit-500 transition-all duration-300 shadow-[0_0_15px_var(--color-orbit-500)]" 
+                          style={{ width: `${Math.min(100, (store.scannedBytes / store.totalBytes) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-primary font-mono font-bold">
+                      {formatBytes(store.scannedBytes)} {store.totalBytes > 0 ? `/ ${formatBytes(store.totalBytes)}` : ''}
+                    </p>
+                    <p className="text-xs text-secondary flex items-center justify-center gap-1.5 pt-2">
                       <Clock className="w-3 h-3 text-orbit-400" />
                       Tempo decorrido: <span className="font-mono font-bold text-primary">{elapsedSeconds}s</span>
-                    </p>
-                    <p className="text-[11px] text-zinc-500 max-w-sm pt-1">
-                      Varrendo subdiretórios com segurança e calculando ocupação real...
                     </p>
                   </div>
                 </div>
