@@ -561,12 +561,20 @@ pub fn evaluate_and_push_alerts(stats: &SystemStats) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::system::alerts::{ALERTS_HISTORY, ALERTS_COOLDOWN};
+    use crate::system::alerts::{ALERTS_HISTORY, ALERTS_COOLDOWN, TEST_ALERT_LOCK};
 
     #[test]
     fn test_evaluate_and_push_alerts_critical_cpu() {
-        ALERTS_HISTORY.write().unwrap().clear();
-        ALERTS_COOLDOWN.write().unwrap().clear();
+        let _guard = TEST_ALERT_LOCK.lock().unwrap();
+
+        {
+            let mut hist = ALERTS_HISTORY.write().unwrap();
+            hist.clear();
+        }
+        {
+            let mut cd = ALERTS_COOLDOWN.write().unwrap();
+            cd.clear();
+        }
 
         let mut stats = SystemStats {
             timestamp: 0,
@@ -587,24 +595,42 @@ mod tests {
 
         evaluate_and_push_alerts(&stats);
 
-        let history = ALERTS_HISTORY.read().unwrap();
-        assert_eq!(history.len(), 1);
-        assert_eq!(history[0].title, "Alto Consumo de CPU");
-        assert_eq!(history[0].level, "critical");
+        {
+            let history = ALERTS_HISTORY.read().unwrap();
+            assert_eq!(history.len(), 1);
+            assert_eq!(history[0].title, "Alto Consumo de CPU");
+            assert_eq!(history[0].level, "critical");
+        }
 
         // Verify it doesn't trigger if below 90%
-        ALERTS_HISTORY.write().unwrap().clear();
-        ALERTS_COOLDOWN.write().unwrap().clear();
+        {
+            let mut hist = ALERTS_HISTORY.write().unwrap();
+            hist.clear();
+        }
+        {
+            let mut cd = ALERTS_COOLDOWN.write().unwrap();
+            cd.clear();
+        }
         stats.cpu_usage = 89.0;
         evaluate_and_push_alerts(&stats);
-        let history2 = ALERTS_HISTORY.read().unwrap();
-        assert_eq!(history2.len(), 0);
+        {
+            let history2 = ALERTS_HISTORY.read().unwrap();
+            assert_eq!(history2.len(), 0);
+        }
     }
 
     #[test]
     fn test_evaluate_and_push_alerts_ram_and_temp() {
-        ALERTS_HISTORY.write().unwrap().clear();
-        ALERTS_COOLDOWN.write().unwrap().clear();
+        let _guard = TEST_ALERT_LOCK.lock().unwrap();
+
+        {
+            let mut hist = ALERTS_HISTORY.write().unwrap();
+            hist.clear();
+        }
+        {
+            let mut cd = ALERTS_COOLDOWN.write().unwrap();
+            cd.clear();
+        }
 
         let stats = SystemStats {
             timestamp: 0,
@@ -625,11 +651,12 @@ mod tests {
 
         evaluate_and_push_alerts(&stats);
 
-        let history = ALERTS_HISTORY.read().unwrap();
-        assert_eq!(history.len(), 2);
-        
-        let titles: Vec<String> = history.iter().map(|a| a.title.clone()).collect();
-        assert!(titles.contains(&"Alto Consumo de RAM".to_string()));
-        assert!(titles.contains(&"Alta Temperatura".to_string()));
+        {
+            let history = ALERTS_HISTORY.read().unwrap();
+            assert_eq!(history.len(), 2);
+            let titles: Vec<String> = history.iter().map(|a| a.title.clone()).collect();
+            assert!(titles.contains(&"Alto Consumo de RAM".to_string()));
+            assert!(titles.contains(&"Alta Temperatura".to_string()));
+        }
     }
 }

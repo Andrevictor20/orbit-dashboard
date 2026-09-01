@@ -415,7 +415,13 @@ async fn test_files_disk_analysis() {
         .add_cookie(cookie.clone())
         .await;
     analyze_res.assert_status_ok();
-    let json: serde_json::Value = analyze_res.json();
+    let body = analyze_res.text();
+    assert!(body.contains("event: complete"));
+    assert!(body.contains("data: {"));
+    
+    // Parse the completed payload
+    let data_line = body.lines().find(|l| l.starts_with("data: ")).expect("data line in SSE");
+    let json: serde_json::Value = serde_json::from_str(&data_line[6..]).expect("valid json in SSE");
     assert!(json["total_size"].as_u64().unwrap() > 0);
     assert!(json["items"].as_array().unwrap().len() >= 2);
 

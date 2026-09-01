@@ -63,11 +63,16 @@ pub async fn get_alerts_handler() -> impl IntoResponse {
 }
 
 #[cfg(test)]
+pub static TEST_ALERT_LOCK: Lazy<std::sync::Mutex<()>> = Lazy::new(|| std::sync::Mutex::new(()));
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_push_alert_respects_cooldown() {
+        let _guard = TEST_ALERT_LOCK.lock().unwrap();
+
         // Clear state
         ALERTS_HISTORY.write().unwrap().clear();
         ALERTS_COOLDOWN.write().unwrap().clear();
