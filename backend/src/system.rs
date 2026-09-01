@@ -120,46 +120,28 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
             }
         }
 
-        // 3. Check GitHub Actions check-runs status for the main branch
-        let checks_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/commits/main/check-runs";
-        if let Ok(resp) = client.get(checks_url).send().await {
+        // 3. Check GitHub Actions latest workflow run on the main branch
+        let actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/runs?branch=main&per_page=1";
+        if let Ok(resp) = client.get(actions_url).send().await {
             if resp.status().is_success() {
                 if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(check_runs) = json.get("check_runs").and_then(|v| v.as_array()) {
-                        let mut has_building_job = false;
-                        let mut has_failed_job = false;
-                        let mut all_completed_success = !check_runs.is_empty();
+                    if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
+                        if let Some(latest_run) = runs.first() {
+                            let status = latest_run.get("status").and_then(|v| v.as_str()).unwrap_or("");
+                            let conclusion = latest_run.get("conclusion").and_then(|v| v.as_str());
+                            let url = latest_run.get("html_url").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-                        for run in check_runs {
-                            let status = run.get("status").and_then(|v| v.as_str()).unwrap_or("");
-                            let conclusion = run.get("conclusion").and_then(|v| v.as_str());
-                            let url = run.get("html_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            ci_workflow_url = url;
 
                             if status == "in_progress" || status == "queued" {
-                                has_building_job = true;
-                                all_completed_success = false;
-                                if ci_workflow_url.is_none() {
-                                    ci_workflow_url = url;
-                                }
+                                ci_status = Some("building".to_string());
                             } else if status == "completed" {
-                                if conclusion == Some("failure") || conclusion == Some("timed_out") || conclusion == Some("cancelled") {
-                                    has_failed_job = true;
-                                    all_completed_success = false;
-                                    if ci_workflow_url.is_none() {
-                                        ci_workflow_url = url;
-                                    }
+                                if conclusion == Some("success") {
+                                    ci_status = Some("ready".to_string());
+                                } else if conclusion == Some("failure") || conclusion == Some("timed_out") {
+                                    ci_status = Some("failed".to_string());
                                 }
                             }
-                        }
-
-                        if has_building_job {
-                            ci_status = Some("building".to_string());
-                            has_update = false; // Block update while CI is in progress!
-                        } else if has_failed_job {
-                            ci_status = Some("failed".to_string());
-                            has_update = false;
-                        } else if all_completed_success {
-                            ci_status = Some("ready".to_string());
                         }
                     }
                 }
@@ -207,15 +189,15 @@ pub async fn check_update_handler(
 
     let mut info = get_system_update_info().await;
 
-    // Only check remote registry if CI is not actively building
-    if info.ci_status.as_deref() != Some("building") && info.ci_status.as_deref() != Some("failed") {
-        let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
-        let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
-        if image_has_update {
-            info.has_update = true;
+    // Check remote registry digest on ghcr.io
+    let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+    let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
+    if image_has_update {
+        info.has_update = true;
+        // If image is already ready in registry, clear blocking building state
+        if info.ci_status.as_deref() == Some("building") {
+            info.ci_status = Some("ready".to_string());
         }
-    } else {
-        info.has_update = false;
     }
 
     (StatusCode::OK, Json(info)).into_response()
