@@ -29,15 +29,15 @@ Veja o Orbit em ação através de nossa interface fluida e focada em performanc
 
 ### 🌌 Visão Geral & Dashboard Interativo
 Uma visão consolidada de todas as instâncias em execução, status do host (Uptime, IP) e atalhos rápidos para configurações vitais.
-![Orbit Overview](./docs/videos/orbit_overview_1788297817698.webp)
+![Orbit Overview](./docs/videos/overview.webp)
 
 ### 📦 Gerenciamento Completo de Contêineres
 Visualize todos os seus contêineres. Pare, inicie, reinicie ou pause com um clique. Acompanhe a saúde de cada serviço através de badges dinâmicos e consumo individualizado.
-![Orbit Containers](./docs/videos/orbit_containers_1788297861924.webp)
+![Orbit Containers](./docs/videos/containers.webp)
 
 ### 🛍️ App Store Integrada (1-Click Install)
 Explore uma loja com dezenas de aplicações populares (Plex, Pi-hole, Nextcloud, Nginx Proxy Manager). Instalação via manifests otimizada e imediata sem precisar usar linha de comando.
-![Orbit App Store](./docs/videos/orbit_appstore_1788297896659.webp)
+![Orbit App Store](./docs/videos/appstore.webp)
 
 <details>
 <summary><b>🔍 Clique para ver mais capturas de tela do sistema (Métricas, Logs e Terminal)</b></summary>
@@ -45,13 +45,13 @@ Explore uma loja com dezenas de aplicações populares (Plex, Pi-hole, Nextcloud
 
 | Tela | Prévia |
 | :--- | :--- |
-| **📈 Gráficos Detalhados de Métricas (CPU/RAM/Rede)** | ![Metrics Top](./docs/images/metrics_page_top_1788297959452.png) |
-| **💽 Análise de Disco e Processos** | ![Disk Analyzer](./docs/images/disk_analyzer_agent.png) |
-| **📋 Logs Centralizados e Histórico** | ![System Logs](./docs/images/11_logs.png) |
-| **💻 Terminal Web Embutido (Xterm.js)** | ![Terminal](./docs/images/terminal_agent.png) |
-| **🔐 Tela de Login Segura (Argon2id)** | ![Login Screen](./docs/images/01_login_page_1788264242010.png) |
-| **📁 Gerenciador de Arquivos** | ![File Manager](./docs/images/file_manager_agent.png) |
-| **🎨 Mudanças de Temas** | ![Themes](./docs/images/themes_agent.png) |
+| **📈 Gráficos Detalhados de Métricas (CPU/RAM/Rede)** | ![Metrics Top](./docs/images/metrics.png) |
+| **💽 Análise de Disco e Processos** | ![Disk Analyzer](./docs/images/disk_analyzer.png) |
+| **📋 Logs Centralizados e Histórico** | ![System Logs](./docs/images/logs.png) |
+| **💻 Terminal Web Embutido (Xterm.js)** | ![Terminal](./docs/images/terminal.png) |
+| **🔐 Tela de Login Segura (Argon2id)** | ![Login Screen](./docs/images/login.png) |
+| **📁 Gerenciador de Arquivos** | ![File Manager](./docs/images/file_manager.png) |
+| **🎨 Mudanças de Temas** | ![Themes](./docs/images/themes.png) |
 
 </details>
 
