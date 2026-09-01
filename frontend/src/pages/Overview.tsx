@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -17,7 +17,7 @@ import {
 import { useStats } from '../contexts/StatsContext';
 import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
-import { groupContainers, type GroupContainerItem } from '../utils/containerGroups';
+import { groupContainers, type GroupContainerItem, type GroupedContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
 
 interface OverviewContainer {
@@ -30,6 +30,121 @@ interface OverviewContainer {
   labels?: Record<string, string>;
 }
 
+// Memoized App Card to eliminate DOM churn during filtering and stats updates
+const AppCardItem = memo(function AppCardItem({
+  item,
+  onSelectGroup,
+  onOpenApp,
+  t
+}: {
+  item: GroupedContainerItem<OverviewContainer>;
+  onSelectGroup: (group: GroupContainerItem<OverviewContainer>) => void;
+  onOpenApp: (webLink?: string, containerId?: string, isRunning?: boolean) => void;
+  t: any;
+}) {
+  if (item.type === 'group') {
+    return (
+      <div
+        onClick={() => onSelectGroup(item)}
+        className="group relative bg-card hover:bg-neutral-900 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5"
+        title={`${item.name} (${t('dashboard.container_count', { count: item.totalCount })})`}
+      >
+        {/* Top-right stack indicator */}
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/20 text-orbit-300 border border-orbit-500/30 font-semibold font-mono">
+            {item.totalCount}
+          </span>
+          <span className={`w-2 h-2 rounded-full ${
+            item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-zinc-600'
+          }`} />
+        </div>
+
+        {/* Multi-layer App Icon */}
+        <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-neutral-900 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-inner border border-border/50 relative">
+          <img
+            src={item.iconUrl}
+            alt={item.name}
+            loading="lazy"
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
+          <div className="absolute -bottom-1 -right-1 p-0.5 rounded-md bg-orbit-500 text-white shadow-md">
+            <Layers className="w-2.5 h-2.5" />
+          </div>
+        </div>
+
+        {/* Stack Name */}
+        <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={item.name}>
+          {item.name}
+        </span>
+
+        {/* Subtext */}
+        <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
+          {item.anyRunning ? (
+            <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5 font-medium">
+              {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
+            </span>
+          ) : (
+            <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const c = item.container;
+  const isRunning = item.isRunning;
+  const webLink = item.webLink;
+
+  return (
+    <div
+      onClick={() => onOpenApp(webLink, c.id, isRunning)}
+      className="group relative bg-card hover:bg-neutral-900 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5"
+      title={`${c.name} (${c.state})`}
+    >
+      {/* Status indicator dot */}
+      <div className="absolute top-2.5 right-2.5 flex items-center">
+        <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-zinc-600'}`} />
+      </div>
+
+      {/* App Icon */}
+      <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-neutral-900 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-inner border border-border/50">
+        <img
+          src={item.iconUrl}
+          alt={c.name}
+          loading="lazy"
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            (e.target as HTMLElement).style.display = 'none';
+          }}
+        />
+      </div>
+
+      {/* App Name */}
+      <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={c.name}>
+        {c.name}
+      </span>
+
+      {/* Port / Status Subtext */}
+      <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
+        {isRunning ? (
+          webLink ? (
+            <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
+              {t('common.open', 'Abrir')} <ExternalLink className="w-2.5 h-2.5 inline" />
+            </span>
+          ) : (
+            <span className="text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
+          )
+        ) : (
+          <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export function Overview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -37,7 +152,7 @@ export function Overview() {
 
   const [containers, setContainers] = useState<OverviewContainer[]>([]);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
-  const [selectedGroup, setSelectedGroup] = useState<GroupContainerItem | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GroupContainerItem<OverviewContainer> | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'stacks' | 'stopped'>('all');
 
@@ -133,10 +248,18 @@ export function Overview() {
     });
   }, [groupedItems, searchFilter, activeFilter]);
 
+  const handleOpenApp = (webLink?: string, containerId?: string, isRunning?: boolean) => {
+    if (webLink && isRunning) {
+      window.open(webLink, '_blank');
+    } else if (containerId) {
+      navigate(`/containers/${containerId}`);
+    }
+  };
+
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-150">
       {/* 1. HERO HEADER: CLEAN TITLE & QUICK ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/40 border border-border/80 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-lg">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">
@@ -168,7 +291,7 @@ export function Overview() {
 
           <Link
             to="/containers"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-primary text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-primary text-xs font-semibold transition-all"
           >
             <Layers className="w-3.5 h-3.5" />
             <span>{t('sidebar.containers', 'Containers')}</span>
@@ -176,7 +299,7 @@ export function Overview() {
 
           <Link
             to="/terminal"
-            className="p-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-emerald-400 transition-all"
+            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-emerald-400 transition-all"
             title="Terminal Web"
           >
             <Terminal className="w-4 h-4" />
@@ -184,7 +307,7 @@ export function Overview() {
 
           <Link
             to="/disk-analyzer"
-            className="p-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-violet-400 transition-all"
+            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-violet-400 transition-all"
             title="Analisador de Disco"
           >
             <PieChart className="w-4 h-4" />
@@ -197,7 +320,7 @@ export function Overview() {
         {/* CPU & Temp Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card/50 hover:bg-card/80 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-200 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
@@ -224,7 +347,7 @@ export function Overview() {
         {/* Memory RAM Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card/50 hover:bg-card/80 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-200 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
@@ -251,7 +374,7 @@ export function Overview() {
         {/* Storage Quick Summary Card */}
         <Link 
           to="/disk-analyzer" 
-          className="group bg-card/50 hover:bg-card/80 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-200 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
@@ -287,7 +410,7 @@ export function Overview() {
         </Link>
 
         {/* Network & Containers Card */}
-        <div className="bg-card/50 border border-border/70 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border/70 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Rede & Containers')}</span>
             <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
@@ -326,7 +449,7 @@ export function Overview() {
           {/* Filter Pills & Search Bar */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             {/* Filter Pills */}
-            <div className="flex items-center bg-neutral-900/80 border border-border/70 rounded-xl p-0.5 text-xs">
+            <div className="flex items-center bg-neutral-900 border border-border/70 rounded-xl p-0.5 text-xs">
               <button
                 onClick={() => setActiveFilter('all')}
                 className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
@@ -367,122 +490,22 @@ export function Overview() {
           </div>
         </div>
 
-        {/* Bento App Grid */}
+        {/* Bento App Grid with GPU-safe layout */}
         <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
-          {filteredApps.map((item) => {
-            if (item.type === 'group') {
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedGroup(item)}
-                  className="group relative bg-card/60 hover:bg-neutral-900/90 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-1"
-                  title={`${item.name} (${t('dashboard.container_count', { count: item.totalCount })})`}
-                >
-                  {/* Top-right stack indicator */}
-                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/20 text-orbit-300 border border-orbit-500/30 font-semibold font-mono">
-                      {item.totalCount}
-                    </span>
-                    <span className={`w-2 h-2 rounded-full ${
-                      item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-zinc-600'
-                    }`} />
-                  </div>
-
-                  {/* Multi-layer App Icon */}
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-neutral-900/90 p-2.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-200 shadow-inner border border-border/50 relative">
-                    <img
-                      src={item.iconUrl}
-                      alt={item.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute -bottom-1 -right-1 p-1 rounded-md bg-orbit-500 text-white shadow-md">
-                      <Layers className="w-2.5 h-2.5" />
-                    </div>
-                  </div>
-
-                  {/* Stack Name */}
-                  <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={item.name}>
-                    {item.name}
-                  </span>
-
-                  {/* Subtext */}
-                  <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
-                    {item.anyRunning ? (
-                      <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5">
-                        {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
-                      </span>
-                    ) : (
-                      <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            const c = item.container;
-            const isRunning = item.isRunning;
-            const webLink = item.webLink;
-
-            return (
-              <div
-                key={c.id}
-                onClick={() => {
-                  if (webLink && isRunning) {
-                    window.open(webLink, '_blank');
-                  } else {
-                    navigate(`/containers/${c.id}`);
-                  }
-                }}
-                className="group relative bg-card/60 hover:bg-neutral-900/90 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-200 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-1"
-                title={`${c.name} (${c.state})`}
-              >
-                {/* Status indicator dot */}
-                <div className="absolute top-2.5 right-2.5 flex items-center">
-                  <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-zinc-600'}`} />
-                </div>
-
-                {/* App Icon */}
-                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-neutral-900/90 p-2.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-200 shadow-inner border border-border/50">
-                  <img
-                    src={item.iconUrl}
-                    alt={c.name}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-
-                {/* App Name */}
-                <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={c.name}>
-                  {c.name}
-                </span>
-
-                {/* Port / Status Subtext */}
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
-                  {isRunning ? (
-                    webLink ? (
-                      <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
-                        {t('common.open', 'Abrir')} <ExternalLink className="w-2.5 h-2.5 inline" />
-                      </span>
-                    ) : (
-                      <span className="text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
-                    )
-                  ) : (
-                    <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {filteredApps.map((item) => (
+            <AppCardItem
+              key={item.id}
+              item={item}
+              onSelectGroup={setSelectedGroup}
+              onOpenApp={handleOpenApp}
+              t={t}
+            />
+          ))}
 
           {/* Quick Install Card */}
           <div
             onClick={() => navigate('/store')}
-            className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card/20 hover:bg-orbit-500/10 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer group min-h-[120px]"
+            className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card hover:bg-neutral-900 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px]"
           >
             <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-border/60 flex items-center justify-center text-secondary group-hover:text-orbit-400 group-hover:border-orbit-500/40 transition-colors mb-1.5 shadow-sm">
               <Plus className="w-5 h-5" />

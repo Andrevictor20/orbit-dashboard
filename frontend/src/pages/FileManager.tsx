@@ -849,7 +849,7 @@ export function FileManager() {
 
   return (
     <div 
-      className="flex flex-col h-[calc(100vh-5.5rem)] w-full rounded-3xl overflow-hidden border border-border/80 bg-card/40 backdrop-blur-xl text-primary shadow-2xl relative"
+      className="flex flex-col h-[calc(100vh-5.5rem)] w-full rounded-3xl overflow-hidden border border-border/80 bg-card text-primary shadow-2xl relative"
       onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
       onDragLeave={() => setIsDraggingOver(false)}
       onDrop={handleDrop}
@@ -885,7 +885,7 @@ export function FileManager() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* SIDEBAR (ZIMA / NAUTILUS HYBRID DESIGN) */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card/95 lg:bg-card/25 backdrop-blur-2xl border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card lg:bg-neutral-900/40 border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
             isStorageDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
@@ -1190,7 +1190,7 @@ export function FileManager() {
         {/* MAIN VIEWPORT */}
         <main className="flex-1 flex flex-col min-w-0 bg-background/30 overflow-hidden relative">
           {/* Top Navigation Bar */}
-          <header className="py-3 px-4 sm:px-6 border-b border-border/70 bg-card/30 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <header className="py-3 px-4 sm:px-6 border-b border-border/70 bg-card flex items-center justify-between gap-3 shrink-0">
             {/* Left Section: Back/Forward history & Current Folder Title */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {/* Mobile Drawer Trigger */}

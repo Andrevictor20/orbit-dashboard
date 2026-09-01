@@ -367,7 +367,7 @@ export function DiskAnalyzer() {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card/60 border border-border/80 rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-lg">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-2xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 shadow-inner">
             <PieChart className="w-6 h-6" />
@@ -383,7 +383,7 @@ export function DiskAnalyzer() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-1 bg-neutral-900/80 border border-border/80 p-1 rounded-xl shrink-0 w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1 bg-neutral-900 border border-border/80 p-1 rounded-xl shrink-0 w-full sm:w-auto overflow-x-auto">
           <button
             onClick={() => setActiveTab('ncdu')}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -438,7 +438,7 @@ export function DiskAnalyzer() {
                 className={`text-left p-3.5 rounded-2xl border transition-all ${
                   isSelected
                     ? 'bg-orbit-500/10 border-orbit-500/50 shadow-md ring-2 ring-orbit-500/20'
-                    : 'bg-card/40 border-border/70 hover:bg-neutral-900/60 hover:border-border'
+                    : 'bg-card border-border/70 hover:bg-neutral-900/60 hover:border-border'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -471,7 +471,7 @@ export function DiskAnalyzer() {
       )}
 
       {/* DIRECT PATH INPUT & QUICK PRESET CHIPS */}
-      <div className="bg-card/50 border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3">
+      <div className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3">
         <form onSubmit={handleCustomPathSubmit} className="flex items-center gap-2">
           <div className="relative flex-1">
             <FolderSearch className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -520,7 +520,7 @@ export function DiskAnalyzer() {
         <div className="space-y-4">
           {/* TOP 5 SPACE CONSUMERS DECK */}
           {!loading && topConsumers.length > 0 && (
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-lg">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-lg">
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-rose-400" />
@@ -585,7 +585,7 @@ export function DiskAnalyzer() {
           )}
 
           {/* NCDU DIRECTORY TREE BREAKDOWN */}
-          <div className="flex-1 flex flex-col bg-card/60 border border-border/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl min-h-[450px]">
+          <div className="flex-1 flex flex-col bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xl min-h-[450px]">
             {/* Breadcrumb Navigation & Controls Toolbar */}
             <div className="p-3 sm:p-4 border-b border-border/70 bg-card/40 flex flex-wrap items-center justify-between gap-3">
               {/* Left: Breadcrumbs & Up Button */}
@@ -858,7 +858,7 @@ export function DiskAnalyzer() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Docker Prune Card */}
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
@@ -888,7 +888,7 @@ export function DiskAnalyzer() {
             </div>
 
             {/* System Logs & Journals Card */}
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -917,7 +917,7 @@ export function DiskAnalyzer() {
             </div>
 
             {/* Package Manager Cache Card */}
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
@@ -946,7 +946,7 @@ export function DiskAnalyzer() {
             </div>
 
             {/* Trash & Temporary Files Card */}
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 backdrop-blur-xl shadow-lg flex flex-col justify-between">
+            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
@@ -981,7 +981,7 @@ export function DiskAnalyzer() {
       {/* TAB 3: FILESYSTEM SAFETY GUIDE */}
       {activeTab === 'safety' && (
         <div className="space-y-4">
-          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5 backdrop-blur-xl flex items-start gap-3.5">
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5 flex items-start gap-3.5">
             <ShieldAlert className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-rose-300">Diretrizes de Proteção do Sistema de Arquivos Linux</h3>

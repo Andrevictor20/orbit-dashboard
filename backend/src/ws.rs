@@ -236,6 +236,12 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut prev_host_tx = 0u64;
     let mut prev_docker_rx = 0u64;
     let mut prev_docker_tx = 0u64;
+    let mut cached_docker_cpu = 0.0f32;
+    let mut cached_docker_mem = 0u64;
+    let mut cached_docker_rate_rx = 0u64;
+    let mut cached_docker_rate_tx = 0u64;
+    let mut docker_poll_ticks = 0u32;
+    let mut disk_poll_ticks = 0u32;
     let mut last_tick_instant = std::time::Instant::now();
     let mut first_tick = true;
 
@@ -251,22 +257,30 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
 
         sys.refresh_cpu_usage();
         sys.refresh_memory();
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-        disks.refresh(true);
         networks.refresh(true);
         components.refresh(true);
+
+        disk_poll_ticks += 1;
+        if disk_poll_ticks >= 8 || first_tick {
+            disks.refresh(true);
+            disk_poll_ticks = 0;
+        }
 
         let sys_cpu = sys.global_cpu_usage();
         let sys_mem = sys.used_memory();
         let num_cores = sys.cpus().len() as f32;
 
         orbit_pids_ticks += 1;
-        if orbit_pids_ticks >= ORBIT_PIDS_REFRESH_EVERY {
+        if orbit_pids_ticks >= ORBIT_PIDS_REFRESH_EVERY || first_tick {
             orbit_pids = find_orbit_pids(backend_pid);
             orbit_pids_ticks = 0;
             // Periodically reclaim unused arena memory back to the Linux OS
             crate::store::catalog::trim_memory();
         }
+
+        // Targeted process refresh only for Orbit PIDs instead of all 350+ host processes
+        let orbit_pids_sysinfo: Vec<sysinfo::Pid> = orbit_pids.iter().map(|&p| sysinfo::Pid::from_u32(p)).collect();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&orbit_pids_sysinfo), true);
 
         let orbit_cpu: f32 = orbit_pids.iter()
             .filter_map(|&p| sys.process(sysinfo::Pid::from_u32(p)))
@@ -302,83 +316,88 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         prev_host_rx = host_raw_rx;
         prev_host_tx = host_raw_tx;
 
-        // Fetch running containers
-        let mut options = bollard::query_parameters::ListContainersOptions::default();
-        options.all = false;
-        let containers = match docker.list_containers(Some(options)).await {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
+        // Poll Docker container stats every 6 seconds (3 ticks) to minimize Docker socket overhead
+        docker_poll_ticks += 1;
+        if docker_poll_ticks >= 3 || first_tick {
+            docker_poll_ticks = 0;
 
-        let mut total_cpu = 0.0f64;
-        let mut total_mem = 0u64;
-        let mut network_tx = 0u64;
-        let mut network_rx = 0u64;
+            let mut options = bollard::query_parameters::ListContainersOptions::default();
+            options.all = false;
+            if let Ok(containers) = docker.list_containers(Some(options)).await {
+                let mut total_cpu = 0.0f64;
+                let mut total_mem = 0u64;
+                let mut network_tx = 0u64;
+                let mut network_rx = 0u64;
 
-        use futures::stream::FuturesUnordered;
-        let mut stat_futures: FuturesUnordered<_> = containers
-            .into_iter()
-            .filter_map(|c| c.id)
-            .map(|id| {
-                let d = docker.clone();
-                async move {
-                    let stats_options = bollard::query_parameters::StatsOptions {
-                        stream: false,
-                        ..Default::default()
-                    };
-                    let mut stream = d.stats(&id, Some(stats_options));
-                    stream.next().await.and_then(|r| r.ok()).map(|s| (id, s))
+                use futures::stream::FuturesUnordered;
+                let mut stat_futures: FuturesUnordered<_> = containers
+                    .into_iter()
+                    .filter_map(|c| c.id)
+                    .map(|id| {
+                        let d = docker.clone();
+                        async move {
+                            let stats_options = bollard::query_parameters::StatsOptions {
+                                stream: false,
+                                ..Default::default()
+                            };
+                            let mut stream = d.stats(&id, Some(stats_options));
+                            stream.next().await.and_then(|r| r.ok()).map(|s| (id, s))
+                        }
+                    })
+                    .collect();
+
+                while let Some(Some((id, res))) = stat_futures.next().await {
+                    // CPU
+                    let mut cpu_percent = 0.0f64;
+                    let current_cpu = res.cpu_stats.clone();
+                    if let (Some(cpu), Some(precpu)) = (
+                        &current_cpu,
+                        prev_cpu_stats.get(&id).or(res.precpu_stats.as_ref()),
+                    ) {
+                        let cpu_delta = cpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64
+                            - precpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
+                        let sys_delta = cpu.system_cpu_usage.unwrap_or(0) as f64
+                            - precpu.system_cpu_usage.unwrap_or(0) as f64;
+                        if sys_delta > 0.0 && cpu_delta > 0.0 {
+                            cpu_percent = (cpu_delta / sys_delta) * 100.0;
+                        }
+                    }
+                    if let Some(cpu) = current_cpu {
+                        prev_cpu_stats.insert(id, cpu);
+                    }
+                    total_cpu += cpu_percent;
+
+                    // Memory
+                    total_mem += crate::docker::calculate_memory_used(&res);
+
+                    // Network
+                    if let Some(nets) = res.networks {
+                        for (_, net) in nets {
+                            network_tx += net.tx_bytes.unwrap_or(0);
+                            network_rx += net.rx_bytes.unwrap_or(0);
+                        }
+                    }
                 }
-            })
-            .collect();
 
-        while let Some(Some((id, res))) = stat_futures.next().await {
-            // CPU
-            let mut cpu_percent = 0.0f64;
-            let current_cpu = res.cpu_stats.clone();
-            if let (Some(cpu), Some(precpu)) = (
-                &current_cpu,
-                prev_cpu_stats.get(&id).or(res.precpu_stats.as_ref()),
-            ) {
-                let cpu_delta = cpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64
-                    - precpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
-                let sys_delta = cpu.system_cpu_usage.unwrap_or(0) as f64
-                    - precpu.system_cpu_usage.unwrap_or(0) as f64;
-                if sys_delta > 0.0 && cpu_delta > 0.0 {
-                    cpu_percent = (cpu_delta / sys_delta) * 100.0;
-                }
-            }
-            if let Some(cpu) = current_cpu {
-                prev_cpu_stats.insert(id, cpu);
-            }
-            total_cpu += cpu_percent;
+                cached_docker_cpu = total_cpu as f32;
+                cached_docker_mem = total_mem;
 
-            // Memory
-            total_mem += crate::docker::calculate_memory_used(&res);
+                cached_docker_rate_rx = if first_tick || network_rx < prev_docker_rx {
+                    0u64
+                } else {
+                    ((network_rx - prev_docker_rx) as f64 / (elapsed_secs * 3.0).max(0.1)) as u64
+                };
 
-            // Network
-            if let Some(nets) = res.networks {
-                for (_, net) in nets {
-                    network_tx += net.tx_bytes.unwrap_or(0);
-                    network_rx += net.rx_bytes.unwrap_or(0);
-                }
+                cached_docker_rate_tx = if first_tick || network_tx < prev_docker_tx {
+                    0u64
+                } else {
+                    ((network_tx - prev_docker_tx) as f64 / (elapsed_secs * 3.0).max(0.1)) as u64
+                };
+
+                prev_docker_rx = network_rx;
+                prev_docker_tx = network_tx;
             }
         }
-
-        let docker_rate_rx = if first_tick || network_rx < prev_docker_rx {
-            0u64
-        } else {
-            ((network_rx - prev_docker_rx) as f64 / elapsed_secs) as u64
-        };
-
-        let docker_rate_tx = if first_tick || network_tx < prev_docker_tx {
-            0u64
-        } else {
-            ((network_tx - prev_docker_tx) as f64 / elapsed_secs) as u64
-        };
-
-        prev_docker_rx = network_rx;
-        prev_docker_tx = network_tx;
         first_tick = false;
 
         // Disks
@@ -461,10 +480,10 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             network_tx: host_rate_tx,
             network_rx: host_rate_rx,
             temperature,
-            docker_cpu: total_cpu as f32,
-            docker_memory: total_mem,
-            docker_tx: docker_rate_tx,
-            docker_rx: docker_rate_rx,
+            docker_cpu: cached_docker_cpu,
+            docker_memory: cached_docker_mem,
+            docker_tx: cached_docker_rate_tx,
+            docker_rx: cached_docker_rate_rx,
             orbit_cpu,
             orbit_memory,
         };

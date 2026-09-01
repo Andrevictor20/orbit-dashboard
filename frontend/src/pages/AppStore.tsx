@@ -191,7 +191,7 @@ export function AppStore() {
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card/40 border border-border/70 backdrop-blur-md p-4 sm:p-5 rounded-2xl shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/70 p-4 sm:p-5 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-orbit-500/10 border border-orbit-500/20 flex items-center justify-center text-orbit-400 shadow-inner shrink-0">
             <Sparkles className="w-5 h-5" />
@@ -236,7 +236,7 @@ export function AppStore() {
       {/* Main Grid: Left Category Sidebar + Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6 items-start">
         {/* Left Navigation Sidebar */}
-        <aside className="bg-card/40 border border-border/70 backdrop-blur-md rounded-2xl p-4 space-y-4 shadow-sm">
+        <aside className="bg-card border border-border/70 rounded-2xl p-4 space-y-4 shadow-sm">
           {/* Instant Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/70" />
