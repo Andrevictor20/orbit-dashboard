@@ -19,6 +19,8 @@ import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/
 import { getIconForImage } from '../utils/icons';
 import { groupContainers, type GroupContainerItem, type GroupedContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
+import { OrbitLogo } from '../components/ui/OrbitLogo';
+import { ContainerIcon } from '../components/ui/ContainerIcon';
 
 interface OverviewContainer {
   id: string;
@@ -46,31 +48,26 @@ const AppCardItem = memo(function AppCardItem({
     return (
       <div
         onClick={() => onSelectGroup(item)}
-        className="group relative bg-card hover:bg-neutral-900 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5"
+        className="group relative bg-card hover:bg-accent/80 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
         title={`${item.name} (${t('dashboard.container_count', { count: item.totalCount })})`}
       >
         {/* Top-right stack indicator */}
         <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/20 text-orbit-300 border border-orbit-500/30 font-semibold font-mono">
+          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 font-semibold font-mono">
             {item.totalCount}
           </span>
           <span className={`w-2 h-2 rounded-full ${
-            item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-zinc-600'
+            item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-secondary/40'
           }`} />
         </div>
 
         {/* Multi-layer App Icon */}
-        <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-neutral-900 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-inner border border-border/50 relative">
-          <img
+        <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-card border border-border/80 p-1.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-sm relative">
+          <ContainerIcon
             src={item.iconUrl}
-            alt={item.name}
-            loading="lazy"
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              if (!e.currentTarget.src.endsWith('docker.png')) {
-                e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-              }
-            }}
+            name={item.name}
+            size={36}
+            className="w-full h-full"
           />
           <div className="absolute -bottom-1 -right-1 p-0.5 rounded-md bg-orbit-500 text-white shadow-md">
             <Layers className="w-2.5 h-2.5" />
@@ -89,7 +86,7 @@ const AppCardItem = memo(function AppCardItem({
               {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
             </span>
           ) : (
-            <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
+            <span className="text-secondary/60">{t('common.stopped', 'Parado')}</span>
           )}
         </div>
       </div>
@@ -103,26 +100,22 @@ const AppCardItem = memo(function AppCardItem({
   return (
     <div
       onClick={() => onOpenApp(webLink, c.id, isRunning)}
-      className="group relative bg-card hover:bg-neutral-900 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5"
+      className="group relative bg-card hover:bg-accent/80 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
       title={`${c.name} (${c.state})`}
     >
       {/* Status indicator dot */}
       <div className="absolute top-2.5 right-2.5 flex items-center">
-        <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-zinc-600'}`} />
+        <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-secondary/40'}`} />
       </div>
 
       {/* App Icon */}
-      <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-neutral-900 p-2 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-inner border border-border/50">
-        <img
+      <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-card border border-border/80 p-1.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-sm">
+        <ContainerIcon
           src={item.iconUrl}
-          alt={c.name}
-          loading="lazy"
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            if (!e.currentTarget.src.endsWith('docker.png')) {
-              e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-            }
-          }}
+          name={c.name}
+          image={c.image}
+          size={36}
+          className="w-full h-full"
         />
       </div>
 
@@ -142,7 +135,7 @@ const AppCardItem = memo(function AppCardItem({
             <span className="text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
           )
         ) : (
-          <span className="text-zinc-500">{t('common.stopped', 'Parado')}</span>
+          <span className="text-secondary/60">{t('common.stopped', 'Parado')}</span>
         )}
       </div>
     </div>
@@ -263,16 +256,17 @@ export function Overview() {
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-150">
       {/* 1. HERO HEADER: CLEAN TITLE & QUICK ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
+            <OrbitLogo size={28} className="rounded-xl shrink-0" />
             <h1 className="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">
               {t('dashboard.title', 'Orbit Dashboard')}
             </h1>
             <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
               isConnected 
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
             }`}>
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
               <span>{isConnected ? t('dashboard.connected', 'Conectado') : t('dashboard.disconnected', 'Desconectado')}</span>
@@ -295,7 +289,7 @@ export function Overview() {
 
           <Link
             to="/containers"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-primary text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-primary text-xs font-semibold transition-all shadow-sm"
           >
             <Layers className="w-3.5 h-3.5" />
             <span>{t('sidebar.containers', 'Containers')}</span>
@@ -303,7 +297,7 @@ export function Overview() {
 
           <Link
             to="/terminal"
-            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-emerald-400 transition-all"
+            className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-emerald-500 transition-all shadow-sm"
             title="Terminal Web"
           >
             <Terminal className="w-4 h-4" />
@@ -311,7 +305,7 @@ export function Overview() {
 
           <Link
             to="/disk-analyzer"
-            className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-violet-400 transition-all"
+            className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-violet-500 transition-all shadow-sm"
             title="Analisador de Disco"
           >
             <PieChart className="w-4 h-4" />
@@ -324,21 +318,21 @@ export function Overview() {
         {/* CPU & Temp Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
-            <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400 group-hover:scale-110 transition-transform">
+            <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500 group-hover:scale-110 transition-transform">
               <Cpu className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
-            <span className="text-xs font-mono text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            <span className="text-xs font-mono text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
               {tempC}°C
             </span>
           </div>
-          <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden mt-3">
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
             <div 
               className={`h-full rounded-full transition-all ${
                 parseFloat(cpuPercent) > 80 ? 'bg-rose-500' : parseFloat(cpuPercent) > 50 ? 'bg-amber-500' : 'bg-violet-500'
@@ -351,11 +345,11 @@ export function Overview() {
         {/* Memory RAM Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
               <Activity className="w-4 h-4" />
             </div>
           </div>
@@ -365,7 +359,7 @@ export function Overview() {
               / {memoryTotalGB} GB ({memoryPercent}%)
             </span>
           </div>
-          <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden mt-3">
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
             <div 
               className={`h-full rounded-full transition-all ${
                 parseFloat(memoryPercent) > 85 ? 'bg-rose-500' : 'bg-emerald-500'
@@ -378,11 +372,11 @@ export function Overview() {
         {/* Storage Quick Summary Card */}
         <Link 
           to="/disk-analyzer" 
-          className="group bg-card hover:bg-neutral-900 border border-border/70 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
         >
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
-            <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-400 group-hover:scale-110 transition-transform">
+            <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-500 group-hover:scale-110 transition-transform">
               <HardDrive className="w-4 h-4" />
             </div>
           </div>
@@ -392,7 +386,7 @@ export function Overview() {
               / {diskTotalFormatted} ({diskPercent}%)
             </span>
           </div>
-          <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden mt-3">
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
             <div 
               className={`h-full rounded-full transition-all ${
                 parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-orbit-500'
@@ -414,10 +408,10 @@ export function Overview() {
         </Link>
 
         {/* Network & Containers Card */}
-        <div className="bg-card border border-border/70 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-secondary mb-2">
             <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Rede & Containers')}</span>
-            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
+            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
               <Network className="w-4 h-4" />
             </div>
           </div>
@@ -425,9 +419,9 @@ export function Overview() {
             <span>TX: <strong className="text-primary">{netTxMB} MB</strong></span>
             <span>RX: <strong className="text-primary">{netRxMB} MB</strong></span>
           </div>
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/50 mt-1">
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60 mt-1">
             <span className="text-secondary">{containers.length} Containers</span>
-            <span className="text-emerald-400 font-semibold font-mono">
+            <span className="text-emerald-500 font-semibold font-mono">
               {runningContainersCount} ativos
             </span>
           </div>
@@ -440,12 +434,12 @@ export function Overview() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <LayoutGrid className="w-5 h-5 text-orbit-400" />
+              <LayoutGrid className="w-5 h-5 text-orbit-500" />
               <h2 className="text-base sm:text-lg font-bold text-primary tracking-tight">
                 {t('dashboard.apps_grid', 'Aplicativos Instalados')}
               </h2>
             </div>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-neutral-900 border border-border/70 text-secondary">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-accent border border-border text-secondary">
               {containers.length}
             </span>
           </div>
@@ -453,11 +447,11 @@ export function Overview() {
           {/* Filter Pills & Search Bar */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             {/* Filter Pills */}
-            <div className="flex items-center bg-neutral-900 border border-border/70 rounded-xl p-0.5 text-xs">
+            <div className="flex items-center bg-accent/60 border border-border rounded-xl p-0.5 text-xs">
               <button
                 onClick={() => setActiveFilter('all')}
                 className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'all' ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary'
+                  activeFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
                 }`}
               >
                 Todos ({groupedItems.length})
@@ -465,7 +459,7 @@ export function Overview() {
               <button
                 onClick={() => setActiveFilter('running')}
                 className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'running' ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary'
+                  activeFilter === 'running' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
                 }`}
               >
                 Ativos
@@ -473,7 +467,7 @@ export function Overview() {
               <button
                 onClick={() => setActiveFilter('stacks')}
                 className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'stacks' ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary'
+                  activeFilter === 'stacks' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
                 }`}
               >
                 Stacks
@@ -488,7 +482,7 @@ export function Overview() {
                 placeholder="Filtrar apps..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500"
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-card border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 shadow-sm"
               />
             </div>
           </div>
@@ -509,9 +503,9 @@ export function Overview() {
           {/* Quick Install Card */}
           <div
             onClick={() => navigate('/store')}
-            className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card hover:bg-neutral-900 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px]"
+            className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card hover:bg-accent/60 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px] shadow-sm"
           >
-            <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-border/60 flex items-center justify-center text-secondary group-hover:text-orbit-400 group-hover:border-orbit-500/40 transition-colors mb-1.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-accent border border-border flex items-center justify-center text-secondary group-hover:text-orbit-500 group-hover:border-orbit-500/40 transition-colors mb-1.5 shadow-sm">
               <Plus className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-secondary group-hover:text-primary transition-colors">

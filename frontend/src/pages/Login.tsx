@@ -3,6 +3,7 @@ import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { OrbitLogo } from '../components/ui/OrbitLogo';
 
 export function Login() {
   const { t } = useTranslation();
@@ -71,35 +72,35 @@ export function Login() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-accent/80 backdrop-blur-xl border border-border/50 rounded-2xl flex items-center justify-center shadow-2xl shadow-orbit-900/50 overflow-hidden transform hover:scale-105 transition-transform duration-500">
-            <img src="/favicon.jpg?v=2" alt="Orbit Logo" className="w-full h-full object-cover" />
+          <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-2xl shadow-orbit-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
+            <OrbitLogo size={64} className="rounded-2xl" />
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
+        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-primary">
           Orbit
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-400">
+        <p className="mt-2 text-center text-sm text-secondary">
           {t('auth.login_subtitle', 'Painel de Controle de Contêineres')}
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
-        <div className="bg-card/40 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
+        <div className="bg-card py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
           {isUpdated && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-left animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500 shrink-0 mt-0.5">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
                   {t('auth.update_success_banner_title', 'Orbit Atualizado com Sucesso!')}
                   {updatedVersion && (
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
                       v{updatedVersion.replace(/^v/, '')}
                     </span>
                   )}
                 </h3>
-                <p className="text-xs text-emerald-200/80 mt-1 leading-relaxed">
+                <p className="text-xs text-secondary mt-1 leading-relaxed">
                   {t('auth.update_success_banner_msg', 'O sistema foi atualizado para a versão mais recente. Faça login para acessar o painel.')}
                 </p>
               </div>
@@ -110,18 +111,18 @@ export function Login() {
             
             {error && (
               <div className="bg-rose-500/10 border border-rose-500/50 rounded-lg p-3 flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-rose-200">{error}</p>
+                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-rose-500 font-medium">{error}</p>
               </div>
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="username" className="block text-sm font-medium text-primary">
                 {t('auth.username', 'Usuário')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-500" />
+                  <User className="h-5 w-5 text-secondary" />
                 </div>
                 <input
                   id="username"
@@ -131,19 +132,19 @@ export function Login() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-background/50 border border-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
                   placeholder={t('auth.username', 'Seu usuário')}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="block text-sm font-medium text-primary">
                 {t('auth.password', 'Senha')}
               </label>
               <div className="mt-2 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-500" />
+                  <Lock className="h-5 w-5 text-secondary" />
                 </div>
                 <input
                   id="password"
@@ -153,7 +154,7 @@ export function Login() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-2.5 bg-background/50 border border-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors"
+                  className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
                   placeholder="••••••••"
                 />
                 <button

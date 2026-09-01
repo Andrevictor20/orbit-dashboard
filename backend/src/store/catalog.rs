@@ -6,6 +6,7 @@ use axum::{
 use once_cell::sync::Lazy;
 use std::fs;
 use std::io::{Cursor, Read};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 use tracing::{info, warn};
 use zip::ZipArchive;
@@ -13,6 +14,7 @@ use super::parser::parse_casaos_compose;
 use super::types::AppStoreItem;
 
 pub static APPS_CACHE: Lazy<RwLock<Vec<AppStoreItem>>> = Lazy::new(|| RwLock::new(Vec::new()));
+static SYNCING: AtomicBool = AtomicBool::new(false);
 
 const REPOSITORIES: &[(&str, &str); 7] = &[
     ("official", "https://github.com/IceWhaleTech/CasaOS-AppStore/archive/refs/heads/main.zip"),
@@ -50,6 +52,10 @@ pub fn load_cached_apps_from_disk() -> bool {
 }
 
 pub async fn sync_repositories() {
+    if SYNCING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+        info!("App Store sync already in progress, skipping redundant sync.");
+        return;
+    }
     let client = reqwest::Client::builder()
         .user_agent("Orbit-Dashboard/1.0")
         .timeout(std::time::Duration::from_secs(45))
@@ -130,6 +136,9 @@ pub async fn sync_repositories() {
         warn!("No apps found during sync.");
     }
 
+    // Reset syncing flag
+    SYNCING.store(false, Ordering::SeqCst);
+
     // Free heap memory back to OS immediately
     trim_memory();
 }
@@ -146,6 +155,38 @@ pub async fn sync_apps() -> impl IntoResponse {
     }))).into_response()
 }
 
+fn get_bootstrap_apps() -> Vec<AppStoreItem> {
+    vec![
+        AppStoreItem {
+            id: "nginx".to_string(),
+            name: "Nginx".to_string(),
+            description: "High-performance HTTP and reverse proxy server.".to_string(),
+            icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/nginx.png".to_string(),
+            category: "Network".to_string(),
+            store: "Official".to_string(),
+            compose_file: "version: '3.8'\nservices:\n  nginx:\n    image: nginx:alpine\n    ports:\n      - '80:80'\n    restart: unless-stopped".to_string(),
+        },
+        AppStoreItem {
+            id: "portainer".to_string(),
+            name: "Portainer CE".to_string(),
+            description: "Powerful Docker container management interface.".to_string(),
+            icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/portainer.png".to_string(),
+            category: "Utilities".to_string(),
+            store: "Official".to_string(),
+            compose_file: "version: '3.8'\nservices:\n  portainer:\n    image: portainer/portainer-ce:latest\n    ports:\n      - '9000:9000'\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n    restart: unless-stopped".to_string(),
+        },
+        AppStoreItem {
+            id: "wireguard".to_string(),
+            name: "WireGuard".to_string(),
+            description: "Fast, modern and secure VPN tunnel.".to_string(),
+            icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/wireguard.png".to_string(),
+            category: "Network".to_string(),
+            store: "Official".to_string(),
+            compose_file: "version: '3.8'\nservices:\n  wireguard:\n    image: linuxserver/wireguard:latest\n    restart: unless-stopped".to_string(),
+        },
+    ]
+}
+
 pub async fn list_apps() -> impl IntoResponse {
     let is_empty = {
         let cache = APPS_CACHE.read().unwrap();
@@ -155,7 +196,15 @@ pub async fn list_apps() -> impl IntoResponse {
     if is_empty {
         let loaded = load_cached_apps_from_disk();
         if !loaded {
-            sync_repositories().await;
+            // Seed with bootstrap apps immediately so client/tests never hang on cold start
+            if let Ok(mut cache) = APPS_CACHE.write() {
+                if cache.is_empty() {
+                    *cache = get_bootstrap_apps();
+                }
+            }
+            tokio::spawn(async {
+                sync_repositories().await;
+            });
         }
     }
 

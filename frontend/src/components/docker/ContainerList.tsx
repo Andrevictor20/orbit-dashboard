@@ -15,6 +15,7 @@ import { resolveWebUrl } from '../../utils/url';
 import { AppGroupModal } from './AppGroupModal';
 import { DockerInstallModal } from './DockerInstallModal';
 import { BatchUpdateModal } from './BatchUpdateModal';
+import { ContainerIcon } from '../ui/ContainerIcon';
 
 interface PortInfo {
   ip?: string;
@@ -496,16 +497,12 @@ export function ContainerList() {
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2 relative z-10">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-orbit-500/40 shadow-inner shrink-0 relative group-hover:scale-105 transition-transform">
-                        <img
+                      <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-orbit-500/40 shadow-sm shrink-0 relative group-hover:scale-105 transition-transform p-1.5">
+                        <ContainerIcon
                           src={group.iconUrl}
-                          alt={group.name}
-                          onError={(e) => {
-                            if (!e.currentTarget.src.endsWith('docker.png')) {
-                              e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-                            }
-                          }}
-                          className="w-8 h-8 object-contain drop-shadow-md"
+                          name={group.name}
+                          size={32}
+                          className="w-full h-full"
                         />
                         <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white shadow-sm">
                           <Layers className="w-2.5 h-2.5" />
@@ -515,7 +512,7 @@ export function ContainerList() {
                         <span className="font-bold text-primary text-base truncate group-hover:text-orbit-400 transition-colors" title={group.name}>
                           {group.name}
                         </span>
-                        <span className="text-[11px] text-orbit-300 font-mono flex items-center gap-1">
+                        <span className="text-[11px] text-orbit-400 font-mono flex items-center gap-1 font-medium">
                           <Layers className="w-3 h-3" />
                           <span>Stack ({group.totalCount} containers)</span>
                         </span>
@@ -679,16 +676,13 @@ export function ContainerList() {
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-border/80 shadow-inner shrink-0 group-hover:border-orbit-500/30 transition-colors">
-                      <img 
-                        src={getIconForImage(c.image, c.name)} 
-                        alt={c.name} 
-                        onError={(e) => {
-                          if (!e.currentTarget.src.endsWith('docker.png')) {
-                            e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-                          }
-                        }}
-                        className="w-8 h-8 object-contain drop-shadow-md" 
+                    <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-border/80 shadow-sm shrink-0 group-hover:border-orbit-500/30 transition-colors p-1.5">
+                      <ContainerIcon
+                        src={getIconForImage(c.image, c.name)}
+                        name={c.name}
+                        image={c.image}
+                        size={32}
+                        className="w-full h-full"
                       />
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -999,36 +993,37 @@ export function ContainerList() {
                         <tr 
                           key={c.id} 
                           onClick={() => navigate(`/containers/${c.id}`)} 
-                          className="border-b border-border/60 bg-black/20 hover:bg-white/[0.04] transition-colors cursor-pointer text-xs"
+                          className="border-b border-border/60 bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer text-xs"
                         >
                           <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-orbit-500/50">
-                            <img 
-                              src={getIconForImage(c.image, c.name)} 
-                              alt="" 
-                              className="w-5 h-5 object-contain" 
+                            <ContainerIcon
+                              src={getIconForImage(c.image, c.name)}
+                              name={c.name}
+                              image={c.image}
+                              size={20}
                             />
                             <div className="flex flex-col min-w-0">
-                              <span className="font-medium text-zinc-200">{c.name}</span>
-                              <span className="text-[10px] text-zinc-500 font-mono">{c.image}</span>
+                              <span className="font-medium text-primary">{c.name}</span>
+                              <span className="text-[10px] text-secondary font-mono">{c.image}</span>
                             </div>
                           </td>
 
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <div className={`w-1.5 h-1.5 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                              <span className="capitalize text-zinc-400 text-xs">{c.state}</span>
+                              <span className="capitalize text-secondary text-xs">{c.state}</span>
                             </div>
                           </td>
 
-                          <td className="px-4 py-3 font-mono text-zinc-300">
+                          <td className="px-4 py-3 font-mono text-primary">
                             {c.cpu_percent?.toFixed(1) || '0.0'}%
                           </td>
 
-                          <td className="px-4 py-3 font-mono text-zinc-300">
+                          <td className="px-4 py-3 font-mono text-primary">
                             {formatRAM(c.memory_used)}
                           </td>
 
-                          <td className="px-4 py-3 font-mono text-zinc-300">
+                          <td className="px-4 py-3 font-mono text-primary">
                             {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
                           </td>
 
@@ -1058,17 +1053,13 @@ export function ContainerList() {
 
                 const c = item.container;
                 return (
-                  <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-white/5 transition-colors cursor-pointer">
+                  <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-accent/40 transition-colors cursor-pointer">
                     <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
-                      <img 
-                        src={getIconForImage(c.image, c.name)} 
-                        alt="" 
-                        onError={(e) => {
-                          if (!e.currentTarget.src.endsWith('docker.png')) {
-                            e.currentTarget.src = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
-                          }
-                        }}
-                        className="w-6 h-6 object-contain drop-shadow-sm" 
+                      <ContainerIcon
+                        src={getIconForImage(c.image, c.name)}
+                        name={c.name}
+                        image={c.image}
+                        size={24}
                       />
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">

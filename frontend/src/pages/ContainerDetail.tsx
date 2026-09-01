@@ -10,6 +10,8 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { formatBytes } from '../utils/format';
 import { resolveWebUrl } from '../utils/url';
+import { getIconForImage } from '../utils/icons';
+import { ContainerIcon } from '../components/ui/ContainerIcon';
 
 interface ContainerData {
   id: string;
@@ -587,14 +589,23 @@ export function ContainerDetail() {
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300 h-full flex flex-col">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button 
             onClick={() => navigate('/containers')}
-            className="p-2 bg-card border border-border rounded-md text-secondary hover:text-white hover:bg-accent transition-colors shrink-0"
+            className="p-2 bg-card border border-border rounded-md text-secondary hover:text-primary hover:bg-accent transition-colors shrink-0"
             aria-label="Voltar para containers"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
+          <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center border border-border/80 shadow-sm shrink-0 p-1">
+            <ContainerIcon
+              src={getIconForImage(container.image, container.name)}
+              name={container.name}
+              image={container.image}
+              size={28}
+              className="w-full h-full"
+            />
+          </div>
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 sm:gap-3 truncate">
               <span className="truncate">{container.name}</span>

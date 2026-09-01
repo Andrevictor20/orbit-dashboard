@@ -9,6 +9,8 @@ import {
 import type { GroupContainerItem, ContainerLike } from '../../utils/containerGroups';
 import { formatRAM } from '../../utils/format';
 import { resolveWebUrl } from '../../utils/url';
+import { getIconForImage } from '../../utils/icons';
+import { ContainerIcon } from '../ui/ContainerIcon';
 
 interface AppGroupModalProps {
   group: GroupContainerItem | null;
@@ -31,8 +33,6 @@ export function AppGroupModal({
   const { t } = useTranslation();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
-  const [subImgErrors, setSubImgErrors] = useState<Record<string, boolean>>({});
 
   if (!isOpen || !group) return null;
 
@@ -85,8 +85,6 @@ export function AppGroupModal({
     return '';
   };
 
-  const appInitial = (group.name || 'A').charAt(0).toUpperCase();
-
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/40 backdrop-blur-xl animate-in fade-in duration-200"
@@ -97,22 +95,16 @@ export function AppGroupModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-white/10 bg-gradient-to-r from-orbit-500/10 via-transparent to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 border-b border-border/80 bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            {/* App Icon with vibrant initial letter fallback */}
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 p-2 flex items-center justify-center border border-white/15 shadow-inner shrink-0 relative group">
-              {!imgError && group.iconUrl ? (
-                <img 
-                  src={group.iconUrl} 
-                  alt={group.name} 
-                  className="w-full h-full object-contain"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div className="w-full h-full rounded-xl bg-gradient-to-br from-orbit-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
-                  {appInitial}
-                </div>
-              )}
+            {/* App Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-card p-2 flex items-center justify-center border border-border/80 shadow-md shrink-0 relative group">
+              <ContainerIcon
+                src={group.iconUrl}
+                name={group.name}
+                size={40}
+                className="w-full h-full"
+              />
               <div className="absolute -bottom-1 -right-1 p-1 rounded-md bg-orbit-500 text-white shadow-md">
                 <Layers className="w-3 h-3" />
               </div>
@@ -120,7 +112,7 @@ export function AppGroupModal({
             
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">
+                <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight truncate">
                   {group.name}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orbit-500/20 text-orbit-300 border border-orbit-500/35 font-mono">
@@ -247,8 +239,6 @@ export function AppGroupModal({
               const isPaused = c.state === 'paused';
               const webLink = getWebLink(c);
               const isSubActionLoading = (action: string) => actionLoading === `${c.id}:${action}`;
-              const subInitial = (c.name || 'C').charAt(0).toUpperCase();
-              const hasSubImgError = subImgErrors[c.id];
 
               return (
                 <div 
@@ -261,20 +251,15 @@ export function AppGroupModal({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {/* Container icon with letter fallback */}
-                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0 shadow-inner group-hover:border-orbit-500/40 transition-colors">
-                        {!hasSubImgError ? (
-                          <img 
-                            src={`/api/docker/icons/${encodeURIComponent(c.image || c.name)}`}
-                            alt={c.name}
-                            className="w-6 h-6 object-contain"
-                            onError={() => setSubImgErrors(prev => ({ ...prev, [c.id]: true }))}
-                          />
-                        ) : (
-                          <div className="w-full h-full rounded-lg bg-gradient-to-br from-orbit-600/60 to-indigo-600/60 flex items-center justify-center text-white font-bold text-sm">
-                            {subInitial}
-                          </div>
-                        )}
+                      {/* Container icon with Docker/Orbit fallback */}
+                      <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center border border-border/80 shrink-0 shadow-sm group-hover:border-orbit-500/40 transition-colors p-1">
+                        <ContainerIcon
+                          src={getIconForImage(c.image, c.name)}
+                          name={c.name}
+                          image={c.image}
+                          size={24}
+                          className="w-full h-full"
+                        />
                       </div>
 
                       <div className="min-w-0">

@@ -38,6 +38,20 @@ interface AppStoreItem {
   store: string;
 }
 
+// Global in-memory cache for instant navigation without loading states
+let globalAppsCache: AppStoreItem[] = [];
+try {
+  const cached = localStorage.getItem('orbit_store_apps_cache');
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      globalAppsCache = parsed;
+    }
+  }
+} catch {
+  // Ignore localStorage read errors
+}
+
 const getCategoryIcon = (category: string) => {
   const c = category.toLowerCase();
   if (c === 'all' || c === 'todas') return LayoutGrid;
@@ -64,8 +78,8 @@ const HERO_GRADIENTS = [
 export function AppStore() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [apps, setApps] = useState<AppStoreItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState<AppStoreItem[]>(() => globalAppsCache);
+  const [loading, setLoading] = useState<boolean>(() => globalAppsCache.length === 0);
   const [syncing, setSyncing] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
   const { startInstall } = useInstall();
@@ -75,26 +89,39 @@ export function AppStore() {
   const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
 
-  useEffect(() => {
-    fetchApps();
-  }, []);
-
-  const fetchApps = async () => {
+  const fetchApps = async (retryCount = 0) => {
     try {
-      setLoading(true);
+      if (globalAppsCache.length === 0) {
+        setLoading(true);
+      }
       const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/store/apps', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!res.ok) throw new Error('Failed to fetch apps');
-      const data = await res.json();
-      setApps(data);
+      const data: AppStoreItem[] = await res.json();
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setApps(data);
+        globalAppsCache = data;
+        try {
+          localStorage.setItem('orbit_store_apps_cache', JSON.stringify(data));
+        } catch {}
+        setLoading(false);
+      } else if (retryCount < 6) {
+        setTimeout(() => fetchApps(retryCount + 1), 3000);
+      } else {
+        setLoading(false);
+      }
     } catch (err: any) {
       console.error('Failed to fetch apps:', err);
-    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
 
   const handleSync = async () => {
     try {
@@ -222,10 +249,10 @@ export function AppStore() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-neutral-900/70 hover:bg-neutral-800 border border-border/80 text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-card hover:bg-accent border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
             title={t('store.sync_stores')}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-500' : ''}`} />
             <span className="hidden sm:inline">{syncing ? t('store.syncing_stores') : t('store.sync_stores')}</span>
           </button>
         </div>
@@ -245,7 +272,7 @@ export function AppStore() {
               placeholder={t('store.search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-neutral-900/80 border border-border/70 rounded-xl text-xs text-primary placeholder-secondary/60 focus:outline-none focus:border-orbit-500/80 transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
             />
           </div>
 
@@ -260,7 +287,7 @@ export function AppStore() {
             <select 
               value={selectedStore}
               onChange={(e) => setSelectedStore(e.target.value)}
-              className="w-full px-3 py-2 bg-neutral-900/80 border border-border/70 rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all"
+              className="w-full px-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
             >
               {stores.map(store => (
                 <option key={store} value={store}>
@@ -346,10 +373,69 @@ export function AppStore() {
 
         {/* Right Content Area */}
         <main className="space-y-7 min-w-0">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 space-y-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orbit-500 border-t-transparent"></div>
-              <p className="text-xs text-secondary animate-pulse">Carregando catálogo de aplicativos...</p>
+          {loading && apps.length === 0 ? (
+            <div className="space-y-6 animate-pulse">
+              {/* Hero Banner Skeleton */}
+              <div className="h-56 bg-card border border-border/60 rounded-3xl p-8 flex items-end">
+                <div className="flex items-center gap-4 w-full">
+                  <div className="w-16 h-16 rounded-2xl bg-accent/60 shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-24 bg-accent/60 rounded-full" />
+                    <div className="h-7 w-64 bg-accent/80 rounded-lg" />
+                    <div className="h-3 w-96 bg-accent/40 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-card border border-border/60 rounded-2xl p-5 h-48 flex flex-col justify-between">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-accent/60 shrink-0" />
+                      <div className="h-5 w-16 bg-accent/60 rounded-full" />
+                    </div>
+                    <div className="space-y-2 mt-3">
+                      <div className="h-4 w-3/4 bg-accent/70 rounded" />
+                      <div className="h-3 w-full bg-accent/40 rounded" />
+                      <div className="h-3 w-4/5 bg-accent/40 rounded" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
+                      <div className="h-8 bg-accent/40 rounded-xl" />
+                      <div className="h-8 bg-accent/60 rounded-xl" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : apps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-card border border-border/70 rounded-3xl space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-orbit-500/10 border border-orbit-500/20 flex items-center justify-center text-orbit-400 shadow-inner">
+                <Package className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-md">
+                <h3 className="text-lg font-bold text-primary">Nenhum aplicativo no catálogo local</h3>
+                <p className="text-xs sm:text-sm text-secondary">
+                  O catálogo está sendo baixado em segundo plano ou você pode iniciar a sincronização imediata agora.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-md shadow-orbit-500/20 transition-all active:scale-[0.98]"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                  <span>{syncing ? 'Sincronizando...' : 'Sincronizar Catálogo'}</span>
+                </button>
+                <button
+                  onClick={() => setIsDockerInstallOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-card hover:bg-accent border border-border text-secondary hover:text-primary transition-all active:scale-[0.98]"
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Instalar Manualmente</span>
+                </button>
+              </div>
             </div>
           ) : isDiscoverMode ? (
             /* ===== DISCOVER / FEATURED VIEW ===== */
@@ -469,7 +555,7 @@ export function AppStore() {
                       className="group bg-card/60 hover:bg-card border border-border/70 hover:border-orbit-500/50 rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5"
                     >
                       <div className="flex items-start gap-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-neutral-900 border border-border/50 p-2 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
+                        <div className="w-11 h-11 rounded-xl bg-accent/60 border border-border p-2 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
                           {app.icon ? (
                             <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
                           ) : (
@@ -477,7 +563,7 @@ export function AppStore() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className="font-bold text-sm text-primary block truncate group-hover:text-orbit-400 transition-colors" title={app.name}>
+                          <span className="font-bold text-sm text-primary block truncate group-hover:text-orbit-500 transition-colors" title={app.name}>
                             {app.name}
                           </span>
                           <p className="text-[11px] text-secondary line-clamp-2 mt-0.5 leading-relaxed">
@@ -487,10 +573,10 @@ export function AppStore() {
                       </div>
 
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40 text-xs">
-                        <span className="text-[10px] font-medium text-secondary bg-neutral-800/80 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-medium text-secondary bg-accent px-2 py-0.5 rounded-md border border-border/50">
                           {app.category}
                         </span>
-                        <span className="text-xs font-semibold text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                        <span className="text-xs font-semibold text-orbit-500 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                           Explorar
                           <ChevronRight className="w-3 h-3" />
                         </span>
@@ -504,7 +590,7 @@ export function AppStore() {
               <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <LayoutGrid className="w-4 h-4 text-orbit-400" />
+                    <LayoutGrid className="w-4 h-4 text-orbit-500" />
                     <span className="text-base font-bold text-primary tracking-tight">Catálogo de Aplicações</span>
                     <span className="text-xs text-secondary">({filteredApps.length} disponíveis)</span>
                   </div>
@@ -554,12 +640,12 @@ export function AppStore() {
       <div 
         key={`${app.store}-${app.id}-${index}`} 
         onClick={() => navigate(`/store/app/${app.id}`)}
-        className="group bg-card/60 hover:bg-card border border-border/70 hover:border-orbit-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 relative"
+        className="group bg-card hover:bg-card border border-border/80 hover:border-orbit-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 relative"
       >
         <div>
           {/* Header row: Icon & Tags */}
           <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-border/60 p-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
+            <div className="w-12 h-12 rounded-xl bg-accent/60 border border-border p-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
               {app.icon ? (
                 <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
               ) : (
@@ -568,10 +654,10 @@ export function AppStore() {
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-neutral-800 text-secondary border border-border/50 rounded-full">
+              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-secondary border border-border rounded-full">
                 {app.category}
               </span>
-              <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 rounded-full">
+              <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20 rounded-full">
                 {app.store}
               </span>
             </div>

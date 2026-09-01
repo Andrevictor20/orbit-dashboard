@@ -192,15 +192,15 @@ export function Metrics() {
             </div>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
-            <div className="bg-neutral-900/80 border border-border px-3 py-1.5 rounded-lg text-right">
+            <div className="bg-accent/60 border border-border px-3 py-1.5 rounded-lg text-right shadow-sm">
               <span className="text-[10px] uppercase font-bold text-secondary block">CPU Orbit</span>
-              <span className="text-sm font-bold text-yellow-400 font-mono">
+              <span className="text-sm font-bold text-amber-500 font-mono">
                 {stats ? stats.orbit_cpu.toFixed(2) : '0.00'}%
               </span>
             </div>
-            <div className="bg-neutral-900/80 border border-border px-3 py-1.5 rounded-lg text-right">
+            <div className="bg-accent/60 border border-border px-3 py-1.5 rounded-lg text-right shadow-sm">
               <span className="text-[10px] uppercase font-bold text-secondary block">RAM Orbit</span>
-              <span className="text-sm font-bold text-emerald-400 font-mono">
+              <span className="text-sm font-bold text-emerald-500 font-mono">
                 {stats ? formatBytes(stats.orbit_memory) : '0 B'}
               </span>
             </div>

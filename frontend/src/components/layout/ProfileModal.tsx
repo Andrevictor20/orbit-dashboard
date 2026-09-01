@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, KeyRound, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { OrbitLogo } from '../ui/OrbitLogo';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -53,11 +54,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 rounded-full bg-orbit-500/20 border-2 border-orbit-500/50 flex items-center justify-center overflow-hidden">
-              <img src="/favicon.jpg?v=2" alt="Profile" className="w-full h-full object-cover" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-lg shadow-orbit-500/10 flex items-center justify-center">
+              <OrbitLogo size={80} className="rounded-2xl" />
             </div>
-            <h3 className="font-semibold text-lg">Admin</h3>
+            <h3 className="font-bold text-lg text-primary">Admin</h3>
           </div>
 
           <form onSubmit={handleChangePassword} className="space-y-4">

@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { OrbitLogo } from '../ui/OrbitLogo';
 
 export interface SystemUpdateInfo {
   current_version: string;
@@ -309,9 +310,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         {/* Top Header Card */}
         <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between bg-card">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 text-orbit-400 shadow-inner">
-              {updating ? <Terminal className="w-5 h-5 animate-pulse text-orbit-400" /> : <Sparkles className="w-5 h-5" />}
-            </div>
+            <OrbitLogo size={36} className="rounded-xl shadow-md shadow-orbit-500/10" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-primary leading-tight">
