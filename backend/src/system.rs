@@ -68,9 +68,11 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     let platform = get_host_platform().to_string();
     let arch = std::env::consts::ARCH.to_string();
 
+    const EMBEDDED_RELEASE_NOTES: &str = include_str!("../../LATEST_RELEASE.md");
+
     let mut latest_version = current_version.clone();
     let mut release_name = format!("Orbit Dashboard v{}", current_version);
-    let mut release_notes = "Versão atual instalada e atualizada.".to_string();
+    let mut release_notes = EMBEDDED_RELEASE_NOTES.to_string();
     let mut published_at = None;
     let mut has_update = false;
     let mut ci_status = None;
@@ -83,7 +85,19 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
         .build();
 
     if let Ok(client) = client {
-        // 1. Try releases/latest
+        // 1. Try fetching latest curated human-friendly release notes from GitHub main branch
+        let raw_notes_url = "https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/LATEST_RELEASE.md";
+        if let Ok(resp) = client.get(raw_notes_url).send().await {
+            if resp.status().is_success() {
+                if let Ok(text) = resp.text().await {
+                    if !text.trim().is_empty() {
+                        release_notes = text;
+                    }
+                }
+            }
+        }
+
+        // 2. Try releases/latest for tag version and release metadata
         let release_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/releases/latest";
         if let Ok(resp) = client.get(release_url).send().await {
             if resp.status().is_success() {
@@ -94,49 +108,12 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
                         if let Some(name) = json.get("name").and_then(|v| v.as_str()) {
                             release_name = name.to_string();
                         }
-                        if let Some(body) = json.get("body").and_then(|v| v.as_str()) {
-                            if !body.trim().is_empty() {
-                                release_notes = body.to_string();
-                            }
-                        }
                         if let Some(pub_at) = json.get("published_at").and_then(|v| v.as_str()) {
                             published_at = Some(pub_at.to_string());
                         }
 
                         if clean_tag != current_version {
                             has_update = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Fetch recent commits list to build comprehensive changelog
-        let commits_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/commits?per_page=15";
-        if let Ok(resp) = client.get(commits_url).send().await {
-            if resp.status().is_success() {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(commits_arr) = json.as_array() {
-                        let mut lines = Vec::new();
-                        for c_obj in commits_arr {
-                            if let Some(commit) = c_obj.get("commit") {
-                                let msg = commit.get("message").and_then(|v| v.as_str()).unwrap_or("");
-                                let first_line = msg.lines().next().unwrap_or("").trim();
-                                if !first_line.is_empty() && !lines.contains(&format!("- {}", first_line)) {
-                                    lines.push(format!("- {}", first_line));
-                                }
-                                if published_at.is_none() {
-                                    if let Some(d) = commit.get("committer").and_then(|c| c.get("date")).and_then(|d| d.as_str()) {
-                                        published_at = Some(d.to_string());
-                                    }
-                                }
-                            }
-                        }
-                        if !lines.is_empty() {
-                            release_notes = format!("Últimas alterações no repositório:\n\n{}", lines.join("\n"));
-                            if !has_update {
-                                release_name = "Versão Mais Recente (GitHub Main)".to_string();
-                            }
                         }
                     }
                 }

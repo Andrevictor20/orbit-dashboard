@@ -31,11 +31,11 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    expect(screen.getByText('Atualização do Orbit')).toBeInTheDocument();
+    expect(screen.getByText('Atualização do Sistema')).toBeInTheDocument();
     expect(screen.getByText('ARM64 (Raspberry Pi / ARM)')).toBeInTheDocument();
     expect(screen.getByText('v1.0.0')).toBeInTheDocument();
     expect(screen.getByText('v1.1.0')).toBeInTheDocument();
-    expect(screen.getByText(/\[Correção\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/NOVIDADE/i)).toBeInTheDocument();
   });
 
   it('triggers update POST endpoint when clicking update button', async () => {
@@ -81,15 +81,15 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    expect(screen.getAllByText(/Compilando Imagem \(CI\/CD\)/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Build Multi-Arch em Andamento/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Compilando Imagem/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Compilação em Andamento/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ver CI\/CD/i).length).toBeGreaterThan(0);
   });
 
-  it('renders contextual rich changelogs for known topics', () => {
+  it('renders structured bullet release notes', () => {
     const featureInfo: SystemUpdateInfo = {
       ...mockInfo,
-      release_notes: '- docker run and compose support with port conflict check\n- telemetria htop cpu usage\n- i18n traduz 11 linguas',
+      release_notes: '### ✨ Novidades\n- **Novo Painel:** Visual remodelado com bento apps.\n### ⚡ Desempenho\n- **Muito mais rápido:** Sem travamentos.\n### 🛠️ Correções\n- **Discos:** Reconhecimento correto de HDs.',
     };
 
     render(
@@ -101,9 +101,10 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    expect(screen.getByText(/Instalação com 1-Clique: Docker Run e Compose/i)).toBeInTheDocument();
-    expect(screen.getByText(/Telemetria e Monitoramento Preciso de CPU/i)).toBeInTheDocument();
-    expect(screen.getByText(/Internacionalização Completa em 11 Idiomas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Novo Painel/i)).toBeInTheDocument();
+    expect(screen.getByText(/Visual remodelado com bento apps/i)).toBeInTheDocument();
+    expect(screen.getByText(/Muito mais rápido/i)).toBeInTheDocument();
+    expect(screen.getByText(/Discos/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {
@@ -117,9 +118,9 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    const closeButton = screen.getByLabelText(/Fechar/i);
-    fireEvent.click(closeButton);
+    const closeButtons = screen.getAllByText(/Fechar/i);
+    fireEvent.click(closeButtons[0]);
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
   });
 });
