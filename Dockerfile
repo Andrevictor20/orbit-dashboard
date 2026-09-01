@@ -105,6 +105,7 @@ RUN chmod +x /usr/local/bin/orbit-backend /usr/local/bin/docker /usr/local/libex
 
 # Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./public
+COPY LATEST_RELEASE.md /app/LATEST_RELEASE.md
 
 # Prepare data volume directory
 RUN mkdir -p /app/data

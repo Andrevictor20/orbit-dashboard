@@ -68,11 +68,17 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     let platform = get_host_platform().to_string();
     let arch = std::env::consts::ARCH.to_string();
 
-    const EMBEDDED_RELEASE_NOTES: &str = include_str!("../../LATEST_RELEASE.md");
+    const DEFAULT_RELEASE_NOTES: &str = "# Orbit Dashboard\n\n### ✨ Novidades\n- **Painel Geral Modernizado:** Novo visual com monitoramento em tempo real e lançador de aplicativos com busca instantânea.\n- **Analisador de Espaço em Disco:** Nova aba para descobrir facilmente o que mais consome espaço no armazenamento e atalhos para examinar qualquer pasta.\n- **Gerenciador de Arquivos & Loja de Aplicativos:** Visual remodelado, navegação mais ágil e organizada.\n\n### ⚡ Desempenho\n- **Sistema Muito Mais Rápido:** Redução drástica no uso de processador (CPU) e memória em segundo plano.\n- **Rolagem e Animações Suaves:** Interface fluida a 60 FPS sem travamentos ou engasgos.\n\n### 🛠️ Correções\n- **Reconhecimento de HDs e Armazenamento:** Identificação correta de HDs externos e cartões de memória.\n- **Estabilidade Geral:** Fim de travamentos durante análises de disco e melhorias de segurança.\n";
 
     let mut latest_version = current_version.clone();
     let mut release_name = format!("Orbit Dashboard v{}", current_version);
-    let mut release_notes = EMBEDDED_RELEASE_NOTES.to_string();
+    
+    // Check local filesystem first
+    let mut release_notes = std::fs::read_to_string("/app/LATEST_RELEASE.md")
+        .or_else(|_| std::fs::read_to_string("LATEST_RELEASE.md"))
+        .or_else(|_| std::fs::read_to_string("../LATEST_RELEASE.md"))
+        .unwrap_or_else(|_| DEFAULT_RELEASE_NOTES.to_string());
+
     let mut published_at = None;
     let mut has_update = false;
     let mut ci_status = None;
