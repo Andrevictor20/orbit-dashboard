@@ -5,4 +5,4 @@ import { setI18n } from 'react-i18next';
 setI18n(i18n);
 i18n.changeLanguage('pt');
 
-class MockEventSource { addEventListener() {} close() {} } global.EventSource = MockEventSource as any;
+class MockEventSource { addEventListener() {} close() {} } globalThis.EventSource = MockEventSource as any;

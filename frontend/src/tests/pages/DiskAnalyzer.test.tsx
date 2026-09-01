@@ -6,11 +6,11 @@ import { MemoryRouter } from 'react-router-dom';
 class MockEventSource {
   onmessage: any;
   onerror: any;
-  constructor(url: string) {}
-  addEventListener(event: string, cb: any) {}
+  constructor(_url: string) {}
+  addEventListener(_event: string, _cb: any) {}
   close() {}
 }
-global.EventSource = MockEventSource as any;
+globalThis.EventSource = MockEventSource as any;
 
 describe('DiskAnalyzer Page Component', () => {
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { BatchUpdateModal } from '../../../components/docker/BatchUpdateModal';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, } from 'vitest';
 import type { ContainerLike } from '../../../utils/containerGroups';
 
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
