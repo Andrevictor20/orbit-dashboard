@@ -1,8 +1,12 @@
 name: CD — Build & Publish Multi-Arch Image
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -17,6 +21,7 @@ jobs:
   build-and-publish:
     name: Build Multi-Arch (amd64 & arm64) & Publish
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
       packages: write
@@ -25,6 +30,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Extract Project Version
@@ -87,7 +93,7 @@ jobs:
             gh release create "$TAG_NAME" \
               --title "Orbit Dashboard $TAG_NAME" \
               --generate-notes \
-              --target "${{ github.sha }}" || echo "Release creation completed or skipped."
+              --target "${{ github.event.workflow_run.head_sha || github.sha }}" || echo "Release creation completed or skipped."
           fi
 
       - name: Build Summary
