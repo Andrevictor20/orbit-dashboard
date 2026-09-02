@@ -6,7 +6,11 @@ import {
   ExternalLink, ArrowRight, Activity, Cpu, HardDrive, 
   RefreshCw, Box, Radio, Settings2
 } from 'lucide-react';
-import type { GroupContainerItem, ContainerLike } from '../../utils/containerGroups';
+import { 
+  getContainerWebLink, 
+  getSortedDeduplicatedPorts, 
+  type GroupContainerItem 
+} from '../../utils/containerGroups';
 import { formatRAM } from '../../utils/format';
 import { resolveWebUrl } from '../../utils/url';
 import { getIconForImage } from '../../utils/icons';
@@ -72,17 +76,6 @@ export function AppGroupModal({
     e.stopPropagation();
     localStorage.setItem(`orbit_stack_primary_${group.groupKey}`, containerId);
     if (onRefresh) onRefresh();
-  };
-
-  const getWebLink = (c: ContainerLike): string => {
-    if (customLinks[c.id]) return resolveWebUrl(customLinks[c.id]);
-    if (c.ports && c.ports.length > 0) {
-      const publicPort = c.ports.find(p => p.public_port)?.public_port || c.ports[0].private_port;
-      if (publicPort) {
-        return resolveWebUrl(publicPort);
-      }
-    }
-    return '';
   };
 
   return (
@@ -237,7 +230,8 @@ export function AppGroupModal({
             {group.containers.map((c) => {
               const isRunning = c.state === 'running';
               const isPaused = c.state === 'paused';
-              const webLink = getWebLink(c);
+              const webLink = getContainerWebLink(c, customLinks);
+              const sortedPorts = getSortedDeduplicatedPorts(c.ports, c.image, c.name, c.labels);
               const isSubActionLoading = (action: string) => actionLoading === `${c.id}:${action}`;
 
               return (
@@ -300,6 +294,45 @@ export function AppGroupModal({
                       </span>
                     </div>
                   </div>
+
+                  {/* Ports row if available */}
+                  {sortedPorts.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {sortedPorts.slice(0, 3).map((p, idx) => {
+                        const targetUrl = resolveWebUrl(p.public_port || p.private_port);
+                        const isPrimary = idx === 0 && Boolean(p.public_port || p.private_port);
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                              isPrimary
+                                ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-300 font-semibold'
+                                : 'bg-white/5 border-white/10 text-zinc-400'
+                            }`}
+                          >
+                            {p.public_port ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(targetUrl, '_blank');
+                                }}
+                                className="hover:underline flex items-center gap-1 cursor-pointer"
+                                title={`Abrir porta: ${targetUrl}`}
+                              >
+                                <span>{p.public_port}:{p.private_port}</span>
+                                <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                              </button>
+                            ) : (
+                              <span>{p.private_port}/{p.typ || 'tcp'}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {sortedPorts.length > 3 && (
+                        <span className="text-[10px] text-zinc-500 font-mono">+{sortedPorts.length - 3}</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Resource Usage & Controls */}
                   <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-xs text-zinc-400 font-mono">

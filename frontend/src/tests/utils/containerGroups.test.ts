@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { groupContainers, getContainerGroupName, formatGroupName } from '../../utils/containerGroups';
+import { 
+  groupContainers, 
+  getContainerGroupName, 
+  formatGroupName,
+  getSortedDeduplicatedPorts,
+  getContainerWebLink
+} from '../../utils/containerGroups';
 
 describe('containerGroups utility', () => {
   const mockContainers = [
@@ -152,5 +158,65 @@ describe('containerGroups utility', () => {
     expect(singleItems.some((s: any) => s.container.name === 'orbit')).toBe(true);
     expect(singleItems.some((s: any) => s.container.name === 'overseerr')).toBe(true);
     expect(singleItems.some((s: any) => s.container.name === 'moodle-tutorial')).toBe(true);
+  });
+
+  describe('getSortedDeduplicatedPorts & getContainerWebLink', () => {
+    it('deduplicates duplicate IPv4 and IPv6 bindings and prioritizes web ports', () => {
+      const rawPorts = [
+        { ip: '0.0.0.0', private_port: 67, public_port: 67, typ: 'udp' },
+        { ip: '0.0.0.0', private_port: 80, public_port: 8080, typ: 'tcp' },
+        { ip: '::', private_port: 80, public_port: 8080, typ: 'tcp' },
+      ];
+
+      const sorted = getSortedDeduplicatedPorts(rawPorts, 'pihole/pihole:latest', 'pihole');
+      expect(sorted.length).toBe(2);
+      expect(sorted[0].public_port).toBe(8080);
+      expect(sorted[1].public_port).toBe(67);
+
+      const link = getContainerWebLink({
+        id: 'pihole-1',
+        name: 'pihole',
+        image: 'pihole/pihole:latest',
+        ports: rawPorts,
+      });
+      expect(link).toContain(':8080');
+    });
+
+    it('synthesizes and discovers web ports for host-network containers (Home Assistant)', () => {
+      const haPorts = getSortedDeduplicatedPorts(
+        [],
+        'ghcr.io/home-assistant/home-assistant:stable',
+        'homeassistant'
+      );
+      expect(haPorts.length).toBe(1);
+      expect(haPorts[0].public_port).toBe(8123);
+
+      const haLink = getContainerWebLink({
+        id: 'ha-1',
+        name: 'homeassistant',
+        image: 'ghcr.io/home-assistant/home-assistant:stable',
+        ports: [],
+      });
+      expect(haLink).toContain(':8123');
+    });
+
+    it('honors CasaOS labels (io.casaos.port.web) and user customLinks', () => {
+      const labels = { 'io.casaos.port.web': '9090' };
+      const ports = getSortedDeduplicatedPorts([], 'custom/service', 'custom-service', labels);
+      expect(ports.length).toBe(1);
+      expect(ports[0].public_port).toBe(9090);
+
+      // User custom link overrides auto-detected link
+      const customLink = getContainerWebLink(
+        {
+          id: 'custom-1',
+          name: 'custom',
+          image: 'custom/service',
+          ports: [{ private_port: 9090, public_port: 9090, typ: 'tcp' }],
+        },
+        { 'custom-1': 'https://custom.myhomelab.net' }
+      );
+      expect(customLink).toBe('https://custom.myhomelab.net');
+    });
   });
 });

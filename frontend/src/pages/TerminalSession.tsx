@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../contexts/ThemeContext';
 import { 
   Lock, User, Terminal as TerminalIcon, Copy, ClipboardPaste, 
   Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, RefreshCw, 
@@ -18,6 +19,55 @@ interface ContextMenuPosition {
   y: number;
 }
 
+const DARK_TERMINAL_THEME = {
+  background: '#090d13',
+  foreground: '#e6edf3',
+  cursor: '#a855f7',
+  cursorAccent: '#090d13',
+  selectionBackground: '#388bfd55',
+  selectionForeground: '#ffffff',
+  black: '#484f58',
+  red: '#ff7b72',
+  green: '#3fb950',
+  yellow: '#d29922',
+  blue: '#58a6ff',
+  magenta: '#bc8cff',
+  cyan: '#39c5cf',
+  white: '#b1bac4',
+  brightBlack: '#6e7681',
+  brightRed: '#ffa198',
+  brightGreen: '#56d364',
+  brightYellow: '#e3b341',
+  brightBlue: '#79c0ff',
+  brightMagenta: '#d2a8ff',
+  brightCyan: '#56d4dd',
+  brightWhite: '#ffffff',
+};
+
+const LIGHT_TERMINAL_THEME = {
+  background: '#ffffff',
+  foreground: '#0f172a',
+  cursor: '#6366f1',
+  cursorAccent: '#ffffff',
+  selectionBackground: 'rgba(99,102,241,0.25)',
+  selectionForeground: '#000000',
+  black: '#1e293b',
+  red: '#dc2626',
+  green: '#16a34a',
+  yellow: '#ca8a04',
+  blue: '#2563eb',
+  magenta: '#9333ea',
+  cyan: '#0891b2',
+  white: '#64748b',
+  brightBlack: '#475569',
+  brightRed: '#ef4444',
+  brightGreen: '#22c55e',
+  brightYellow: '#eab308',
+  brightBlue: '#3b82f6',
+  brightMagenta: '#a855f7',
+  brightCyan: '#06b6d4',
+  brightWhite: '#0f172a',
+};
 
 interface TerminalSessionProps {
   id: string;
@@ -28,8 +78,24 @@ interface TerminalSessionProps {
 }
 
 export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen, onTitleChange }: TerminalSessionProps) {
-
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const [isLight, setIsLight] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return document.documentElement.classList.contains('light');
+  });
+
+  useEffect(() => {
+    const checkLight = () => {
+      const isDocLight = document.documentElement.classList.contains('light');
+      setIsLight(isDocLight);
+    };
+    checkLight();
+
+    const observer = new MutationObserver(checkLight);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, [theme]);
   const [searchParams] = useSearchParams();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -105,30 +171,7 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
       scrollback: 10000,
       convertEol: true,
       allowProposedApi: true,
-      theme: {
-        background: '#090d13',
-        foreground: '#e6edf3',
-        cursor: '#a855f7',
-        cursorAccent: '#090d13',
-        selectionBackground: '#388bfd55',
-        selectionForeground: '#ffffff',
-        black: '#484f58',
-        red: '#ff7b72',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#39c5cf',
-        white: '#b1bac4',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#56d4dd',
-        brightWhite: '#ffffff',
-      }
+      theme: isLight ? LIGHT_TERMINAL_THEME : DARK_TERMINAL_THEME
     });
 
     const fitAddon = new FitAddon();
@@ -382,17 +425,23 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
     }
   }, [isFullscreen, isActive, fitTerminal]);
 
-  
-return (
+  // Synchronize xterm theme when theme changes dynamically
+  useEffect(() => {
+    if (xtermRef.current) {
+      xtermRef.current.options.theme = isLight ? LIGHT_TERMINAL_THEME : DARK_TERMINAL_THEME;
+    }
+  }, [isLight]);
+
+  return (
     <div className={`flex flex-col h-full w-full animate-in fade-in zoom-in-95 duration-300 ${!isActive ? 'hidden' : ''}`}>
       
       {/* Main Terminal Frame */}
-      <div className={`flex-1 w-full bg-[#090d13] border border-border/80 rounded-xl overflow-hidden shadow-2xl flex flex-col relative group ${
+      <div className={`flex-1 w-full bg-card border border-border/80 rounded-xl overflow-hidden shadow-2xl flex flex-col relative group ${
         isFullscreen ? 'h-full border-orbit-500/40' : ''
       }`}>
         
         {/* Terminal Titlebar */}
-        <div className="h-11 bg-[#0d1117] border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-2 select-none shrink-0">
+        <div className="h-11 bg-muted/70 border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-2 select-none shrink-0">
           
           {/* Left: Orbit System Badge & Session Info */}
           <div className="flex items-center gap-2.5 min-w-0">
@@ -402,17 +451,17 @@ return (
                   ? 'bg-emerald-500 animate-pulse'
                   : connState === 'connecting'
                   ? 'bg-amber-500 animate-ping'
-                  : 'bg-zinc-500'
+                  : 'bg-muted-foreground'
               }`} />
-              <TerminalIcon className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+              <TerminalIcon className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
             </div>
 
             <div className="flex items-center gap-2 min-w-0 font-mono">
-              <span className="text-xs font-semibold text-zinc-200 truncate">
+              <span className="text-xs font-semibold text-primary truncate">
                 {connState === 'connected' ? `${username}@${host}:${port}` : 'Orbit Terminal Shell'}
               </span>
               {connState === 'connected' && (
-                <span className="text-[11px] font-mono text-secondary px-2 py-0.5 rounded-md bg-white/5 border border-white/10 hidden md:inline-block">
+                <span className="text-[11px] font-mono text-secondary px-2 py-0.5 rounded-md bg-accent border border-border/60 hidden md:inline-block">
                   {dimensions.cols}x{dimensions.rows}
                 </span>
               )}
@@ -424,7 +473,7 @@ return (
             {/* Copy button */}
             <button
               onClick={handleCopy}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1"
               title="Copiar texto selecionado (Ctrl+Shift+C ou Ctrl+C)"
               aria-label="Copiar texto selecionado"
             >
@@ -435,7 +484,7 @@ return (
             {/* Paste button */}
             <button
               onClick={handlePaste}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1"
               title="Colar da área de transferência (Ctrl+V)"
               aria-label="Colar da área de transferência"
             >
@@ -446,44 +495,44 @@ return (
             {/* Clear button */}
             <button
               onClick={handleClear}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1"
               title="Limpar terminal"
               aria-label="Limpar terminal"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-border/80 mx-0.5" />
+            <div className="h-4 w-px bg-border mx-0.5" />
 
             {/* Font Zoom Out */}
             <button
               onClick={() => changeFontSize(-1)}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs"
               title="Diminuir fonte"
               aria-label="Diminuir fonte"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
 
-            <span className="text-[11px] font-mono text-zinc-400 px-1 hidden sm:inline">{fontSize}px</span>
+            <span className="text-[11px] font-mono text-secondary px-1 hidden sm:inline">{fontSize}px</span>
 
             {/* Font Zoom In */}
             <button
               onClick={() => changeFontSize(1)}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs"
               title="Aumentar fonte"
               aria-label="Aumentar fonte"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-border/80 mx-0.5" />
+            <div className="h-4 w-px bg-border mx-0.5" />
 
             {/* Fullscreen Toggle */}
             <button
               onClick={onToggleFullscreen}
               className={`p-1.5 rounded-lg transition-colors text-xs ${
-                isFullscreen ? 'text-orbit-400 bg-orbit-500/20' : 'text-secondary hover:text-white hover:bg-white/10'
+                isFullscreen ? 'text-orbit-500 bg-orbit-500/20 font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'
               }`}
               title={isFullscreen ? "Sair da Tela Cheia (Esc)" : "Expandir em Tela Cheia"}
               aria-label="Alternar tela cheia"
@@ -495,7 +544,7 @@ return (
             {connState === 'connected' ? (
               <button
                 onClick={disconnect}
-                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1"
+                className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1 shadow-sm"
                 title="Desconectar sessão SSH"
               >
                 <LogOut className="w-3 h-3" />
@@ -504,7 +553,7 @@ return (
             ) : connState === 'disconnected' || connState === 'error' ? (
               <button
                 onClick={() => connect()}
-                className="px-2.5 py-1 bg-orbit-500/20 hover:bg-orbit-500/30 text-orbit-300 border border-orbit-500/40 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1"
+                className="px-2.5 py-1 bg-orbit-500/20 hover:bg-orbit-500/30 text-orbit-600 dark:text-orbit-300 border border-orbit-500/40 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1 shadow-sm"
                 title="Reconectar ao SSH"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -516,7 +565,7 @@ return (
 
         {/* Terminal Canvas Container */}
         <div 
-          className="flex-1 w-full h-full p-4 sm:p-6 lg:p-8 overflow-hidden relative shadow-[inset_0_0_40px_rgba(0,0,0,0.6)]"
+          className="flex-1 w-full h-full p-4 sm:p-6 lg:p-8 overflow-hidden relative shadow-inner bg-card"
           onContextMenu={handleContextMenu}
         >
           {/* Xterm Mount Node */}
@@ -534,40 +583,40 @@ return (
           {contextMenu && (
             <div 
               style={{ top: `${contextMenu.y - 40}px`, left: `${contextMenu.x - 20}px` }}
-              className="fixed z-50 bg-[#161b22]/95 border border-border rounded-xl shadow-2xl p-1.5 min-w-[190px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 flex flex-col gap-0.5"
+              className="fixed z-50 bg-card/95 border border-border rounded-xl shadow-2xl p-1.5 min-w-[190px] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 flex flex-col gap-0.5"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={handleCopy}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-orbit-500/20 rounded-lg transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-primary hover:bg-accent rounded-lg transition-colors text-left"
               >
                 <span className="flex items-center gap-2"><Copy className="w-3.5 h-3.5" /> Copiar</span>
-                <span className="text-[10px] text-zinc-400 font-mono">Ctrl+C</span>
+                <span className="text-[10px] text-secondary font-mono">Ctrl+C</span>
               </button>
               <button
                 onClick={handlePaste}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-orbit-500/20 rounded-lg transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-primary hover:bg-accent rounded-lg transition-colors text-left"
               >
                 <span className="flex items-center gap-2"><ClipboardPaste className="w-3.5 h-3.5" /> Colar</span>
-                <span className="text-[10px] text-zinc-400 font-mono">Ctrl+V</span>
+                <span className="text-[10px] text-secondary font-mono">Ctrl+V</span>
               </button>
               <button
                 onClick={handleSelectAll}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-orbit-500/20 rounded-lg transition-colors text-left"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-primary hover:bg-accent rounded-lg transition-colors text-left"
               >
                 <span className="flex items-center gap-2"><CornerDownLeft className="w-3.5 h-3.5" /> Selecionar Tudo</span>
-                <span className="text-[10px] text-zinc-400 font-mono">Ctrl+A</span>
+                <span className="text-[10px] text-secondary font-mono">Ctrl+A</span>
               </button>
               <div className="h-px bg-border/60 my-1" />
               <button
                 onClick={handleClear}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-orbit-500/20 rounded-lg transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary hover:bg-accent rounded-lg transition-colors text-left"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Limpar Tela
               </button>
               <button
                 onClick={() => { onToggleFullscreen(); setContextMenu(null); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-orbit-500/20 rounded-lg transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary hover:bg-accent rounded-lg transition-colors text-left"
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 {isFullscreen ? 'Sair da Tela Cheia' : 'Tela Cheia'}
@@ -577,10 +626,10 @@ return (
 
           {/* Idle / Initial Connection Overlay Form */}
           {connState === 'idle' && (
-            <div className="absolute inset-0 bg-[#090d13]/95 backdrop-blur-md flex items-center justify-center p-4 z-20">
-              <div className="w-full max-w-md bg-[#161b22] border border-border/90 rounded-2xl p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-20">
+              <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-center mb-5">
-                  <div className="w-14 h-14 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-400 shadow-inner">
+                  <div className="w-14 h-14 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-500 shadow-inner">
                     <TerminalIcon className="w-7 h-7" />
                   </div>
                 </div>
@@ -591,7 +640,7 @@ return (
                 </p>
 
                 {errorMessage && (
-                  <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs sm:text-sm flex items-center gap-2">
+                  <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs sm:text-sm flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{errorMessage}</span>
                   </div>
@@ -599,72 +648,72 @@ return (
 
                 <form onSubmit={connect} className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">{t('terminal.user')}</label>
+                    <label className="text-xs font-semibold text-secondary block mb-1.5">{t('terminal.user')}</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/70" />
                       <input
                         type="text"
                         value={username}
                         onChange={e => setUsername(e.target.value)}
                         placeholder="pi ou root"
-                        className="w-full bg-[#0d1117] border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all font-mono"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all font-mono shadow-sm"
                         autoFocus
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-zinc-300 block mb-1.5">{t('terminal.password')}</label>
+                    <label className="text-xs font-semibold text-secondary block mb-1.5">{t('terminal.password')}</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/70" />
                       <input
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-[#0d1117] border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all"
+                        className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all shadow-sm"
                       />
                     </div>
                   </div>
 
                   {/* Advanced settings accordion */}
-                  <div className="border border-border/60 rounded-xl overflow-hidden bg-black/20">
+                  <div className="border border-border rounded-xl overflow-hidden bg-accent/30">
                     <button
                       type="button"
                       onClick={() => setShowAdvanced(!showAdvanced)}
-                      className="w-full px-3.5 py-2.5 text-xs text-zinc-400 hover:text-zinc-200 flex items-center justify-between transition-colors font-medium"
+                      className="w-full px-3.5 py-2.5 text-xs text-secondary hover:text-primary flex items-center justify-between transition-colors font-medium"
                     >
                       <span className="flex items-center gap-1.5">
-                        <Server className="w-3.5 h-3.5 text-orbit-400" />
+                        <Server className="w-3.5 h-3.5 text-orbit-500" />
                         {t('terminal.advanced_settings', 'Configurações Avançadas (Host / Port)')}
                       </span>
                       {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
 
                     {showAdvanced && (
-                      <div className="p-3.5 pt-1 border-t border-border/40 grid grid-cols-3 gap-3">
+                      <div className="p-3.5 pt-1 border-t border-border/60 grid grid-cols-3 gap-3">
                         <div className="col-span-2">
-                          <label className="text-[11px] text-zinc-400 block mb-1">Host</label>
+                          <label className="text-[11px] text-secondary block mb-1">Host</label>
                           <div className="relative">
-                            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-secondary/70" />
                             <input
                               type="text"
                               value={host}
                               onChange={e => setHost(e.target.value)}
                               placeholder="localhost"
-                              className="w-full bg-[#0d1117] border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-white focus:outline-none focus:border-orbit-500 font-mono"
+                              className="w-full bg-background border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-primary focus:outline-none focus:border-orbit-500 font-mono shadow-sm"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-[11px] text-zinc-400 block mb-1">Port</label>
+                          <label className="text-[11px] text-secondary block mb-1">Port</label>
                           <input
                             type="number"
                             value={port}
                             onChange={e => setPort(Number(e.target.value))}
                             placeholder="22"
-                            className="w-full bg-[#0d1117] border border-border rounded-lg py-1.5 px-2.5 text-xs text-white focus:outline-none focus:border-orbit-500 font-mono"
+                            className="w-full bg-background border border-border rounded-lg py-1.5 px-2.5 text-xs text-primary focus:outline-none focus:border-orbit-500 font-mono shadow-sm"
                           />
                         </div>
                       </div>
@@ -685,10 +734,10 @@ return (
 
           {/* Disconnected / Dropped Overlay (retaining terminal history) */}
           {(connState === 'disconnected' || connState === 'error') && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#161b22]/95 border border-border/90 rounded-2xl px-5 py-3 shadow-2xl backdrop-blur-md flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200 z-20">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card/95 border border-border rounded-2xl px-5 py-3 shadow-2xl backdrop-blur-md flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200 z-20">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <span className="text-xs font-semibold text-zinc-200">{t('dashboard.disconnected')}</span>
+                <span className="text-xs font-semibold text-primary">{t('dashboard.disconnected')}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -701,7 +750,7 @@ return (
                 </button>
                 <button
                   onClick={() => setConnState('idle')}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
+                  className="px-3 py-1.5 bg-accent hover:bg-accent/80 text-secondary hover:text-primary rounded-lg text-xs font-medium transition-colors"
                 >
                   {t('common.filter')}
                 </button>

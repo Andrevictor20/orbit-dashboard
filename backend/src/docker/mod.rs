@@ -165,4 +165,132 @@ mod tests {
         let platform = get_host_platform();
         assert!(platform.starts_with("linux/"));
     }
+
+    #[test]
+    fn test_resolve_compose_file() {
+        use std::io::Write;
+
+        let unique_suffix = uuid::Uuid::new_v4().to_string();
+        let temp_dir = std::env::temp_dir().join(format!("orbit_compose_test_{}", unique_suffix));
+        std::fs::create_dir_all(&temp_dir).unwrap();
+        let compose_path = temp_dir.join("docker-compose.yml");
+        {
+            let mut f = std::fs::File::create(&compose_path).unwrap();
+            writeln!(f, "version: '3'").unwrap();
+        }
+
+        // Test with exact existing path
+        let res = crate::docker::containers::resolve_compose_file(
+            Some(temp_dir.to_str().unwrap()),
+            compose_path.to_str().unwrap(),
+        );
+        assert!(res.is_some());
+        let (file, proj) = res.unwrap();
+        assert_eq!(file, compose_path);
+        assert_eq!(proj, temp_dir);
+
+        // Test with relative filename in working dir
+        let res_relative = crate::docker::containers::resolve_compose_file(
+            Some(temp_dir.to_str().unwrap()),
+            "docker-compose.yml",
+        );
+        assert!(res_relative.is_some());
+        assert_eq!(res_relative.unwrap().0, compose_path);
+
+        // Test with comma-separated list of compose files
+        let res_comma = crate::docker::containers::resolve_compose_file(
+            Some(temp_dir.to_str().unwrap()),
+            &format!("{},docker-compose.override.yml", compose_path.to_str().unwrap()),
+        );
+        assert!(res_comma.is_some());
+        assert_eq!(res_comma.unwrap().0, compose_path);
+
+        // Test non-existent file returns None
+        let res_none = crate::docker::containers::resolve_compose_file(
+            Some("/non/existent/path"),
+            "nonexistent-compose.yml",
+        );
+        assert!(res_none.is_none());
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_process_and_prioritize_ports_dedup_and_priority() {
+        use bollard::models::{PortSummary, PortSummaryTypeEnum};
+        use std::collections::HashMap;
+
+        // Container with duplicate IPv4/IPv6 port 8096, plus a DHCP port 67
+        let raw_ports = vec![
+            PortSummary {
+                ip: Some("0.0.0.0".to_string()),
+                private_port: 67,
+                public_port: Some(67),
+                typ: Some(PortSummaryTypeEnum::UDP),
+            },
+            PortSummary {
+                ip: Some("0.0.0.0".to_string()),
+                private_port: 8096,
+                public_port: Some(8096),
+                typ: Some(PortSummaryTypeEnum::TCP),
+            },
+            PortSummary {
+                ip: Some("::".to_string()),
+                private_port: 8096,
+                public_port: Some(8096),
+                typ: Some(PortSummaryTypeEnum::TCP),
+            },
+        ];
+
+        let labels = HashMap::new();
+        let result = crate::docker::containers::process_and_prioritize_ports(
+            Some(raw_ports),
+            &labels,
+            "jellyfin/jellyfin",
+            "jellyfin",
+            Some("bridge"),
+        );
+
+        // Deduplication: port 8096 should appear exactly once
+        let p8096_count = result.iter().filter(|p| p.public_port == Some(8096)).count();
+        assert_eq!(p8096_count, 1);
+
+        // Prioritization: web port 8096 must come before UDP port 67
+        assert_eq!(result.first().unwrap().public_port, Some(8096));
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_process_and_prioritize_ports_host_mode_and_labels() {
+        use std::collections::HashMap;
+
+        // 1. Home Assistant in host network with no bridge ports
+        let labels = HashMap::new();
+        let ha_result = crate::docker::containers::process_and_prioritize_ports(
+            None,
+            &labels,
+            "ghcr.io/home-assistant/home-assistant:stable",
+            "homeassistant",
+            Some("host"),
+        );
+
+        assert!(!ha_result.is_empty());
+        assert_eq!(ha_result[0].public_port, Some(8123));
+        assert_eq!(ha_result[0].private_port, 8123);
+
+        // 2. CasaOS container with io.casaos.port.web label
+        let mut casa_labels = HashMap::new();
+        casa_labels.insert("io.casaos.port.web".to_string(), "9095".to_string());
+        let casa_result = crate::docker::containers::process_and_prioritize_ports(
+            None,
+            &casa_labels,
+            "custom/app:latest",
+            "custom-app",
+            Some("host"),
+        );
+
+        assert!(!casa_result.is_empty());
+        assert_eq!(casa_result[0].public_port, Some(9095));
+    }
 }

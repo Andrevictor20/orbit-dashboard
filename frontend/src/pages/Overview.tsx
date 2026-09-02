@@ -314,7 +314,7 @@ export function Overview() {
       </div>
 
       {/* 2. COMPACT & REFINED TELEMETRY SUMMARY ROW */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* CPU & Temp Card */}
         <Link 
           to="/metrics" 
@@ -489,7 +489,7 @@ export function Overview() {
         </div>
 
         {/* Bento App Grid with GPU-safe layout */}
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
           {filteredApps.map((item) => (
             <AppCardItem
               key={item.id}

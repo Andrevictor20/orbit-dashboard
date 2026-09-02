@@ -367,7 +367,7 @@ export function DiskAnalyzer() {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-lg">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-lg">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-2xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 shadow-inner">
             <PieChart className="w-6 h-6" />
@@ -383,13 +383,13 @@ export function DiskAnalyzer() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-1 bg-neutral-900 border border-border/80 p-1 rounded-xl shrink-0 w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1 bg-accent/60 border border-border/80 p-1 rounded-xl shrink-0 w-full lg:w-auto overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('ncdu')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 lg:flex-initial flex items-center justify-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'ncdu'
                 ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25'
-                : 'text-secondary hover:text-primary hover:bg-neutral-800'
+                : 'text-secondary hover:text-primary hover:bg-accent'
             }`}
           >
             <FolderTree className="w-3.5 h-3.5" />
@@ -397,10 +397,10 @@ export function DiskAnalyzer() {
           </button>
           <button
             onClick={() => setActiveTab('insights')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 lg:flex-initial flex items-center justify-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'insights'
                 ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25'
-                : 'text-secondary hover:text-primary hover:bg-neutral-800'
+                : 'text-secondary hover:text-primary hover:bg-accent'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -408,10 +408,10 @@ export function DiskAnalyzer() {
           </button>
           <button
             onClick={() => setActiveTab('safety')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 lg:flex-initial flex items-center justify-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
               activeTab === 'safety'
                 ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25'
-                : 'text-secondary hover:text-primary hover:bg-neutral-800'
+                : 'text-secondary hover:text-primary hover:bg-accent'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
@@ -438,7 +438,7 @@ export function DiskAnalyzer() {
                 className={`text-left p-3.5 rounded-2xl border transition-all ${
                   isSelected
                     ? 'bg-orbit-500/10 border-orbit-500/50 shadow-md ring-2 ring-orbit-500/20'
-                    : 'bg-card border-border/70 hover:bg-neutral-900/60 hover:border-border'
+                    : 'bg-card border-border/70 hover:bg-accent/60 hover:border-border'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -446,12 +446,12 @@ export function DiskAnalyzer() {
                     <HardDrive className={`w-4 h-4 shrink-0 ${isSelected ? 'text-orbit-400' : 'text-secondary'}`} />
                     <span className="text-xs font-bold text-primary truncate">{friendlyName}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-secondary px-1.5 py-0.5 rounded bg-neutral-800 border border-border/50">
+                  <span className="text-[10px] font-mono text-secondary px-1.5 py-0.5 rounded bg-accent/80 border border-border/60">
                     {st.fs_type}
                   </span>
                 </div>
 
-                <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden mb-2">
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2">
                   <div
                     className={`h-full rounded-full transition-all ${
                       pct > 85 ? 'bg-rose-500' : pct > 70 ? 'bg-amber-500' : 'bg-orbit-500'
@@ -471,8 +471,8 @@ export function DiskAnalyzer() {
       )}
 
       {/* DIRECT PATH INPUT & QUICK PRESET CHIPS */}
-      <div className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3">
-        <form onSubmit={handleCustomPathSubmit} className="flex items-center gap-2">
+      <div className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
+        <form onSubmit={handleCustomPathSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div className="relative flex-1">
             <FolderSearch className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -480,13 +480,13 @@ export function DiskAnalyzer() {
               value={customInputPath}
               onChange={(e) => setCustomInputPath(e.target.value)}
               placeholder="Digite qualquer caminho de pasta (ex: /var/lib/docker, /home, /var/log, /mnt)..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-neutral-900 border border-border text-xs text-primary font-mono placeholder-zinc-500 focus:outline-none focus:border-orbit-500"
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-xs text-primary font-mono placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 shadow-inner"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/20 transition-all disabled:opacity-50 shrink-0"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/20 transition-all disabled:opacity-50 shrink-0"
           >
             <span>Analisar Pasta</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -505,8 +505,8 @@ export function DiskAnalyzer() {
               onClick={() => handleNavigate(p.path)}
               className={`px-2.5 py-1 rounded-lg border transition-all font-mono ${
                 currentPath === p.path
-                  ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 font-semibold'
-                  : 'bg-neutral-900/60 text-secondary border-border/60 hover:text-primary hover:bg-neutral-800'
+                  ? 'bg-orbit-500/15 text-orbit-600 dark:text-orbit-300 border-orbit-500/40 font-semibold shadow-sm'
+                  : 'bg-accent/60 text-secondary border-border/70 hover:text-primary hover:bg-accent'
               }`}
             >
               {p.label}
@@ -542,15 +542,15 @@ export function DiskAnalyzer() {
                       onClick={() => item.is_dir && handleNavigate(item.path)}
                       className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
                         item.is_dir
-                          ? 'bg-neutral-900/80 border-border/80 hover:border-orbit-500/50 hover:bg-neutral-800/90 cursor-pointer group shadow-sm hover:shadow-md'
-                          : 'bg-neutral-900/50 border-border/60'
+                          ? 'bg-card border-border/80 hover:border-orbit-500/50 hover:bg-accent/60 cursor-pointer group shadow-sm hover:shadow-md'
+                          : 'bg-card/70 border-border/60'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1 mb-2">
-                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-orbit-500/10 text-orbit-300 border border-orbit-500/20">
+                        <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-orbit-500/10 text-orbit-600 dark:text-orbit-300 border border-orbit-500/20">
                           {medal}
                         </span>
-                        <span className="text-xs font-mono font-bold text-rose-400">
+                        <span className="text-xs font-mono font-bold text-rose-500 dark:text-rose-400">
                           {item.percentage.toFixed(1)}%
                         </span>
                       </div>
@@ -562,7 +562,7 @@ export function DiskAnalyzer() {
                         </span>
                       </div>
 
-                      <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden mb-1.5">
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-1.5">
                         <div
                           className="h-full rounded-full bg-rose-500"
                           style={{ width: `${Math.min(item.percentage, 100)}%` }}
@@ -572,7 +572,7 @@ export function DiskAnalyzer() {
                       <div className="flex items-center justify-between text-[11px] font-mono text-secondary">
                         <span className="font-semibold text-primary">{formatBytes(item.size)}</span>
                         {item.is_dir && (
-                          <span className="text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                          <span className="text-orbit-500 dark:text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                             Explorar <CornerDownRight className="w-3 h-3" />
                           </span>
                         )}
@@ -593,7 +593,7 @@ export function DiskAnalyzer() {
                 <button
                   onClick={handleGoUp}
                   disabled={currentPath === '/' || !currentPath}
-                  className="p-1.5 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 transition-colors"
+                  className="p-1.5 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent disabled:opacity-30 transition-colors shadow-sm"
                   title="Subir um diretório (..)"
                 >
                   <ArrowUpLeft className="w-4 h-4" />
@@ -605,12 +605,12 @@ export function DiskAnalyzer() {
                       <button
                         onClick={() => handleNavigate(crumb.path)}
                         className={`hover:text-orbit-400 transition-colors px-1 py-0.5 rounded ${
-                          idx === arr.length - 1 ? 'font-bold text-primary bg-neutral-800' : 'text-secondary'
+                          idx === arr.length - 1 ? 'font-bold text-primary bg-accent' : 'text-secondary'
                         }`}
                       >
                         {crumb.label}
                       </button>
-                      {idx < arr.length - 1 && <span className="text-zinc-600">&gt;</span>}
+                      {idx < arr.length - 1 && <span className="text-secondary/50">&gt;</span>}
                     </div>
                   ))}
                 </div>
@@ -626,12 +626,12 @@ export function DiskAnalyzer() {
                     placeholder="Filtrar nesta pasta..."
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-8 pr-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 w-40 sm:w-52"
+                    className="pl-8 pr-3 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 w-40 sm:w-52 shadow-sm"
                   />
                 </div>
 
                 {/* Sort Toggle buttons */}
-                <div className="flex items-center bg-neutral-900/80 border border-border/80 rounded-xl p-0.5 text-xs">
+                <div className="flex items-center bg-accent/60 border border-border/80 rounded-xl p-0.5 text-xs">
                   <button
                     onClick={() => {
                       if (sortBy === 'size') setSortAsc(!sortAsc);
@@ -641,7 +641,7 @@ export function DiskAnalyzer() {
                       }
                     }}
                     className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
-                      sortBy === 'size' ? 'bg-orbit-500 text-white font-semibold' : 'text-secondary hover:text-primary'
+                      sortBy === 'size' ? 'bg-orbit-500 text-white font-semibold shadow-sm' : 'text-secondary hover:text-primary hover:bg-accent/80'
                     }`}
                   >
                     Tamanho {sortBy === 'size' ? (sortAsc ? '↑' : '↓') : ''}
@@ -655,7 +655,7 @@ export function DiskAnalyzer() {
                       }
                     }}
                     className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
-                      sortBy === 'name' ? 'bg-orbit-500 text-white font-semibold' : 'text-secondary hover:text-primary'
+                      sortBy === 'name' ? 'bg-orbit-500 text-white font-semibold shadow-sm' : 'text-secondary hover:text-primary hover:bg-accent/80'
                     }`}
                   >
                     Nome {sortBy === 'name' ? (sortAsc ? '↑' : '↓') : ''}
@@ -665,7 +665,7 @@ export function DiskAnalyzer() {
                 {/* Refresh button */}
                 <button
                   onClick={() => fetchAnalysis(currentPath)}
-                  className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                  className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
                   title="Recarregar"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -674,7 +674,7 @@ export function DiskAnalyzer() {
                 {/* Open in File Manager shortcut */}
                 <button
                   onClick={() => navigate(`/files?path=${encodeURIComponent(currentPath)}`)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-semibold transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-semibold transition-all shadow-sm"
                   title="Abrir pasta no Gerenciador de Arquivos"
                 >
                   <Folder className="w-3.5 h-3.5" />
@@ -684,13 +684,13 @@ export function DiskAnalyzer() {
             </div>
 
             {/* Tree Summary Bar */}
-            <div className="px-4 py-2 bg-neutral-950/60 border-b border-border/60 flex items-center justify-between text-xs font-mono text-secondary">
+            <div className="px-4 py-2.5 bg-muted/60 border-b border-border/70 flex items-center justify-between text-xs font-mono text-secondary">
               <div>
                 <span>Tamanho Total: <strong className="text-primary">{formatBytes(data?.total_size || 0)}</strong></span>
-                <span className="mx-2 text-zinc-700">•</span>
+                <span className="mx-2 text-border">•</span>
                 <span>Itens: <strong className="text-primary">{data?.item_count || 0}</strong></span>
               </div>
-              <div className="hidden sm:block text-[11px] text-zinc-500">
+              <div className="hidden sm:block text-[11px] text-secondary/70">
                 Dica: clique em uma pasta para navegar hierarquicamente
               </div>
             </div>
@@ -727,28 +727,28 @@ export function DiskAnalyzer() {
               ) : error ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
                   <ShieldAlert className="w-10 h-10 text-rose-500" />
-                  <p className="text-sm font-bold text-rose-400">{error}</p>
+                  <p className="text-sm font-bold text-rose-500 dark:text-rose-400">{error}</p>
                   <button
                     onClick={() => handleNavigate('/')}
-                    className="px-4 py-2 rounded-xl bg-neutral-900 border border-border text-xs text-primary hover:bg-neutral-800"
+                    className="px-4 py-2 rounded-xl bg-card border border-border text-xs text-primary hover:bg-accent shadow-sm"
                   >
                     Voltar para Raiz (/)
                   </button>
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-secondary space-y-3">
-                  <Folder className="w-12 h-12 stroke-[1.2] text-zinc-600" />
+                  <Folder className="w-12 h-12 stroke-[1.2] text-secondary/50" />
                   <p className="text-sm font-medium">Nenhum item encontrado neste diretório</p>
                   <div className="flex items-center gap-2 pt-2">
                     <button
                       onClick={handleGoUp}
-                      className="px-3 py-1.5 rounded-xl bg-neutral-900 border border-border text-xs text-primary hover:bg-neutral-800"
+                      className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-primary hover:bg-accent shadow-sm"
                     >
                       Subir de Pasta
                     </button>
                     <button
                       onClick={() => handleNavigate('/')}
-                      className="px-3 py-1.5 rounded-xl bg-orbit-500 text-white text-xs font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-orbit-500 text-white text-xs font-semibold shadow-md shadow-orbit-500/20"
                     >
                       Ir para Raiz (/)
                     </button>
@@ -765,14 +765,14 @@ export function DiskAnalyzer() {
                     return (
                       <div
                         key={item.path}
-                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-4 hover:bg-accent/40 transition-colors gap-2"
+                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-4 hover:bg-accent/50 transition-colors gap-2"
                       >
                         {/* Left: Icon, Name & Safety Badge */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           {item.is_dir ? (
                             <button
                               onClick={() => handleNavigate(item.path)}
-                              className="p-1 rounded-lg hover:bg-neutral-800 text-amber-400 transition-colors"
+                              className="p-1 rounded-lg hover:bg-accent text-amber-500 dark:text-amber-400 transition-colors"
                               title="Explorar pasta"
                             >
                               <Folder className="w-4 h-4" />
@@ -784,7 +784,7 @@ export function DiskAnalyzer() {
                           <span
                             onClick={() => item.is_dir && handleNavigate(item.path)}
                             className={`font-semibold truncate ${
-                              item.is_dir ? 'text-primary hover:text-orbit-400 cursor-pointer underline-offset-2 hover:underline' : 'text-zinc-300'
+                              item.is_dir ? 'text-primary hover:text-orbit-500 cursor-pointer underline-offset-2 hover:underline' : 'text-primary'
                             }`}
                             title={item.name}
                           >
@@ -796,10 +796,10 @@ export function DiskAnalyzer() {
                           <span
                             className={`text-[9px] font-sans font-semibold px-2 py-0.5 rounded-full border shrink-0 hidden md:inline-block ${
                               safety.level === 'critical'
-                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                                 : safety.level === 'safe'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                : 'bg-accent text-secondary border-border'
                             }`}
                             title={safety.description}
                           >
@@ -809,7 +809,7 @@ export function DiskAnalyzer() {
 
                         {/* Middle: NCDU Visual Percentage Bar */}
                         <div className="flex items-center gap-3 shrink-0 sm:w-64">
-                          <span className="text-zinc-500 font-mono tracking-tighter text-xs hidden sm:inline">
+                          <span className="text-secondary/60 font-mono tracking-tighter text-xs hidden sm:inline">
                             [{barGraphic}]
                           </span>
                           <div className="w-20 sm:w-24 text-right">
@@ -825,7 +825,7 @@ export function DiskAnalyzer() {
                           {item.is_dir ? (
                             <button
                               onClick={() => handleNavigate(item.path)}
-                              className="px-2 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-orbit-400 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-border"
+                              className="px-2 py-1 rounded bg-accent/80 hover:bg-accent text-orbit-600 dark:text-orbit-400 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-border/70"
                               title="Navegar para este diretório"
                             >
                               <span>Abrir</span>
@@ -835,7 +835,7 @@ export function DiskAnalyzer() {
 
                           <button
                             onClick={() => navigate(`/terminal?cwd=${encodeURIComponent(item.path)}`)}
-                            className="p-1.5 rounded hover:bg-neutral-800 text-secondary hover:text-emerald-400 transition-colors"
+                            className="p-1.5 rounded hover:bg-accent text-secondary hover:text-emerald-500 transition-colors"
                             title="Abrir no Terminal"
                           >
                             <Terminal className="w-3.5 h-3.5" />
@@ -844,7 +844,7 @@ export function DiskAnalyzer() {
                           {safety.level !== 'critical' && (
                             <button
                               onClick={() => handleDeleteItem(item)}
-                              className="p-1.5 rounded hover:bg-rose-500/10 text-secondary hover:text-rose-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-rose-500/15 text-secondary hover:text-rose-500 transition-colors"
                               title="Mover para a lixeira"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -913,10 +913,10 @@ export function DiskAnalyzer() {
               </div>
 
               <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-                <span className="text-[11px] text-zinc-500 font-mono">journalctl --vacuum-time=3d</span>
+                <span className="text-[11px] text-secondary font-mono">journalctl --vacuum-time=3d</span>
                 <button
                   onClick={() => handleNavigate('/var/log')}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-card border border-border hover:bg-accent text-primary text-xs font-semibold transition-all shadow-sm"
                 >
                   <span>Inspecionar /var/log</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -933,19 +933,19 @@ export function DiskAnalyzer() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-primary">Cache de Pacotes (APT / npm / pip)</h3>
-                    <span className="text-[11px] text-violet-400 font-mono">Liberação média: 1 a 4 GB</span>
+                    <span className="text-[11px] text-violet-500 dark:text-violet-400 font-mono">Liberação média: 1 a 4 GB</span>
                   </div>
                 </div>
                 <p className="text-xs text-secondary leading-relaxed mb-4">
-                  O gerenciador de pacotes retém arquivos <code className="text-violet-300">.deb</code> baixados em <code className="text-zinc-400">/var/cache/apt/archives</code>.
+                  O gerenciador de pacotes retém arquivos <code className="text-violet-400 dark:text-violet-300 font-semibold">.deb</code> baixados em <code className="text-secondary font-mono">/var/cache/apt/archives</code>.
                 </p>
               </div>
 
               <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-                <span className="text-[11px] text-zinc-500 font-mono">apt clean / apt autoclean</span>
+                <span className="text-[11px] text-secondary font-mono">apt clean / apt autoclean</span>
                 <button
                   onClick={() => handleNavigate('/var/cache')}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 border border-border hover:bg-neutral-800 text-primary text-xs font-semibold transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-card border border-border hover:bg-accent text-primary text-xs font-semibold transition-all shadow-sm"
                 >
                   <span>Inspecionar /var/cache</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -962,7 +962,7 @@ export function DiskAnalyzer() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-primary">Lixeira do Sistema & Temporários</h3>
-                    <span className="text-[11px] text-rose-400 font-mono">Esvaziamento Permanente</span>
+                    <span className="text-[11px] text-rose-500 dark:text-rose-400 font-mono font-semibold">Esvaziamento Permanente</span>
                   </div>
                 </div>
                 <p className="text-xs text-secondary leading-relaxed mb-4">
@@ -971,7 +971,7 @@ export function DiskAnalyzer() {
               </div>
 
               <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-                <span className="text-[11px] text-zinc-500 font-mono">DELETE /api/files/trash</span>
+                <span className="text-[11px] text-secondary font-mono">DELETE /api/files/trash</span>
                 <button
                   onClick={handleEmptyTrash}
                   disabled={isCleaningTrash}
@@ -990,65 +990,65 @@ export function DiskAnalyzer() {
       {activeTab === 'safety' && (
         <div className="space-y-4">
           <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5 flex items-start gap-3.5">
-            <ShieldAlert className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
+            <ShieldAlert className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-rose-300">Diretrizes de Proteção do Sistema de Arquivos Linux</h3>
-              <p className="text-xs text-rose-200/80 leading-relaxed">
+              <h3 className="text-sm font-bold text-rose-700 dark:text-rose-300">Diretrizes de Proteção do Sistema de Arquivos Linux</h3>
+              <p className="text-xs text-rose-900/80 dark:text-rose-200/80 leading-relaxed">
                 O Orbit bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que <strong>NUNCA</strong> deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-rose-500 font-bold text-sm">
                 <ShieldAlert className="w-4 h-4" />
                 <span>Pastas Críticas (Perigo Máximo 🔴)</span>
               </div>
               <ul className="space-y-2.5 text-xs text-secondary">
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
                   <strong className="text-primary font-mono block">/boot</strong>
                   Contém os kernels do Linux, Initramfs e Grub. Se apagado, o servidor não inicializará.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
                   <strong className="text-primary font-mono block">/var/lib/docker/overlay2</strong>
-                  Camadas internas do Docker. Nunca use <code className="text-rose-400">rm -rf</code> diretamente aqui. Use sempre <code className="text-sky-400">docker system prune</code>.
+                  Camadas internas do Docker. Nunca use <code className="text-rose-500 font-semibold">rm -rf</code> diretamente aqui. Use sempre <code className="text-sky-500 font-semibold">docker system prune</code>.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
                   <strong className="text-primary font-mono block">/etc</strong>
-                  Configurações globais do sistema operacional (<code className="text-zinc-300">fstab</code>, <code className="text-zinc-300">passwd</code>, rede, etc.).
+                  Configurações globais do sistema operacional (<code className="text-secondary font-mono">fstab</code>, <code className="text-secondary font-mono">passwd</code>, rede, etc.).
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
                   <strong className="text-primary font-mono block">/lib e /usr/lib</strong>
                   Bibliotecas compartilhadas (.so) necessárias para a execução de praticamente todos os binários do sistema.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
                   <strong className="text-primary font-mono block">/proc e /sys</strong>
                   Sistemas de arquivos virtuais gerados em memória RAM pelo kernel. Não ocupam espaço real em disco.
                 </li>
               </ul>
             </div>
 
-            <div className="bg-card/60 border border-border/80 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2 text-amber-500 font-bold text-sm">
                 <Sparkles className="w-4 h-4" />
                 <span>Pastas de Atenção & Limpeza Segura (🟡 / 🟢)</span>
               </div>
               <ul className="space-y-2.5 text-xs text-secondary">
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
-                  <strong className="text-emerald-400 font-mono block">/tmp e /var/tmp (🟢 Seguro)</strong>
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
+                  <strong className="text-emerald-500 font-mono block">/tmp e /var/tmp (🟢 Seguro)</strong>
                   Arquivos temporários de sessões e processos. Podem ser limpos com segurança.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
-                  <strong className="text-emerald-400 font-mono block">~/.cache (🟢 Seguro)</strong>
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
+                  <strong className="text-emerald-500 font-mono block">~/.cache (🟢 Seguro)</strong>
                   Caches de navegadores e ferramentas CLI. Podem ser excluídos sem perda de dados permanentes.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
-                  <strong className="text-amber-400 font-mono block">/var/lib (🟡 Atenção)</strong>
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
+                  <strong className="text-amber-500 font-mono block">/var/lib (🟡 Atenção)</strong>
                   Contém dados de bancos de dados ativos (Postgres, MySQL, Redis) e volumes de aplicações.
                 </li>
-                <li className="p-2.5 rounded-xl bg-neutral-900/80 border border-border/60">
-                  <strong className="text-amber-400 font-mono block">~/.config (🟡 Atenção)</strong>
+                <li className="p-2.5 rounded-xl bg-card border border-border/70 shadow-sm">
+                  <strong className="text-amber-500 font-mono block">~/.config (🟡 Atenção)</strong>
                   Preferências de usuário e chaves de configurações de aplicativos.
                 </li>
               </ul>

@@ -344,27 +344,27 @@ export function Logs() {
                 onChange={(e) => setLineLimit(Number(e.target.value))}
                 className="bg-transparent text-xs text-primary focus:outline-none font-mono cursor-pointer"
               >
-                <option value={100} className="bg-[#121620]">100</option>
-                <option value={250} className="bg-[#121620]">250</option>
-                <option value={500} className="bg-[#121620]">500</option>
-                <option value={1000} className="bg-[#121620]">1000</option>
-                <option value={2000} className="bg-[#121620]">2000</option>
+                <option value={100} className="bg-card text-primary">100</option>
+                <option value={250} className="bg-card text-primary">250</option>
+                <option value={500} className="bg-card text-primary">500</option>
+                <option value={1000} className="bg-card text-primary">1000</option>
+                <option value={2000} className="bg-card text-primary">2000</option>
               </select>
             </div>
 
             {/* Auto Refresh Select */}
             <div className="flex items-center gap-1.5 text-xs text-secondary bg-background/80 border border-border rounded-xl px-2.5 py-1">
-              <Clock className="w-3 h-3 text-orbit-400" />
+              <Clock className="w-3 h-3 text-orbit-500" />
               <span className="text-[11px] font-medium">Auto:</span>
               <select
                 value={autoRefreshInterval}
                 onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
                 className="bg-transparent text-xs text-primary focus:outline-none font-mono cursor-pointer"
               >
-                <option value={0} className="bg-[#121620]">Desativado</option>
-                <option value={2000} className="bg-[#121620]">2s</option>
-                <option value={5000} className="bg-[#121620]">5s</option>
-                <option value={10000} className="bg-[#121620]">10s</option>
+                <option value={0} className="bg-card text-primary">Desativado</option>
+                <option value={2000} className="bg-card text-primary">2s</option>
+                <option value={5000} className="bg-card text-primary">5s</option>
+                <option value={10000} className="bg-card text-primary">10s</option>
               </select>
             </div>
 
@@ -373,7 +373,7 @@ export function Logs() {
               onClick={() => setAutoScroll(!autoScroll)}
               className={`px-3 py-1 rounded-xl border text-xs font-medium transition-all ${
                 autoScroll
-                  ? 'bg-orbit-500/15 text-orbit-300 border-orbit-500/30'
+                  ? 'bg-orbit-500/15 text-orbit-600 dark:text-orbit-300 border-orbit-500/30'
                   : 'bg-background/80 text-secondary border-border hover:text-primary'
               }`}
               title="Rolar automaticamente para o final ao receber novos logs"
@@ -385,35 +385,35 @@ export function Logs() {
       )}
 
       {/* Modern Terminal / Log Viewer Frame */}
-      <div className={`bg-[#070a0f] rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col relative ${
+      <div className={`bg-card rounded-2xl border border-border/80 shadow-2xl overflow-hidden flex flex-col relative ${
         isFullscreen ? 'flex-1 h-full' : 'h-[66vh]'
       }`}>
         {/* Integrated Console Header */}
-        <div className="h-11 bg-[#0b0f17] border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-3 select-none shrink-0">
+        <div className="h-11 bg-muted/70 border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-3 select-none shrink-0">
           {/* Left: System Breadcrumb & Source Badge */}
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full shrink-0 ${
-                autoRefreshInterval > 0 && !loading ? 'bg-emerald-500 animate-pulse' : 'bg-orbit-400'
+                autoRefreshInterval > 0 && !loading ? 'bg-emerald-500 animate-pulse' : 'bg-orbit-500'
               }`} />
-              <TerminalIcon className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+              <TerminalIcon className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
             </div>
 
             <div className="flex items-center gap-1.5 font-mono text-xs truncate">
-              <span className="text-zinc-400 hidden sm:inline">orbit@host:</span>
-              <span className="text-orbit-300 font-semibold px-2 py-0.5 rounded-md bg-orbit-500/10 border border-orbit-500/20">
+              <span className="text-secondary hidden sm:inline">orbit@host:</span>
+              <span className="text-orbit-600 dark:text-orbit-300 font-semibold px-2 py-0.5 rounded-md bg-orbit-500/10 border border-orbit-500/20">
                 /var/log/{source}
               </span>
             </div>
 
             {/* Quick stats tags */}
             {logStats.errors > 0 && (
-              <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-mono">
+              <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-mono">
                 {logStats.errors} erros
               </span>
             )}
             {logStats.warnings > 0 && (
-              <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono">
+              <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[10px] font-mono">
                 {logStats.warnings} avisos
               </span>
             )}
@@ -421,12 +421,12 @@ export function Logs() {
 
           {/* Right: Counter, Status & Quick Action Toolbar */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
-              <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 hidden sm:inline">
+            <div className="flex items-center gap-2 font-mono text-[11px] text-secondary">
+              <span className="px-2 py-0.5 rounded bg-accent border border-border/60 hidden sm:inline">
                 {logs.length} linhas
               </span>
               {loading && (
-                <span className="text-orbit-400 flex items-center gap-1 text-[11px]">
+                <span className="text-orbit-500 flex items-center gap-1 text-[11px]">
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   <span className="hidden sm:inline">Atualizando...</span>
                 </span>
@@ -439,7 +439,7 @@ export function Logs() {
             <button
               onClick={handleCopyLogs}
               disabled={logs.length === 0}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1 disabled:opacity-40"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1 disabled:opacity-40"
               title="Copiar todos os logs"
             >
               <Copy className="w-3.5 h-3.5" />
@@ -449,7 +449,7 @@ export function Logs() {
             <button
               onClick={handleDownloadLogs}
               disabled={logs.length === 0}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1 disabled:opacity-40"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1 disabled:opacity-40"
               title="Baixar arquivo de log"
             >
               <Download className="w-3.5 h-3.5" />
@@ -458,7 +458,7 @@ export function Logs() {
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs flex items-center gap-1"
+              className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1"
               title={isFullscreen ? "Sair da tela cheia (Esc)" : "Expandir em tela cheia"}
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -468,21 +468,21 @@ export function Logs() {
 
         {/* Console Content Body */}
         {error ? (
-          <div className="flex-1 flex items-center justify-center p-8 text-rose-400 gap-3">
+          <div className="flex-1 flex items-center justify-center p-8 text-rose-500 gap-3">
             <AlertTriangle className="w-6 h-6 shrink-0" />
             <div>
               <p className="font-semibold text-sm">Falha ao carregar logs</p>
-              <p className="text-xs text-rose-400/80 mt-0.5">{error}</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400/80 mt-0.5">{error}</p>
             </div>
           </div>
         ) : (
           <div 
             ref={logsContainerRef}
-            className="flex-1 overflow-y-auto p-3 font-mono text-xs text-zinc-300 space-y-0.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent select-text"
+            className="flex-1 overflow-y-auto p-3 font-mono text-xs text-primary space-y-0.5 scrollbar-thin select-text bg-card"
           >
             {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-zinc-500 space-y-2 py-16">
-                <TerminalIcon className="w-8 h-8 stroke-1 text-zinc-600" />
+              <div className="flex flex-col items-center justify-center h-full text-secondary space-y-2 py-16">
+                <TerminalIcon className="w-8 h-8 stroke-1 text-secondary/60" />
                 <p className="italic text-xs">Nenhum registro de log encontrado para os filtros selecionados.</p>
               </div>
             ) : (
@@ -492,25 +492,25 @@ export function Logs() {
                 const isDebug = /debug/i.test(line);
                 const isInfo = /info/i.test(line);
 
-                let textColor = 'text-zinc-300';
-                let badgeColor = 'bg-zinc-800/80 text-zinc-400 border-zinc-700/60';
+                let textColor = 'text-primary';
+                let badgeColor = 'bg-accent text-secondary border-border/70';
                 let badgeText = 'LOG';
 
                 if (isError) {
-                  textColor = 'text-rose-300 font-medium';
-                  badgeColor = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                  textColor = 'text-rose-600 dark:text-rose-300 font-medium';
+                  badgeColor = 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30';
                   badgeText = 'ERR';
                 } else if (isWarn) {
-                  textColor = 'text-amber-300';
-                  badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                  textColor = 'text-amber-600 dark:text-amber-300 font-medium';
+                  badgeColor = 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30';
                   badgeText = 'WRN';
                 } else if (isDebug) {
-                  textColor = 'text-purple-300';
-                  badgeColor = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+                  textColor = 'text-purple-600 dark:text-purple-300';
+                  badgeColor = 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30';
                   badgeText = 'DBG';
                 } else if (isInfo) {
-                  textColor = 'text-emerald-300/90';
-                  badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+                  textColor = 'text-emerald-600 dark:text-emerald-300/90';
+                  badgeColor = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
                   badgeText = 'INF';
                 }
 
@@ -519,10 +519,10 @@ export function Logs() {
                 return (
                   <div 
                     key={i} 
-                    className="flex items-start gap-2.5 py-0.5 px-2 rounded-lg hover:bg-white/[0.04] transition-colors group relative"
+                    className="flex items-start gap-2.5 py-0.5 px-2 rounded-lg hover:bg-accent/60 transition-colors group relative"
                   >
                     {/* Line number */}
-                    <span className="text-[10px] text-zinc-600 select-none font-mono w-9 text-right shrink-0 pt-0.5 font-medium">
+                    <span className="text-[10px] text-secondary/60 select-none font-mono w-9 text-right shrink-0 pt-0.5 font-medium">
                       {i + 1}
                     </span>
 
@@ -539,10 +539,10 @@ export function Logs() {
                     {/* Quick copy single line button */}
                     <button
                       onClick={() => handleCopyLine(line, i)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-white bg-black/40 hover:bg-black/80 rounded border border-white/10 transition-all shrink-0 select-none"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-secondary hover:text-primary bg-card hover:bg-accent rounded border border-border/70 transition-all shrink-0 select-none shadow-sm"
                       title="Copiar esta linha"
                     >
-                      {isLineCopied ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      {isLineCopied ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                     </button>
                   </div>
                 );

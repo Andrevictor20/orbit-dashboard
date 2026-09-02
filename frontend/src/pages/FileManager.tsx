@@ -885,7 +885,7 @@ export function FileManager() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* SIDEBAR (ZIMA / NAUTILUS HYBRID DESIGN) */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card lg:bg-neutral-900/40 border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
             isStorageDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
@@ -920,7 +920,7 @@ export function FileManager() {
                   placeholder="Pesquisar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-neutral-900/80 border border-border/70 text-xs text-primary placeholder-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-colors"
+                  className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-colors shadow-inner"
                 />
                 {searchQuery && (
                   <button
@@ -943,7 +943,7 @@ export function FileManager() {
                     setIsCloudModalOpen(true);
                     setIsStorageDrawerOpen(false);
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-secondary hover:text-primary hover:bg-neutral-800/60 transition-all group"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-secondary hover:text-primary hover:bg-accent transition-all group"
                 >
                   <div className="flex items-center gap-2.5">
                     <Share className="w-4 h-4 text-violet-400 group-hover:scale-105 transition-transform" />
@@ -978,7 +978,7 @@ export function FileManager() {
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                         isActive
                           ? 'bg-orbit-500 text-white font-semibold shadow-md shadow-orbit-500/25'
-                          : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+                          : 'text-secondary hover:text-primary hover:bg-accent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
@@ -999,7 +999,7 @@ export function FileManager() {
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                     isTrashView
                       ? 'bg-rose-500 text-white font-semibold shadow-md shadow-rose-500/25'
-                      : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+                      : 'text-secondary hover:text-primary hover:bg-accent'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -1025,7 +1025,7 @@ export function FileManager() {
                 </h3>
                 <button
                   onClick={() => setShowLocationMenu(!showLocationMenu)}
-                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent transition-colors"
                   title="Conectar Nuvem / LAN"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1037,7 +1037,7 @@ export function FileManager() {
                 <div className="mb-2 p-1 bg-card border border-border/80 rounded-xl shadow-xl text-xs space-y-0.5 animate-in fade-in">
                   <button
                     onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors font-medium flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors font-medium flex items-center gap-2"
                   >
                     <Cloud className="w-3.5 h-3.5 text-sky-400" />
                     <span>Conectar Nuvem / SMB</span>
@@ -1067,7 +1067,7 @@ export function FileManager() {
                       className={`w-full text-left p-2.5 rounded-xl border transition-all ${
                         isActive
                           ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
-                          : 'bg-neutral-900/40 border-border/60 hover:bg-neutral-800/60 text-primary'
+                          : 'bg-card border-border/70 hover:bg-accent text-primary'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1.5">
@@ -1076,7 +1076,7 @@ export function FileManager() {
                       </div>
                       {st.total_bytes > 0 && (
                         <>
-                          <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden mb-1">
+                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-1">
                             <div
                               className={`h-full rounded-full transition-all ${
                                 pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
@@ -1107,7 +1107,7 @@ export function FileManager() {
                       className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
                         isCurrent
                           ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
-                          : 'border-border/60 bg-neutral-900/40 hover:bg-neutral-800/60 text-primary'
+                          : 'border-border/70 bg-card hover:bg-accent text-primary'
                       }`}
                     >
                       <button
@@ -1150,7 +1150,7 @@ export function FileManager() {
                 {/* Add Cloud / LAN Button */}
                 <button
                   onClick={() => setIsCloudModalOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-border/70 hover:border-orbit-500/50 hover:bg-neutral-800/40 text-xs text-secondary hover:text-primary transition-all group"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-border/70 hover:border-orbit-500/50 hover:bg-accent/60 text-xs text-secondary hover:text-primary transition-all group"
                 >
                   <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-orbit-400" />
                   <span>+ Cloud, LAN ou USB</span>
@@ -1167,7 +1167,7 @@ export function FileManager() {
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors font-medium ${
                 showHiddenFiles
                   ? 'bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 font-semibold'
-                  : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
+                  : 'text-secondary hover:text-primary hover:bg-accent'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1179,7 +1179,7 @@ export function FileManager() {
             
             <button
               onClick={() => loadFiles(currentPath)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-neutral-800/60 transition-colors font-medium"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-accent transition-colors font-medium"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Atualizar lista</span>
@@ -1196,18 +1196,18 @@ export function FileManager() {
               {/* Mobile Drawer Trigger */}
               <button
                 onClick={() => setIsStorageDrawerOpen(true)}
-                className="lg:hidden p-2 rounded-xl bg-neutral-900 border border-border text-secondary hover:text-primary transition-colors flex items-center gap-1.5 text-xs shrink-0"
+                className="lg:hidden p-2 rounded-xl bg-card border border-border text-secondary hover:text-primary hover:bg-accent transition-colors flex items-center gap-1.5 text-xs shrink-0 shadow-sm"
                 aria-label="Abrir locais de armazenamento"
               >
                 <HardDrive className="w-4 h-4 text-orbit-400" />
               </button>
 
               {/* History Back/Forward */}
-              <div className="flex items-center gap-1 bg-neutral-900/70 border border-border/70 p-0.5 rounded-xl shrink-0">
+              <div className="flex items-center gap-1 bg-accent/60 border border-border/70 p-0.5 rounded-xl shrink-0">
                 <button
                   onClick={handleGoBack}
                   disabled={historyIndex <= 0}
-                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                   title="Voltar"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -1215,7 +1215,7 @@ export function FileManager() {
                 <button
                   onClick={handleGoForward}
                   disabled={historyIndex >= history.length - 1}
-                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                   title="Avançar"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1228,7 +1228,7 @@ export function FileManager() {
                   {currentFolderName}
                 </h1>
                 {!isTrashView && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-neutral-800 text-secondary border border-border/50 shrink-0">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent text-secondary border border-border/60 shrink-0">
                     {filteredFiles.length} {filteredFiles.length === 1 ? 'item' : 'itens'}
                   </span>
                 )}
@@ -1236,14 +1236,14 @@ export function FileManager() {
             </div>
 
             {/* Right Action Toolbar */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap sm:flex-nowrap">
               {!isTrashView && (
                 <>
                   {/* Create / New Menu */}
                   <div className="relative">
                     <button
                       onClick={() => setShowCreateMenu(!showCreateMenu)}
-                      className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                      className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
                       title="Novo arquivo ou pasta"
                     >
                       <Plus className="w-4 h-4" />
@@ -1257,7 +1257,7 @@ export function FileManager() {
                             setOpTargetItem(null);
                             setOpModalType('new_folder');
                           }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors"
                         >
                           <FolderPlus className="w-4 h-4 text-amber-400" />
                           <span>Nova pasta</span>
@@ -1268,7 +1268,7 @@ export function FileManager() {
                             setOpTargetItem(null);
                             setOpModalType('new_file');
                           }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors"
                         >
                           <FilePlus className="w-4 h-4 text-emerald-400" />
                           <span>Novo arquivo</span>
@@ -1280,7 +1280,7 @@ export function FileManager() {
                   {/* Disk Space Analyzer Button */}
                   <Link
                     to={`/disk-analyzer?path=${encodeURIComponent(currentPath)}`}
-                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-violet-400 hover:bg-neutral-800 transition-colors"
+                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-violet-500 hover:bg-accent transition-colors shadow-sm"
                     title="Analisador de Espaço em Disco"
                   >
                     <PieChart className="w-4 h-4" />
@@ -1289,7 +1289,7 @@ export function FileManager() {
                   {/* Open in Terminal Button */}
                   <Link
                     to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
-                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-emerald-400 hover:bg-neutral-800 transition-colors"
+                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-emerald-500 hover:bg-accent transition-colors shadow-sm"
                     title="Abrir Terminal Aqui"
                   >
                     <Terminal className="w-4 h-4" />
@@ -1298,7 +1298,7 @@ export function FileManager() {
                   {/* Refresh Button */}
                   <button
                     onClick={() => loadFiles(currentPath)}
-                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
                     title="Atualizar pasta"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -1307,18 +1307,18 @@ export function FileManager() {
                   {/* Primary CTA: Import / Upload Button */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all active:scale-95"
                     title="Importar ou carregar arquivos"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Importar</span>
+                    <span className="hidden xs:inline">Importar</span>
                   </button>
 
                   {/* Clipboard Paste button */}
                   {clipboard && (
                     <button
                       onClick={handlePaste}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orbit-500/15 text-orbit-500 dark:text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
                       title={`Colar ${clipboard.items.length} item(s)`}
                     >
                       <Clipboard className="w-3.5 h-3.5" />
@@ -1330,7 +1330,7 @@ export function FileManager() {
                   <div className="relative">
                     <button
                       onClick={() => setShowSortMenu(!showSortMenu)}
-                      className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                      className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
                       title="Ordenar arquivos"
                     >
                       <ArrowUpDown className="w-4 h-4" />
@@ -1340,21 +1340,21 @@ export function FileManager() {
                       <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
                         <button
                           onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                         >
                           <span>Nome</span>
                           {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
                         </button>
                         <button
                           onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                         >
                           <span>Tamanho</span>
                           {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
                         </button>
                         <button
                           onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-neutral-800 transition-colors"
+                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                         >
                           <span>Modificado</span>
                           {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
@@ -1367,7 +1367,7 @@ export function FileManager() {
                   <button
                     data-testid="view-mode-toggle"
                     onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
-                    className="p-2 rounded-xl border border-border/80 bg-neutral-900/80 text-secondary hover:text-primary hover:bg-neutral-800 transition-colors"
+                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
                     title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
                   >
                     {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
@@ -1570,8 +1570,8 @@ export function FileManager() {
                         selected
                           ? 'bg-orbit-500/15 border-orbit-500/50 ring-2 ring-orbit-500/30 shadow-lg'
                           : item.is_hidden
-                          ? 'bg-neutral-900/30 border-border/60 opacity-60 hover:opacity-100 hover:bg-neutral-900/60 hover:border-border'
-                          : 'bg-neutral-900/40 border-border/70 hover:bg-neutral-900/80 hover:border-orbit-500/40 hover:shadow-xl hover:-translate-y-0.5'
+                          ? 'bg-card/70 border-border/60 opacity-60 hover:opacity-100 hover:bg-accent/60 hover:border-border'
+                          : 'bg-card border-border/70 hover:bg-accent/70 hover:border-orbit-500/40 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
                       }`}
                     >
                       {/* Selection Checkbox */}
@@ -1580,7 +1580,7 @@ export function FileManager() {
                         className={`absolute top-2.5 left-2.5 z-10 w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
                           selected
                             ? 'bg-orbit-500 border-orbit-500 text-white'
-                            : 'border-border bg-black/60 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
+                            : 'border-border bg-card/90 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
                         }`}
                         title={selected ? 'Desmarcar' : 'Selecionar'}
                       >
@@ -1610,13 +1610,13 @@ export function FileManager() {
                       </div>
 
                       {/* Quick Action Overlay on hover */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-neutral-900/95 rounded-lg p-0.5 shadow-md border border-border/80 z-10">
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 backdrop-blur-md rounded-lg p-0.5 shadow-md border border-border/80 z-10">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setShareFile(item);
                           }}
-                          className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-neutral-800"
+                          className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-accent"
                           title="Compartilhar"
                         >
                           <Share2 className="w-3 h-3" />
@@ -1627,7 +1627,7 @@ export function FileManager() {
                               e.stopPropagation();
                               handleExtractArchive(item);
                             }}
-                            className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-neutral-800"
+                            className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-accent"
                             title="Extrair Arquivo"
                           >
                             <Archive className="w-3 h-3" />
@@ -1638,7 +1638,7 @@ export function FileManager() {
                             e.stopPropagation();
                             handleDownload(item);
                           }}
-                          className="p-1 rounded text-secondary hover:text-primary hover:bg-neutral-800"
+                          className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
                           title="Download"
                         >
                           <Download className="w-3 h-3" />
@@ -1649,7 +1649,7 @@ export function FileManager() {
                             setOpTargetItem(item);
                             setOpModalType('rename');
                           }}
-                          className="p-1 rounded text-secondary hover:text-primary hover:bg-neutral-800"
+                          className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
                           title="Renomear"
                         >
                           <Edit3 className="w-3 h-3" />
@@ -1661,10 +1661,10 @@ export function FileManager() {
               </div>
             ) : (
               /* LIST VIEW */
-              <div className="bg-neutral-900/40 border border-border/70 rounded-2xl overflow-hidden shadow-md">
+              <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-neutral-900/70 text-secondary border-b border-border/80 select-none font-semibold">
+                    <thead className="bg-muted/60 text-secondary border-b border-border/80 select-none font-semibold">
                       <tr>
                         <th className="py-3 px-4 w-8">
                           <button onClick={selectAll} className="p-0.5 rounded hover:bg-accent">
@@ -1709,7 +1709,7 @@ export function FileManager() {
                               }
                             }}
                             onClick={() => handleItemClick(item)}
-                            className={`hover:bg-neutral-800/40 transition-colors cursor-pointer ${
+                            className={`hover:bg-accent/60 transition-colors cursor-pointer ${
                               selected ? 'bg-orbit-500/10' : ''
                             } ${item.is_hidden ? 'opacity-60 hover:opacity-100' : ''}`}
                           >
@@ -1741,7 +1741,7 @@ export function FileManager() {
                                     e.stopPropagation();
                                     setShareFile(item);
                                   }}
-                                  className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-neutral-800"
+                                  className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-accent"
                                   title="Compartilhar"
                                 >
                                   <Share2 className="w-3.5 h-3.5" />
@@ -1752,7 +1752,7 @@ export function FileManager() {
                                       e.stopPropagation();
                                       handleExtractArchive(item);
                                     }}
-                                    className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-neutral-800"
+                                    className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-accent"
                                     title="Extrair"
                                   >
                                     <Archive className="w-3.5 h-3.5" />
@@ -1763,7 +1763,7 @@ export function FileManager() {
                                     e.stopPropagation();
                                     handleDownload(item);
                                   }}
-                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800"
+                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
                                   title="Download"
                                 >
                                   <Download className="w-3.5 h-3.5" />
@@ -1774,7 +1774,7 @@ export function FileManager() {
                                     setOpTargetItem(item);
                                     setOpModalType('rename');
                                   }}
-                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-neutral-800"
+                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
                                   title="Renomear"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
@@ -1801,7 +1801,7 @@ export function FileManager() {
                   setIsEditingPath(!isEditingPath);
                 }}
                 className={`p-1 rounded-md transition-colors ${
-                  isEditingPath ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary hover:bg-neutral-800'
+                  isEditingPath ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary hover:bg-accent'
                 }`}
                 title="Editar caminho manualmente"
               >
@@ -1814,10 +1814,10 @@ export function FileManager() {
                     type="text"
                     value={manualPathInput}
                     onChange={(e) => setManualPathInput(e.target.value)}
-                    className="w-full px-2.5 py-1 rounded-lg bg-neutral-900 border border-orbit-500 text-xs text-primary focus:outline-none"
+                    className="w-full px-2.5 py-1 rounded-lg bg-background border border-orbit-500 text-xs text-primary focus:outline-none shadow-sm"
                     autoFocus
                   />
-                  <button type="submit" className="px-2 py-1 rounded-lg bg-orbit-500 text-white text-xs font-semibold">
+                  <button type="submit" className="px-2 py-1 rounded-lg bg-orbit-500 text-white text-xs font-semibold shadow-sm">
                     Ir
                   </button>
                   <button 
@@ -1841,7 +1841,7 @@ export function FileManager() {
                         {crumb.label}
                       </button>
                       {idx < arr.length - 1 && (
-                        <span className="text-zinc-600">/</span>
+                        <span className="text-secondary/50">/</span>
                       )}
                     </React.Fragment>
                   ))}
@@ -1851,8 +1851,8 @@ export function FileManager() {
 
             {/* Right: Storage Capacity View */}
             {primaryStorage && primaryStorage.total_bytes > 0 && (
-              <div className="flex items-center gap-2.5 text-secondary font-mono text-[11px] shrink-0 bg-neutral-900/60 px-3 py-1 rounded-xl border border-border/60">
-                <div className="w-16 sm:w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden shrink-0">
+              <div className="flex items-center gap-2.5 text-secondary font-mono text-[11px] shrink-0 bg-accent/60 px-3 py-1 rounded-xl border border-border/70 shadow-sm">
+                <div className="w-16 sm:w-24 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
                   <div
                     className="h-full bg-orbit-500 rounded-full transition-all"
                     style={{

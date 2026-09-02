@@ -32,6 +32,7 @@ import { useInstall } from '../../contexts/InstallContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supportedLanguages } from '../../i18n';
 import { InstallProgressModal } from '../docker/InstallProgressModal';
+import { BatchUpdateFloatingBar } from '../docker/BatchUpdateFloatingBar';
 import { ProfileModal } from './ProfileModal';
 import { UpdateModal, type SystemUpdateInfo } from '../system/UpdateModal';
 import { OrbitLogo } from '../ui/OrbitLogo';
@@ -109,7 +110,7 @@ function CustomDropdown({ icon: Icon, value, options, onChange, label }: { icon:
         aria-label={label}
       >
         <Icon className="w-3.5 h-3.5 shrink-0" />
-        <span className="text-xs font-medium max-w-[80px] sm:max-w-[120px] truncate">{selectedOption.label}</span>
+        <span className="hidden md:inline text-xs font-medium max-w-[80px] sm:max-w-[120px] truncate">{selectedOption.label}</span>
         <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
@@ -401,6 +402,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <InstallProgressModal />
+      <BatchUpdateFloatingBar />
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
       <UpdateModal
         isOpen={isUpdateModalOpen}

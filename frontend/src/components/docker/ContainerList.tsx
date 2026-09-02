@@ -3,19 +3,20 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, 
-  PlayCircle, ExternalLink, Link as LinkIcon, Settings2, X, Globe, 
+  PlayCircle, ExternalLink, Settings2, X, Globe, 
   DownloadCloud, Layers, ChevronDown, ChevronRight, Terminal 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
-import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
 import { resolveWebUrl } from '../../utils/url';
+import { groupContainers, getContainerWebLink, getSortedDeduplicatedPorts, type GroupContainerItem } from '../../utils/containerGroups';
 import { AppGroupModal } from './AppGroupModal';
 import { DockerInstallModal } from './DockerInstallModal';
 import { BatchUpdateModal } from './BatchUpdateModal';
 import { ContainerIcon } from '../ui/ContainerIcon';
+import { useBatchUpdate } from '../../contexts/BatchUpdateContext';
 
 interface PortInfo {
   ip?: string;
@@ -58,7 +59,7 @@ export function ContainerList() {
   const [primarySelectorModal, setPrimarySelectorModal] = useState<{ isOpen: boolean; group: GroupContainerItem | null }>({ isOpen: false, group: null });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
-  const [batchUpdateModal, setBatchUpdateModal] = useState<{ isOpen: boolean; initialId?: string }>({ isOpen: false });
+  const { isModalOpen, openModal, closeModal } = useBatchUpdate();
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
   const [linkModal, setLinkModal] = useState<{ isOpen: boolean, containerId: string | null }>({ isOpen: false, containerId: null });
   const [linkInput, setLinkInput] = useState('');
@@ -222,7 +223,7 @@ export function ContainerList() {
   }, [containers, updatesMap]);
 
   const handleUpdateAllContainers = () => {
-    setBatchUpdateModal({ isOpen: true });
+    openModal();
   };
 
   const handleSelectStackPrimary = (groupKey: string, containerId: string, containerName: string) => {
@@ -235,8 +236,17 @@ export function ContainerList() {
 
   const handleUpdateContainer = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setBatchUpdateModal({ isOpen: true, initialId: id });
+    openModal(id);
   };
+
+  useEffect(() => {
+    const handleContainersUpdated = () => {
+      fetchContainers(false);
+      fetchUpdates();
+    };
+    window.addEventListener('orbit:containers-updated', handleContainersUpdated);
+    return () => window.removeEventListener('orbit:containers-updated', handleContainersUpdated);
+  }, []);
 
   useEffect(() => {
     fetchContainers();
@@ -561,37 +571,64 @@ export function ContainerList() {
                   {/* Stack Network / Ports / Web Link row */}
                   <div className="flex items-center justify-between text-xs text-secondary gap-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                      {group.primaryContainer.ports && group.primaryContainer.ports.length > 0 ? (
-                        <div className="flex items-center gap-1 overflow-hidden">
-                          {group.primaryContainer.ports.slice(0, 2).map((p, idx) => {
-                            const targetUrl = resolveWebUrl(p.public_port || p.private_port);
-                            return (
-                              <div key={idx} className="flex items-center gap-1 font-mono text-[11px] bg-background px-1.5 py-0.5 rounded border border-border/50">
-                                {p.public_port ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.open(targetUrl, '_blank');
-                                    }}
-                                    className="text-orbit-400 hover:underline flex items-center gap-1"
-                                    title={`Abrir ${targetUrl}`}
+                      {(() => {
+                        const sortedPorts = getSortedDeduplicatedPorts(
+                          group.primaryContainer.ports,
+                          group.primaryContainer.image,
+                          group.primaryContainer.name,
+                          group.primaryContainer.labels
+                        );
+                        if (sortedPorts.length > 0) {
+                          return (
+                            <div className="flex items-center gap-1 overflow-hidden">
+                              {sortedPorts.slice(0, 2).map((p, idx) => {
+                                const targetUrl = resolveWebUrl(p.public_port || p.private_port);
+                                const isPrimary = idx === 0 && Boolean(p.public_port || p.private_port);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
+                                      isPrimary
+                                        ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
+                                        : 'bg-background border-border/50 text-secondary'
+                                    }`}
                                   >
-                                    <span>{p.public_port}:{p.private_port}</span>
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                  </button>
-                                ) : (
-                                  <span>{p.private_port}/{p.typ}</span>
-                                )}
-                              </div>
-                            );
-                          })}
-                          {group.primaryContainer.ports.length > 2 && (
-                            <span className="text-[10px] text-secondary">+{group.primaryContainer.ports.length - 2}</span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>
-                      )}
+                                    {p.public_port ? (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(targetUrl, '_blank');
+                                        }}
+                                        className="hover:underline flex items-center gap-1 cursor-pointer"
+                                        title={`Abrir porta principal: ${targetUrl}`}
+                                      >
+                                        <span>{p.public_port}:{p.private_port}</span>
+                                        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(targetUrl, '_blank');
+                                        }}
+                                        className="hover:underline flex items-center gap-1 cursor-pointer"
+                                        title={`Abrir porta: ${targetUrl}`}
+                                      >
+                                        <span>{p.private_port}/{p.typ || 'tcp'}</span>
+                                        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {sortedPorts.length > 2 && (
+                                <span className="text-[10px] text-secondary font-mono">+{sortedPorts.length - 2}</span>
+                              )}
+                            </div>
+                          );
+                        }
+                        return <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>;
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
@@ -726,71 +763,99 @@ export function ContainerList() {
                 </div>
 
                 {/* Network / Ports / Custom Link Status */}
-                <div className="flex items-center justify-between text-xs text-secondary">
+                <div className="flex items-center justify-between text-xs text-secondary gap-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1.5 overflow-hidden">
-                    {c.ports && c.ports.length > 0 ? (
-                      <div className="flex items-center gap-1 overflow-hidden">
-                        {c.ports.slice(0, 2).map((p, idx) => {
-                          const targetUrl = resolveWebUrl(p.public_port || p.private_port);
-                          return (
-                            <div key={idx} className="flex items-center gap-1 font-mono text-[11px] bg-background px-1.5 py-0.5 rounded border border-border/50">
-                              {p.public_port ? (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(targetUrl, '_blank');
-                                  }}
-                                  className="text-orbit-400 hover:underline flex items-center gap-1"
-                                  title={`Abrir ${targetUrl}`}
+                    {(() => {
+                      const sortedPorts = getSortedDeduplicatedPorts(c.ports, c.image, c.name, c.labels);
+                      if (sortedPorts.length > 0) {
+                        return (
+                          <div className="flex items-center gap-1 overflow-hidden">
+                            {sortedPorts.slice(0, 2).map((p, idx) => {
+                              const targetUrl = resolveWebUrl(p.public_port || p.private_port);
+                              const isPrimary = idx === 0 && Boolean(p.public_port || p.private_port);
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
+                                    isPrimary
+                                      ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
+                                      : 'bg-background border-border/50 text-secondary'
+                                  }`}
                                 >
-                                  <span>{p.public_port}:{p.private_port}</span>
-                                  <ExternalLink className="w-2.5 h-2.5" />
-                                </button>
-                              ) : (
-                                <span>{p.private_port}/{p.typ}</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {c.ports.length > 2 && (
-                          <span className="text-[10px] text-secondary">+{c.ports.length - 2}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>
-                    )}
+                                  {p.public_port ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(targetUrl, '_blank');
+                                      }}
+                                      className="hover:underline flex items-center gap-1 cursor-pointer"
+                                      title={`Abrir porta principal: ${targetUrl}`}
+                                    >
+                                      <span>{p.public_port}:{p.private_port}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(targetUrl, '_blank');
+                                      }}
+                                      className="hover:underline flex items-center gap-1 cursor-pointer"
+                                      title={`Abrir porta: ${targetUrl}`}
+                                    >
+                                      <span>{p.private_port}/{p.typ || 'tcp'}</span>
+                                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {sortedPorts.length > 2 && (
+                              <span className="text-[10px] text-secondary font-mono">+{sortedPorts.length - 2}</span>
+                            )}
+                          </div>
+                        );
+                      }
+                      return <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>;
+                    })()}
                   </div>
 
-                  {customLinks[c.id] ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(resolveWebUrl(customLinks[c.id]), '_blank');
-                        }}
-                        className="glass-button px-2 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30"
-                        title={customLinks[c.id]}
-                      >
-                        <Globe className="w-3 h-3 text-orbit-400" />
-                        <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
-                      </button>
+                  {(() => {
+                    const webLink = getContainerWebLink(c, customLinks);
+                    if (webLink) {
+                      return (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(webLink, '_blank');
+                            }}
+                            className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
+                            title={`Abrir ${c.name} (${webLink})`}
+                          >
+                            <Globe className="w-3 h-3 text-orbit-400" />
+                            <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handleSetCustomLink(e, c.id)}
+                            className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors border border-border/50"
+                            title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
+                          >
+                            <Settings2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
                       <button
                         onClick={(e) => handleSetCustomLink(e, c.id)}
-                        className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors"
+                        className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
                         title="Configurar Link"
                       >
-                        <Settings2 className="w-3 h-3" />
+                        <Settings2 className="w-3.5 h-3.5" />
                       </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={(e) => handleSetCustomLink(e, c.id)}
-                      className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
-                      title="Editar Link"
-                    >
-                      <Settings2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Action Controls Bar */}
@@ -1092,15 +1157,16 @@ export function ContainerList() {
                       <div className="flex justify-end gap-2 items-center">
                         {/* Tabela: Links Rápidos */}
                         {(() => {
-                          const firstPublic = c.ports?.find(p => p.public_port);
-                          if (firstPublic) {
-                            const targetUrl = resolveWebUrl(firstPublic.public_port);
+                          const webLink = getContainerWebLink(c, customLinks);
+                          if (webLink) {
                             return (
                               <button 
-                                onClick={(e) => { e.stopPropagation(); window.open(targetUrl, '_blank'); }}
-                                className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title={`Abrir ${targetUrl}`}
+                                onClick={(e) => { e.stopPropagation(); window.open(webLink, '_blank'); }}
+                                className="px-2 py-1 rounded glass-button text-orbit-400 hover:text-orbit-300 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1 font-medium" 
+                                title={`Abrir ${c.name} (${webLink})`}
                               >
-                                <ExternalLink className="w-3.5 h-3.5" />
+                                <Globe className="w-3.5 h-3.5 text-orbit-400" />
+                                <span className="hidden xl:inline">{t('containers.open_app')}</span>
                               </button>
                             );
                           }
@@ -1110,15 +1176,12 @@ export function ContainerList() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (customLinks[c.id]) {
-                              window.open(resolveWebUrl(customLinks[c.id]), '_blank');
-                            } else {
-                              handleSetCustomLink(e, c.id);
-                            }
+                            handleSetCustomLink(e, c.id);
                           }}
-                          className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" title={customLinks[c.id] ? 'Acessar App' : 'Add Link'}
+                          className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" 
+                          title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
                         >
-                          <LinkIcon className="w-3.5 h-3.5" />
+                          <Settings2 className="w-3.5 h-3.5" />
                         </button>
 
                         <div className="w-px h-4 bg-border mx-1"></div>
@@ -1425,11 +1488,10 @@ export function ContainerList() {
 
       {/* Batch Container Update Modal */}
       <BatchUpdateModal
-        isOpen={batchUpdateModal.isOpen}
-        onClose={() => setBatchUpdateModal({ isOpen: false })}
+        isOpen={isModalOpen}
+        onClose={closeModal}
         containers={containers}
         updatesMap={updatesMap}
-        initialSelectedId={batchUpdateModal.initialId}
         onUpdateComplete={async () => {
           await fetchContainers(false);
           await fetchUpdates();

@@ -39,7 +39,7 @@ export function Terminal() {
   return (
     <div className={`flex flex-col animate-in fade-in zoom-in-95 duration-300 ${
       isFullscreen 
-        ? 'fixed inset-0 z-50 bg-[#070a0e] p-3 sm:p-5 w-screen h-screen' 
+        ? 'fixed inset-0 z-50 bg-background p-3 sm:p-5 w-screen h-screen' 
         : 'h-[calc(100vh-7.5rem)] sm:h-[calc(100vh-8.5rem)] w-full'
     }`}>
       {/* Top Header (only when not in fullscreen) */}
@@ -48,7 +48,7 @@ export function Terminal() {
           <div>
             <div className="flex items-center gap-2.5">
               <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">{t('sidebar.terminal', 'Terminal Web')}</h2>
-              <span className="px-2 py-0.5 rounded-full bg-orbit-500/15 border border-orbit-500/30 text-orbit-300 text-xs font-semibold flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded-full bg-orbit-500/15 border border-orbit-500/30 text-orbit-400 text-xs font-semibold flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-orbit-400" />
                 {t('terminal.secure_ssh', 'SSH Seguro')}
               </span>
@@ -59,29 +59,29 @@ export function Terminal() {
       )}
 
       {/* Main Terminal Frame with Tab Bar */}
-      <div className={`flex-1 w-full bg-[#090d13] border border-border/80 rounded-xl overflow-hidden shadow-2xl flex flex-col relative ${
+      <div className={`flex-1 w-full bg-card border border-border/80 rounded-xl overflow-hidden shadow-2xl flex flex-col relative ${
         isFullscreen ? 'h-full border-orbit-500/40' : ''
       }`}>
         
         {/* Browser-style Tab Bar */}
-        <div className="flex items-end bg-[#0d1117] border-b border-border/70 select-none overflow-x-auto overflow-y-hidden shrink-0 scrollbar-hide px-2 pt-2 h-11">
+        <div className="flex items-end bg-muted/60 border-b border-border/70 select-none overflow-x-auto overflow-y-hidden shrink-0 scrollbar-hide px-2 pt-2 h-11">
           {tabs.map((tab) => (
             <div
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`group flex items-center gap-2 px-4 py-1.5 min-w-[140px] max-w-[200px] rounded-t-lg border-t border-x cursor-pointer transition-colors h-full ${
                 activeTab === tab.id
-                  ? 'bg-[#090d13] border-orbit-500/50 border-b-transparent text-orbit-400 z-10 relative top-[1px]'
-                  : 'bg-[#161b22] border-transparent text-secondary hover:bg-white/5 hover:text-primary mb-[1px]'
+                  ? 'bg-card border-border/80 border-b-transparent text-primary font-semibold z-10 relative top-[1px] shadow-sm'
+                  : 'bg-muted/40 border-transparent text-secondary hover:bg-accent hover:text-primary mb-[1px]'
               }`}
             >
-              <div className={`w-2 h-2 rounded-full shrink-0 ${activeTab === tab.id ? 'bg-orbit-500' : 'bg-zinc-600 group-hover:bg-zinc-400'}`} />
+              <div className={`w-2 h-2 rounded-full shrink-0 ${activeTab === tab.id ? 'bg-orbit-500' : 'bg-muted-foreground/50 group-hover:bg-muted-foreground'}`} />
               <span className="text-xs font-medium truncate flex-1">{tab.title}</span>
               {tabs.length > 1 && (
                 <button
                   onClick={(e) => closeTab(e, tab.id)}
                   className={`p-1 rounded-md shrink-0 transition-opacity ${
-                    activeTab === tab.id ? 'hover:bg-orbit-500/20 hover:text-orbit-300' : 'opacity-0 group-hover:opacity-100 hover:bg-white/10 hover:text-white'
+                    activeTab === tab.id ? 'hover:bg-accent hover:text-primary' : 'opacity-0 group-hover:opacity-100 hover:bg-accent hover:text-primary'
                   }`}
                 >
                   <X className="w-3 h-3" />
@@ -92,7 +92,7 @@ export function Terminal() {
           
           <button
             onClick={addTab}
-            className="ml-2 mb-1 p-1.5 text-secondary hover:text-white hover:bg-white/10 rounded-lg transition-colors flex shrink-0"
+            className="ml-2 mb-1 p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors flex shrink-0"
             title="Nova Aba"
           >
             <Plus className="w-4 h-4" />
@@ -100,7 +100,7 @@ export function Terminal() {
         </div>
 
         {/* Sessions Container */}
-        <div className="flex-1 w-full relative overflow-hidden bg-[#090d13]">
+        <div className="flex-1 w-full relative overflow-hidden bg-card">
           {tabs.map((tab) => (
             <TerminalSession
               key={tab.id}

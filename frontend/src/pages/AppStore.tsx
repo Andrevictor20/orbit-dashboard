@@ -22,7 +22,8 @@ import {
   Flame, 
   Layers,
   ArrowRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
@@ -36,6 +37,14 @@ interface AppStoreItem {
   icon: string;
   category: string;
   store: string;
+}
+
+interface DockerContainerLite {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  labels?: Record<string, string>;
 }
 
 // Global in-memory cache for instant navigation without loading states
@@ -79,6 +88,7 @@ export function AppStore() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [apps, setApps] = useState<AppStoreItem[]>(() => globalAppsCache);
+  const [installedContainers, setInstalledContainers] = useState<DockerContainerLite[]>([]);
   const [loading, setLoading] = useState<boolean>(() => globalAppsCache.length === 0);
   const [syncing, setSyncing] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
@@ -87,7 +97,25 @@ export function AppStore() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Discover');
   const [selectedStore, setSelectedStore] = useState<string>('All');
   const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
+
+  const fetchInstalledContainers = async () => {
+    try {
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch('/api/docker/containers', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setInstalledContainers(data);
+        }
+      }
+    } catch {
+      // Ignore background container fetch errors
+    }
+  };
 
   const fetchApps = async (retryCount = 0) => {
     try {
@@ -121,6 +149,7 @@ export function AppStore() {
 
   useEffect(() => {
     fetchApps();
+    fetchInstalledContainers();
   }, []);
 
   const handleSync = async () => {
@@ -179,6 +208,50 @@ export function AppStore() {
   }, [apps]);
 
   const stores = useMemo(() => ['All', ...Array.from(new Set(apps.map(app => app.store)))].sort(), [apps]);
+
+  // Determine if an app from the store is already installed locally
+  const isAppInstalled = useMemo(() => {
+    const installedIdentifiers = new Set<string>();
+    installedContainers.forEach(c => {
+      const cleanName = (c.name || '').replace(/^\//, '').toLowerCase().trim();
+      if (cleanName) {
+        installedIdentifiers.add(cleanName);
+        installedIdentifiers.add(cleanName.replace(/[^a-z0-9]/g, ''));
+      }
+      if (c.labels) {
+        if (c.labels['com.docker.compose.project']) {
+          const proj = c.labels['com.docker.compose.project'].toLowerCase().trim();
+          installedIdentifiers.add(proj);
+          installedIdentifiers.add(proj.replace(/[^a-z0-9]/g, ''));
+        }
+        if (c.labels['com.docker.compose.service']) {
+          const srv = c.labels['com.docker.compose.service'].toLowerCase().trim();
+          installedIdentifiers.add(srv);
+          installedIdentifiers.add(srv.replace(/[^a-z0-9]/g, ''));
+        }
+      }
+      const rawImage = (c.image || '').split(':')[0].split('/').pop()?.toLowerCase().trim();
+      if (rawImage) {
+        installedIdentifiers.add(rawImage);
+        installedIdentifiers.add(rawImage.replace(/[^a-z0-9]/g, ''));
+      }
+    });
+
+    return (app: AppStoreItem) => {
+      if (!app) return false;
+      const id = (app.id || '').toLowerCase().trim();
+      const idSimple = id.replace(/[^a-z0-9]/g, '');
+      const name = (app.name || '').toLowerCase().trim();
+      const nameSimple = name.replace(/[^a-z0-9]/g, '');
+
+      return (
+        installedIdentifiers.has(id) || 
+        installedIdentifiers.has(idSimple) ||
+        installedIdentifiers.has(name) ||
+        installedIdentifiers.has(nameSimple)
+      );
+    };
+  }, [installedContainers]);
 
   // Featured apps for Hero Banner
   const featuredApps = useMemo(() => {
@@ -276,98 +349,122 @@ export function AppStore() {
             />
           </div>
 
-          {/* Store Catalog Selector */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
-                Origem do Catálogo
-              </label>
-              <SlidersHorizontal className="w-3 h-3 text-secondary/70" />
-            </div>
-            <select 
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="w-full px-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
+          {/* Category Mobile / Small screen toggle button */}
+          <div className="lg:hidden">
+            <button
+              onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-accent/60 border border-border text-xs font-semibold text-primary transition-all hover:bg-accent"
             >
-              {stores.map(store => (
-                <option key={store} value={store}>
-                  {store === 'All' ? t('store.all_stores') : store}
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-orbit-500" />
+                <span>Categorias & Filtros ({selectedCategory === 'All' ? 'Todas' : selectedCategory})</span>
+              </div>
+              <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isCategoryMenuOpen ? 'rotate-90 text-primary' : 'text-secondary'}`} />
+            </button>
           </div>
 
-          <div className="h-px bg-border/50 my-1" />
-
-          {/* Navigation Category List */}
-          <div className="space-y-1">
-            <div className="text-[11px] font-semibold text-secondary uppercase tracking-wider px-2 mb-2">
-              Categorias
+          {/* Collapsible content wrapper for small screens, always visible on large screens */}
+          <div className={`space-y-4 ${isCategoryMenuOpen ? 'block' : 'hidden lg:block'}`}>
+            {/* Store Catalog Selector */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between px-1">
+                <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+                  Origem do Catálogo
+                </label>
+                <SlidersHorizontal className="w-3 h-3 text-secondary/70" />
+              </div>
+              <select 
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="w-full px-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
+              >
+                {stores.map(store => (
+                  <option key={store} value={store}>
+                    {store === 'All' ? t('store.all_stores') : store}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Discover Button */}
-            <button
-              onClick={() => {
-                setSelectedCategory('Discover');
-                setSearch('');
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                selectedCategory === 'Discover' && !search
-                  ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                  : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Compass className="w-4 h-4" />
-                <span>Descobrir</span>
+            <div className="h-px bg-border/50 my-1" />
+
+            {/* Navigation Category List */}
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-secondary uppercase tracking-wider px-2 mb-2">
+                Categorias
               </div>
-              <Sparkles className={`w-3 h-3 ${selectedCategory === 'Discover' && !search ? 'text-white' : 'text-orbit-400 opacity-60'}`} />
-            </button>
 
-            {/* All Apps Button */}
-            <button
-              onClick={() => setSelectedCategory('All')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                selectedCategory === 'All'
-                  ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                  : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <LayoutGrid className="w-4 h-4" />
-                <span>Todas</span>
-              </div>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-neutral-800 text-secondary'}`}>
-                {apps.length}
-              </span>
-            </button>
+              {/* Discover Button */}
+              <button
+                onClick={() => {
+                  setSelectedCategory('Discover');
+                  setSearch('');
+                  setIsCategoryMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  selectedCategory === 'Discover' && !search
+                    ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
+                    : 'text-secondary hover:text-primary hover:bg-accent'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Compass className="w-4 h-4" />
+                  <span>Descobrir</span>
+                </div>
+                <Sparkles className={`w-3 h-3 ${selectedCategory === 'Discover' && !search ? 'text-white' : 'text-orbit-400 opacity-60'}`} />
+              </button>
 
-            {/* Dynamic Categories */}
-            {dynamicCategories.map((category) => {
-              const Icon = getCategoryIcon(category);
-              const count = apps.filter(a => a.category === category).length;
-              const isSelected = selectedCategory === category;
+              {/* All Apps Button */}
+              <button
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setIsCategoryMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  selectedCategory === 'All'
+                    ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
+                    : 'text-secondary hover:text-primary hover:bg-accent'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Todas</span>
+                </div>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-accent text-secondary border border-border/60'}`}>
+                  {apps.length}
+                </span>
+              </button>
 
-              return (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                    isSelected
-                      ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                      : 'text-secondary hover:text-primary hover:bg-neutral-800/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate pr-2">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{category}</span>
-                  </div>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-neutral-800 text-secondary'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+              {/* Dynamic Categories */}
+              {dynamicCategories.map((category) => {
+                const Icon = getCategoryIcon(category);
+                const count = apps.filter(a => a.category === category).length;
+                const isSelected = selectedCategory === category;
+
+                return (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setIsCategoryMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
+                        : 'text-secondary hover:text-primary hover:bg-accent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate pr-2">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{category}</span>
+                    </div>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-accent text-secondary border border-border/60'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </aside>
 
@@ -464,13 +561,19 @@ export function AppStore() {
                       </div>
 
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-orbit-500/30 text-orbit-300 border border-orbit-400/30">
                             Destaque
                           </span>
                           <span className="text-xs text-white/60 font-medium">
                             {featuredApps[heroIndex]?.category}
                           </span>
+                          {featuredApps[heroIndex] && isAppInstalled(featuredApps[heroIndex]) && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1 shadow-sm">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>Instalado</span>
+                            </span>
+                          )}
                         </div>
 
                         <span className="text-2xl sm:text-3xl font-extrabold text-white block tracking-tight drop-shadow-sm">
@@ -548,41 +651,52 @@ export function AppStore() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
-                  {apps.slice(0, 4).map((app, index) => (
-                    <div
-                      key={`trending-${app.id}-${index}`}
-                      onClick={() => navigate(`/store/app/${app.id}`)}
-                      className="group bg-card/60 hover:bg-card border border-border/70 hover:border-orbit-500/50 rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                    >
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-11 h-11 rounded-xl bg-accent/60 border border-border p-2 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-                          {app.icon ? (
-                            <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
-                          ) : (
-                            <Package className="w-5 h-5 text-secondary" />
-                          )}
+                  {apps.slice(0, 4).map((app, index) => {
+                    const isInstalled = isAppInstalled(app);
+                    return (
+                      <div
+                        key={`trending-${app.id}-${index}`}
+                        onClick={() => navigate(`/store/app/${app.id}`)}
+                        className="group bg-card/60 hover:bg-card border border-border/70 hover:border-orbit-500/50 rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                      >
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-11 h-11 rounded-xl bg-accent/60 border border-border p-2 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
+                            {app.icon ? (
+                              <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <Package className="w-5 h-5 text-secondary" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-sm text-primary block truncate group-hover:text-orbit-500 transition-colors" title={app.name}>
+                              {app.name}
+                            </span>
+                            <p className="text-[11px] text-secondary line-clamp-2 mt-0.5 leading-relaxed">
+                              {app.description}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="font-bold text-sm text-primary block truncate group-hover:text-orbit-500 transition-colors" title={app.name}>
-                            {app.name}
-                          </span>
-                          <p className="text-[11px] text-secondary line-clamp-2 mt-0.5 leading-relaxed">
-                            {app.description}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40 text-xs">
-                        <span className="text-[10px] font-medium text-secondary bg-accent px-2 py-0.5 rounded-md border border-border/50">
-                          {app.category}
-                        </span>
-                        <span className="text-xs font-semibold text-orbit-500 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                          Explorar
-                          <ChevronRight className="w-3 h-3" />
-                        </span>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-secondary bg-accent px-2 py-0.5 rounded-md border border-border/50">
+                              {app.category}
+                            </span>
+                            {isInstalled && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                <span>Instalado</span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-orbit-500 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                            Explorar
+                            <ChevronRight className="w-3 h-3" />
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -636,6 +750,8 @@ export function AppStore() {
   );
 
   function renderAppCard(app: AppStoreItem, index: number) {
+    const isInstalled = isAppInstalled(app);
+
     return (
       <div 
         key={`${app.store}-${app.id}-${index}`} 
@@ -654,7 +770,13 @@ export function AppStore() {
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-secondary border border-border rounded-full">
+              {isInstalled && (
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-1 shadow-sm">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  <span>Instalado</span>
+                </span>
+              )}
+              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-secondary border border-border/70 rounded-full">
                 {app.category}
               </span>
               <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20 rounded-full">
@@ -676,32 +798,46 @@ export function AppStore() {
           </p>
         </div>
         
-        {/* Actions Grid (Explorar + Install) */}
+        {/* Actions Grid (Explorar + Install / Gerenciar) */}
         <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
           <div 
-            className="w-full py-2 bg-neutral-800/80 text-secondary hover:text-primary rounded-xl text-xs font-semibold hover:bg-neutral-800 transition-all flex items-center justify-center gap-1.5 border border-border/50"
+            className="w-full py-2 bg-accent/70 text-secondary hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm"
           >
             <span>Explorar</span>
             <ExternalLink className="w-3 h-3 opacity-60" />
           </div>
 
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleInstall(app.id, app.name);
-            }}
-            disabled={installing !== null}
-            className="w-full py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
-          >
-            {installing === app.id ? (
-              <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-            ) : (
-              <>
-                <Download className="w-3.5 h-3.5" />
-                <span>Install</span>
-              </>
-            )}
-          </button>
+          {isInstalled ? (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/');
+              }}
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] flex items-center justify-center gap-1.5"
+              title="Aplicativo já instalado no sistema. Clique para abrir ou gerenciar no painel."
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Gerenciar</span>
+            </button>
+          ) : (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleInstall(app.id, app.name);
+              }}
+              disabled={installing !== null}
+              className="w-full py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {installing === app.id ? (
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Install</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     );
