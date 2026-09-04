@@ -99,6 +99,8 @@ pub fn detect_well_known_web_port(image: &str, name: &str) -> Option<u16> {
         Some(80)
     } else if combined.contains("n8n") {
         Some(5678)
+    } else if combined.contains("cloudflared-web") || combined.contains("cloudflared") {
+        Some(14333)
     } else if combined.contains("node-red") || combined.contains("nodered") {
         Some(1880)
     } else if combined.contains("overseerr") {
@@ -205,6 +207,10 @@ pub fn detect_label_web_port(labels: &std::collections::HashMap<String, String>)
         "io.casaos.app.port",
         "io.casaos.app.main_port",
         "dev.casaos.app.port",
+        "webui.port",
+        "web.port",
+        "port",
+        "PORT",
     ];
 
     for key in LABEL_KEYS {
@@ -258,7 +264,7 @@ fn score_port(port: &PortInfo, label_port: Option<u16>, well_known: Option<u16>)
         if is_tcp {
             // Standard web ports
             match pub_val {
-                80 | 443 | 8080 | 8443 | 3000 | 8000 | 8081 | 8096 | 8123 | 9000 | 9443 | 5000 | 5055 | 1880 | 5678 | 32400 => {
+                80 | 443 | 8080 | 8443 | 3000 | 8000 | 8081 | 8096 | 8123 | 9000 | 9443 | 5000 | 5055 | 1880 | 5678 | 14333 | 32400 => {
                     score += 5000;
                 }
                 53 | 67 | 68 | 123 | 161 | 514 => {
@@ -271,7 +277,7 @@ fn score_port(port: &PortInfo, label_port: Option<u16>, well_known: Option<u16>)
             }
 
             match priv_p {
-                80 | 443 | 8080 | 8443 | 3000 | 8000 | 8081 | 8096 | 8123 | 9000 | 9443 | 5000 | 5055 | 1880 | 5678 => {
+                80 | 443 | 8080 | 8443 | 3000 | 8000 | 8081 | 8096 | 8123 | 9000 | 9443 | 5000 | 5055 | 1880 | 5678 | 14333 => {
                     score += 1500;
                 }
                 _ => {}
@@ -306,15 +312,22 @@ pub fn process_and_prioritize_ports(
     let mut dedup_map: Vec<PortInfo> = Vec::new();
     let mut seen_keys: HashSet<(Option<u16>, u16, String)> = HashSet::new();
 
+    let is_host_net = network_mode.map(|m| m.eq_ignore_ascii_case("host")).unwrap_or(false);
+
     if let Some(ports) = raw_ports {
         for p in ports {
             let typ = p.typ.map(|t| t.to_string()).unwrap_or_else(|| "tcp".to_string());
-            let key = (p.public_port, p.private_port, typ.clone());
+            let mut pub_port = p.public_port;
+            // In host network mode, exposed private port is directly reachable on host
+            if is_host_net && pub_port.is_none() {
+                pub_port = Some(p.private_port);
+            }
+            let key = (pub_port, p.private_port, typ.clone());
 
             if seen_keys.contains(&key) {
                 // If the previously seen entry had IPv6 ("::") and current has IPv4 ("0.0.0.0"), prefer IPv4
                 if let Some(existing) = dedup_map.iter_mut().find(|e| {
-                    e.public_port == p.public_port && e.private_port == p.private_port && e.typ == typ
+                    e.public_port == pub_port && e.private_port == p.private_port && e.typ == typ
                 }) {
                     if existing.ip.as_deref() == Some("::") && p.ip.as_deref() == Some("0.0.0.0") {
                         existing.ip = p.ip;
@@ -325,16 +338,15 @@ pub fn process_and_prioritize_ports(
 
             seen_keys.insert(key);
             dedup_map.push(PortInfo {
-                ip: p.ip,
+                ip: if is_host_net && p.ip.is_none() { Some("0.0.0.0".to_string()) } else { p.ip },
                 private_port: p.private_port,
-                public_port: p.public_port,
+                public_port: pub_port,
                 typ,
             });
         }
     }
 
     let has_public_port = dedup_map.iter().any(|p| p.public_port.is_some());
-    let is_host_net = network_mode.map(|m| m.eq_ignore_ascii_case("host")).unwrap_or(false);
 
     // If container runs in host mode OR has no public ports, check labels and well-known image ports
     if !has_public_port || is_host_net || dedup_map.is_empty() {
@@ -1013,12 +1025,12 @@ pub async fn update_container(
     };
 
     let platform = get_host_platform();
-    tracing::info!("Pulling updated image {} for platform {}", image_name, platform);
+    tracing::info!("Pulling updated image {} (host platform: {})", image_name, platform);
 
     // 2. Safe Image Pull with stream validation BEFORE touching the existing container
+    // Pull default native image first (matching standard `docker pull`), with platform fallback if needed
     let create_image_options = bollard::query_parameters::CreateImageOptions {
         from_image: Some(image_name.clone()),
-        platform: platform.to_string(),
         ..Default::default()
     };
     let mut pull_stream = docker.create_image(Some(create_image_options), None, None);
@@ -1042,11 +1054,12 @@ pub async fn update_container(
         }
     }
 
-    // If pull with platform failed (e.g. registry doesn't accept platform parameter or single-arch image), retry without platform constraint
+    // If default pull failed (e.g. registry requires explicit platform parameter), retry with platform constraint
     if pull_failed {
-        tracing::warn!("Pull with platform {} for {} failed ({}), retrying without platform parameter...", platform, image_name, pull_error_msg);
+        tracing::warn!("Default pull for {} failed ({}), retrying with explicit platform {}...", image_name, pull_error_msg, platform);
         let fallback_options = bollard::query_parameters::CreateImageOptions {
             from_image: Some(image_name.clone()),
+            platform: platform.to_string(),
             ..Default::default()
         };
         let mut fallback_stream = docker.create_image(Some(fallback_options), None, None);
@@ -1086,29 +1099,39 @@ pub async fn update_container(
     }
 
     // 3. Multi-Network Handling & Sanitization
-    // Docker daemon create_container only accepts 1 network in NetworkingConfig.
-    // We isolate the first network for create_container and attach additional networks after creation.
-    let all_networks = inspect.network_settings
-        .and_then(|ns| ns.networks)
-        .unwrap_or_default();
+    // If container uses host, none, or container network mode, Docker daemon strictly rejects EndpointsConfig.
+    let is_host_or_special_network = inspect.host_config.as_ref()
+        .and_then(|h| h.network_mode.as_deref())
+        .map(|m| m.eq_ignore_ascii_case("host") || m.eq_ignore_ascii_case("none") || m.starts_with("container:"))
+        .unwrap_or(false);
 
-    let mut net_iter = all_networks.into_iter();
-    let primary_network = net_iter.next();
-    let secondary_networks: Vec<(String, bollard::models::EndpointSettings)> = net_iter.collect();
+    let (initial_networking_config, secondary_networks) = if is_host_or_special_network {
+        (None, Vec::new())
+    } else {
+        let all_networks = inspect.network_settings
+            .and_then(|ns| ns.networks)
+            .unwrap_or_default();
 
-    let initial_networking_config = primary_network.map(|(net_name, ep)| {
-        let sanitized_ep = bollard::models::EndpointSettings {
-            aliases: ep.aliases,
-            ipam_config: ep.ipam_config,
-            links: ep.links,
-            ..Default::default()
-        };
-        let mut map = std::collections::HashMap::new();
-        map.insert(net_name, sanitized_ep);
-        bollard::models::NetworkingConfig {
-            endpoints_config: Some(map),
-        }
-    });
+        let mut net_iter = all_networks.into_iter();
+        let primary_network = net_iter.next();
+        let secondary: Vec<(String, bollard::models::EndpointSettings)> = net_iter.collect();
+
+        let initial_cfg = primary_network.map(|(net_name, ep)| {
+            let sanitized_ep = bollard::models::EndpointSettings {
+                aliases: ep.aliases,
+                ipam_config: ep.ipam_config,
+                links: ep.links,
+                ..Default::default()
+            };
+            let mut map = std::collections::HashMap::new();
+            map.insert(net_name, sanitized_ep);
+            bollard::models::NetworkingConfig {
+                endpoints_config: Some(map),
+            }
+        });
+
+        (initial_cfg, secondary)
+    };
 
     let new_config = bollard::models::ContainerCreateBody {
         hostname: config.hostname,
@@ -1163,16 +1186,16 @@ pub async fn update_container(
     // 6. Create new container
     let create_options = bollard::query_parameters::CreateContainerOptions {
         name: Some(clean_name.to_string()),
-        platform: platform.to_string(),
         ..Default::default()
     };
 
     let created = match docker.create_container(Some(create_options), new_config.clone()).await {
         Ok(c) => c,
         Err(e) => {
-            // If creation failed with platform error, retry create without platform parameter
+            // If creation failed, retry create with explicit host platform parameter as fallback
             let fallback_create_options = bollard::query_parameters::CreateContainerOptions {
                 name: Some(clean_name.to_string()),
+                platform: platform.to_string(),
                 ..Default::default()
             };
             match docker.create_container(Some(fallback_create_options), new_config).await {
@@ -1185,7 +1208,7 @@ pub async fn update_container(
                             "name": clean_name,
                             "image": image_name,
                             "status": "error",
-                            "message": format!("Falha ao recriar container: {}", e2),
+                            "message": format!("Falha ao recriar container: {}", e),
                             "details": format!("Primary create error: {}. Fallback error: {}", e, e2)
                         }))
                     ).into_response();

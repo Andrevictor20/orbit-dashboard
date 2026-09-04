@@ -292,5 +292,17 @@ mod tests {
 
         assert!(!casa_result.is_empty());
         assert_eq!(casa_result[0].public_port, Some(9095));
+
+        // 3. Cloudflared web in host network with wisdomsky/cloudflared-web
+        let cloudflared_result = crate::docker::containers::process_and_prioritize_ports(
+            None,
+            &labels,
+            "wisdomsky/cloudflared-web:latest",
+            "cloudflared",
+            Some("host"),
+        );
+        assert!(!cloudflared_result.is_empty());
+        assert_eq!(cloudflared_result[0].public_port, Some(14333));
+        assert_eq!(cloudflared_result[0].private_port, 14333);
     }
 }

@@ -200,6 +200,24 @@ describe('containerGroups utility', () => {
       expect(haLink).toContain(':8123');
     });
 
+    it('synthesizes and discovers web port 14333 for cloudflared-web', () => {
+      const cloudflaredPorts = getSortedDeduplicatedPorts(
+        [],
+        'wisdomsky/cloudflared-web:latest',
+        'cloudflared'
+      );
+      expect(cloudflaredPorts.length).toBe(1);
+      expect(cloudflaredPorts[0].public_port).toBe(14333);
+
+      const cloudflaredLink = getContainerWebLink({
+        id: 'cf-1',
+        name: 'cloudflared',
+        image: 'wisdomsky/cloudflared-web:latest',
+        ports: [],
+      });
+      expect(cloudflaredLink).toContain(':14333');
+    });
+
     it('honors CasaOS labels (io.casaos.port.web) and user customLinks', () => {
       const labels = { 'io.casaos.port.web': '9090' };
       const ports = getSortedDeduplicatedPorts([], 'custom/service', 'custom-service', labels);

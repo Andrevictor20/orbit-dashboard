@@ -1,5 +1,5 @@
 use axum::{
-    http::StatusCode,
+    http::{header, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -14,6 +14,7 @@ use super::parser::parse_casaos_compose;
 use super::types::AppStoreItem;
 
 pub static APPS_CACHE: Lazy<RwLock<Vec<AppStoreItem>>> = Lazy::new(|| RwLock::new(Vec::new()));
+static APPS_JSON_CACHE: Lazy<RwLock<Option<String>>> = Lazy::new(|| RwLock::new(None));
 static SYNCING: AtomicBool = AtomicBool::new(false);
 
 const REPOSITORIES: &[(&str, &str); 7] = &[
@@ -34,17 +35,26 @@ pub fn trim_memory() {
     }
 }
 
+fn update_cache(apps: Vec<AppStoreItem>, precomputed_json: Option<String>) {
+    let json = precomputed_json.unwrap_or_else(|| serde_json::to_string(&apps).unwrap_or_default());
+    if let Ok(mut cache) = APPS_CACHE.write() {
+        *cache = apps;
+    }
+    if let Ok(mut json_cache) = APPS_JSON_CACHE.write() {
+        *json_cache = Some(json);
+    }
+    trim_memory();
+}
+
 /// Load cache from disk if available to avoid cold-start memory spikes.
 pub fn load_cached_apps_from_disk() -> bool {
     if let Ok(contents) = fs::read_to_string("data/cached_apps.json") {
         if let Ok(apps) = serde_json::from_str::<Vec<AppStoreItem>>(&contents) {
             if !apps.is_empty() {
-                if let Ok(mut cache) = APPS_CACHE.write() {
-                    *cache = apps;
-                    info!("App Store cache loaded from disk ({} apps)", cache.len());
-                    trim_memory();
-                    return true;
-                }
+                let count = apps.len();
+                update_cache(apps, Some(contents));
+                info!("App Store cache loaded from disk ({} apps)", count);
+                return true;
             }
         }
     }
@@ -123,15 +133,14 @@ pub async fn sync_repositories() {
     }
 
     if !all_apps.is_empty() {
-        if let Ok(mut cache) = APPS_CACHE.write() {
-            *cache = all_apps.clone();
-            info!("App Store cache updated with {} apps", cache.len());
-        }
-        
-        // Save to disk
+        let count = all_apps.len();
         if let Ok(json) = serde_json::to_string(&all_apps) {
-            let _ = fs::write("data/cached_apps.json", json);
+            let _ = fs::write("data/cached_apps.json", &json);
+            update_cache(all_apps, Some(json));
+        } else {
+            update_cache(all_apps, None);
         }
+        info!("App Store cache updated with {} apps", count);
     } else {
         warn!("No apps found during sync.");
     }
@@ -197,14 +206,21 @@ pub async fn list_apps() -> impl IntoResponse {
         let loaded = load_cached_apps_from_disk();
         if !loaded {
             // Seed with bootstrap apps immediately so client/tests never hang on cold start
-            if let Ok(mut cache) = APPS_CACHE.write() {
-                if cache.is_empty() {
-                    *cache = get_bootstrap_apps();
-                }
-            }
+            update_cache(get_bootstrap_apps(), None);
             tokio::spawn(async {
                 sync_repositories().await;
             });
+        }
+    }
+
+    // Serve zero-copy pre-serialized JSON from cache without cloning 2000+ structs
+    if let Ok(guard) = APPS_JSON_CACHE.read() {
+        if let Some(json_str) = guard.as_ref() {
+            return (
+                StatusCode::OK,
+                [(header::CONTENT_TYPE, "application/json")],
+                json_str.clone(),
+            ).into_response();
         }
     }
 

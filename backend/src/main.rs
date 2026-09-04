@@ -36,7 +36,10 @@ async fn shutdown_signal() {
     tracing::info!("Received Ctrl+C signal. Starting graceful shutdown...");
 }
 
-#[tokio::main]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() {
     // Load .env if present
     let _ = dotenvy::dotenv();

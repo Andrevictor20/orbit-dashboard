@@ -304,8 +304,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-card border border-border/80 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-card/90 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-250 transition-all">
         
         {/* Top Header Card */}
         <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between bg-card">

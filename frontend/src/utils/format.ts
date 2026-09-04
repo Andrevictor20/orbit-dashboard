@@ -167,3 +167,57 @@ export function getFriendlyDiskName(name?: string, mountPoint?: string): string 
   }
   return name && !name.startsWith('/dev/') && !name.startsWith('/') ? name : 'Armazenamento do Sistema';
 }
+
+export interface DiskCategoryInfo {
+  friendlyName: string;
+  category: 'nvme' | 'sdcard' | 'external' | 'system' | 'usb';
+  typeLabel: string;
+}
+
+export function getDiskCategoryInfo(name?: string, mountPoint?: string): DiskCategoryInfo {
+  const n = (name || '').toLowerCase();
+  const m = (mountPoint || '').toLowerCase();
+  const friendlyName = getFriendlyDiskName(name, mountPoint);
+
+  if (n.includes('mmcblk') || n.includes('sdcard')) {
+    return {
+      friendlyName,
+      category: 'sdcard',
+      typeLabel: 'microSD',
+    };
+  }
+  if (n.includes('nvme')) {
+    return {
+      friendlyName,
+      category: 'nvme',
+      typeLabel: 'NVMe',
+    };
+  }
+  if (m.startsWith('/mnt') || m.startsWith('/media') || m.startsWith('/run/media') || m.startsWith('/host/mnt') || m.startsWith('/host/media')) {
+    return {
+      friendlyName,
+      category: 'external',
+      typeLabel: 'HD Externo',
+    };
+  }
+  if (n.startsWith('/dev/sd') || n.startsWith('sd')) {
+    if (m === '/' || m === '/root' || m === '/home' || m === '/host') {
+      return {
+        friendlyName,
+        category: 'system',
+        typeLabel: 'SSD / HD',
+      };
+    }
+    return {
+      friendlyName,
+      category: 'usb',
+      typeLabel: 'USB / HD',
+    };
+  }
+  return {
+    friendlyName,
+    category: 'system',
+    typeLabel: 'Armazenamento',
+  };
+}
+

@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod docker;
 pub mod files;
+pub mod homeassistant;
 pub mod links;
 pub mod logs;
 pub mod ssh;
@@ -24,13 +25,18 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 pub fn app() -> Router {
-    let docker = match Docker::connect_with_socket_defaults() {
+    let socket_path = std::env::var("DOCKER_HOST")
+        .ok()
+        .and_then(|h| h.strip_prefix("unix://").map(|s| s.to_string()))
+        .unwrap_or_else(|| "/var/run/docker.sock".to_string());
+
+    let docker = match Docker::connect_with_socket(&socket_path, 900, bollard::API_DEFAULT_VERSION) {
         Ok(d) => d,
         Err(e) => {
-            tracing::warn!("Failed to connect with socket defaults: {}, trying local defaults", e);
-            Docker::connect_with_local_defaults().unwrap_or_else(|e2| {
-                tracing::warn!("Failed to connect with local defaults: {}, fallback to socket defaults", e2);
-                Docker::connect_with_socket_defaults().unwrap()
+            tracing::warn!("Failed to connect with socket (timeout 900s): {}, trying socket defaults", e);
+            Docker::connect_with_socket_defaults().unwrap_or_else(|e2| {
+                tracing::warn!("Failed to connect with socket defaults: {}, trying local defaults", e2);
+                Docker::connect_with_local_defaults().unwrap()
             })
         }
     };
@@ -54,6 +60,7 @@ pub fn app() -> Router {
         .merge(store::router())
         .merge(files::protected_router())
         .merge(system::router())
+        .merge(homeassistant::router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);

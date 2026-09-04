@@ -142,14 +142,13 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
           },
         });
 
-        // Step 2: Recreating
-        setTaskStatuses(prev => ({
-          ...prev,
-          [c.id]: { ...prev[c.id], state: 'recreating' },
-        }));
-        addLog(`[${cleanName}] Parando e recriando container...`);
-
-        const data = await response.json().catch(() => null);
+        const rawText = await response.text().catch(() => '');
+        let data: any = null;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          data = null;
+        }
 
         if (response.ok && data?.status !== 'error') {
           localSuccess++;
@@ -157,11 +156,20 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
             ...prev,
             [c.id]: { ...prev[c.id], state: 'success' },
           }));
+          addLog(`[${cleanName}] Parando e recriando container...`);
           addLog(`[${cleanName}] Container atualizado e reiniciado com sucesso!`);
         } else {
           localFailed++;
-          const errorMessage = data?.message || data?.details || 'Erro ao atualizar container';
-          const errorDetails = data?.details || JSON.stringify(data);
+          let errorMessage = data?.message || data?.details;
+          if (!errorMessage && rawText) {
+            errorMessage = rawText.length > 200 ? rawText.slice(0, 200) + '...' : rawText;
+          }
+          if (!errorMessage) {
+            errorMessage = response.status === 504 
+              ? 'Tempo limite de conexão esgotado (Gateway Timeout)' 
+              : `Erro ao atualizar container (HTTP ${response.status})`;
+          }
+          const errorDetails = data?.details || rawText || JSON.stringify(data);
           setTaskStatuses(prev => ({
             ...prev,
             [c.id]: {

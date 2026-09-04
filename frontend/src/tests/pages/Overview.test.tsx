@@ -150,4 +150,48 @@ describe('Overview Component', () => {
     expect(screen.getByText('ar-saude-frontend')).toBeTruthy();
     expect(screen.getByText('ar-saude-postgres')).toBeTruthy();
   });
+
+  it('renders multiple storage drives separately (SSDs, HDs and microSD) instead of a unified single bar', () => {
+    (useStats as any).mockReturnValue({
+      stats: {
+        cpu_usage: 12.0,
+        memory_used: 2 * 1024 * 1024 * 1024,
+        memory_total: 8 * 1024 * 1024 * 1024,
+        temperature: 40.0,
+        network_tx: 1024 * 1024,
+        network_rx: 2048 * 1024,
+        disks: [
+          { name: '/dev/nvme0n1p1', mount_point: '/', used: 120 * 1024 * 1024 * 1024, total: 500 * 1024 * 1024 * 1024 },
+          { name: '/dev/sda1', mount_point: '/mnt/media_hd', used: 2048 * 1024 * 1024 * 1024, total: 4096 * 1024 * 1024 * 1024 },
+          { name: '/dev/mmcblk0p1', mount_point: '/media/sdcard', used: 16 * 1024 * 1024 * 1024, total: 64 * 1024 * 1024 * 1024 },
+        ]
+      },
+      isConnected: true
+    });
+
+    render(
+      <BrowserRouter>
+        <Overview />
+      </BrowserRouter>
+    );
+
+    // Badge showing drive count
+    expect(screen.getByText('3 unidades')).toBeTruthy();
+
+    // All distinct drives rendered separately
+    expect(screen.getByText('SSD NVMe')).toBeTruthy();
+    expect(screen.getByText('HD Externo (media_hd)')).toBeTruthy();
+    expect(screen.getByText('Cartão microSD')).toBeTruthy();
+
+    // Drive type labels
+    expect(screen.getByText('NVMe')).toBeTruthy();
+    expect(screen.getByText('HD Externo')).toBeTruthy();
+    expect(screen.getByText('microSD')).toBeTruthy();
+
+    // Individual usage numbers
+    expect(screen.getAllByText(/120\.00 GB/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2\.00 TB/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/16\.00 GB/).length).toBeGreaterThan(0);
+  });
 });
+

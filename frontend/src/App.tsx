@@ -25,6 +25,7 @@ const Volumes = lazy(() => import('./pages/Volumes').then(m => ({ default: m.Vol
 const Logs = lazy(() => import('./pages/Logs').then(m => ({ default: m.Logs })));
 const FileManager = lazy(() => import('./pages/FileManager').then(m => ({ default: m.FileManager })));
 const DiskAnalyzer = lazy(() => import('./pages/DiskAnalyzer').then(m => ({ default: m.DiskAnalyzer })));
+const HomeAssistant = lazy(() => import('./pages/HomeAssistant').then(m => ({ default: m.HomeAssistant })));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup })));
 
@@ -74,6 +75,7 @@ function App() {
                                   <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
                                   <Route path="/terminal" element={<Terminal />} />
                                   <Route path="/logs" element={<Logs />} />
+                                  <Route path="/homeassistant" element={<HomeAssistant />} />
                                   <Route path="*" element={<Navigate to="/" replace />} />
                                 </Routes>
                               </Suspense>

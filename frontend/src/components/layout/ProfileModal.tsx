@@ -44,11 +44,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background border shad-border rounded-xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b shad-border">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-card/90 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-250" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-border/70">
           <h2 className="font-semibold text-lg">{t('sidebar.account') || 'Minha Conta'}</h2>
-          <button onClick={onClose} className="p-2 text-secondary hover:text-primary transition-colors">
+          <button onClick={onClose} className="p-2 text-secondary hover:text-primary transition-colors rounded-xl hover:bg-accent/70">
             <X className="w-5 h-5" />
           </button>
         </div>

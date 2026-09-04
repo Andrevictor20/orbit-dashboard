@@ -1,23 +1,33 @@
-# Orbit Dashboard v2.1.0
+# Orbit Dashboard v2.2.0
 
-### ✨ Novidades & Recursos Principais (v2.1.0)
-- **Detecção e Catalogação Inteligente de Portas Web:**
-  - **Eliminação de Portas Duplicadas:** Deduplicação nativa de bindings IPv4 (`0.0.0.0`) e IPv6 (`::`), unificando mapeamentos em uma única badge limpa (adeus portas repetidas como `8096:8096` lado a lado).
-  - **Descoberta em Host Networking:** Containers operando em `network_mode: host` (como Home Assistant) ou com portas declaradas em labels de ecossistema (`io.casaos.port.web`) agora são catalogados automaticamente e exibem sua porta pública correspondente (ex: Home Assistant na porta `8123`).
-  - **Priorização da Porta Principal:** Algoritmo de classificação que posiciona portas Web/HTTP (80, 443, 8080, 8123, 8096, 3000, 5000, 1880, 5678, etc.) em primeiro lugar, impedindo que portas secundárias de rede (DHCP 67, DNS 53) ocultem a porta da interface Web.
-  - **Porta Principal Clicável & Botão "Abrir" Automático:** Badges de portas agora possuem destaque visual com link direto. O botão "Abrir" passa a ser renderizado automaticamente para qualquer container com porta Web ativa, sem exigir configuração manual prévia.
-- **Atualização em Lote de Containers em Segundo Plano:**
-  - Novo `BatchUpdateContext` e `BatchUpdateFloatingBar`: permite disparar a atualização de múltiplos containers e continuar navegando no dashboard livremente sem perda de progresso ou cancelamento de processos.
-- **App Store & Detecção de Apps Instalados:**
-  - Menu lateral de seleção de categorias retrátil em telas menores (`< lg`) com toggle responsivo.
-  - Badges verdes "Instalado" com ícone de verificação para apps já presentes no host, com botão alternando automaticamente para "Gerenciar".
+### ✨ Novidades & Recursos Principais (v2.2.0)
+- **Integração Nativa com Home Assistant:**
+  - **Configuração Direta pela Interface Gráfica:** Adicione a URL da sua instância e o Token de Acesso de Longa Duração diretamente pela interface do Orbit, sem necessidade de editar arquivos de configuração ou acessar o terminal.
+  - **Proxy Seguro & Proteção contra Restrições de CORS:** Toda a comunicação é intermediada pelo backend Axum com persistência segura em volume (`data/homeassistant.json`), eliminando bloqueios de rede local cruzada (CORS) e mascarando o token do cliente.
+  - **Controle e Telemetria de Dispositivos em Tempo Real:**
+    - Lâmpadas inteligentes com controle de ligado/desligado e slider de intensidade de brilho.
+    - Tomadas e interruptores elétricos com alternância instantânea.
+    - Sensores de presença e sensores de abertura de portas/janelas.
+    - Sensores numéricos de telemetria e termostatos de climatização com exibição de temperatura atual e alvo.
+  - **Filtros Rápidos & Busca Instantânea:** Filtragem por categorias (Luzes, Tomadas, Sensores, Climatização) e busca instantânea em tempo real.
+  - **Acesso Dedicado na Barra Lateral:** Nova seção "Integrações" na sidebar com suporte bilíngue completo (Português e Inglês).
 
-### 🎨 Design, Responsividade & Tema Claro
-- **Responsividade Aperfeiçoada:** Ajustes de layout para meia tela (704px a 960px) e mobile no cabeçalho superior (`DashboardLayout`), grid de telemetria e bento launcher (`Overview`) e barra de navegação do `DiskAnalyzer`.
-- **Contraste Perfeito no Tema Claro (Light Mode):**
-  - Terminal Web (XTerm & SSH) com paleta dinâmica clara de alto contraste com sync em tempo real sem fechar sessões ativas.
-  - Eliminação de fundos escuros estáticos no Gerenciador de Arquivos, Console de Logs e Analisador de Disco, garantindo conformidade com padrões WCAG AAA.
+- **Efeito Translúcido / Liquid Glass & Animações Suaves:**
+  - **Física Autêntica de Vidro Líquido:** Superfícies translúcidas de cards, sidebar, topbar e modais com profundidade óptica aprimorada em todos os 6 temas (`--card` em 0.48 no escuro e 0.58 no claro) com desfoque aumentado para `blur(28px) saturate(190%) contrast(105%)`.
+  - **Chanfro Especular Superior:** Borda chanfrada vítrea reproduzindo o reflexo de aresta lapidada através da sombra `--glass-shadow`.
+  - **Orbs Luminosas Atmosféricas Dinâmicas:** 4 fontes de luz multicoloridas e orgânicas se movimentando suavemente em segundo plano (`animate-float-slow`, `animate-float-reverse`, `animate-pulse-glow`), gerando refração óptica viva sob os cartões e a barra lateral.
+  - **Física de Mola Amortecida (Spring Physics):** Transições de mola suaves (`cubic-bezier(0.16, 1, 0.3, 1)`) com micro-interações táteis elásticas em botões, pills, modais e cards.
 
-### ⚙️ Engenharia & Versionamento
-- **Sistema Automatizado de SemVer:** Incremento padronizado por nível de impacto a cada commit (Patch para pequenas correções, Minor para médias adições e Major para quebras estruturais), com script dedicado e git hook nativo.
+- **Telemetria de Armazenamento por Unidade Física (HDs, SSDs e microSD Separados):**
+  - **Desagregação de Mídia:** Fim da barra única que somava todos os discos; visualização em camadas dedicadas para cada HD, SSD NVMe, pendrive USB e cartão microSD.
+  - **Classificação Inteligente:** Ícones temáticos contextuais, badges de tecnologia (`NVMe`, `microSD`, `HD Externo`, `USB`), ponto de montagem e medidores individuais de capacidade.
 
+- **Redução Massiva do Consumo de Memória RAM (De ~100 MB para ~30 MB):**
+  - **Alocador Global Mimalloc:** Substituição do glibc malloc padrão pelo `mimalloc`, garantindo liberação imediata de páginas de memória para o sistema operacional (`madvise`).
+  - **Tokio Runtime Otimizado:** Limitação para 4 worker threads, reduzindo overhead de stacks ociosas e context switching.
+  - **Zero-Copy JSON Cache:** Catálogo de aplicativos da App Store servido em tempo $O(1)$ diretamente da memória sem re-serializações ou clones massivos de structs.
+
+- **Resiliência do Atualizador em Lote & Detecção de Portas:**
+  - **Socket Timeout de 15 Minutos:** Aumento do timeout do socket Bollard para 900s, viabilizando o download de imagens de múltiplos gigabytes sem cancelamento de conexão.
+  - **Compatibilidade com Rede Host:** Resolução de conflitos de `EndpointsConfig` em containers com `network_mode: "host"`.
+  - **Detecção da Porta 14333:** Catalogação automática da porta Web da interface do `cloudflared` com priorização e geração automática do botão "Abrir".

@@ -55,7 +55,7 @@ static STATS_TX: Lazy<broadcast::Sender<Arc<String>>> = Lazy::new(|| {
     tx
 });
 static LATEST_STATS: Lazy<RwLock<Option<Arc<String>>>> = Lazy::new(|| RwLock::new(None));
-static STATS_HISTORY: Lazy<RwLock<VecDeque<SystemStats>>> = Lazy::new(|| RwLock::new(VecDeque::with_capacity(3600)));
+static STATS_HISTORY: Lazy<RwLock<VecDeque<SystemStats>>> = Lazy::new(|| RwLock::new(VecDeque::with_capacity(1800)));
 static COLLECTOR_INITIALIZED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 pub fn ensure_stats_collector(docker: Arc<Docker>) {
@@ -76,7 +76,7 @@ pub async fn get_stats_history_handler(
     Query(params): Query<StatsHistoryQuery>,
 ) -> impl IntoResponse {
     ensure_stats_collector(state.docker.clone());
-    let limit = params.limit.unwrap_or(300).clamp(1, 3600);
+    let limit = params.limit.unwrap_or(300).clamp(1, 1800);
     let history: Vec<SystemStats> = if let Ok(guard) = STATS_HISTORY.read() {
         let count = guard.len();
         if count <= limit {
@@ -222,7 +222,11 @@ fn read_host_network_bytes() -> (u64, u64) {
 }
 
 async fn run_singleton_stats_collector(docker: Arc<Docker>) {
-    let mut sys = System::new_all();
+    let mut sys = System::new_with_specifics(
+        sysinfo::RefreshKind::nothing()
+            .with_cpu(sysinfo::CpuRefreshKind::everything())
+            .with_memory(sysinfo::MemoryRefreshKind::everything()),
+    );
     let mut disks = Disks::new_with_refreshed_list();
     let mut networks = Networks::new_with_refreshed_list();
     let mut components = Components::new_with_refreshed_list();
@@ -491,11 +495,14 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
 
         evaluate_and_push_alerts(&stats);
 
+        let mut hist_entry = stats.clone();
+        hist_entry.disks = Vec::new(); // Strip heavy disk partition string allocations from the 1-hour ring buffer
+
         if let Ok(mut hist) = STATS_HISTORY.write() {
-            if hist.len() >= 3600 {
+            if hist.len() >= 1800 {
                 hist.pop_front();
             }
-            hist.push_back(stats.clone());
+            hist.push_back(hist_entry);
         }
 
         if let Ok(j) = serde_json::to_string(&stats) {

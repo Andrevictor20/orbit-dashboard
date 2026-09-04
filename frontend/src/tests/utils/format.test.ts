@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFriendlyDiskName, isPhysicalStorage, formatBytes, formatRAM, formatGB, formatStorage } from '../../utils/format';
+import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatBytes, formatRAM, formatGB, formatStorage } from '../../utils/format';
 
 describe('Format and Storage Utils', () => {
   it('formats bytes, RAM, GB and TB correctly', () => {
@@ -55,5 +55,23 @@ describe('Format and Storage Utils', () => {
     // Real physical storage (large partitions, e.g. 500 GB or 1 TB)
     expect(isPhysicalStorage('/dev/nvme0n1p3', '/', 'ext4', 500 * 1024 * 1024 * 1024)).toBe(true);
     expect(isPhysicalStorage('/dev/sda1', '/mnt/backup', 'ntfs', 1000 * 1024 * 1024 * 1024)).toBe(true);
+  });
+
+  it('correctly classifies storage category and type labels for NVMe, microSD, external and SATA drives', () => {
+    expect(getDiskCategoryInfo('/dev/nvme0n1p1', '/')).toEqual({
+      friendlyName: 'SSD NVMe',
+      category: 'nvme',
+      typeLabel: 'NVMe',
+    });
+    expect(getDiskCategoryInfo('/dev/mmcblk0p1', '/')).toEqual({
+      friendlyName: 'Cartão microSD',
+      category: 'sdcard',
+      typeLabel: 'microSD',
+    });
+    expect(getDiskCategoryInfo('/dev/sdb1', '/mnt/dados')).toEqual({
+      friendlyName: 'HD Externo (dados)',
+      category: 'external',
+      typeLabel: 'HD Externo',
+    });
   });
 });

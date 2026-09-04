@@ -12,10 +12,13 @@ import {
   Terminal, 
   PieChart, 
   Search, 
-  Network
+  Network,
+  Zap,
+  CreditCard,
+  Usb
 } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
-import { getFriendlyDiskName, isPhysicalStorage, formatStorage } from '../utils/format';
+import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatStorage } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
 import { groupContainers, type GroupContainerItem, type GroupedContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
@@ -206,7 +209,13 @@ export function Overview() {
       }
     });
   }
-  const uniqueDisks = Array.from(uniqueDisksMap.values());
+  const uniqueDisks = Array.from(uniqueDisksMap.values()).sort((a, b) => {
+    const aIsSystem = a.mount_point === '/' || a.mount_point === '/host' || a.mount_point === '/root';
+    const bIsSystem = b.mount_point === '/' || b.mount_point === '/host' || b.mount_point === '/root';
+    if (aIsSystem && !bIsSystem) return -1;
+    if (!aIsSystem && bIsSystem) return 1;
+    return b.total - a.total;
+  });
 
   const globalDiskUsed = uniqueDisks.reduce((acc, d) => acc + d.used, 0);
   const globalDiskTotal = uniqueDisks.reduce((acc, d) => acc + d.total, 0);
@@ -314,23 +323,25 @@ export function Overview() {
       </div>
 
       {/* 2. COMPACT & REFINED TELEMETRY SUMMARY ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 items-stretch">
         {/* CPU & Temp Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md h-full flex flex-col justify-between block"
         >
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
-            <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500 group-hover:scale-110 transition-transform">
-              <Cpu className="w-4 h-4" />
+          <div>
+            <div className="flex items-center justify-between text-secondary mb-2">
+              <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
+              <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500 group-hover:scale-110 transition-transform">
+                <Cpu className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
-            <span className="text-xs font-mono text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-              {tempC}°C
-            </span>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
+              <span className="text-xs font-mono text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                {tempC}°C
+              </span>
+            </div>
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
             <div 
@@ -345,19 +356,21 @@ export function Overview() {
         {/* Memory RAM Card */}
         <Link 
           to="/metrics" 
-          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md h-full flex flex-col justify-between block"
         >
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
-              <Activity className="w-4 h-4" />
+          <div>
+            <div className="flex items-center justify-between text-secondary mb-2">
+              <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+                <Activity className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{memoryUsedGB} GB</span>
-            <span className="text-xs font-mono text-secondary font-medium">
-              / {memoryTotalGB} GB ({memoryPercent}%)
-            </span>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{memoryUsedGB} GB</span>
+              <span className="text-xs font-mono text-secondary font-medium">
+                / {memoryTotalGB} GB ({memoryPercent}%)
+              </span>
+            </div>
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
             <div 
@@ -369,55 +382,138 @@ export function Overview() {
           </div>
         </Link>
 
-        {/* Storage Quick Summary Card */}
+        {/* Storage Multi-Drive Summary Card: HDs, SSDs e Cartão MicroSD Separados */}
         <Link 
           to="/disk-analyzer" 
-          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md block"
+          className="group bg-card hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 transition-all duration-150 shadow-sm hover:shadow-md h-full flex flex-col justify-between"
+          title="Ver Analisador de Disco"
         >
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
+          <div className="flex items-center justify-between text-secondary mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
+              {uniqueDisks.length > 1 && (
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
+                  {uniqueDisks.length} unidades
+                </span>
+              )}
+            </div>
             <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-500 group-hover:scale-110 transition-transform">
               <HardDrive className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{diskUsedFormatted}</span>
-            <span className="text-xs font-mono text-secondary font-medium">
-              / {diskTotalFormatted} ({diskPercent}%)
-            </span>
-          </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
-            <div 
-              className={`h-full rounded-full transition-all ${
-                parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-orbit-500'
-              }`}
-              style={{ width: `${Math.min(parseFloat(diskPercent), 100)}%` }}
-            />
-          </div>
-          {/* Subtle disk list indicator for test compatibility and glanceability */}
-          {uniqueDisks.length > 0 && (
-            <div className="hidden">
-              {uniqueDisks.map((d, idx) => (
-                <div key={idx}>
-                  <span>{getFriendlyDiskName(d.name, d.mount_point)}</span>
-                  <span>{formatStorage(d.used, 2)} usado</span>
-                </div>
-              ))}
+
+          {uniqueDisks.length <= 1 ? (
+            /* Single Drive View or Zero-State */
+            <div>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">
+                  {uniqueDisks[0] ? formatStorage(uniqueDisks[0].used, 2) : diskUsedFormatted}
+                </span>
+                <span className="text-xs font-mono text-secondary font-medium">
+                  / {uniqueDisks[0] ? formatStorage(uniqueDisks[0].total, 2) : diskTotalFormatted} ({diskPercent}%)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-3">
+                <div 
+                  className={`h-full rounded-full transition-all ${
+                    parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-orbit-500'
+                  }`}
+                  style={{ width: `${Math.min(parseFloat(diskPercent), 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-secondary font-mono mt-2.5 pt-1.5 border-t border-border/40">
+                <span className="truncate max-w-[150px]">
+                  {uniqueDisks[0] ? getFriendlyDiskName(uniqueDisks[0].name, uniqueDisks[0].mount_point) : 'Disco Principal'}
+                </span>
+                <span>
+                  {uniqueDisks[0] ? `${formatStorage(uniqueDisks[0].used, 2)} usado` : ''}
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* Multi-Drive Stacked View: HDs, SSDs, microSD separados */
+            <div className="space-y-2.5 max-h-[190px] overflow-y-auto pr-0.5 scrollbar-thin">
+              {uniqueDisks.map((d, idx) => {
+                const info = getDiskCategoryInfo(d.name, d.mount_point);
+                const usedFmt = formatStorage(d.used, 2);
+                const totalFmt = formatStorage(d.total, 2);
+                const percent = d.total > 0 ? ((d.used / d.total) * 100).toFixed(1) : '0.0';
+                const percentNum = parseFloat(percent);
+                const isCritical = percentNum > 85;
+                const isWarning = percentNum > 70;
+
+                return (
+                  <div key={d.name || idx} className="pt-2 first:pt-0 border-t border-border/50 first:border-t-0">
+                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {info.category === 'sdcard' ? (
+                          <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        ) : info.category === 'nvme' ? (
+                          <Zap className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                        ) : info.category === 'usb' ? (
+                          <Usb className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        ) : (
+                          <HardDrive className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                        )}
+                        <span className="text-xs font-semibold text-primary truncate max-w-[125px] sm:max-w-[145px]" title={info.friendlyName}>
+                          {info.friendlyName}
+                        </span>
+                        <span className="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-muted/80 text-secondary border border-border/50 shrink-0">
+                          {info.typeLabel}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-mono font-bold text-primary">
+                          {usedFmt}
+                        </span>
+                        <span className="text-[10px] font-mono text-secondary ml-1">
+                          / {totalFmt} ({percent}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${
+                          isCritical 
+                            ? 'bg-rose-500' 
+                            : isWarning 
+                            ? 'bg-amber-500' 
+                            : info.category === 'nvme' 
+                            ? 'bg-orbit-500' 
+                            : info.category === 'sdcard' 
+                            ? 'bg-amber-500' 
+                            : 'bg-sky-500'
+                        }`}
+                        style={{ width: `${Math.min(percentNum, 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-0.5">
+                      <span className="truncate text-secondary/70">{d.mount_point}</span>
+                      <span>{usedFmt} usado</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </Link>
 
         {/* Network & Containers Card */}
-        <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Rede & Containers')}</span>
-            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
-              <Network className="w-4 h-4" />
+        <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-sm h-full flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-secondary mb-2">
+              <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Rede & Containers')}</span>
+              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
+                <Network className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between font-mono text-xs text-secondary mb-1">
-            <span>TX: <strong className="text-primary">{netTxMB} MB</strong></span>
-            <span>RX: <strong className="text-primary">{netRxMB} MB</strong></span>
+            <div className="flex items-center justify-between font-mono text-xs text-secondary mb-1">
+              <span>TX: <strong className="text-primary">{netTxMB} MB</strong></span>
+              <span>RX: <strong className="text-primary">{netRxMB} MB</strong></span>
+            </div>
           </div>
           <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60 mt-1">
             <span className="text-secondary">{containers.length} Containers</span>

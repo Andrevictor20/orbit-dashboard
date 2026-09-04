@@ -171,6 +171,7 @@ export function detectWellKnownWebPort(image?: string, name?: string): number | 
   if (combined.includes('metube')) return 8081;
   if (combined.includes('moodle')) return 80;
   if (combined.includes('n8n')) return 5678;
+  if (combined.includes('cloudflared-web') || combined.includes('cloudflared')) return 14333;
   if (combined.includes('node-red') || combined.includes('nodered')) return 1880;
   if (combined.includes('overseerr')) return 5055;
   if (combined.includes('portainer')) return 9000;
@@ -230,7 +231,11 @@ export function detectLabelWebPort(labels?: Record<string, string>): number | nu
     'io.casaos.port.web',
     'io.casaos.app.port',
     'io.casaos.app.main_port',
-    'dev.casaos.app.port'
+    'dev.casaos.app.port',
+    'webui.port',
+    'web.port',
+    'port',
+    'PORT'
   ];
   for (const k of labelKeys) {
     if (labels[k]) {
@@ -334,7 +339,7 @@ export function getSortedDeduplicatedPorts<P extends PortLike = PortLike>(
 
     if (pub) {
       if (isTcp) {
-        const standardWebPorts = [80, 443, 8080, 8443, 3000, 8000, 8081, 8096, 8123, 9000, 9443, 5000, 5055, 1880, 5678, 32400];
+        const standardWebPorts = [80, 443, 8080, 8443, 3000, 8000, 8081, 8096, 8123, 9000, 9443, 5000, 5055, 1880, 5678, 14333, 32400];
         if (standardWebPorts.includes(pub)) {
           score += 5000;
         } else if ([53, 67, 68, 123, 161, 514].includes(pub)) {
