@@ -71,6 +71,17 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
     terminalEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [taskState.logs]);
 
+  // Auto-poll update info when image is still being built in GitHub Actions
+  useEffect(() => {
+    if (!isOpen || updating || updateInfo?.ci_status !== 'building') return;
+
+    const interval = setInterval(() => {
+      onRefreshInfo();
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, updating, updateInfo?.ci_status, onRefreshInfo]);
+
   // Polling loop when updating
   useEffect(() => {
     if (!updating) return;
@@ -109,7 +120,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               toast.success('Orbit atualizado com sucesso! Redirecionando para o login...');
               
               setTimeout(() => {
-                window.location.href = `/login?updated=true&version=${encodeURIComponent(targetVersion)}`;
+                window.location.replace(`/login?updated=true&version=${encodeURIComponent(targetVersion)}&_t=${Date.now()}`);
               }, 1200);
             }
           }
@@ -355,29 +366,42 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               <div className="p-5 pb-3 space-y-3">
                 {/* CI/CD Building Alert Banner */}
                 {updateInfo?.ci_status === 'building' && (
-                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-200">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-200 shadow-sm">
                     <div className="flex items-start gap-2.5">
                       <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-primary">
-                          Compilação em Andamento no GitHub
+                        <p className="font-semibold text-primary flex items-center gap-1.5">
+                          <span>Compilação Multi-Arch em Andamento</span>
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                            GitHub Actions
+                          </span>
                         </p>
-                        <p className="text-[11.5px] text-secondary mt-0.5">
-                          A nova imagem do Orbit está sendo gerada. Assim que terminar, você poderá atualizar com 1-clique.
+                        <p className="text-[11.5px] text-secondary mt-0.5 leading-relaxed">
+                          A imagem da versão <strong className="text-primary font-mono">v{updateInfo.latest_version}</strong> está sendo compilada e empacotada no GitHub (~8 min). Esta tela atualizará automaticamente assim que estiver pronta.
                         </p>
                       </div>
                     </div>
-                    {updateInfo.ci_workflow_url && (
-                      <a
-                        href={updateInfo.ci_workflow_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[11px] font-semibold shrink-0 flex items-center gap-1 transition-colors"
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={onRefreshInfo}
+                        className="px-2.5 py-1 rounded-xl bg-card hover:bg-neutral-800 text-secondary hover:text-primary text-[11px] font-semibold border border-border/70 flex items-center gap-1 transition-colors"
+                        title="Verificar status no GitHub agora"
                       >
-                        <span>Ver CI/CD</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Verificar</span>
+                      </button>
+                      {updateInfo.ci_workflow_url && (
+                        <a
+                          href={updateInfo.ci_workflow_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                        >
+                          <span>Ver CI/CD</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -572,14 +596,32 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           </button>
 
           {!updating && (
-            <button
-              onClick={handleStartUpdate}
-              disabled={updateInfo?.ci_status === 'building'}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              <span>Atualizar Orbit Agora</span>
-            </button>
+            updateInfo?.ci_status === 'building' ? (
+              <button
+                disabled
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold cursor-not-allowed opacity-80"
+                title="A imagem Docker multi-arch está sendo gerada no GitHub. O botão será liberado automaticamente."
+              >
+                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                <span>Compilando Imagem no GitHub...</span>
+              </button>
+            ) : !updateInfo?.has_update ? (
+              <button
+                disabled
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-border/80 text-secondary text-xs font-semibold cursor-default opacity-80"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Sistema na Versão Mais Recente</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStartUpdate}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all"
+              >
+                <Download className="w-4 h-4" />
+                <span>Atualizar para v{updateInfo.latest_version}</span>
+              </button>
+            )
           )}
         </div>
 

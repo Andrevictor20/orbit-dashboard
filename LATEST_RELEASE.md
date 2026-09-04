@@ -1,4 +1,14 @@
-# Orbit Dashboard v2.2.0
+# Orbit Dashboard v2.2.1
+
+### 🛠️ Correções & Melhorias no Sistema de Atualização (v2.2.1)
+- **Verificação Precisa de Prontidão da Imagem no GitHub Container Registry (GHCR):**
+  - **Fim dos Falsos Positivos de Atualização:** O sistema agora consulta diretamente a API de manifestos do registry OCI (`ghcr.io`) para checar se a imagem multi-arch (amd64 / arm64) da nova versão já foi concluída e publicada antes de disponibilizar o botão de atualizar.
+  - **Proteção Pré-Atualização:** Tentativas de atualização enquanto a imagem ainda estiver sendo gerada no GitHub Actions são bloqueadas na API com status explicativo, evitando downloads prematuros de versões anteriores.
+  - **Auto-Polling no Modal de Atualização:** Quando a imagem estiver em compilação, o painel verifica automaticamente a cada 7 segundos o status no GitHub e libera o botão assim que o pacote estiver 100% pronto.
+- **Eliminação de Cache Agressivo de HTML/SPA no Navegador:**
+  - **Headers Estritos Anti-Cache:** O servidor Axum agora injeta `Cache-Control: no-cache, no-store, must-revalidate, max-age=0` e `Pragma: no-cache` em todas as rotas SPA e arquivos HTML, garantindo que o navegador nunca sirva versões antigas do painel após uma reinicialização.
+  - **Redirecionamento com Limpeza Forçada:** O redirecionamento pós-atualização agora aplica bypass de cache no navegador, carregando imediatamente as novas telas e recursos sem requerer hard refresh (Ctrl+F5).
+  - **Assets com Cache Imutável:** Arquivos de scripts e estilos versionados em `/assets/` mantêm cache seguro de longo prazo para velocidade instantânea de navegação.
 
 ### ✨ Novidades & Recursos Principais (v2.2.0)
 - **Integração Nativa com Home Assistant:**

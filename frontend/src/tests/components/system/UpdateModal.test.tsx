@@ -54,7 +54,7 @@ describe('UpdateModal Component', () => {
       />
     );
 
-    const updateButton = screen.getByText('Atualizar Orbit Agora');
+    const updateButton = screen.getByText(/Atualizar para v1.1.0/i);
     fireEvent.click(updateButton);
 
     await waitFor(() => {
@@ -64,10 +64,12 @@ describe('UpdateModal Component', () => {
     });
   });
 
-  it('renders CI/CD building state with disabled waiting button', () => {
+  it('renders CI/CD building state with disabled waiting button and auto-polls', () => {
+    vi.useFakeTimers();
+    const onRefreshInfo = vi.fn();
     const buildingInfo: SystemUpdateInfo = {
       ...mockInfo,
-      has_update: false,
+      has_update: true,
       ci_status: 'building',
       ci_workflow_url: 'https://github.com/Andrevictor20/orbit-dashboard/actions/runs/12345',
     };
@@ -77,13 +79,21 @@ describe('UpdateModal Component', () => {
         isOpen={true}
         onClose={vi.fn()}
         updateInfo={buildingInfo}
-        onRefreshInfo={vi.fn()}
+        onRefreshInfo={onRefreshInfo}
       />
     );
 
     expect(screen.getAllByText(/Compilando Imagem/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Compilação em Andamento/i)).toBeInTheDocument();
+    expect(screen.getByText(/Compilação Multi-Arch em Andamento/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ver CI\/CD/i).length).toBeGreaterThan(0);
+
+    const buildingButton = screen.getByText(/Compilando Imagem no GitHub/i);
+    expect(buildingButton.closest('button')).toBeDisabled();
+
+    // Advance time by 7s to verify auto-polling
+    vi.advanceTimersByTime(7500);
+    expect(onRefreshInfo).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('renders structured bullet release notes', () => {

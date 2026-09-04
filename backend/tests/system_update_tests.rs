@@ -106,11 +106,11 @@ fn test_fallback_docker_run_uses_correct_container_name() {
     let helper_script = format!(
         r#"sleep 1 && (
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
-  cd "/host{host_dir}" && docker compose -f "{compose_file}" up -d --force-recreate
+  cd "/host{host_dir}" && docker compose -f "{compose_file}" pull && docker compose -f "{compose_file}" up -d --force-recreate
 elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose up -d --force-recreate
+  cd "/host/DATA/orbit" && docker compose pull && docker compose up -d --force-recreate
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose up -d --force-recreate
+  cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
 else
   docker stop orbit-dashboard 2>/dev/null || true
   docker rm orbit-dashboard 2>/dev/null || true
@@ -254,6 +254,92 @@ async fn test_check_update_force_query_bypasses_cache() {
 
     let info: SystemUpdateInfo = res.json();
     assert!(!info.current_version.is_empty());
+}
+
+#[tokio::test]
+async fn test_spa_html_routes_have_strict_no_cache_headers() {
+    let app = backend::app();
+    let server = TestServer::new(app);
+
+    // 1. Root route
+    let res = server.get("/").await;
+    let cache_control = res.headers().get("cache-control").expect("Root route must have cache-control header");
+    let val = cache_control.to_str().unwrap_or_default();
+    assert!(val.contains("no-cache") && val.contains("no-store"), "Root route must have strict no-cache headers, got: {}", val);
+
+    let pragma = res.headers().get("pragma").expect("Root route must have pragma header");
+    assert_eq!(pragma.to_str().unwrap_or_default(), "no-cache");
+
+    // 2. Client-side route fallback (/login)
+    let res_login = server.get("/login").await;
+    let cache_control_login = res_login.headers().get("cache-control").expect("/login must have cache-control header");
+    let val_login = cache_control_login.to_str().unwrap_or_default();
+    assert!(val_login.contains("no-cache") && val_login.contains("no-store"), "/login must have strict no-cache headers, got: {}", val_login);
+
+    // 3. Static asset route (/assets/...)
+    let res_asset = server.get("/assets/vendor.js").await;
+    let cache_control_asset = res_asset.headers().get("cache-control").expect("/assets/ must have cache-control header");
+    let val_asset = cache_control_asset.to_str().unwrap_or_default();
+    assert!(val_asset.contains("immutable"), "/assets/ must have immutable cache header, got: {}", val_asset);
+}
+
+#[tokio::test]
+async fn test_ghcr_image_manifest_real_check() {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .user_agent("Orbit-Dashboard")
+        .build()
+        .unwrap();
+
+    // v2.2.0 exists in GHCR
+    let exists = backend::system::check_ghcr_image_manifest(&client, "v2.2.0").await;
+    assert!(exists, "v2.2.0 must return true on GHCR manifest check");
+
+    // Non-existent version tag must return false
+    let not_exists = backend::system::check_ghcr_image_manifest(&client, "v999.999.999").await;
+    assert!(!not_exists, "Non-existent tag must return false on GHCR manifest check");
+}
+
+#[tokio::test]
+async fn test_system_update_blocks_when_ci_is_building() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let app = backend::app();
+    let server = TestServer::new(app);
+    let cookie = get_test_cookie();
+
+    // Mock building state in update cache
+    {
+        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        *guard = Some((
+            SystemUpdateInfo {
+                current_version: "2.1.0".to_string(),
+                latest_version: "2.2.0".to_string(),
+                has_update: true,
+                platform: "linux/amd64".to_string(),
+                arch: "x86_64".to_string(),
+                release_name: "Orbit v2.2.0".to_string(),
+                release_notes: "Notes".to_string(),
+                published_at: None,
+                ci_status: Some("building".to_string()),
+                ci_workflow_url: None,
+            },
+            std::time::Instant::now(),
+        ));
+    }
+
+    let res = server.post("/api/system/update")
+        .add_cookie(cookie)
+        .await;
+    
+    assert_eq!(res.status_code(), axum::http::StatusCode::PRECONDITION_FAILED);
+    let json: serde_json::Value = res.json();
+    assert!(json.get("error").and_then(|v| v.as_str()).unwrap().contains("compilação"));
+
+    // Reset cache
+    {
+        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        *guard = None;
+    }
 }
 
 

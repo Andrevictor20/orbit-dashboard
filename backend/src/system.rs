@@ -37,7 +37,7 @@ pub struct SystemUpdateTask {
     pub error: Option<String>,
 }
 
-static UPDATE_CACHE: Lazy<RwLock<Option<(SystemUpdateInfo, Instant)>>> = Lazy::new(|| RwLock::new(None));
+pub static UPDATE_CACHE: Lazy<RwLock<Option<(SystemUpdateInfo, Instant)>>> = Lazy::new(|| RwLock::new(None));
 const CACHE_TTL: Duration = Duration::from_secs(30); // 30 seconds cache for responsive CI status
 
 static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock::new(SystemUpdateTask {
@@ -52,6 +52,42 @@ pub fn get_app_version() -> String {
     std::env::var("APP_VERSION")
         .or_else(|_| std::env::var("ORBIT_VERSION"))
         .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string())
+}
+
+pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> bool {
+    let clean_tag = tag.trim_start_matches('v');
+    let tags_to_check = [format!("v{}", clean_tag), clean_tag.to_string()];
+
+    // Get anonymous token for ghcr.io
+    let token_url = "https://ghcr.io/token?service=ghcr.io&scope=repository:andrevictor20/orbit-dashboard:pull";
+    let token = match client.get(token_url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                json.get("token").and_then(|t| t.as_str()).map(|s| s.to_string())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+
+    let accept_header = "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json";
+
+    for t in &tags_to_check {
+        let manifest_url = format!("https://ghcr.io/v2/andrevictor20/orbit-dashboard/manifests/{}", t);
+        let mut req = client.head(&manifest_url).header("Accept", accept_header);
+        if let Some(ref tok) = token {
+            req = req.header("Authorization", format!("Bearer {}", tok));
+        }
+
+        if let Ok(resp) = req.send().await {
+            if resp.status().is_success() {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 pub async fn get_system_update_info() -> SystemUpdateInfo {
@@ -126,31 +162,57 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
             }
         }
 
-        // 3. Check GitHub Actions latest workflow run on the main branch
-        let actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/runs?branch=main&per_page=1";
-        if let Ok(resp) = client.get(actions_url).send().await {
-            if resp.status().is_success() {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
-                        if let Some(latest_run) = runs.first() {
-                            let status = latest_run.get("status").and_then(|v| v.as_str()).unwrap_or("");
-                            let conclusion = latest_run.get("conclusion").and_then(|v| v.as_str());
-                            let url = latest_run.get("html_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+        // 3. Inspect GitHub Container Registry (GHCR) and GitHub Actions runs
+        if has_update {
+            // First: Verify directly if the multi-arch image for latest_version is already published on GHCR
+            let image_ready_on_ghcr = check_ghcr_image_manifest(&client, &latest_version).await;
 
-                            ci_workflow_url = url;
+            // Second: Fetch CD workflow status from GitHub Actions API
+            let cd_actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/workflows/cd.yml/runs?branch=main&per_page=1";
+            let mut latest_cd_run = None;
+            if let Ok(resp) = client.get(cd_actions_url).send().await {
+                if resp.status().is_success() {
+                    if let Ok(json) = resp.json::<serde_json::Value>().await {
+                        if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
+                            latest_cd_run = runs.first().cloned();
+                        }
+                    }
+                }
+            }
 
-                            if status == "in_progress" || status == "queued" {
-                                ci_status = Some("building".to_string());
-                            } else if status == "completed" {
-                                if conclusion == Some("success") {
-                                    ci_status = Some("ready".to_string());
-                                } else if conclusion == Some("failure") || conclusion == Some("timed_out") {
-                                    ci_status = Some("failed".to_string());
-                                }
+            // Fallback to general workflow runs if cd.yml runs query was empty
+            if latest_cd_run.is_none() {
+                let general_actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/runs?branch=main&per_page=3";
+                if let Ok(resp) = client.get(general_actions_url).send().await {
+                    if resp.status().is_success() {
+                        if let Ok(json) = resp.json::<serde_json::Value>().await {
+                            if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
+                                latest_cd_run = runs.first().cloned();
                             }
                         }
                     }
                 }
+            }
+
+            if let Some(run) = latest_cd_run {
+                let status = run.get("status").and_then(|v| v.as_str()).unwrap_or("");
+                let conclusion = run.get("conclusion").and_then(|v| v.as_str());
+                ci_workflow_url = run.get("html_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+
+                if image_ready_on_ghcr {
+                    ci_status = Some("ready".to_string());
+                } else if status == "in_progress" || status == "queued" {
+                    ci_status = Some("building".to_string());
+                } else if conclusion == Some("failure") || conclusion == Some("timed_out") {
+                    ci_status = Some("failed".to_string());
+                } else {
+                    // Image not in GHCR yet: CD is still starting or compiling
+                    ci_status = Some("building".to_string());
+                }
+            } else if image_ready_on_ghcr {
+                ci_status = Some("ready".to_string());
+            } else {
+                ci_status = Some("building".to_string());
             }
         }
     }
@@ -200,10 +262,6 @@ pub async fn check_update_handler(
     let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
     if image_has_update {
         info.has_update = true;
-        // If image is already ready in registry, clear blocking building state
-        if info.ci_status.as_deref() == Some("building") {
-            info.ci_status = Some("ready".to_string());
-        }
     }
 
     (StatusCode::OK, Json(info)).into_response()
@@ -245,6 +303,18 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                 "message": "Uma atualização já está em andamento."
             }))).into_response();
         }
+    }
+
+    // Safety Gate: Block update if new multi-arch image is still compiling in GitHub Actions
+    let update_info = get_system_update_info().await;
+    if update_info.has_update && update_info.ci_status.as_deref() == Some("building") {
+        return (
+            StatusCode::PRECONDITION_FAILED,
+            Json(serde_json::json!({
+                "message": "A imagem da nova versão ainda está sendo compilada e empacotada no GitHub Actions. Aguarde alguns instantes até a conclusão do processo.",
+                "error": "Imagem multi-arch ainda em compilação no GitHub Actions."
+            })),
+        ).into_response();
     }
 
     // Reset task state
@@ -440,11 +510,11 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         let helper_script = format!(
             r#"sleep 1 && (
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
-  cd "/host{host_dir}" && docker compose -f "{compose_file}" up -d --force-recreate
+  cd "/host{host_dir}" && docker compose -f "{compose_file}" pull && docker compose -f "{compose_file}" up -d --force-recreate
 elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose up -d --force-recreate
+  cd "/host/DATA/orbit" && docker compose pull && docker compose up -d --force-recreate
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose up -d --force-recreate
+  cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
 else
   docker stop orbit-dashboard 2>/dev/null || true
   docker rm orbit-dashboard 2>/dev/null || true

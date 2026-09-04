@@ -116,4 +116,37 @@ pub fn app() -> Router {
         .fallback_service(
             ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")),
         )
+        // Cache-Control estrito: index.html e rotas SPA nunca em cache; assets imutáveis
+        .layer(axum::middleware::from_fn(spa_cache_control_middleware))
+}
+
+async fn spa_cache_control_middleware(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let path = req.uri().path().to_string();
+    let mut response = next.run(req).await;
+
+    if path.starts_with("/assets/") {
+        response.headers_mut().insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=31536000, immutable"),
+        );
+    } else if path == "/" || path.ends_with(".html") || !path.contains('.') {
+        // Rotas SPA e index.html nunca devem ser retidos em cache de disco pelo navegador
+        response.headers_mut().insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-cache, no-store, must-revalidate, max-age=0"),
+        );
+        response.headers_mut().insert(
+            header::PRAGMA,
+            HeaderValue::from_static("no-cache"),
+        );
+        response.headers_mut().insert(
+            header::EXPIRES,
+            HeaderValue::from_static("0"),
+        );
+    }
+
+    response
 }
