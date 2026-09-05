@@ -38,6 +38,10 @@ pub struct ContainerSnapshot {
     pub cpu_percent: f64,
     pub memory_used: u64,
     pub memory_limit: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size_rw: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size_root_fs: Option<i64>,
 }
 
 #[derive(Serialize)]

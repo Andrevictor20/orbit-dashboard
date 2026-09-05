@@ -76,16 +76,28 @@ export function ContainerList() {
         });
         setLoading(false);
 
-        // Fetch CPU/RAM stats in the background without stalling the view
-        fetch('/api/docker/containers/stats/snapshot')
+        // Fetch CPU/RAM/Disk stats snapshot in the background without stalling the view
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+        fetch('/api/docker/containers/stats/snapshot', { headers })
           .then(r => r.ok ? r.json() : null)
           .then(statsData => {
             if (Array.isArray(statsData)) {
               setContainers(prev => {
                 const merged = prev.map(c => {
-                  const stat = statsData.find((s: any) => s.id && s.id.startsWith(c.id));
+                  const stat = statsData.find((s: any) => 
+                    s.id && (s.id === c.id || c.id.startsWith(s.id) || s.id.startsWith(c.id))
+                  );
                   if (stat) {
-                    return { ...c, cpu_percent: stat.cpu_percent, memory_used: stat.memory_used, memory_limit: stat.memory_limit };
+                    return {
+                      ...c,
+                      cpu_percent: stat.cpu_percent,
+                      memory_used: stat.memory_used,
+                      memory_limit: stat.memory_limit,
+                      size_rw: stat.size_rw !== undefined ? stat.size_rw : c.size_rw,
+                      size_root_fs: stat.size_root_fs !== undefined ? stat.size_root_fs : c.size_root_fs,
+                    };
                   }
                   return c;
                 });

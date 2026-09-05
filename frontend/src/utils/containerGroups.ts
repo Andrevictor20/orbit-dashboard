@@ -388,6 +388,18 @@ export function getContainerWebLink(c: ContainerLike, customLinks: Record<string
 }
 
 /**
+ * Calculates the total disk footprint of a container.
+ * In Docker API, size_root_fs represents the virtual container size (read-only layers + read-write layer).
+ * If size_root_fs is present and > 0, it is used. Otherwise falls back to size_rw.
+ */
+export function getContainerDiskUsage(c: { size_rw?: number | null; size_root_fs?: number | null }): number {
+  if (c.size_root_fs && c.size_root_fs > 0) {
+    return c.size_root_fs;
+  }
+  return c.size_rw || 0;
+}
+
+/**
  * Groups a list of containers into consolidated GroupContainerItems (if >= 2 containers share a group)
  * and SingleContainerItems (for standalone containers).
  */
@@ -431,7 +443,7 @@ export function groupContainers<T extends ContainerLike>(
 
       const totalCpu = bucket.reduce((sum, c) => sum + (c.cpu_percent || 0), 0);
       const totalMemory = bucket.reduce((sum, c) => sum + (c.memory_used || 0), 0);
-      const totalDisk = bucket.reduce((sum, c) => sum + ((c.size_rw || 0) + (c.size_root_fs || 0)), 0);
+      const totalDisk = bucket.reduce((sum, c) => sum + getContainerDiskUsage(c), 0);
       const runningCount = bucket.filter(c => c.state === 'running').length;
       const totalCount = bucket.length;
       const allRunning = runningCount === totalCount && totalCount > 0;

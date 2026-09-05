@@ -8,6 +8,7 @@ describe('Format and Storage Utils', () => {
     expect(formatBytes(1024 * 1024)).toBe('1 MB');
     expect(formatBytes(1024 * 1024 * 1024 * 1024)).toBe('1 TB');
     expect(formatRAM(512 * 1024 * 1024)).toBe('512.0 MB');
+    expect(formatRAM(2 * 1024 * 1024 * 1024)).toBe('2.00 GB');
     
     // Below 1 TB -> displays in GB
     expect(formatGB(4 * 1024 * 1024 * 1024)).toBe('4.00 GB');

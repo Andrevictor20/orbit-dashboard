@@ -7,7 +7,7 @@ import {
 import { formatRAM, formatBytes } from '../../../utils/format';
 import { getIconForImage } from '../../../utils/icons';
 import { resolveWebUrl } from '../../../utils/url';
-import { getContainerWebLink, getSortedDeduplicatedPorts } from '../../../utils/containerGroups';
+import { getContainerWebLink, getSortedDeduplicatedPorts, getContainerDiskUsage } from '../../../utils/containerGroups';
 import { ContainerIcon } from '../../ui/ContainerIcon';
 import type { Container } from './types';
 
@@ -86,7 +86,7 @@ export function ContainerGridCard({
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] text-orbit-600 dark:text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
-          <span className="text-xs text-primary font-mono font-bold">{formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}</span>
+          <span className="text-xs text-primary font-mono font-bold">{formatBytes(getContainerDiskUsage(c))}</span>
         </div>
       </div>
 

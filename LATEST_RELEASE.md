@@ -1,23 +1,30 @@
-# Orbit Dashboard v2.5.2
+# Orbit Dashboard v2.5.3
 
-### 🚀 Novidades & Recursos Principais (v2.5.2)
+### 🚀 Novidades & Recursos Principais (v2.5.3)
 
-- **Acessibilidade & Correção Definitiva de Contraste no Tema Claro:**
-  - **Legibilidade Total de Textos e Modais:** Corrigida a compatibilidade com navegadores e sistemas operacionais com preferência escura ativa, garantindo que o tema claro exiba textos em preto/grafite sólido de altíssimo contraste (WCAG AA > 15:1) em vez de tons claros ou esbranquiçados.
-  - **Notas de Atualização Nítidas:** Títulos, subtítulos e descrições das melhorias do sistema agora contam com contraste profundo e fundo perfeitamente legível.
+- **Correção da Telemetria de Memória RAM nos Containers:**
+  - **Cálculo Preciso de Memória Utilizada:** Adequação ao padrão oficial da Docker Engine para Linux e cgroups (v1 e v2), evitando que páginas de cache e buffers zerem indevidamente a contagem e garantindo que o consumo real de cada container seja exibido dinamicamente em MB ou GB, em vez de permanecer congelado em 0.0 MB.
+  - **Sincronização de Telemetria:** Sincronização e pareamento confiável de snapshots de recursos entre todos os containers individuais e stacks.
 
-- **Atualizador de Containers em Tempo Real & Anti-Travamento:**
-  - **Streaming Contínuo de Download:** O console de atualização agora exibe em tempo real o progresso de cada camada sendo baixada do Docker Hub ou Compose (incluindo contagem de MBs e porcentagem), eliminando a sensação de travamento durante o download de imagens pesadas como o Home Assistant.
-  - **Cancelamento Imediato de Processos:** Botões para cancelar containers individuais ou toda a fila de atualização encerram os processos no host instantaneamente, liberando a fila sem locks pendentes.
-  - **Recuperação e Reinício Rápido:** Tarefas antigas são expiradas automaticamente e o sistema permite reiniciar downloads travados sem erro de concorrência ou falsos-positivos.
+- **Contabilização Real de Uso de Disco (Armazenamento dos Containers):**
+  - **Métricas Reais de Armazenamento:** Contabilização precisa do tamanho virtual e da camada de leitura/escrita dos containers e stacks, eliminando a exibição incorreta de 0 B.
+  - **Cache Assíncrono de Baixo Impacto:** Coleta e atualização em segundo plano do tamanho dos containers no Docker daemon, garantindo que o inventário carregue instantaneamente mesmo em servidores com discos mais lentos como cartões microSD ou HDs mecânicos.
 
-- **Telemetria Inteligente de Rede (Cabo / Wi-Fi):**
-  - **Detecção Automática de Interface:** Identificação automática do tipo de conexão ativa do servidor com ícones dinâmicos no card de Tráfego de Rede da Visão Geral e no cabeçalho de Métricas.
-  - **Velocidade Adaptativa em Tempo Real:** Formatação inteligente e dinâmica de velocidade (B/s, KB/s, MB/s, GB/s), eliminando números congelados em 0.0 MB.
+- **Concorrência Otimizada e Prevenção de Timeouts:**
+  - **Consumo Inteligente de Recursos no Host:** Controle de concorrência na leitura de métricas do Docker Socket, evitando sobrecarga em dispositivos compactos como Raspberry Pi com dezenas de containers simultâneos.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.5.2 — Acessibilidade, Tema Claro & Streaming de Atualização</summary>
+
+- Acessibilidade & Correção Definitiva de Contraste no Tema Claro
+- Atualizador de Containers em Tempo Real & Anti-Travamento
+- Telemetria Inteligente de Rede (Cabo / Wi-Fi)
+
+</details>
 
 <details>
 <summary>v2.5.1 — Container Streaming & Light Theme Polish</summary>

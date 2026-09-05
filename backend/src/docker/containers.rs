@@ -7,6 +7,10 @@ use axum::{
 use futures::StreamExt;
 use crate::state::AppState;
 use super::types::{ContainerInfo, DeleteContainerQuery, UpdateEnvPayload, UpdateVolumesPayload};
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
+use once_cell::sync::Lazy;
 
 pub fn valid_env_entry(entry: &str) -> bool {
     let Some((key, _)) = entry.split_once('=') else {
@@ -79,18 +83,101 @@ pub fn resolve_compose_file(
 
 pub use super::port_prioritization::*;
 
+#[derive(Clone, Copy, Debug)]
+pub struct CachedContainerSize {
+    pub size_rw: Option<i64>,
+    pub size_root_fs: Option<i64>,
+}
+
+static CONTAINER_SIZE_CACHE: Lazy<RwLock<HashMap<String, CachedContainerSize>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
+static LAST_SIZE_SCAN: Lazy<RwLock<Option<Instant>>> =
+    Lazy::new(|| RwLock::new(None));
+
+pub fn get_cached_container_sizes() -> HashMap<String, CachedContainerSize> {
+    CONTAINER_SIZE_CACHE.read().map(|c| c.clone()).unwrap_or_default()
+}
+
+pub fn trigger_container_size_scan_if_needed(docker: Arc<bollard::Docker>) {
+    let should_scan = {
+        let last = LAST_SIZE_SCAN.read().unwrap();
+        match *last {
+            Some(instant) => instant.elapsed() > Duration::from_secs(60),
+            None => true,
+        }
+    };
+
+    if should_scan {
+        if let Ok(mut last) = LAST_SIZE_SCAN.write() {
+            *last = Some(Instant::now());
+        }
+
+        tokio::spawn(async move {
+            let mut options = bollard::query_parameters::ListContainersOptions::default();
+            options.all = true;
+            options.size = true;
+            if let Ok(containers) = docker.list_containers(Some(options)).await {
+                if let Ok(mut cache) = CONTAINER_SIZE_CACHE.write() {
+                    for c in containers {
+                        if let Some(id) = c.id {
+                            let size = CachedContainerSize {
+                                size_rw: c.size_rw,
+                                size_root_fs: c.size_root_fs,
+                            };
+                            cache.insert(id.clone(), size);
+                            if id.len() >= 12 {
+                                cache.insert(id[..12].to_string(), size);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
 pub async fn list_containers(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
+    let is_first_scan = { LAST_SIZE_SCAN.read().map(|l| l.is_none()).unwrap_or(true) };
     let mut options = bollard::query_parameters::ListContainersOptions::default();
     options.all = true;
-    options.size = false; // Fast listing without slow synchronous filesystem scans
+    options.size = is_first_scan;
+
+    if !is_first_scan {
+        trigger_container_size_scan_if_needed(state.docker.clone());
+    }
 
     match state.docker.list_containers(Some(options)).await {
         Ok(containers) => {
+            if is_first_scan {
+                if let Ok(mut cache) = CONTAINER_SIZE_CACHE.write() {
+                    for c in &containers {
+                        if let Some(id) = &c.id {
+                            let size = CachedContainerSize {
+                                size_rw: c.size_rw,
+                                size_root_fs: c.size_root_fs,
+                            };
+                            cache.insert(id.clone(), size);
+                            if id.len() >= 12 {
+                                cache.insert(id[..12].to_string(), size);
+                            }
+                        }
+                    }
+                }
+                if let Ok(mut last) = LAST_SIZE_SCAN.write() {
+                    *last = Some(Instant::now());
+                }
+            }
+
+            let cached_sizes = get_cached_container_sizes();
+
             let info: Vec<ContainerInfo> = containers
                 .into_iter()
                 .map(|c| {
+                    let full_id = c.id.clone().unwrap_or_default();
+                    let short_id: String = full_id.chars().take(12).collect();
+
                     let name = c.names
                         .as_ref()
                         .and_then(|names| names.first())
@@ -101,7 +188,7 @@ pub async fn list_containers(
                                 .as_ref()
                                 .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.casaos.app.name")))
                                 .cloned()
-                                .unwrap_or_else(|| c.id.as_deref().unwrap_or("unknown").chars().take(12).collect())
+                                .unwrap_or_else(|| short_id.clone())
                         });
 
                     let labels = c.labels.unwrap_or_default();
@@ -109,16 +196,25 @@ pub async fn list_containers(
                     let network_mode = c.host_config.as_ref().and_then(|h| h.network_mode.as_deref());
                     let ports = process_and_prioritize_ports(c.ports, &labels, &image_str, &name, network_mode);
 
+                    let (size_rw, size_root_fs) = if c.size_rw.is_some() || c.size_root_fs.is_some() {
+                        (c.size_rw, c.size_root_fs)
+                    } else {
+                        cached_sizes.get(&full_id)
+                            .or_else(|| cached_sizes.get(&short_id))
+                            .map(|s| (s.size_rw, s.size_root_fs))
+                            .unwrap_or((None, None))
+                    };
+
                     ContainerInfo {
-                        id: c.id.unwrap_or_default().chars().take(12).collect(),
+                        id: short_id,
                         name,
                         image: image_str,
                         state: c.state.map(|s| s.to_string()).unwrap_or_default(),
                         status: c.status.unwrap_or_default(),
                         ports,
                         labels,
-                        size_rw: c.size_rw,
-                        size_root_fs: c.size_root_fs,
+                        size_rw,
+                        size_root_fs,
                     }
                 })
                 .collect();

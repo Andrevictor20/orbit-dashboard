@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { formatRAM, formatBytes } from '../../../utils/format';
 import { getIconForImage } from '../../../utils/icons';
-import { getContainerWebLink, type GroupContainerItem } from '../../../utils/containerGroups';
+import { getContainerWebLink, getContainerDiskUsage, type GroupContainerItem } from '../../../utils/containerGroups';
 import { ContainerIcon } from '../../ui/ContainerIcon';
 import type { Container } from './types';
 
@@ -201,7 +201,7 @@ export function ContainerTableView({
                       </td>
 
                       <td className="px-4 py-3 font-mono text-primary">
-                        {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
+                        {formatBytes(getContainerDiskUsage(c))}
                       </td>
 
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -263,7 +263,7 @@ export function ContainerTableView({
                   {formatRAM(c.memory_used)}
                 </td>
                 <td className="px-4 py-4 text-primary font-mono">
-                  {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
+                  {formatBytes(getContainerDiskUsage(c))}
                 </td>
                 <td className="px-4 py-4 text-right">
                   <div className="flex justify-end gap-2 items-center">

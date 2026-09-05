@@ -15,10 +15,13 @@ export function formatBytes(bytes?: number): string {
 }
 
 /**
- * Formats bytes as MB with 1 decimal (for RAM display).
+ * Formats bytes as MB with 1 decimal, or GB with 2 decimals if >= 1 GB (for RAM display).
  */
 export function formatRAM(bytes?: number): string {
   if (bytes === undefined) return '0 MB';
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
