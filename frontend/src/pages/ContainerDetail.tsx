@@ -79,15 +79,61 @@ export function ContainerDetail() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
+      
+      const rawText = await res.text().catch(() => '');
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = null;
+      }
+
+      if (!res.ok || data?.status === 'error') {
+        let err = data?.message || rawText;
+        if (rawText.includes('<!DOCTYPE html') || rawText.includes('<html')) {
+          err = 'Tempo limite ou erro retornado pelo proxy intermediário/rede.';
+        }
+        toast.error(`Falha ao atualizar container: ${err}`);
+        return;
+      }
+
+      // If finished synchronously
+      if (data?.status === 'success') {
         setHasUpdate(false);
         toast.success('Container atualizado e reiniciado com sucesso!');
         await fetchContainer();
         await fetchInspect();
-      } else {
-        const err = await res.text();
-        console.error('Update failed:', err);
-        toast.error(`Falha ao atualizar container: ${err}`);
+        return;
+      }
+
+      // Polling background update
+      toast('Download da imagem iniciado em segundo plano...', { icon: '⏳' });
+      let completed = false;
+      let retries = 0;
+      while (!completed && retries < 180) { // up to 6 minutes
+        await new Promise(r => setTimeout(r, 2000));
+        retries++;
+        try {
+          const statusRes = await fetch(`/api/docker/containers/${id}/update-status`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!statusRes.ok) continue;
+          const task = await statusRes.json().catch(() => null);
+          if (!task) continue;
+
+          if (task.status === 'success') {
+            completed = true;
+            setHasUpdate(false);
+            toast.success('Container atualizado e reiniciado com sucesso!');
+            await fetchContainer();
+            await fetchInspect();
+          } else if (task.status === 'error') {
+            completed = true;
+            toast.error(`Falha ao atualizar container: ${task.error || 'Erro desconhecido'}`);
+          }
+        } catch {
+          // Transient network reconnection retry
+        }
       }
     } catch (e) {
       console.error('Update error:', e);

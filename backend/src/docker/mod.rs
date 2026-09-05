@@ -34,6 +34,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/containers/{id}/env", post(update_container_env))
         .route("/api/docker/containers/{id}/volumes", post(update_container_volumes))
         .route("/api/docker/containers/{id}/update", post(update_container))
+        .route("/api/docker/containers/{id}/update-status", get(get_container_update_status))
         .route("/api/docker/containers/{id}/check-update", get(check_single_container_update))
         .route("/api/docker/containers/check-updates", get(check_container_updates))
         .route("/api/docker/containers/{id}/exec", get(container_exec_ws))

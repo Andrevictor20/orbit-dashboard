@@ -40,7 +40,7 @@ pub struct SystemUpdateTask {
 pub static UPDATE_CACHE: Lazy<RwLock<Option<(SystemUpdateInfo, Instant)>>> = Lazy::new(|| RwLock::new(None));
 const CACHE_TTL: Duration = Duration::from_secs(30); // 30 seconds cache for responsive CI status
 
-static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock::new(SystemUpdateTask {
+pub static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwLock::new(SystemUpdateTask {
     status: "idle".to_string(),
     progress: 0,
     current_step: "".to_string(),

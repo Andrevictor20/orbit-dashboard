@@ -1,6 +1,33 @@
-# Orbit Dashboard v2.2.1
+# Orbit Dashboard v2.3.0
 
-### 🛠️ Correções & Melhorias no Sistema de Atualização (v2.2.1)
+### 🚀 Novidades & Recursos Principais (v2.3.0)
+- **Agrupamento Universal de Entidades do Home Assistant & Inspeção Interativa por Modal:**
+  - **Fim da Poluição Visual de Entidades Brutas:** As centenas de entidades e sensores soltos (`sensor.*`, `binary_sensor.*`, `event.*`, `update.*`) agora são consolidados automaticamente em **Dispositivos Físicos e Lógicos Coesos** (`HADeviceGroup`).
+  - **Identificação e Agrupamento Inteligente de Hardware e Rotinas:**
+    - *Roteador Huawei IGD:* Unificação de status WAN, endereço IP externo e telemetria de tráfego (KiB/s download/upload) em um único dispositivo de rede.
+    - *Backups do Sistema:* Agrupamento de status do gerenciador, último backup concluído e próximo agendamento.
+    - *Ciclo Solar & Astronomia:* Agrupamento de `sun.sun`, horários solares (alvorada, crepúsculo, meio-dia).
+    - *Home Assistant Cloud & Assistente de Voz:* Consolidação de STT, TTS, conversation e Remote UI.
+    - *Atualizações de Sistema & HACS:* Agrupamento de atualizações de cards e do core.
+    - *Lâmpadas & Tomadas Inteligentes:* Consolidadas individualmente com suas respectivas leituras de consumo elétrico (W, kWh, V, A).
+    - *Câmeras de Segurança & Dispositivos Móveis:* Tapo C200 com detecção de movimento e smartphones com nível de bateria e presença.
+  - **Card de Dispositivo em Liquid Glass (`DeviceGroupCard`):** Card vítreo translúcido com ícone temático, quick toggle inline para luzes e tomadas, badge de status, contagem de entidades filhas e botão de expansão.
+  - **Modal de Detalhe e Inspeção (`DeviceDetailModal`):** Ao clicar no card, abre uma gaveta detalhada exibindo todas as entidades e sensores do dispositivo com controles interativos em tempo real, leituras de telemetria e cópia de `entity_id` com 1 clique.
+  - **Subfiltros por Categoria & Busca Rápida:** Filtros dinâmicos (Iluminação, Tomadas, Mídia, Climatização, Câmeras, Dispositivos Móveis, Rede, Sistema & Backups, Automações, Sensores) com campo de busca em tempo real.
+
+- **Desacoplamento Assíncrono do Atualizador de Containers (Fim dos Timeouts Cloudflare 524):**
+  - **Resposta Imediata na API:** O endpoint `POST /api/docker/containers/{id}/update` agora responde em `< 20ms` com status `started` e delega a recriação do container a uma tarefa assíncrona em segundo plano, eliminando timeouts de 60-100s impostos por proxies reversos e túneis.
+  - **Polling Leve de Status:** Novo endpoint `GET /api/docker/containers/{id}/update-status` com acompanhamento de progresso em tempo real pela interface.
+  - **Reordenação Estratégica da Fila:** Containers de rede e túnel (`cloudflared`, `traefik`, `nginx-proxy`) são atualizados estritamente no final da fila, mantendo o tráfego estável durante todo o processo.
+  - **Isolamento de Stacks Compose:** Execução cirúrgica escopada por serviço (`pull <service>` e `up -d --no-deps <service>`).
+
+- **Mini Gráficos SVG Nativos em Tempo Real na Visão Geral:**
+  - **Mini Sparklines Ultraleves:** Curvas Bézier cúbicas suaves com interpolação contínua e gradientes fluidos para CPU, Memória e Rede, com taxa de atualização de 60fps e zero overhead de bibliotecas pesadas.
+  - **Otimização Vertical dos Cards:** Redução da altura ociosa e harmonização visual completa dos cards de telemetria com a listagem desagregada de discos.
+
+---
+
+### 🛠️ Correções & Melhorias Anteriores (v2.2.1)
 - **Verificação Precisa de Prontidão da Imagem no GitHub Container Registry (GHCR):**
   - **Fim dos Falsos Positivos de Atualização:** O sistema agora consulta diretamente a API de manifestos do registry OCI (`ghcr.io`) para checar se a imagem multi-arch (amd64 / arm64) da nova versão já foi concluída e publicada antes de disponibilizar o botão de atualizar.
   - **Proteção Pré-Atualização:** Tentativas de atualização enquanto a imagem ainda estiver sendo gerada no GitHub Actions são bloqueadas na API com status explicativo, evitando downloads prematuros de versões anteriores.

@@ -79,6 +79,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/homeassistant/config", get(get_config).post(save_config).delete(delete_config))
         .route("/api/homeassistant/entities", get(get_entities))
         .route("/api/homeassistant/services/{domain}/{service}", post(call_service))
+        .route("/api/homeassistant/camera_proxy/{entity_id}", get(camera_proxy))
 }
 
 pub async fn get_config() -> impl IntoResponse {
@@ -342,3 +343,52 @@ pub async fn call_service(
         ).into_response(),
     }
 }
+
+pub async fn camera_proxy(Path(entity_id): Path<String>) -> impl IntoResponse {
+    let cfg = {
+        let guard = HA_CONFIG_CACHE.read().unwrap();
+        guard.clone()
+    };
+
+    let cfg = match cfg {
+        Some(c) if c.enabled => c,
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Home Assistant is not configured or enabled" })),
+            ).into_response();
+        }
+    };
+
+    let proxy_url = format!("{}/api/camera_proxy/{}", cfg.url.trim_end_matches('/'), entity_id);
+    match HA_CLIENT
+        .get(&proxy_url)
+        .bearer_auth(&cfg.token)
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => {
+            let content_type = resp
+                .headers()
+                .get("content-type")
+                .and_then(|h| h.to_str().ok())
+                .unwrap_or("image/jpeg")
+                .to_string();
+            let bytes = resp.bytes().await.unwrap_or_default();
+            (
+                StatusCode::OK,
+                [(axum::http::header::CONTENT_TYPE, content_type)],
+                bytes,
+            ).into_response()
+        }
+        Ok(resp) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({ "error": format!("Camera proxy returned status {}", resp.status()) })),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({ "error": format!("Failed to reach camera: {}", e) })),
+        ).into_response(),
+    }
+}
+

@@ -26,6 +26,8 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
     axum_extra::extract::cookie::Cookie::new("auth_token", token)
 }
 
+static TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[tokio::test]
 async fn test_system_update_check_endpoint() {
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
@@ -71,6 +73,7 @@ async fn test_system_platform_detection() {
 
 #[tokio::test]
 async fn test_system_update_endpoint_exists_and_polls_task() {
+    let _lock = TEST_MUTEX.lock().unwrap();
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -91,6 +94,12 @@ async fn test_system_update_endpoint_exists_and_polls_task() {
     let task: SystemUpdateTask = status_res.json();
     assert!(!task.status.is_empty(), "Task status must be populated");
     assert!(!task.logs.is_empty(), "Task logs should contain at least initial line");
+
+    // Reset task state
+    {
+        let mut t = backend::system::SYSTEM_UPDATE_TASK.write().unwrap();
+        t.status = "idle".to_string();
+    }
 }
 
 /// Regression [L-016]: the fallback docker run command must use 'orbit-dashboard'
@@ -242,6 +251,7 @@ async fn test_system_version_endpoint_with_auth() {
 
 #[tokio::test]
 async fn test_check_update_force_query_bypasses_cache() {
+    let _lock = TEST_MUTEX.lock().unwrap();
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -302,7 +312,15 @@ async fn test_ghcr_image_manifest_real_check() {
 
 #[tokio::test]
 async fn test_system_update_blocks_when_ci_is_building() {
+    let _lock = TEST_MUTEX.lock().unwrap();
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+
+    // Ensure clean initial state
+    {
+        let mut t = backend::system::SYSTEM_UPDATE_TASK.write().unwrap();
+        t.status = "idle".to_string();
+    }
+
     let app = backend::app();
     let server = TestServer::new(app);
     let cookie = get_test_cookie();

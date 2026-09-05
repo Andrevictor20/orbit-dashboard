@@ -99,14 +99,65 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     setActiveContainerName(null);
   }, []);
 
+  const sanitizeErrorMessage = (rawText: string, status: number): string => {
+    if (!rawText) {
+      return status === 504 
+        ? 'Tempo limite de conexão esgotado (Gateway Timeout)' 
+        : `Erro ao atualizar container (HTTP ${status})`;
+    }
+
+    if (rawText.includes('<!DOCTYPE html') || rawText.includes('<html')) {
+      if (status === 524 || rawText.includes('524: A timeout occurred') || rawText.includes('Error 524')) {
+        return 'Tempo limite esgotado no proxy/Cloudflare (Error 524). A operação continuará em segundo plano.';
+      }
+      if (status === 502 || rawText.includes('502 Bad Gateway') || rawText.includes('Bad gateway')) {
+        return 'Falha temporária de comunicação com o gateway/tunnel (HTTP 502).';
+      }
+      if (status === 504 || rawText.includes('504 Gateway Time-out') || rawText.includes('Gateway Timeout')) {
+        return 'Tempo limite de conexão esgotado pelo proxy (Gateway Timeout 504).';
+      }
+      if (status === 403 || rawText.includes('Access denied') || rawText.includes('Attention Required!')) {
+        return 'Acesso bloqueado por regras de firewall ou proxy (HTTP 403).';
+      }
+      const titleMatch = rawText.match(/<title>([^<]+)<\/title>/i);
+      if (titleMatch && titleMatch[1]) {
+        return `Erro no proxy/rede: ${titleMatch[1].trim()}`;
+      }
+      return `Erro HTTP ${status} retornado pelo proxy ou rede.`;
+    }
+
+    return rawText.length > 200 ? rawText.slice(0, 200) + '...' : rawText;
+  };
+
+  const isTunnelOrProxy = (c: ContainerLike) => {
+    const name = (c.name || '').toLowerCase();
+    const img = (c.image || '').toLowerCase();
+    return (
+      name.includes('cloudflared') ||
+      name.includes('tunnel') ||
+      name.includes('traefik') ||
+      name.includes('nginx-proxy') ||
+      name.includes('caddy') ||
+      img.includes('cloudflared') ||
+      img.includes('traefik') ||
+      img.includes('nginx-proxy')
+    );
+  };
+
   const runUpdateLoop = async (targetContainers: ContainerLike[]) => {
     if (updatingRef.current) return;
     updatingRef.current = true;
     setIsUpdating(true);
     setIsCompleted(false);
 
+    // Prioritize standard applications first and leave networking tunnels/proxies for the end
+    // to guarantee unbroken connectivity while updating other services.
+    const normalContainers = targetContainers.filter(c => !isTunnelOrProxy(c));
+    const proxyContainers = targetContainers.filter(c => isTunnelOrProxy(c));
+    const orderedTargets = [...normalContainers, ...proxyContainers];
+
     const initialTasks: Record<string, ContainerTaskStatus> = {};
-    targetContainers.forEach(c => {
+    orderedTargets.forEach(c => {
       initialTasks[c.id] = {
         id: c.id,
         name: c.name.replace(/^\//, ''),
@@ -115,18 +166,18 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
       };
     });
     setTaskStatuses(initialTasks);
-    addLog(`Iniciando atualização de ${targetContainers.length} container(s)...`);
+    addLog(`Iniciando atualização de ${orderedTargets.length} container(s)...`);
 
     const token = localStorage.getItem('orbit_token');
     let localSuccess = 0;
     let localFailed = 0;
 
-    for (let i = 0; i < targetContainers.length; i++) {
-      const c = targetContainers[i];
+    for (let i = 0; i < orderedTargets.length; i++) {
+      const c = orderedTargets[i];
       const cleanName = c.name.replace(/^\//, '');
       setActiveContainerName(cleanName);
 
-      // Step 1: Pulling
+      // Step 1: Mark pulling state
       setTaskStatuses(prev => ({
         ...prev,
         [c.id]: { ...prev[c.id], state: 'pulling' },
@@ -150,25 +201,9 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
           data = null;
         }
 
-        if (response.ok && data?.status !== 'error') {
-          localSuccess++;
-          setTaskStatuses(prev => ({
-            ...prev,
-            [c.id]: { ...prev[c.id], state: 'success' },
-          }));
-          addLog(`[${cleanName}] Parando e recriando container...`);
-          addLog(`[${cleanName}] Container atualizado e reiniciado com sucesso!`);
-        } else {
+        if (!response.ok || data?.status === 'error') {
           localFailed++;
-          let errorMessage = data?.message || data?.details;
-          if (!errorMessage && rawText) {
-            errorMessage = rawText.length > 200 ? rawText.slice(0, 200) + '...' : rawText;
-          }
-          if (!errorMessage) {
-            errorMessage = response.status === 504 
-              ? 'Tempo limite de conexão esgotado (Gateway Timeout)' 
-              : `Erro ao atualizar container (HTTP ${response.status})`;
-          }
+          const errorMessage = data?.message || sanitizeErrorMessage(rawText, response.status);
           const errorDetails = data?.details || rawText || JSON.stringify(data);
           setTaskStatuses(prev => ({
             ...prev,
@@ -180,6 +215,104 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
             },
           }));
           addLog(`[${cleanName}] ERRO: ${errorMessage}`);
+          continue;
+        }
+
+        // If backend executed synchronously and finished immediately
+        if (data?.status === 'success') {
+          localSuccess++;
+          setTaskStatuses(prev => ({
+            ...prev,
+            [c.id]: { ...prev[c.id], state: 'success' },
+          }));
+          addLog(`[${cleanName}] Parando e recriando container...`);
+          addLog(`[${cleanName}] Container atualizado e reiniciado com sucesso!`);
+          continue;
+        }
+
+        // Asynchronous background task polling
+        let lastStep = '';
+        let completed = false;
+        let consecutiveNetworkErrors = 0;
+        const maxNetworkRetries = 15; // 15 * 2s = 30s buffer for tunnel reconnects
+
+        while (!completed) {
+          await new Promise(res => setTimeout(res, 2000));
+
+          try {
+            const statusRes = await fetch(`/api/docker/containers/${c.id}/update-status`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!statusRes.ok) {
+              consecutiveNetworkErrors++;
+              if (consecutiveNetworkErrors === 2) {
+                addLog(`[${cleanName}] Aguardando resposta do container/rede...`);
+              }
+              if (consecutiveNetworkErrors > maxNetworkRetries) {
+                throw new Error(`Servidor inacessível após ${maxNetworkRetries} tentativas (HTTP ${statusRes.status})`);
+              }
+              continue;
+            }
+
+            consecutiveNetworkErrors = 0;
+            const task = await statusRes.json().catch(() => null);
+
+            if (!task) continue;
+
+            if (task.step && task.step !== lastStep) {
+              lastStep = task.step;
+              addLog(`[${cleanName}] ${task.step}`);
+            }
+
+            if (task.status === 'recreating') {
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: { ...prev[c.id], state: 'pulling' },
+              }));
+            } else if (task.status === 'success') {
+              completed = true;
+              localSuccess++;
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: { ...prev[c.id], state: 'success' },
+              }));
+            } else if (task.status === 'error') {
+              completed = true;
+              localFailed++;
+              const err = task.error || 'Falha na atualização do container';
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: {
+                  ...prev[c.id],
+                  state: 'error',
+                  error: err,
+                  details: task.details,
+                },
+              }));
+              addLog(`[${cleanName}] ERRO: ${err}`);
+            }
+          } catch (pollErr: any) {
+            consecutiveNetworkErrors++;
+            if (consecutiveNetworkErrors === 2) {
+              addLog(`[${cleanName}] Conexão oscilando. Aguardando reconexão do proxy...`);
+            }
+            if (consecutiveNetworkErrors > maxNetworkRetries) {
+              completed = true;
+              localFailed++;
+              const errMsg = pollErr?.message || 'Falha de comunicação persistente com o servidor';
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: {
+                  ...prev[c.id],
+                  state: 'error',
+                  error: errMsg,
+                  details: String(pollErr),
+                },
+              }));
+              addLog(`[${cleanName}] ERRO: ${errMsg}`);
+            }
+          }
         }
       } catch (err: any) {
         localFailed++;
