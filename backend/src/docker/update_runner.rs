@@ -15,6 +15,8 @@ use axum::{
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio_util::sync::CancellationToken;
 
 use crate::state::AppState;
 use super::containers::resolve_compose_file;
@@ -23,6 +25,7 @@ use super::updates::{get_host_platform, invalidate_update_cache};
 #[derive(Debug, Deserialize, Default)]
 pub struct UpdateContainerQuery {
     pub wait: Option<bool>,
+    pub force: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,7 +33,7 @@ pub struct ContainerUpdateTask {
     pub id: String,
     pub name: String,
     pub image: String,
-    pub status: String, // "pulling" | "recreating" | "success" | "error"
+    pub status: String, // "pulling" | "recreating" | "success" | "error" | "cancelled"
     pub step: String,
     pub error: Option<String>,
     pub details: Option<String>,
@@ -38,6 +41,9 @@ pub struct ContainerUpdateTask {
 }
 
 pub static CONTAINER_UPDATE_TASKS: LazyLock<RwLock<HashMap<String, ContainerUpdateTask>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+pub static UPDATE_TASK_TOKENS: LazyLock<RwLock<HashMap<String, CancellationToken>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 pub fn update_task_status(
@@ -71,11 +77,18 @@ pub fn update_task_status(
     }
 }
 
+fn clean_cli_output(line: &str) -> String {
+    let re_ansi = regex::Regex::new(r"\x1B\[[0-?]*[ -/]*[@-~]").unwrap();
+    let cleaned = re_ansi.replace_all(line, "");
+    cleaned.trim_matches(|c: char| c == '\r' || c == '\n' || c.is_whitespace()).to_string()
+}
+
 pub async fn execute_container_update(
     docker: Arc<bollard::Docker>,
     id: String,
     clean_name: String,
     inspect: bollard::models::ContainerInspectResponse,
+    cancel_token: CancellationToken,
 ) -> (StatusCode, Json<Value>) {
     let compose_dir = inspect.config.as_ref()
         .and_then(|c| c.labels.as_ref())
@@ -167,17 +180,102 @@ pub async fn execute_container_update(
             let mut pull_cmd = tokio::process::Command::new("docker");
             pull_cmd.arg("compose")
                 .arg("-f").arg(&compose_file_path)
-                .arg("--project-directory").arg(host_project_dir_arg)
+                .arg("--project-directory").arg(&project_dir)
                 .arg("pull");
             if let Some(svc) = compose_service {
                 pull_cmd.arg(svc);
             }
+            pull_cmd.stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
 
-            let pull_res = pull_cmd.output().await;
             let mut compose_succeeded = false;
+            let pull_spawn = pull_cmd.spawn();
 
-            if let Ok(o) = pull_res {
-                if o.status.success() {
+            if let Ok(mut child) = pull_spawn {
+                let stderr = child.stderr.take();
+                let stdout = child.stdout.take();
+                let id_clone = id.clone();
+                let name_clone = clean_name.clone();
+                let img_clone = image_name.clone();
+                let token_clone = cancel_token.clone();
+
+                let reader_task = tokio::spawn(async move {
+                    if let Some(stderr) = stderr {
+                        let mut lines = BufReader::new(stderr).lines();
+                        while let Ok(Some(line)) = lines.next_line().await {
+                            if token_clone.is_cancelled() {
+                                break;
+                            }
+                            let clean = clean_cli_output(&line);
+                            if !clean.is_empty() {
+                                update_task_status(
+                                    &id_clone,
+                                    &name_clone,
+                                    &img_clone,
+                                    "pulling",
+                                    &clean,
+                                    None,
+                                    None,
+                                );
+                            }
+                        }
+                    } else if let Some(stdout) = stdout {
+                        let mut lines = BufReader::new(stdout).lines();
+                        while let Ok(Some(line)) = lines.next_line().await {
+                            if token_clone.is_cancelled() {
+                                break;
+                            }
+                            let clean = clean_cli_output(&line);
+                            if !clean.is_empty() {
+                                update_task_status(
+                                    &id_clone,
+                                    &name_clone,
+                                    &img_clone,
+                                    "pulling",
+                                    &clean,
+                                    None,
+                                    None,
+                                );
+                            }
+                        }
+                    }
+                });
+
+                let pull_wait = child.wait();
+                let pull_ok = tokio::select! {
+                    res = pull_wait => {
+                        let _ = reader_task.await;
+                        res.map(|st| st.success()).unwrap_or(false)
+                    }
+                    _ = cancel_token.cancelled() => {
+                        let _ = child.kill().await;
+                        reader_task.abort();
+                        update_task_status(
+                            &id,
+                            &clean_name,
+                            &image_name,
+                            "cancelled",
+                            "Atualização cancelada pelo usuário",
+                            None,
+                            None,
+                        );
+                        return (StatusCode::OK, Json(serde_json::json!({
+                            "id": id,
+                            "name": clean_name,
+                            "status": "cancelled",
+                            "message": "Atualização cancelada pelo usuário"
+                        })));
+                    }
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(600)) => {
+                        let _ = child.kill().await;
+                        reader_task.abort();
+                        tracing::warn!("Docker compose pull timed out after 600s for container '{}'. Falling back to standalone.", clean_name);
+                        false
+                    }
+                };
+
+                if pull_ok {
                     update_task_status(
                         &id,
                         &clean_name,
@@ -198,23 +296,51 @@ pub async fn execute_container_update(
                     if let Some(svc) = compose_service {
                         up_cmd.arg(svc);
                     }
+                    up_cmd.stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::piped())
+                        .stderr(std::process::Stdio::piped());
 
-                    let up_res = up_cmd.output().await;
-
-                    if let Ok(uo) = up_res {
-                        if uo.status.success() {
-                            compose_succeeded = true;
-                        } else {
-                            let stderr_msg = String::from_utf8_lossy(&uo.stderr).to_string();
-                            tracing::warn!("docker compose up failed: {}. Falling back to standalone update.", stderr_msg);
+                    if let Ok(mut up_child) = up_cmd.spawn() {
+                        let up_wait = up_child.wait();
+                        tokio::select! {
+                            res = up_wait => {
+                                if let Ok(uo) = res {
+                                    if uo.success() {
+                                        compose_succeeded = true;
+                                    } else {
+                                        tracing::warn!("docker compose up exited with error code {:?}. Falling back to standalone.", uo.code());
+                                    }
+                                }
+                            }
+                            _ = cancel_token.cancelled() => {
+                                let _ = up_child.kill().await;
+                                update_task_status(
+                                    &id,
+                                    &clean_name,
+                                    &image_name,
+                                    "cancelled",
+                                    "Atualização cancelada pelo usuário",
+                                    None,
+                                    None,
+                                );
+                                return (StatusCode::OK, Json(serde_json::json!({
+                                    "id": id,
+                                    "name": clean_name,
+                                    "status": "cancelled",
+                                    "message": "Atualização cancelada pelo usuário"
+                                })));
+                            }
+                            _ = tokio::time::sleep(std::time::Duration::from_secs(180)) => {
+                                let _ = up_child.kill().await;
+                                tracing::warn!("docker compose up timed out after 180s. Falling back to standalone.");
+                            }
                         }
                     }
                 } else {
-                    let stderr_msg = String::from_utf8_lossy(&o.stderr).to_string();
-                    tracing::warn!("docker compose pull failed: {}. Falling back to standalone update.", stderr_msg);
+                    tracing::warn!("docker compose pull failed or timed out for '{}'. Falling back to standalone update.", clean_name);
                 }
             } else {
-                tracing::warn!("Failed to spawn docker compose. Falling back to standalone update.");
+                tracing::warn!("Failed to spawn docker compose pull for '{}'. Falling back to standalone update.", clean_name);
             }
 
             if compose_succeeded {
@@ -268,14 +394,70 @@ pub async fn execute_container_update(
     let mut pull_stream = docker.create_image(Some(create_image_options), None, None);
     let mut pull_failed = false;
     let mut pull_error_msg = String::new();
+    let mut last_progress_time = std::time::Instant::now();
 
     while let Some(res) = pull_stream.next().await {
+        if cancel_token.is_cancelled() {
+            update_task_status(
+                &id,
+                &clean_name,
+                &image_name,
+                "cancelled",
+                "Atualização cancelada pelo usuário",
+                None,
+                None,
+            );
+            return (StatusCode::OK, Json(serde_json::json!({
+                "id": id,
+                "name": clean_name,
+                "status": "cancelled",
+                "message": "Atualização cancelada pelo usuário"
+            })));
+        }
+
         match res {
             Ok(info) => {
                 if let Some(err) = info.error_detail.and_then(|ed| ed.message) {
                     pull_failed = true;
                     pull_error_msg = err;
                     break;
+                }
+
+                if let Some(status) = info.status {
+                    let progress = if let Some(pd) = &info.progress_detail {
+                        if let (Some(cur), Some(tot)) = (pd.current, pd.total) {
+                            if tot > 0 {
+                                format!(" ({:.1}MB / {:.1}MB)", cur as f64 / 1_048_576.0, tot as f64 / 1_048_576.0)
+                            } else {
+                                String::new()
+                            }
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    };
+                    let layer = info.id.map(|lid| format!("{}: ", lid)).unwrap_or_default();
+                    let step_text = if !progress.is_empty() {
+                        format!("{}{}{}", layer, status, progress)
+                    } else if !layer.is_empty() {
+                        format!("{}{}", layer, status)
+                    } else {
+                        status.clone()
+                    };
+
+                    if last_progress_time.elapsed().as_millis() >= 600 || status.contains("complete") || status.contains("Downloaded") {
+                        last_progress_time = std::time::Instant::now();
+                        update_task_status(
+                            &id,
+                            &clean_name,
+                            &image_name,
+                            "pulling",
+                            &step_text,
+                            None,
+                            None,
+                        );
+                    }
                 }
             }
             Err(e) => {
@@ -299,12 +481,67 @@ pub async fn execute_container_update(
         let mut fallback_error_msg = String::new();
 
         while let Some(res) = fallback_stream.next().await {
+            if cancel_token.is_cancelled() {
+                update_task_status(
+                    &id,
+                    &clean_name,
+                    &image_name,
+                    "cancelled",
+                    "Atualização cancelada pelo usuário",
+                    None,
+                    None,
+                );
+                return (StatusCode::OK, Json(serde_json::json!({
+                    "id": id,
+                    "name": clean_name,
+                    "status": "cancelled",
+                    "message": "Atualização cancelada pelo usuário"
+                })));
+            }
+
             match res {
                 Ok(info) => {
                     if let Some(err) = info.error_detail.and_then(|ed| ed.message) {
                         fallback_failed = true;
                         fallback_error_msg = err;
                         break;
+                    }
+
+                    if let Some(status) = info.status {
+                        let progress = if let Some(pd) = &info.progress_detail {
+                            if let (Some(cur), Some(tot)) = (pd.current, pd.total) {
+                                if tot > 0 {
+                                    format!(" ({:.1}MB / {:.1}MB)", cur as f64 / 1_048_576.0, tot as f64 / 1_048_576.0)
+                                } else {
+                                    String::new()
+                                }
+                            } else {
+                                String::new()
+                            }
+                        } else {
+                            String::new()
+                        };
+                        let layer = info.id.map(|lid| format!("{}: ", lid)).unwrap_or_default();
+                        let step_text = if !progress.is_empty() {
+                            format!("{}{}{}", layer, status, progress)
+                        } else if !layer.is_empty() {
+                            format!("{}{}", layer, status)
+                        } else {
+                            status.clone()
+                        };
+
+                        if last_progress_time.elapsed().as_millis() >= 600 || status.contains("complete") || status.contains("Downloaded") {
+                            last_progress_time = std::time::Instant::now();
+                            update_task_status(
+                                &id,
+                                &clean_name,
+                                &image_name,
+                                "pulling",
+                                &step_text,
+                                None,
+                                None,
+                            );
+                        }
                     }
                 }
                 Err(e) => {
@@ -606,22 +843,34 @@ pub async fn update_container(
         .cloned()
         .unwrap_or_default();
 
+    // Manage cancellation token for this container task
+    let cancel_token = {
+        let mut tokens = UPDATE_TASK_TOKENS.write().unwrap();
+        if query.force.unwrap_or(false) {
+            if let Some(old) = tokens.get(&id) {
+                old.cancel();
+            }
+        }
+        let token = CancellationToken::new();
+        tokens.insert(id.clone(), token.clone());
+        token
+    };
+
     // If caller explicitly wants synchronous execution (e.g. tests or CLI with ?wait=true)
     if query.wait.unwrap_or(false) {
-        return execute_container_update(docker, id, clean_name, inspect).await.into_response();
+        return execute_container_update(docker, id, clean_name, inspect, cancel_token).await.into_response();
     }
 
-    // Default: Asynchronous background execution to prevent reverse proxy/Cloudflare HTTP 524 timeouts
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
 
-    // Prevent duplicate concurrent updates on the same container
-    {
+    // Prevent duplicate concurrent updates on the same container unless force=true or stale (> 60s)
+    if !query.force.unwrap_or(false) {
         if let Ok(tasks) = CONTAINER_UPDATE_TASKS.read() {
             if let Some(task) = tasks.get(&id) {
-                if (task.status == "pulling" || task.status == "recreating") && (now - task.updated_at < 600) {
+                if (task.status == "pulling" || task.status == "recreating") && (now - task.updated_at < 60) {
                     return (
                         StatusCode::OK,
                         Json(serde_json::json!({
@@ -649,8 +898,9 @@ pub async fn update_container(
 
     let task_id = id.clone();
     let task_name = clean_name.clone();
+    let token_clone = cancel_token.clone();
     tokio::spawn(async move {
-        let _ = execute_container_update(docker, task_id, task_name, inspect).await;
+        let _ = execute_container_update(docker, task_id, task_name, inspect, token_clone).await;
     });
 
     (
@@ -663,6 +913,47 @@ pub async fn update_container(
             "message": "Atualização iniciada em segundo plano"
         }))
     ).into_response()
+}
+
+pub async fn cancel_container_update(
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    if let Ok(tokens) = UPDATE_TASK_TOKENS.read() {
+        if let Some(token) = tokens.get(&id) {
+            token.cancel();
+        }
+    }
+    if let Ok(mut tasks) = CONTAINER_UPDATE_TASKS.write() {
+        if let Some(task) = tasks.get_mut(&id) {
+            task.status = "cancelled".to_string();
+            task.step = "Atualização cancelada pelo usuário".to_string();
+        }
+    }
+    (StatusCode::OK, Json(serde_json::json!({
+        "id": id,
+        "status": "cancelled",
+        "message": "Cancelamento solicitado"
+    }))).into_response()
+}
+
+pub async fn cancel_all_container_updates() -> impl IntoResponse {
+    if let Ok(tokens) = UPDATE_TASK_TOKENS.read() {
+        for token in tokens.values() {
+            token.cancel();
+        }
+    }
+    if let Ok(mut tasks) = CONTAINER_UPDATE_TASKS.write() {
+        for task in tasks.values_mut() {
+            if task.status == "pulling" || task.status == "recreating" {
+                task.status = "cancelled".to_string();
+                task.step = "Cancelamento solicitado pelo usuário".to_string();
+            }
+        }
+    }
+    (StatusCode::OK, Json(serde_json::json!({
+        "status": "cancelled",
+        "message": "Todas as atualizações ativas foram canceladas"
+    }))).into_response()
 }
 
 pub async fn get_container_update_status(

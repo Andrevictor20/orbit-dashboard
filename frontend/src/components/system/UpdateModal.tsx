@@ -242,9 +242,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         // Check for **Title:** Desc or **Title** - Desc
         const boldMatch = text.match(/^\*\*(.*?)\*\*[:\s-]*(.*)$/);
         if (boldMatch) {
+          const cleanTitle = boldMatch[1].replace(/[:\s-]+$/, '').trim();
+          const cleanDesc = boldMatch[2].replace(/^[:\s-]+/, '').trim();
           currentSection.items.push({
-            title: boldMatch[1].trim(),
-            desc: boldMatch[2].trim(),
+            title: cleanTitle,
+            desc: cleanDesc,
           });
         } else {
           currentSection.items.push({
@@ -480,29 +482,29 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                     return (
                       <div 
                         key={sIdx}
-                        className="p-4 rounded-2xl bg-card border border-border/80 space-y-2.5 shadow-sm"
+                        className="p-4 rounded-2xl bg-white dark:bg-card border border-border/80 space-y-2.5 shadow-sm"
                       >
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-lg border ${section.badgeClass}`}>
                             <SectionIcon className="w-3 h-3" />
                             <span>{section.badgeLabel}</span>
                           </span>
-                          <h3 className="text-xs font-bold text-primary">
+                          <h3 className="text-xs font-bold text-slate-950 dark:text-white">
                             {section.title}
                           </h3>
                         </div>
 
                         <ul className="space-y-1.5 pl-2">
                           {section.items.map((item, iIdx) => (
-                            <li key={iIdx} className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed flex items-start gap-2">
+                            <li key={iIdx} className="text-xs leading-relaxed flex items-start gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400 shrink-0 mt-1.5" />
-                              <div>
+                              <div className="text-slate-900 dark:text-zinc-100 font-normal">
                                 {item.title && (
-                                  <strong className="text-primary mr-1">
+                                  <strong className="text-slate-950 dark:text-white font-bold mr-1">
                                     {item.title}:
                                   </strong>
                                 )}
-                                <span>{item.desc}</span>
+                                <span className="text-slate-800 dark:text-zinc-200">{item.desc}</span>
                               </div>
                             </li>
                           ))}

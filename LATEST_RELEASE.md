@@ -2,22 +2,18 @@
 
 ### 🚀 Novidades & Recursos Principais (v2.5.0)
 
-- **Detecção Inteligente de Interface Primária & Telemetria em Tempo Real:**
-  - **Identificação da Rota Padrão do Host:** Detecção automática da interface primária de saída de internet através da tabela de rotas do host (`/host/proc/1/net/route` e `/proc/1/net/route`) com seleção por menor métrica e exclusão de bridges virtuais (`lo`, `docker*`, `veth*`, `tailscale*`).
-  - **Parser Resiliente de Estatísticas de Rede:** Extração de bytes em `/host/proc/1/net/dev` blindada contra colisão de contadores com o separador `:` via `split_once(':')`.
-  - **Classificação Automática de Conexão (Cabo / Wi-Fi):** Identificação do tipo físico da interface (`ethernet` ou `wifi`) com badges e ícones semânticos dinâmicos no card de Tráfego de Rede da Visão Geral e no cabeçalho de Métricas.
-  - **Formatação Adaptativa de Velocidade:** Novo formatador `formatNetworkSpeed` dinâmico (`B/s`, `KB/s`, `MB/s`, `GB/s`), eliminando o congelamento visual em `0.0 MB` no dashboard.
+- **Detecção Inteligente de Rede & Telemetria em Tempo Real:**
+  - **Identificação Automática de Conexão (Cabo / Wi-Fi):** O sistema agora detecta e identifica automaticamente se o seu servidor está conectado via cabo de rede ethernet ou Wi-Fi, exibindo o ícone e nome da interface ativa no card de Tráfego de Rede da Visão Geral e no cabeçalho de Métricas.
+  - **Velocidade de Rede Adaptativa e Dinâmica:** Novo formato inteligente de exibição de velocidade (B/s, KB/s, MB/s, GB/s), eliminando números estáticos e exibindo em tempo real o consumo real de download e upload da sua rede.
 
-- **Modularização & Arquitetura Domain-Driven (No God Files):**
-  - **Backend (Rust):** Desacoplamento de `containers.rs` (-72% linhas) nos submódulos especializados `port_prioritization.rs`, `updates.rs` e `update_runner.rs`.
-  - **Backend (Rust):** Extração da telemetria e parser de interfaces de rede de `ws.rs` para o módulo dedicado `system/network.rs`.
-  - **Frontend (React/TS):** Modularização de `ContainerList.tsx` (-61% linhas) no pacote de domínio `components/docker/container-list/` (`StackGridCard`, `ContainerGridCard`, `ContainerTableView`, `CustomLinkModal`, `PrimaryContainerModal`).
-  - **Frontend (React/TS):** Modularização de `FileManager.tsx` (-50% linhas) no pacote de domínio `components/files/` (`FileSidebar`, `FileToolbar`, `FileBreadcrumbs`, `FileGridView`, `FileTableView`, `FileTrashView`, `FileBadgeVisual`).
+- **Atualizador de Containers Resiliente:**
+  - **Logs e Progresso de Download em Tempo Real:** O console de atualização agora transmite ao vivo cada camada sendo baixada e extraída do Docker Hub e Docker Compose, eliminando a sensação de travamento durante o download de imagens pesadas (como Home Assistant).
+  - **Cancelamento Rápido e Seguro:** Possibilidade de cancelar processos em lote ou containers individuais imediatamente, liberando o sistema para novas tentativas sem bloqueios.
+  - **Recuperação Automática de Falhas:** Timeout e fallback resiliente que evitam congelamentos caso o download demore ou haja interrupção temporária de conexão.
 
-- **Acessibilidade Universal & Calibração de Contraste WCAG AA:**
-  - **Design Tokens:** Token `--secondary` em temas claros recalibrado de `#64748b` para `#475569`, elevando a taxa de contraste sobre superfícies brancas para 7.58:1 (WCAG AA).
-  - **Remediação de Modais e Cards Cinzas:** Correção exaustiva em 18 modais e dezenas de cards/tabelas cinzas no tema claro, eliminando textos invisíveis (`bg-accent text-white`), textos apagados (`text-zinc-300`, `text-zinc-400`, `text-*-400`) e fundos escuros hardcoded.
-  - **Padrão Two-Tier Contrast:** Badges de status, contadores e tabelas utilizam cores em dois níveis (`text-{color}-700 dark:text-{color}-300`), preservando integralmente o design Liquid Glass no modo escuro.
+- **Acessibilidade & Alto Contraste:**
+  - **Contraste Calibrado (Padrão WCAG AA):** Ajuste em todos os temas claros garantindo legibilidade perfeita de textos, tabelas, métricas e modais sem textos apagados ou cinzas difíceis de visualizar.
+  - **Leitura Impecável de Telas e Modais:** Reforço de contraste nos modais de atualização do sistema, conexões de nuvem, detalhes de containers e dispositivos inteligentes.
 
 ---
 

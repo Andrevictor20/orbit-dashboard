@@ -95,15 +95,29 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     setSelectedIds([]);
   }, []);
 
-  const cancelAll = useCallback(() => {
+  const cancelAll = useCallback(async () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    const token = localStorage.getItem('orbit_token');
+    try {
+      await fetch('/api/docker/containers/update/cancel-all', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch {}
     addLog('Cancelamento solicitado pelo usuário. Parando todos os processos...');
   }, [addLog]);
 
-  const cancelContainer = useCallback((id: string) => {
+  const cancelContainer = useCallback(async (id: string) => {
     cancelledIdsRef.current.add(id);
+    const token = localStorage.getItem('orbit_token');
+    try {
+      await fetch(`/api/docker/containers/${id}/update/cancel`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch {}
     setTaskStatuses(prev => {
       const task = prev[id];
       if (task && task.state !== 'success' && task.state !== 'error') {
@@ -239,7 +253,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
       addLog(`[${cleanName}] Iniciando download da imagem '${c.image}'...`);
 
       try {
-        const response = await fetch(`/api/docker/containers/${c.id}/update`, {
+        const response = await fetch(`/api/docker/containers/${c.id}/update?force=true`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
