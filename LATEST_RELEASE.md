@@ -1,24 +1,54 @@
-# Orbit Dashboard v2.5.5
+# Orbit Dashboard v2.6.0
 
-### 🚀 Novidades & Recursos Principais (v2.5.5)
+### Novidades e Recursos Principais (v2.6.0)
 
-- **Detecção & Exibição Precisa de Atualizações de Imagens de Containers:**
-  - **Suporte Completo a Stacks:** Identificação e contagem automática de containers desatualizados dentro de stacks, exibindo badge violeta interativo de atualização (`Atualizar (N)`) no cabeçalho dos cards e contagem no botão de sub-containers.
-  - **Atualização Direta de Sub-containers:** No modal detalhado da stack, cada serviço com nova versão da imagem disponível conta agora com botão direto de atualização.
-  - **Checagem Concorrente de Baixíssima Latência:** Paralelização das consultas a registros de imagem (Docker Hub, GHCR, etc.) com concorrência limitada (`buffer_unordered(8)`) e deduplicação de imagens, reduzindo o tempo de varredura de ~60 segundos para menos de 2 segundos.
-  - **Lookup Resiliente de IDs:** Indexação dupla (short ID de 12 caracteres e ID completo de 64 caracteres), eliminando falhas de correspondência no frontend.
-  - **Compatibilidade Ampliada com Registries & Pinned Digests:** Tratamento inteligente de tags com hash (`@sha256:`), suporte a imagens do ecossistema LinuxServer (`lscr.io`) e desafio Bearer dinâmico para registries compatíveis com OCI/Docker v2.
-  - **Autenticação Flexível:** Middleware de autenticação no backend passa a aceitar tanto cookies quanto o cabeçalho `Authorization: Bearer <token>`.
+- **Telemetria Completa de Rede do Host nos Gráficos:**
+  - **Curvas de Tráfego do Host:** Inclusão das séries temporais de Download (`Host Download`) e Upload (`Host Upload`) no gráfico de área do painel de métricas, permitindo monitoramento completo da máquina física além dos contêineres Docker.
+  - **Filtros Segmentados por Abas:** Alternância ágil entre a visão unificada (Host e Contêineres), foco exclusivo na interface física do host ou foco exclusivo nos contêineres gerenciados.
+  - **Velocidades em Tempo Real:** Indicadores instantâneos de taxa de download (↓) e upload (↑) no cabeçalho do card com formatação dinâmica adaptativa (B/s, KB/s, MB/s).
 
-- **Redesign & Descongestionamento do Home Assistant:**
-  - **Layout Elegante em 2 Níveis:** Eliminação de faixas horizontais empilhadas, trazendo visual fluido inspirado no Apple Home e Lovelace Mushroom UI.
-  - **Top Bar com Status Chips Interativos:** Contadores rápidos de luzes, tomadas e sensores que filtram a interface instantaneamente com 1 toque.
-  - **Dropdown de Áreas Dinâmicas & Subfiltros:** Menu compacto de áreas (`[ 📍 Todas as Áreas (N) ▾ ]`) e barra de subcategorias com ícones dedicados e busca integrada.
-  - **Cards Tile/Mushroom:** Cards ~35% mais compactos com visual limpo, brilho adaptativo nos dispositivos ligados e eliminação de caixas de texto redundantes.
+- **Ergonomia e Navegação Aprimorada em Dispositivos Móveis:**
+  - **Menu Unificado de Preferências:** Em telas menores que 640px, os seletores independentes de paleta e idioma foram consolidados em um único botão táctil de preferências com popover em vidro fosco.
+  - **Alvos de Toque Padronizados (WCAG AA):** Botões da barra superior calibrados para dimensões mínimas de 36x36px com espaçamento central preservado para operação confortável com uma mão.
+  - **Ocultação de Controles Redundantes:** Otimização do espaço visual em smartphones com ocultação automática de controles gerenciados nativamente pelos navegadores móveis.
+
+- **Resolução Resiliente de Memória RAM em Ambientes Homelab:**
+  - **Fallback Automático de Cgroups:** Caso a distribuição Linux (ex.: Raspberry Pi OS, CasaOS, Armbian ou containers LXC) esteja com a contabilidade de memória em cgroups desabilitada no kernel, o sistema aciona automaticamente a amostragem de processos via RSS, impedindo que o indicador de memória dos contêineres fique congelado em 0.0 MB.
+  - **Teto Físico de Memória:** Adoção determinística da memória total do host quando os limites de contêiner forem ilimitados.
+
+- **Otimizações Gerais de Desempenho e Eficiência:**
+  - **Telemetria em Alta Frequência:** Redução drástica de alocações e clonagens de memória no loop de transmissão WebSocket e no monitor de processos.
+  - **Renderização Fluida de Gráficos:** Memoização de mini gráficos SVG e limite no anel de histórico em memória para navegação suave mesmo em hardware compacto.
+
+- **Hardening de Segurança e Conformidade Local:**
+  - **Isolamento de Logs:** Rotas de visualização e limpeza de logs do sistema protegidas por autenticação obrigatória.
+  - **Proteção contra IDOR de Processos:** Bloqueio mandatório contra encerramento acidental do próprio processo do Orbit, PID 1 e daemons vitais do sistema operacional.
+  - **CORS Dinâmico Local:** Aceitação controlada de requisições de sub-redes privadas RFC 1918, domínios mDNS, Tailscale e túneis Cloudflare, rejeitando origens públicas arbitrárias.
+
+- **Documentação Técnica Completa:**
+  - Manuais de arquitetura, instalação com exemplos de proxies reversos (Nginx e Caddy), políticas de segurança e estratégia de testes totalmente reformulados com especificações técnicas detalhadas.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.5.5 — Otimização de CI/CD e Estabilidade em Runners Headless</summary>
+
+- Extensão de timeouts para 60s e 90s nos testes E2E do Playwright no GitHub Actions
+- Eliminação de timeouts intermitentes no runner WebKit
+- Execução com 100% de aprovação em SAST, E2E e OWASP ZAP DAST
+
+</details>
+
+<details>
+<summary>v2.5.4 — Hardening de Segurança Homelab & Remoção Multi-Cloud</summary>
+
+- Remoção de integrações multi-cloud externas e credenciais legadas
+- Proteção estrita de rotas administrativas e mitigação de auto-kill de processos
+- Segredos JWT gerados via CSPRNG de 64 bytes
+
+</details>
 
 <details>
 <summary>v2.5.3 — Telemetria de RAM, Armazenamento Real & Prevenção de Timeouts</summary>
@@ -32,7 +62,7 @@
 <details>
 <summary>v2.5.2 — Acessibilidade, Tema Claro & Streaming de Atualização</summary>
 
-- Acessibilidade & Correção Definitiva de Contraste no Tema Claro
+- Acessibilidade & Correção Definitiva de Contraste no Tema Claro via `@custom-variant dark`
 - Atualizador de Containers em Tempo Real & Anti-Travamento
 - Telemetria Inteligente de Rede (Cabo / Wi-Fi)
 
@@ -52,7 +82,7 @@
 
 - Detecção Inteligente de Rede & Telemetria em Tempo Real
 - Atualizador de Containers Resiliente
-- Acessibilidade & Alto Contraste
+- Acessibilidade & Alto Contraste WCAG AA
 
 </details>
 
@@ -61,7 +91,7 @@
 
 - Consolidação de Dispositivos no Home Assistant
 - Agrupamento inteligente por hardware físico
-- Navegação 100% dinâmica por áreas extraídas do Home Assistant
+- Navegação dinâmica por áreas extraídas do Home Assistant
 
 </details>
 
@@ -69,14 +99,14 @@
 <summary>v2.3.0 — Home Assistant Device Grouping & Async Batch Updates</summary>
 
 - Agrupamento Universal de Entidades do Home Assistant & Inspeção Interativa por Modal
-- Desacoplamento Assíncrono do Atualizador de Containers (Fim dos Timeouts 524)
+- Desacoplamento Assíncrono do Atualizador de Containers
 
 </details>
 
 <details>
 <summary>v2.2.0 — Home Assistant Integration & Liquid Glass</summary>
 
-- Integração inicial com Home Assistant
+- Integração com Home Assistant
 - Cards em Liquid Glass
 - Otimização de memória e telemetria multi-disco
 

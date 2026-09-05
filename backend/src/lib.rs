@@ -53,7 +53,9 @@ pub fn app() -> Router {
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
         .route("/api/docker/stats/history", get(ws::get_stats_history_handler))
-        .route("/api/ssh", get(ssh::terminal_handler));
+        .route("/api/ssh", get(ssh::terminal_handler))
+        .route("/api/logs", get(logs::get_logs))
+        .route("/api/logs/clear", axum::routing::post(logs::clear_logs));
 
     let protected_routes = Router::new()
         .merge(docker::router())
@@ -76,14 +78,14 @@ pub fn app() -> Router {
                 }))
             ) 
         }))
-        .route("/api/logs", get(logs::get_logs))
-        .route("/api/logs/clear", axum::routing::post(logs::clear_logs))
         .merge(auth::public_router())
         .merge(files::public_router())
         .merge(protected_routes)
         .layer(
             CorsLayer::new()
-                .allow_origin(AllowOrigin::predicate(|_, _| true))
+                .allow_origin(AllowOrigin::predicate(|origin, parts| {
+                    is_allowed_origin(origin.as_bytes(), parts)
+                }))
                 .allow_methods([
                     Method::GET,
                     Method::POST,
@@ -149,4 +151,89 @@ async fn spa_cache_control_middleware(
     }
 
     response
+}
+
+fn is_allowed_origin(origin_bytes: &[u8], parts: &axum::http::request::Parts) -> bool {
+    let origin_str = match std::str::from_utf8(origin_bytes) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+
+    // Extract host from origin string (e.g. https://orbit.meudominio.com:443 -> orbit.meudominio.com)
+    let origin_host_part = origin_str
+        .strip_prefix("http://")
+        .or_else(|| origin_str.strip_prefix("https://"))
+        .unwrap_or(origin_str);
+    let origin_host = origin_host_part.split(':').next().unwrap_or(origin_host_part);
+
+    // 1. Same-Origin Check (Automatic for Cloudflare Tunnels, Reverse Proxies, Custom Domains)
+    // If the Origin host matches the incoming request's Host or X-Forwarded-Host, it is legitimate traffic.
+    let check_header = |name: &str| -> Option<&str> {
+        parts.headers.get(name).and_then(|v| v.to_str().ok()).map(|h| {
+            h.split(':').next().unwrap_or(h)
+        })
+    };
+
+    if let Some(req_host) = check_header("x-forwarded-host").or_else(|| check_header("host")) {
+        if !origin_host.is_empty() && origin_host.eq_ignore_ascii_case(req_host) {
+            return true;
+        }
+    }
+
+    // 2. Allow localhost and 127.0.0.1 on any port (HTTP or HTTPS)
+    if origin_str.starts_with("http://localhost")
+        || origin_str.starts_with("https://localhost")
+        || origin_str.starts_with("http://127.0.0.1")
+        || origin_str.starts_with("https://127.0.0.1")
+        || origin_str.starts_with("http://[::1]")
+        || origin_str.starts_with("https://[::1]")
+    {
+        return true;
+    }
+
+    // 3. Allow Cloudflare Tunnel domains (*.trycloudflare.com) and Tailscale MagicDNS (*.ts.net)
+    if origin_host.ends_with(".trycloudflare.com") || origin_host.ends_with(".ts.net") {
+        return true;
+    }
+
+    // 4. Allow Tailscale CGNAT range (100.64.0.0/10: 100.64.0.0 - 100.127.255.255)
+    if origin_host.starts_with("100.") {
+        if let Some(second_octet) = origin_host.split('.').nth(1).and_then(|o| o.parse::<u8>().ok()) {
+            if (64..=127).contains(&second_octet) {
+                return true;
+            }
+        }
+    }
+
+    // 4. Allow RFC 1918 Private IP ranges and common local network hostnames
+    if origin_host.starts_with("192.168.")
+        || origin_host.starts_with("10.")
+        || origin_host.ends_with(".local")
+        || origin_host.ends_with(".lan")
+        || origin_host.ends_with(".home")
+        || origin_host == "localhost"
+    {
+        return true;
+    }
+
+    // Check 172.16.0.0 - 172.31.255.255
+    if origin_host.starts_with("172.") {
+        if let Some(second_octet) = origin_host.split('.').nth(1).and_then(|o| o.parse::<u8>().ok()) {
+            if (16..=31).contains(&second_octet) {
+                return true;
+            }
+        }
+    }
+
+    // 5. Allow explicit domains defined in ALLOWED_ORIGINS env var
+    if let Ok(allowed) = std::env::var("ALLOWED_ORIGINS") {
+        for item in allowed.split(',') {
+            let trimmed = item.trim();
+            if !trimmed.is_empty() && (origin_str == trimmed || origin_host == trimmed) {
+                return true;
+            }
+        }
+    }
+
+    false
 }

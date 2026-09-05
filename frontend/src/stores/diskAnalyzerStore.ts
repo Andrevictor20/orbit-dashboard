@@ -84,7 +84,7 @@ export const diskAnalyzerStore = {
           // Set scannedBytes to total_size found for accurate final representation
           scannedBytes: results.total_size 
         });
-      } catch (err) {
+      } catch {
         diskAnalyzerStore.setState({ error: 'Erro ao processar resultados da análise', isScanning: false });
       }
       if (eventSource) {

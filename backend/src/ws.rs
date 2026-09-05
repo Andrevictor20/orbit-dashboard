@@ -115,19 +115,17 @@ async fn handle_socket(mut socket: WebSocket) {
     }
 }
 
-/// Returns private memory (RSS equivalent) for a PID via smaps_rollup or VmRSS (bytes).
+/// Returns private memory (RSS equivalent) for a PID via statm or VmRSS (bytes).
 fn read_private_memory(pid: u32) -> u64 {
-    // 1. Try smaps_rollup (Private_Dirty + Private_Clean)
-    let smaps = std::fs::read_to_string(format!("/proc/{}/smaps_rollup", pid)).unwrap_or_default();
-    let val: u64 = smaps.lines().filter_map(|l| {
-        if l.starts_with("Private_Dirty:") || l.starts_with("Private_Clean:") {
-            l.split_whitespace().nth(1).and_then(|v| v.parse::<u64>().ok())
-        } else {
-            None
+    // 1. Try /proc/{pid}/statm: 2nd column is resident pages (fastest O(1) in Linux kernel, no PTE walk)
+    if let Ok(statm) = std::fs::read_to_string(format!("/proc/{}/statm", pid)) {
+        if let Some(pages_str) = statm.split_whitespace().nth(1) {
+            if let Ok(pages) = pages_str.parse::<u64>() {
+                if pages > 0 {
+                    return pages * 4096;
+                }
+            }
         }
-    }).sum();
-    if val > 0 {
-        return val * 1024;
     }
 
     // 2. Fallback to /proc/{pid}/status VmRSS
@@ -141,7 +139,6 @@ fn read_private_memory(pid: u32) -> u64 {
         }
     }
 
-    // 3. Fallback to sysinfo process memory
     0
 }
 
@@ -167,8 +164,7 @@ fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
 
         // 1. Child of backend process (e.g. background runners, rclone, docker helpers)
         if let Ok(stat) = std::fs::read_to_string(format!("/proc/{}/stat", pid_num)) {
-            let parts: Vec<&str> = stat.split_whitespace().collect();
-            if let Some(ppid_str) = parts.get(3) {
+            if let Some(ppid_str) = stat.split_whitespace().nth(3) {
                 if let Ok(ppid) = ppid_str.parse::<u32>() {
                     if ppid == backend_pid {
                         pids.push(pid_num);
@@ -179,18 +175,16 @@ fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
         }
 
         // 2. Frontend runtime / dev server (vite, node, npm, bun, esbuild, pnpm, yarn)
-        let cmdline = std::fs::read_to_string(format!("/proc/{}/cmdline", pid_num))
-            .unwrap_or_default()
-            .replace('\0', " ")
-            .to_lowercase();
+        if let Ok(cmd_bytes) = std::fs::read(format!("/proc/{}/cmdline", pid_num)) {
+            let cmd_lower = cmd_bytes.to_ascii_lowercase();
+            let is_frontend = cmd_lower.windows(4).any(|w| w == b"vite")
+                || cmd_lower.windows(14).any(|w| w == b"orbit-dashboard")
+                || (cmd_lower.windows(8).any(|w| w == b"frontend") && (cmd_lower.windows(4).any(|w| w == b"node") || cmd_lower.windows(3).any(|w| w == b"dev")))
+                || (cmd_lower.windows(7).any(|w| w == b"esbuild") && cmd_lower.windows(5).any(|w| w == b"orbit"));
 
-        let is_frontend = cmdline.contains("vite")
-            || cmdline.contains("orbit-dashboard")
-            || (cmdline.contains("frontend") && (cmdline.contains("node") || cmdline.contains("npm") || cmdline.contains("dev")))
-            || (cmdline.contains("esbuild") && cmdline.contains("orbit"));
-
-        if is_frontend {
-            pids.push(pid_num);
+            if is_frontend {
+                pids.push(pid_num);
+            }
         }
     }
     pids.sort_unstable();
@@ -214,7 +208,6 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let backend_pid = std::process::id();
     let mut orbit_pids = find_orbit_pids(backend_pid);
     let mut orbit_pids_ticks: u32 = 0;
-    const ORBIT_PIDS_REFRESH_EVERY: u32 = 10;
 
     let mut prev_cpu_stats = std::collections::HashMap::new();
     let mut prev_host_rx = 0u64;
@@ -257,7 +250,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         let num_cores = sys.cpus().len() as f32;
 
         orbit_pids_ticks += 1;
-        if orbit_pids_ticks >= ORBIT_PIDS_REFRESH_EVERY || first_tick {
+        let pids_alive = !orbit_pids.is_empty() && orbit_pids.iter().all(|&p| std::path::Path::new(&format!("/proc/{}", p)).exists());
+        if orbit_pids_ticks >= 30 || !pids_alive || first_tick {
             orbit_pids = find_orbit_pids(backend_pid);
             orbit_pids_ticks = 0;
             // Periodically reclaim unused arena memory back to the Linux OS
@@ -305,9 +299,10 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         prev_host_rx = host_raw_rx;
         prev_host_tx = host_raw_tx;
 
-        // Poll Docker container stats every 6 seconds (3 ticks) to minimize Docker socket overhead
+        // Poll Docker container stats: every 6 seconds (3 ticks) when active subscribers, or 36 seconds when idle
         docker_poll_ticks += 1;
-        if docker_poll_ticks >= 3 || first_tick {
+        let docker_poll_interval = if has_subscribers { 3 } else { 6 };
+        if docker_poll_ticks >= docker_poll_interval || first_tick {
             docker_poll_ticks = 0;
 
             let mut options = bollard::query_parameters::ListContainersOptions::default();
@@ -320,25 +315,31 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
 
                 use futures::stream::FuturesUnordered;
                 let mut stat_futures: FuturesUnordered<_> = containers
-                    .into_iter()
-                    .filter_map(|c| c.id)
+                    .iter()
+                    .filter_map(|c| c.id.as_ref())
                     .map(|id| {
                         let d = docker.clone();
+                        let id_str = id.clone();
                         async move {
                             let stats_options = bollard::query_parameters::StatsOptions {
                                 stream: false,
                                 ..Default::default()
                             };
-                            let mut stream = d.stats(&id, Some(stats_options));
-                            stream.next().await.and_then(|r| r.ok()).map(|s| (id, s))
+                            let mut stream = d.stats(&id_str, Some(stats_options));
+                            if let Some(Ok(s)) = stream.next().await {
+                                let (mem_used, _) = crate::docker::resolve_container_memory(&d, &id_str, &s).await;
+                                Some((id_str, s, mem_used))
+                            } else {
+                                None
+                            }
                         }
                     })
                     .collect();
 
-                while let Some(Some((id, res))) = stat_futures.next().await {
+                while let Some(Some((id, res, mem_used))) = stat_futures.next().await {
                     // CPU
                     let mut cpu_percent = 0.0f64;
-                    let current_cpu = res.cpu_stats.clone();
+                    let current_cpu = res.cpu_stats;
                     if let (Some(cpu), Some(precpu)) = (
                         &current_cpu,
                         prev_cpu_stats.get(&id).or(res.precpu_stats.as_ref()),
@@ -357,7 +358,7 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
                     total_cpu += cpu_percent;
 
                     // Memory
-                    total_mem += crate::docker::calculate_memory_used(&res);
+                    total_mem += mem_used;
 
                     // Network
                     if let Some(nets) = res.networks {
@@ -368,19 +369,24 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
                     }
                 }
 
+                // Prune prev_cpu_stats to prevent unbounded memory growth over long runtimes
+                let active_ids: std::collections::HashSet<&String> = containers.iter().filter_map(|c| c.id.as_ref()).collect();
+                prev_cpu_stats.retain(|id, _| active_ids.contains(id));
+
                 cached_docker_cpu = total_cpu as f32;
                 cached_docker_mem = total_mem;
 
+                let docker_window_secs = (elapsed_secs * docker_poll_interval as f64).max(0.1);
                 cached_docker_rate_rx = if first_tick || network_rx < prev_docker_rx {
                     0u64
                 } else {
-                    ((network_rx - prev_docker_rx) as f64 / (elapsed_secs * 3.0).max(0.1)) as u64
+                    ((network_rx - prev_docker_rx) as f64 / docker_window_secs) as u64
                 };
 
                 cached_docker_rate_tx = if first_tick || network_tx < prev_docker_tx {
                     0u64
                 } else {
-                    ((network_tx - prev_docker_tx) as f64 / (elapsed_secs * 3.0).max(0.1)) as u64
+                    ((network_tx - prev_docker_tx) as f64 / docker_window_secs) as u64
                 };
 
                 prev_docker_rx = network_rx;

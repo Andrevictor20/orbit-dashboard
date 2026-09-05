@@ -341,6 +341,10 @@ fn scan_proc_directory(
         });
     }
 
+    // Prune dead PIDs to eliminate memory leak in PROCESS_CPU_HISTORY
+    let active_pids: std::collections::HashSet<u32> = processes.iter().map(|p| p.pid).collect();
+    cpu_history.retain(|pid, (_, last_seen)| active_pids.contains(pid) && now.duration_since(*last_seen).as_secs() < 300);
+
     if processes.is_empty() {
         None
     } else {
@@ -349,12 +353,14 @@ fn scan_proc_directory(
 }
 
 pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoResponse {
-    let mut sys = System::new_all();
+    let mut sys = System::new_with_specifics(
+        sysinfo::RefreshKind::nothing()
+            .with_cpu(sysinfo::CpuRefreshKind::everything())
+            .with_memory(sysinfo::MemoryRefreshKind::everything()),
+    );
     sys.refresh_cpu_usage();
     sys.refresh_memory();
-    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
-    let users = Users::new_with_refreshed_list();
     let total_memory = sys.total_memory();
     let num_cores = sys.cpus().len().max(1) as f32;
 
@@ -387,18 +393,15 @@ pub async fn get_processes_handler(State(state): State<AppState>) -> impl IntoRe
     }
 
     if processes.is_none() && std::path::Path::new("/proc/1").exists() {
-        let scanned = scan_proc_directory("/proc", total_memory, num_cores, &container_id_to_name, &uid_to_user);
-        if let Some(p) = scanned {
-            if p.len() > sys.processes().len() {
-                processes = Some(p);
-            }
-        }
+        processes = scan_proc_directory("/proc", total_memory, num_cores, &container_id_to_name, &uid_to_user);
     }
 
-    // 3. Fallback to sysinfo processes if direct proc scan wasn't used or yielded fewer entries
+    // 3. Fallback to sysinfo processes if direct proc scan wasn't used
     let mut proc_list = if let Some(p) = processes {
         p
     } else {
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        let users = Users::new_with_refreshed_list();
         let mut list = Vec::new();
         for (&pid_val, proc_data) in sys.processes() {
             let pid_u32 = pid_val.as_u32();
@@ -571,6 +574,41 @@ pub async fn kill_process_handler(
     if pid <= 1 {
         return (StatusCode::BAD_REQUEST, Json(serde_json::json!({
             "error": "Não é permitido finalizar processos do sistema raiz (PID <= 1)."
+        }))).into_response();
+    }
+
+    // Protect the Orbit process itself
+    if pid == std::process::id() {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({
+            "error": "Não é permitido finalizar o processo do próprio Orbit."
+        }))).into_response();
+    }
+
+    // Protect critical OS & infrastructure daemons
+    const PROTECTED_PROCESS_NAMES: &[&str] = &[
+        "init",
+        "systemd",
+        "systemd-journald",
+        "systemd-resolved",
+        "systemd-logind",
+        "systemd-udevd",
+        "sshd",
+        "dockerd",
+        "containerd",
+        "containerd-shim",
+        "containerd-shim-runc-v2",
+        "NetworkManager",
+        "orbit-backend",
+        "orbit",
+    ];
+
+    let proc_comm = std::fs::read_to_string(format!("/proc/{}/comm", pid))
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    if !proc_comm.is_empty() && PROTECTED_PROCESS_NAMES.iter().any(|&p| p.eq_ignore_ascii_case(&proc_comm)) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({
+            "error": format!("Não é permitido finalizar o processo protegido do sistema: '{}' (PID {}).", proc_comm, pid)
         }))).into_response();
     }
 

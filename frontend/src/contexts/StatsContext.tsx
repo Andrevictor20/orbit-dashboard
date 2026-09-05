@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 
@@ -57,7 +57,7 @@ const StatsContext = createContext<StatsContextValue>({
 
 /**
  * OPT-F1: Single shared WebSocket for all stats consumers.
- * Retains a global ring-buffer of up to 3600 points (1 hour of continuous metrics)
+ * Retains a global ring-buffer of up to 1800 points (1 hour of continuous metrics)
  * and loads initial history buffer from backend on connection.
  */
 export function StatsProvider({ children }: { children: ReactNode }) {
@@ -66,7 +66,7 @@ export function StatsProvider({ children }: { children: ReactNode }) {
 
   // Load initial historical snapshot from backend
   useEffect(() => {
-    fetch('/api/docker/stats/history?limit=3600')
+    fetch('/api/docker/stats/history?limit=1800')
       .then(res => res.ok ? res.json() : [])
       .then((data: SystemStats[]) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -121,16 +121,18 @@ export function StatsProvider({ children }: { children: ReactNode }) {
         };
 
         const updated = [...prev, newPoint];
-        if (updated.length > 3600) {
-          return updated.slice(updated.length - 3600);
+        if (updated.length > 1800) {
+          return updated.slice(updated.length - 1800);
         }
         return updated;
       });
     }
   }, [stats]);
 
+  const value = useMemo(() => ({ stats, history, isConnected }), [stats, history, isConnected]);
+
   return (
-    <StatsContext.Provider value={{ stats, history, isConnected }}>
+    <StatsContext.Provider value={value}>
       {children}
     </StatsContext.Provider>
   );

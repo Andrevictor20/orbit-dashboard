@@ -4,12 +4,8 @@ import {
   FolderGit2,
   X,
   Search,
-  Share,
-  ChevronRight,
   Sparkles,
   Trash2,
-  Plus,
-  Cloud,
   HardDrive,
   Eye,
   EyeOff,
@@ -22,7 +18,7 @@ import {
   Film,
   Folder,
 } from 'lucide-react';
-import type { MountItem, CloudAccount, ShortcutPlace, TrashItem } from '../../types/fileManager';
+import type { MountItem, ShortcutPlace, TrashItem } from '../../types/fileManager';
 import { formatStorage, getFriendlyDiskName } from '../../utils/format';
 
 export const getPlaceIcon = (iconName: string) => {
@@ -65,7 +61,6 @@ export interface FileSidebarProps {
   setIsStorageDrawerOpen: (open: boolean) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  setIsCloudModalOpen: (open: boolean) => void;
   places: ShortcutPlace[];
   currentPath: string;
   isTrashView: boolean;
@@ -73,11 +68,7 @@ export interface FileSidebarProps {
   navigateToTrash: () => void;
   handleInternalDrop: (e: React.DragEvent, targetPath: string) => void;
   trashItems: TrashItem[];
-  showLocationMenu: boolean;
-  setShowLocationMenu: React.Dispatch<React.SetStateAction<boolean>>;
   storages: MountItem[];
-  cloudAccounts: CloudAccount[];
-  handleDisconnectCloud: (id: string, name: string) => void;
   showHiddenFiles: boolean;
   setShowHiddenFiles: React.Dispatch<React.SetStateAction<boolean>>;
   loadFiles: (path: string) => void;
@@ -88,7 +79,6 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
   setIsStorageDrawerOpen,
   searchQuery,
   setSearchQuery,
-  setIsCloudModalOpen,
   places,
   currentPath,
   isTrashView,
@@ -96,11 +86,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
   navigateToTrash,
   handleInternalDrop,
   trashItems,
-  showLocationMenu,
-  setShowLocationMenu,
   storages,
-  cloudAccounts,
-  handleDisconnectCloud,
   showHiddenFiles,
   setShowHiddenFiles,
   loadFiles,
@@ -159,24 +145,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
           </div>
         </div>
 
-        {/* Section: Compartilhamento / Shared */}
-        <div>
-          <div className="space-y-0.5">
-            <button
-              onClick={() => {
-                setIsCloudModalOpen(true);
-                setIsStorageDrawerOpen(false);
-              }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-secondary hover:text-primary hover:bg-accent transition-all group"
-            >
-              <div className="flex items-center gap-2.5">
-                <Share className="w-4 h-4 text-violet-400 group-hover:scale-105 transition-transform" />
-                <span>Compartilhado via Link/Samba</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-secondary/40 group-hover:text-primary transition-colors" />
-            </button>
-          </div>
-        </div>
+
 
         {/* Section: Favoritos / Starred Folders */}
         <div>
@@ -247,27 +216,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
             <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider">
               {t('files.units')}
             </h3>
-            <button
-              onClick={() => setShowLocationMenu((prev) => !prev)}
-              className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent transition-colors"
-              title="Conectar Nuvem / LAN"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
           </div>
-
-          {/* Location Dropdown Menu */}
-          {showLocationMenu && (
-            <div className="mb-2 p-1 bg-card border border-border/80 rounded-xl shadow-xl text-xs space-y-0.5 animate-in fade-in">
-              <button
-                onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors font-medium flex items-center gap-2"
-              >
-                <Cloud className="w-3.5 h-3.5 text-sky-400" />
-                <span>Conectar Nuvem / SMB</span>
-              </button>
-            </div>
-          )}
 
           {/* Mounted Disks List */}
           <div className="space-y-1.5">
@@ -317,68 +266,6 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
                 </button>
               );
             })}
-
-            {/* Connected Cloud Accounts */}
-            {cloudAccounts.map((acc) => {
-              const isCurrent = acc.mount_point && currentPath.startsWith(acc.mount_point);
-              const isGoogle = acc.provider === 'google_drive';
-              const isOneDrive = acc.provider === 'onedrive';
-              const isDropbox = acc.provider === 'dropbox';
-
-              return (
-                <div
-                  key={acc.id}
-                  className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
-                    isCurrent
-                      ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
-                      : 'border-border/70 bg-card hover:bg-accent text-primary'
-                  }`}
-                >
-                  <button
-                    onClick={() => {
-                      if (acc.mount_point) navigateTo(acc.mount_point);
-                      setIsStorageDrawerOpen(false);
-                    }}
-                    className="flex-1 text-left flex items-center gap-2.5 min-w-0 pr-1"
-                    title={acc.name}
-                  >
-                    <div className={`p-1.5 rounded-lg border shrink-0 ${
-                      isGoogle ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      isOneDrive ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
-                      isDropbox ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                      'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                    }`}>
-                      <Cloud className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-xs truncate block font-medium">{acc.name}</span>
-                      <span className="text-[10px] text-secondary capitalize block">{acc.provider.replace('_', ' ')}</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDisconnectCloud(acc.id, acc.name);
-                    }}
-                    className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={`Desconectar ${acc.name}`}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-
-            {/* Add Cloud / LAN Button */}
-            <button
-              onClick={() => setIsCloudModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-border/70 hover:border-orbit-500/50 hover:bg-accent/60 text-xs text-secondary hover:text-primary transition-all group"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-orbit-400" />
-              <span>+ Cloud, LAN ou USB</span>
-            </button>
           </div>
         </div>
       </div>

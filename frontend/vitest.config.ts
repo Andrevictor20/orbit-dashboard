@@ -7,6 +7,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/tests/setup.ts'],
+    // Resource Guard: Throttle worker concurrency to prevent CPU contention and memory spikes
+    pool: 'threads',
+    maxWorkers: 4,
+    minWorkers: 1,
+    testTimeout: 15000,
     // Exclude Playwright E2E and Pact contract tests — they run in their own separate runners
     exclude: [
       'e2e/**',

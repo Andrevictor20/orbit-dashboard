@@ -1,4 +1,5 @@
 use axum::{
+    body::Bytes,
     http::{header, StatusCode},
     response::IntoResponse,
     Json,
@@ -14,7 +15,7 @@ use super::parser::parse_casaos_compose;
 use super::types::AppStoreItem;
 
 pub static APPS_CACHE: Lazy<RwLock<Vec<AppStoreItem>>> = Lazy::new(|| RwLock::new(Vec::new()));
-static APPS_JSON_CACHE: Lazy<RwLock<Option<String>>> = Lazy::new(|| RwLock::new(None));
+static APPS_JSON_CACHE: Lazy<RwLock<Option<Bytes>>> = Lazy::new(|| RwLock::new(None));
 static SYNCING: AtomicBool = AtomicBool::new(false);
 
 const REPOSITORIES: &[(&str, &str); 7] = &[
@@ -37,11 +38,12 @@ pub fn trim_memory() {
 
 fn update_cache(apps: Vec<AppStoreItem>, precomputed_json: Option<String>) {
     let json = precomputed_json.unwrap_or_else(|| serde_json::to_string(&apps).unwrap_or_default());
+    let bytes = Bytes::from(json);
     if let Ok(mut cache) = APPS_CACHE.write() {
         *cache = apps;
     }
     if let Ok(mut json_cache) = APPS_JSON_CACHE.write() {
-        *json_cache = Some(json);
+        *json_cache = Some(bytes);
     }
     trim_memory();
 }
@@ -213,13 +215,13 @@ pub async fn list_apps() -> impl IntoResponse {
         }
     }
 
-    // Serve zero-copy pre-serialized JSON from cache without cloning 2000+ structs
+    // Serve zero-copy pre-serialized JSON from cache without cloning 2000+ structs or re-allocating
     if let Ok(guard) = APPS_JSON_CACHE.read() {
-        if let Some(json_str) = guard.as_ref() {
+        if let Some(bytes) = guard.as_ref() {
             return (
                 StatusCode::OK,
                 [(header::CONTENT_TYPE, "application/json")],
-                json_str.clone(),
+                bytes.clone(),
             ).into_response();
         }
     }

@@ -18,13 +18,6 @@ export interface MountItem {
   available_bytes: number;
 }
 
-export interface CloudAccount {
-  id: string;
-  provider: string;
-  name: string;
-  mount_point?: string;
-}
-
 export interface ShortcutPlace {
   id: string;
   labelKey?: string;

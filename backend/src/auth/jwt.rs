@@ -23,8 +23,9 @@ pub fn get_jwt_secret() -> &'static [u8] {
             }
         }
 
-        // Generate a new secure random secret using UUIDs
-        let new_key = format!("{}{}", uuid::Uuid::new_v4(), uuid::Uuid::new_v4()).replace("-", "");
+        // Generate a cryptographically secure 64-byte random secret using CSPRNG
+        let key_bytes: [u8; 64] = rand::random();
+        let new_key = key_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
         
         let _ = std::fs::create_dir_all("data");
         if let Err(e) = std::fs::write(secret_path, &new_key) {

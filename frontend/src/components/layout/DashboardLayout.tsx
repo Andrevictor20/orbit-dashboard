@@ -132,6 +132,133 @@ function CustomDropdown({ icon: Icon, value, options, onChange, label }: { icon:
   );
 }
 
+function MobilePreferencesDropdown({
+  color,
+  onColorChange,
+  currentLang,
+  onLangChange,
+  languages,
+}: {
+  color: string;
+  onColorChange: (val: string) => void;
+  currentLang: string;
+  onLangChange: (val: string) => void;
+  languages: typeof supportedLanguages;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const colorThemes = [
+    { value: 'zinc', label: 'Zinc', dot: 'bg-zinc-500' },
+    { value: 'rose', label: 'Rose', dot: 'bg-rose-500' },
+    { value: 'blue', label: 'Blue', dot: 'bg-blue-500' },
+    { value: 'green', label: 'Green', dot: 'bg-emerald-500' },
+    { value: 'catppuccin', label: 'Catppuccin', dot: 'bg-purple-400' },
+    { value: 'tokyonight', label: 'Tokyo Night', dot: 'bg-indigo-400' },
+  ];
+
+  return (
+    <div className="relative sm:hidden" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary active:scale-95 shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+        title="Preferências (Tema e Idioma)"
+        aria-label="Preferências (Tema e Idioma)"
+        aria-expanded={isOpen}
+      >
+        <Palette className="w-4 h-4" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border/80 bg-card/95 backdrop-blur-3xl shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+          <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-border/60">
+            <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
+              {t('header.preferences', 'Preferências')}
+            </span>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
+              aria-label="Fechar preferências"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Color Themes */}
+          <div className="mb-3">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-primary mb-2">
+              <Palette className="w-3.5 h-3.5 text-orbit-500" />
+              <span>{t('header.color_theme', 'Cor do Tema')}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {colorThemes.map((item) => (
+                <button
+                  key={item.value}
+                  onClick={() => onColorChange(item.value)}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                    color === item.value
+                      ? 'border-orbit-500/50 bg-orbit-500/15 text-orbit-500 font-semibold shadow-sm'
+                      : 'border-border/60 bg-accent/40 text-secondary hover:text-primary hover:bg-accent/80'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                  <span className="truncate text-[11px]">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Languages */}
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-primary mb-2">
+              <Globe className="w-3.5 h-3.5 text-orbit-500" />
+              <span>{t('header.language', 'Idioma')}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => onLangChange(lang.code)}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                    currentLang === lang.code
+                      ? 'border-orbit-500/50 bg-orbit-500/15 text-orbit-500 font-semibold shadow-sm'
+                      : 'border-border/60 bg-accent/40 text-secondary hover:text-primary hover:bg-accent/80'
+                  }`}
+                >
+                  <span className="text-base leading-none">{lang.flag}</span>
+                  <span className="truncate text-[11px]">{lang.nativeName}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t, i18n } = useTranslation();
   const { logout } = useAuth();
@@ -298,15 +425,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         isSidebarOpen ? 'md:ml-64' : 'md:ml-16'
       }`}>
         {/* Topbar with Frosted Glass */}
-        <header className="h-14 border-b border-border/60 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 bg-card/45 backdrop-blur-3xl saturate-[190%] shadow-sm">
+        <header className="h-14 border-b border-border/60 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 bg-card/45 backdrop-blur-3xl saturate-[190%] shadow-sm">
           {/* Mobile Hamburger Menu Toggle */}
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex items-center gap-2.5 md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 -ml-2 text-secondary hover:text-primary rounded-xl hover:bg-accent/80 transition-colors active:scale-95"
+              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 backdrop-blur-2xl transition-all duration-200 active:scale-95 shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500"
               aria-label="Abrir menu de navegação"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4.5 h-4.5" />
             </button>
             <div className="flex items-center gap-2">
               <OrbitLogo size={22} />
@@ -317,14 +444,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="hidden md:block" />
 
           {/* Right Controls with Frosted Glass Pills */}
-          <div className="flex items-center gap-2 sm:gap-3 text-sm font-medium">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 text-sm font-medium">
             {/* Update Notification / Sparkles Button */}
             <button
               onClick={() => setIsUpdateModalOpen(true)}
-              className={`relative p-2 rounded-xl border transition-all duration-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none shadow-sm ${
+              className={`relative w-9 h-9 rounded-xl border transition-all duration-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none shadow-sm ${
                 updateInfo?.has_update 
-                  ? 'text-amber-400 bg-amber-500/15 border-amber-500/35 hover:bg-amber-500/25' 
-                  : 'text-secondary hover:text-primary border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl'
+                  ? 'flex items-center justify-center text-amber-400 bg-amber-500/15 border-amber-500/35 hover:bg-amber-500/25' 
+                  : 'hidden sm:flex items-center justify-center text-secondary hover:text-primary border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl'
               }`}
               title={updateInfo?.has_update ? "Nova versão do Orbit disponível! Clique para ver." : "Verificar atualizações do Orbit"}
               aria-label="Atualizações do Orbit"
@@ -338,37 +465,53 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            <CustomDropdown 
-              icon={Palette} 
-              value={color} 
-              onChange={(val) => setColor(val as any)} 
-              options={[
-                {value: 'zinc', label: 'Zinc'},
-                {value: 'rose', label: 'Rose'},
-                {value: 'blue', label: 'Blue'},
-                {value: 'green', label: 'Green'},
-                {value: 'catppuccin', label: 'Catppuccin'},
-                {value: 'tokyonight', label: 'Tokyo Night'}
-              ]}
-              label="Selecionar tema de cores"
+            {/* Mobile Consolidated Preferences (Color + Language) */}
+            <MobilePreferencesDropdown
+              color={color}
+              onColorChange={(val) => setColor(val as any)}
+              currentLang={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')}
+              onLangChange={(val) => i18n.changeLanguage(val)}
+              languages={supportedLanguages}
             />
-            <CustomDropdown 
-              icon={Globe} 
-              value={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')} 
-              onChange={(val) => i18n.changeLanguage(val)} 
-              options={supportedLanguages.map(lang => ({
-                value: lang.code,
-                label: `${lang.flag} ${lang.nativeName}`
-              }))}
-              label={t('header.switch_language')}
-            />
+
+            {/* Desktop Individual Dropdowns */}
+            <div className="hidden sm:flex items-center gap-2">
+              <CustomDropdown 
+                icon={Palette} 
+                value={color} 
+                onChange={(val) => setColor(val as any)} 
+                options={[
+                  {value: 'zinc', label: 'Zinc'},
+                  {value: 'rose', label: 'Rose'},
+                  {value: 'blue', label: 'Blue'},
+                  {value: 'green', label: 'Green'},
+                  {value: 'catppuccin', label: 'Catppuccin'},
+                  {value: 'tokyonight', label: 'Tokyo Night'}
+                ]}
+                label="Selecionar tema de cores"
+              />
+              <CustomDropdown 
+                icon={Globe} 
+                value={supportedLanguages.some(l => l.code === i18n.language) ? i18n.language : (i18n.language?.split('-')[0] || 'pt')} 
+                onChange={(val) => i18n.changeLanguage(val)} 
+                options={supportedLanguages.map(lang => ({
+                  value: lang.code,
+                  label: `${lang.flag} ${lang.nativeName}`
+                }))}
+                label={t('header.switch_language')}
+              />
+            </div>
+
+            {/* Theme Toggle */}
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-250 text-secondary hover:text-primary spring-bounce shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary spring-bounce shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none active:scale-95"
               aria-label={t('header.toggle_theme')}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            {/* Fullscreen Toggle (Tablet & Desktop Only) */}
             <button
               onClick={() => {
                 if (!document.fullscreenElement) {
@@ -377,7 +520,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   document.exitFullscreen().catch(() => {});
                 }
               }}
-              className="p-2 rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-250 text-secondary hover:text-primary spring-bounce shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary spring-bounce shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none active:scale-95"
               title="Alternar Tela Cheia"
               aria-label="Alternar tela cheia"
             >
@@ -387,14 +530,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Maximize className="w-4 h-4" />
               )}
             </button>
-            <div className="h-5 sm:h-6 w-px bg-border/80 mx-1 sm:mx-1.5"></div>
+
+            <div className="hidden sm:block h-5 sm:h-6 w-px bg-border/80 mx-0.5 sm:mx-1"></div>
+
+            {/* Profile Avatar */}
             <button
               onClick={() => setIsProfileModalOpen(true)}
-              className="p-1 rounded-full border border-border/70 bg-card/50 hover:bg-card/85 backdrop-blur-2xl hover:border-orbit-500/50 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 active:scale-95"
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 backdrop-blur-2xl hover:border-orbit-500/50 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 active:scale-95"
               title={t('header.user_profile', 'Perfil do Usuário')}
               aria-label={t('header.user_profile', 'Perfil do Usuário')}
             >
-              <OrbitLogo size={22} />
+              <OrbitLogo size={20} />
             </button>
           </div>
         </header>

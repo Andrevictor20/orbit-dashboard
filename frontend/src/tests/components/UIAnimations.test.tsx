@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { BrowserRouter } from 'react-router-dom';
@@ -45,5 +45,42 @@ describe('DashboardLayout UI/UX', () => {
     expect(mainContent).not.toBeNull();
     expect(mainContent?.className).toContain('animate-fade-in');
     expect(mainContent?.className).toContain('p-3.5');
+  });
+
+  it('renders mobile-optimized top bar controls with touch targets and preferences menu', async () => {
+    const { container } = render(
+      <BrowserRouter>
+        <ThemeProvider defaultTheme="dark" defaultColor="zinc">
+          <AuthProvider>
+            <InstallProvider>
+              <DashboardLayout>
+                <div>Content</div>
+              </DashboardLayout>
+            </InstallProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+
+    // Verify mobile hamburger button has ergonomic w-9 h-9 target
+    const mobileMenuBtn = container.querySelector('button[aria-label="Abrir menu de navegação"]');
+    expect(mobileMenuBtn).not.toBeNull();
+    expect(mobileMenuBtn?.className).toContain('w-9');
+    expect(mobileMenuBtn?.className).toContain('h-9');
+
+    // Verify mobile preferences dropdown button is present
+    const prefBtn = container.querySelector('button[aria-label="Preferências (Tema e Idioma)"]');
+    expect(prefBtn).not.toBeNull();
+    expect(prefBtn?.className).toContain('w-9');
+    expect(prefBtn?.className).toContain('h-9');
+
+    // Click preferences to open popup
+    fireEvent.click(prefBtn!);
+
+    // Should display color themes and languages
+    expect(container.textContent).toContain('Tema');
+    expect(container.textContent).toContain('Idioma');
+    expect(container.textContent).toContain('Zinc');
+    expect(container.textContent).toContain('Tokyo Night');
   });
 });

@@ -2,7 +2,6 @@ pub mod types;
 pub mod path_utils;
 pub mod fs_ops;
 pub mod storage;
-pub mod cloud;
 pub mod content;
 pub mod archives;
 pub mod subtitles;
@@ -14,7 +13,6 @@ pub use types::*;
 pub use path_utils::*;
 pub use fs_ops::*;
 pub use storage::*;
-pub use cloud::*;
 pub use content::*;
 pub use archives::*;
 pub use subtitles::*;
@@ -34,11 +32,6 @@ pub fn protected_router() -> Router<AppState> {
         .route("/api/files/shortcuts", get(get_shortcuts))
         .route("/api/files/storages", get(list_storages))
         .route("/api/files/storages/unmount", post(unmount_storage))
-        .route("/api/files/cloud/providers", get(list_cloud_providers))
-        .route("/api/files/cloud/connect", post(connect_cloud))
-        .route("/api/files/cloud/accounts", get(list_cloud_accounts))
-        .route("/api/files/cloud/accounts/{id}", delete(disconnect_cloud))
-        .route("/api/files/cloud/disconnect/{id}", delete(disconnect_cloud).post(disconnect_cloud))
         .route("/api/files/mkdir", post(mkdir))
         .route("/api/files/create", post(create_file))
         .route("/api/files/rename", put(rename_file))
@@ -61,9 +54,6 @@ pub fn protected_router() -> Router<AppState> {
         .route("/api/files/share", post(create_share))
         .route("/api/files/shares", get(list_shares))
         .route("/api/files/share/{token}", delete(delete_share))
-        .route("/api/files/cloud/oauth/auth-url", get(get_cloud_oauth_url))
-        .route("/api/files/cloud/oauth/callback", post(handle_cloud_oauth_callback))
-        .route("/api/files/cloud/account/{id}/files", get(list_cloud_account_files))
 }
 
 pub fn public_router() -> Router {

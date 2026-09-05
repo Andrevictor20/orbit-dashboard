@@ -1,42 +1,59 @@
-# 🧪 Estratégia de Testes e Garantia de Qualidade
+# Estratégia de Testes e Garantia de Qualidade - Orbit Dashboard
 
-O Orbit Dashboard adota uma cultura rigorosa de **Test-Driven Development (TDD)** e disciplina de validação contínua em múltiplos níveis de abstração.
-
----
-
-## 🏔️ A Pirâmide de Testes do Orbit
-
-```
-           / \
-          /   \         [ DAST & OWASP ZAP ] -> Segurança Dinâmica
-         / E2E \        [ Playwright E2E & Visual ] -> Interface do Usuário
-        /-------\
-       /  Load   \      [ Grafana k6 ] -> Testes de Carga & Latência
-      /-----------\
-     / Integration \    [ Axum-Test & Cargo Tests ] -> Rotas, Auth & Docker API
-    /---------------\
-   /   Unit Tests    \  [ Vitest, React Testing Library, Rust Unit Tests ]
-  /-------------------\
-```
+Este documento define a metodologia de testes, a arquitetura da suíte de validação e os procedimentos para execução local e automatizada dos testes no Orbit Dashboard.
 
 ---
 
-## 🛠️ Executando os Testes Localmente
+## 1. Pirâmide de Testes e Matriz de Validação
 
-### 1. Testes do Backend (Rust)
-Para rodar toda a suíte de testes unitários e de integração do backend:
+A estratégia de testes do Orbit estrutura-se em camadas progressivas de garantia de qualidade:
+
+```
+                  / \
+                 /   \           [ DAST: OWASP ZAP ]
+                / E2E \          [ Playwright E2E & Visual Regression ]
+               /-------\
+              /  Carga  \        [ Grafana k6: Latência sob Concorrência ]
+             /-----------\
+            / Integração  \      [ Axum-Test & Cargo Integration Tests ]
+           /---------------\
+          /    Unitários    \    [ Vitest + React Testing Library & Rust Units ]
+         /-------------------\
+```
+
+### Critérios e Disciplinas Inegociáveis (Anti-Test-Bypass)
+- **Proibição de Mocks Cegos de Lógica Interna:** Mocks são autorizados exclusivamente para interfaces de entrada e saída externas (como requisições remotas a registros Docker públicos ou dispositivos externos do Home Assistant). Lógicas de roteamento, serialização e transformações de estado devem ser executadas nativamente.
+- **Asserções Rígidas:** Testes sem asserções determinísticas ou asserções triviais são rejeitados nas revisões de código.
+- **Proibição de Skips:** A suíte de produção proíbe o uso de diretivas `.skip`, `xit` ou flags de tolerância que mascarem falhas reais.
+- **Testes de Regressão Obrigatórios:** Qualquer defeito reportado e corrigido deve ser precedido por um teste de regressão que reproduza a falha antes da correção.
+
+---
+
+## 2. Execução da Suíte de Testes Localmente
+
+### 2.1 Testes do Backend (Rust)
+
+A suíte de testes em Rust cobre regras de negócio, endpoints de API com simulação HTTP em memória, serialização de métricas e controle de concorrência.
+
+#### Executar Todos os Testes do Backend
 ```bash
 cd backend
-cargo test
+cargo test --workspace
 ```
 
-Para verificar vulnerabilidades estáticas em dependências (SAST):
+#### Verificação Estática Rápida (Typecheck e Lints)
+```bash
+cd backend
+cargo check --tests --workspace
+```
+
+#### Auditoria de Dependências (SAST)
 ```bash
 cd backend
 cargo audit --ignore RUSTSEC-2023-0071
 ```
 
-Para rodar testes de mutação (verificar resiliência lógica dos testes):
+#### Testes de Mutação (Verificação de Resiliência Lógica)
 ```bash
 cd backend
 cargo mutants --no-shuffle --exclude src/main.rs
@@ -44,35 +61,56 @@ cargo mutants --no-shuffle --exclude src/main.rs
 
 ---
 
-### 2. Testes do Frontend (Vitest)
-Para rodar os testes unitários e de componentes React:
+### 2.2 Testes do Frontend (Vitest & TypeScript)
+
+A suíte de testes do frontend valida componentes React, provedores de contexto global, transformações de telemetria e fluxos de navegação.
+
+#### Guardrails de Recursos Locais
+Para prevenir consumo excessivo de memória durante a execução de múltiplos workers JSDOM em paralelo, a configuração do Vitest (`frontend/vitest.config.ts`) limita a alocação a `maxThreads: 4` e tempo limite por teste a 15 segundos.
+
+#### Executar Todos os Testes Unitários do Frontend
 ```bash
 cd frontend
-npm test
+npm test -- --run
 ```
 
-Para executar o linter ultrarrápido:
-```bash
-cd frontend
-npm run lint
-```
-
-Para verificar tipagem estática com TypeScript:
+#### Executar Verificação Estática de Tipos e Build
 ```bash
 cd frontend
 npm run build
 ```
 
+#### Executar Linter Otimizado (`oxlint`)
+```bash
+cd frontend
+npm run lint
+```
+
+#### Validação de Sincronização de Idiomas (i18n)
+```bash
+cd frontend
+npm run i18n:check
+```
+Caso existam chaves ausentes ou divergentes entre `en.ts` e `pt.ts`, execute a sincronização automática com:
+```bash
+cd frontend
+npm run i18n:sync
+```
+
 ---
 
-### 3. Testes End-to-End (Playwright)
-Para rodar os testes de ponta a ponta que validam o fluxo completo de autenticação, navegação e catálogo da loja:
+### 2.3 Testes de Ponta a Ponta (Playwright E2E)
+
+Os testes de integração E2E validam a inicialização do assistente de configuração, o fluxo de autenticação e a navegação entre páginas em navegadores reais em modo headless (Chromium, Firefox, WebKit).
+
+#### Executar Testes Funcionais E2E
 ```bash
 cd frontend
 npm run test:e2e
 ```
 
-Para rodar a suíte de **Regressão Visual**:
+#### Executar Testes de Regressão Visual
+Compara snapshots gráficos da interface para garantir a conformidade dos temas claro e escuro e a preservação de layouts responsivos:
 ```bash
 cd frontend
 npm run test:visual
@@ -80,23 +118,27 @@ npm run test:visual
 
 ---
 
-### 4. Testes de Carga & Performance (Grafana k6)
-O teste de carga *Smoke* valida que a API responde com latência inferior a 200ms sob concorrência:
+### 2.4 Testes de Carga e Estresse (Grafana k6)
+
+Valida o comportamento e a latência de resposta da API sob requisições concorrentes:
+
 ```bash
-# Com o backend rodando em http://localhost:5172
+# Certifique-se de que a API está em execução em http://localhost:5172
 k6 run backend/load-tests/smoke_test.js
 ```
 
 ---
 
-## 🔄 Automação Contínua (GitHub Actions)
+## 3. Pipeline de Integração Contínua (GitHub Actions)
 
-Toda alteração enviada para o repositório é validada em paralelo por 5 jobs independentes no GitHub Actions:
+Toda alteração submetida por meio de *push* ou *pull request* é submetida aos seguintes estágios paralelos de validação automatizada:
 
-| Job | Escopo | Ferramentas |
+| Job no Pipeline | Escopo de Validação | Ferramentas Utilizadas |
 | :--- | :--- | :--- |
-| `test-backend` | Testes Rust, SAST e Teste de Carga Smoke | `cargo test`, `cargo audit`, `k6` |
-| `test-frontend` | Testes unitários, validação de tipos e E2E | `vitest`, `playwright`, `npm audit` |
-| `test-visual` | Fidelidade visual de layout e modo escuro | `playwright` snapshots |
-| `test-security-dast` | Varredura de vulnerabilidades de API em runtime | `OWASP ZAP API Scan` |
-| `test-mutation` | Análise profunda de mutação de código | `cargo-mutants` |
+| `test-backend` | Testes unitários, testes de integração, SAST e carga smoke | `cargo test`, `cargo audit`, `k6` |
+| `test-frontend` | Testes unitários de componentes, verificação estática de tipos e E2E | `vitest`, `playwright`, `npm audit` |
+| `test-visual` | Validação de fidelidade de renderização gráfica e temas | `playwright visual snapshots` |
+| `test-security-dast` | Varredura ativa de segurança de endpoints em runtime | `OWASP ZAP API Scan` |
+| `test-mutation` | Análise de cobertura lógica profunda via mutação | `cargo-mutants` |
+
+Aprovação em 100% dos estágios do pipeline é pré-requisito mandatório para a publicação e geração automática das imagens de release multi-arquitetura (`linux/amd64` e `linux/arm64`).

@@ -142,7 +142,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         try {
           const currentBuf = video.buffered.end(video.buffered.length - 1);
           setBufferedEnd(currentBuf);
-        } catch (_) {}
+        } catch {}
       }
     };
     

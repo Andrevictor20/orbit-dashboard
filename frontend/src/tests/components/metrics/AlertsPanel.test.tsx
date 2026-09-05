@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { AlertsPanel } from './AlertsPanel';
+import { AlertsPanel } from '../../../components/metrics/AlertsPanel';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
-vi.mock('../../contexts/AlertsContext', () => ({
+vi.mock('../../../contexts/AlertsContext', () => ({
   useAlerts: vi.fn()
 }));
-import { useAlerts } from '../../contexts/AlertsContext';
+import { useAlerts } from '../../../contexts/AlertsContext';
 
 describe('AlertsPanel', () => {
   it('renders healthy state when no alerts exist', () => {

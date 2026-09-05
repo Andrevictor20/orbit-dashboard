@@ -37,9 +37,10 @@ function renderMarkdownToHtml(md: string): string {
 
   // Code blocks with syntax badge
   html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+    const cleanLang = (lang || 'code').replace(/[^a-zA-Z0-9_-]/g, '');
     return `<div class="my-4 rounded-xl border border-zinc-800 bg-zinc-950/80 overflow-hidden shadow-md">
       <div class="flex items-center justify-between px-3 py-1.5 bg-zinc-900/90 border-b border-zinc-800 text-[11px] font-mono text-zinc-400">
-        <span>${lang || 'code'}</span>
+        <span>${cleanLang}</span>
       </div>
       <pre class="p-4 text-xs font-mono text-emerald-300 overflow-x-auto"><code>${code.trim()}</code></pre>
     </div>`;
@@ -54,14 +55,14 @@ function renderMarkdownToHtml(md: string): string {
   html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-extrabold text-white mt-6 mb-4 pb-2 border-b border-zinc-700 bg-gradient-to-r from-orbit-400 to-sky-400 bg-clip-text text-transparent">$1</h1>');
 
   // Blockquotes
-  html = html.replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-orbit-500 pl-4 py-1.5 my-3 bg-orbit-500/10 rounded-r-xl text-zinc-300 italic text-sm">$1</blockquote>');
+  html = html.replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-orbit-500 pl-4 py-1.5 my-3 bg-orbit-500/10 rounded-r-xl text-zinc-300 italic text-sm">$1</blockquote>');
 
   // Task lists
   html = html.replace(/^- \[x\] (.*$)/gim, '<li class="flex items-center gap-2 list-none text-sm text-zinc-300 my-1"><span class="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-[10px]">✓</span> <s>$1</s></li>');
   html = html.replace(/^- \[ \] (.*$)/gim, '<li class="flex items-center gap-2 list-none text-sm text-zinc-300 my-1"><span class="w-4 h-4 rounded bg-zinc-800 border border-zinc-600 flex items-center justify-center text-[10px]"></span> $1</li>');
 
   // Unordered list items
-  html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li class="ml-4 list-disc text-sm text-zinc-300 my-1">$1</li>');
+  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li class="ml-4 list-disc text-sm text-zinc-300 my-1">$1</li>');
 
   // Numbered list items
   html = html.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li class="ml-4 list-decimal text-sm text-zinc-300 my-1">$2</li>');
@@ -75,8 +76,17 @@ function renderMarkdownToHtml(md: string): string {
   html = html.replace(/\*(.*?)\*/g, '<em class="italic text-zinc-300">$1</em>');
   html = html.replace(/~~(.*?)~~/g, '<del class="line-through text-zinc-500">$1</del>');
 
-  // Markdown links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-orbit-400 hover:underline inline-flex items-center gap-0.5">$1</a>');
+  // Markdown links with strict URL scheme filtering (blocks javascript:, data:, vbscript:)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    const trimmedHref = href.trim();
+    // Allow only safe protocols or relative paths/anchors
+    const isSafe = /^(https?:\/\/|mailto:|\/|#)/i.test(trimmedHref) && !/^(javascript:|data:|vbscript:)/i.test(trimmedHref);
+    if (!isSafe) {
+      return text;
+    }
+    const safeHref = trimmedHref.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="text-orbit-400 hover:underline inline-flex items-center gap-0.5">${text}</a>`;
+  });
 
   // Paragraphs / line breaks
   html = html.replace(/\n\n+/g, '</p><p class="my-3 text-sm text-zinc-300 leading-relaxed">');

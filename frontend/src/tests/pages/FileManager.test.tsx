@@ -66,12 +66,6 @@ describe('FileManager Page Component', () => {
           json: () => Promise.resolve(mockShortcutsResponse),
         });
       }
-      if (url.includes('/api/files/cloud/accounts')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ accounts: [] }),
-        });
-      }
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({}),

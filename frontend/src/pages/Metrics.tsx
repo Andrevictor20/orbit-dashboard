@@ -297,7 +297,7 @@ export function Metrics() {
           {/* Network Panel (Only for System and Containers) */}
           {activeTab !== 'orbit' && (
             <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] lg:col-span-2 flex flex-col animate-in fade-in zoom-in-95 duration-300">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
                     <Network className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
@@ -314,29 +314,46 @@ export function Metrics() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-secondary font-mono">
-                  {filteredHistory.length} {filteredHistory.length === 1 ? 'amostra' : 'amostras'}
-                </span>
+
+                <div className="flex items-center gap-2.5 flex-wrap text-xs font-mono">
+                  {(activeTab === 'overview' || activeTab === 'system') && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/60 border border-border/70 shadow-sm">
+                      <span className="text-secondary font-semibold">Host:</span>
+                      <span className="text-sky-600 dark:text-sky-400 font-medium">↓ {formatSpeed(stats?.network_rx)}</span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">↑ {formatSpeed(stats?.network_tx)}</span>
+                    </div>
+                  )}
+                  {(activeTab === 'overview' || activeTab === 'containers') && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/60 border border-border/70 shadow-sm">
+                      <span className="text-secondary font-semibold">Containers:</span>
+                      <span className="text-orange-600 dark:text-orange-400 font-medium">↓ {formatSpeed(stats?.docker_rx)}</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-medium">↑ {formatSpeed(stats?.docker_tx)}</span>
+                    </div>
+                  )}
+                  <span className="text-xs text-secondary font-mono">
+                    {filteredHistory.length} {filteredHistory.length === 1 ? 'amostra' : 'amostras'}
+                  </span>
+                </div>
               </div>
               <div className="flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={filteredHistory} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="metricTx" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
                       <linearGradient id="metricRx" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
                       </linearGradient>
-                      <linearGradient id="metricDockerTx" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      <linearGradient id="metricTx" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="metricDockerRx" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#fb923c" stopOpacity={0.4}/>
                         <stop offset="95%" stopColor="#fb923c" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="metricDockerTx" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="time" stroke="#525252" fontSize={11} tickLine={false} axisLine={false} />
@@ -344,8 +361,13 @@ export function Metrics() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
                     <Tooltip formatter={formatSpeed} contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', fontSize: '12px' }} />
                     
-                    <Area type="monotone" dataKey="dockerTx" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#6366f1" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerTx)" name="Containers Upload" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
+                    {/* Host Network (Download RX & Upload TX) */}
+                    <Area type="monotone" dataKey="rx" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#38bdf8" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricRx)" name="Host Download" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
+                    <Area type="monotone" dataKey="tx" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#818cf8" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricTx)" name="Host Upload" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
+
+                    {/* Containers Network (Download RX & Upload TX) */}
                     <Area type="monotone" dataKey="dockerRx" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#fb923c" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerRx)" name="Containers Download" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
+                    <Area type="monotone" dataKey="dockerTx" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#f43f5e" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerTx)" name="Containers Upload" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

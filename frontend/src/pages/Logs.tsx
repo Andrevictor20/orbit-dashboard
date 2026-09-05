@@ -115,7 +115,7 @@ export function Logs() {
       setCopied(true);
       toast.success('Logs copiados para a área de transferência!');
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast.error('Erro ao copiar logs');
     }
   };
@@ -126,7 +126,7 @@ export function Logs() {
       setCopiedLineIndex(index);
       toast.success('Linha copiada!');
       setTimeout(() => setCopiedLineIndex(null), 1500);
-    } catch (err) {
+    } catch {
       toast.error('Erro ao copiar linha');
     }
   };
@@ -166,7 +166,7 @@ export function Logs() {
       } else {
         toast.error('Erro ao limpar logs.');
       }
-    } catch (e) {
+    } catch {
       toast.error('Erro de conexão ao limpar logs.');
     } finally {
       setClearing(false);

@@ -10,6 +10,10 @@ services:
     container_name: orbit-dashboard
     restart: unless-stopped
     network_mode: bridge
+    # Security Architecture Note (SEC-007 Homelab Acceptance):
+    # 'privileged: true' and 'pid: host' are required in local homelab dashboard context
+    # to monitor host process tables, read system hardware metrics (temperature, fans),
+    # interact with the host Docker socket and manage host storage mount propagation.
     privileged: true
     pid: host
     extra_hosts:
@@ -29,8 +33,6 @@ services:
     environment:
       - RUST_LOG=info
       - SSH_HOST=host.docker.internal
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     logging:
       driver: "json-file"
       options:

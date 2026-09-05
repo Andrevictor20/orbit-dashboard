@@ -6,7 +6,6 @@ export * from './FileGridView';
 export * from './FileTableView';
 export * from './FileTrashView';
 export * from './AudioPlayerModal';
-export * from './CloudConnectModal';
 export * from './DiskAnalyzerModal';
 export * from './FileOperationsModal';
 export * from './ImageGalleryModal';

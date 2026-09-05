@@ -15,7 +15,7 @@ interface MiniSparklineProps {
   secondaryGradientId?: string;
 }
 
-export const MiniSparkline: React.FC<MiniSparklineProps> = ({
+const MiniSparklineComponent: React.FC<MiniSparklineProps> = ({
   data,
   color,
   gradientId,
@@ -58,117 +58,122 @@ export const MiniSparkline: React.FC<MiniSparklineProps> = ({
   const allValues = [...primaryPoints, ...(secPoints || [])];
   const calculatedMin = propMin !== undefined ? propMin : Math.min(0, ...allValues);
   const calculatedMax = propMax !== undefined ? propMax : Math.max(1, ...allValues);
-  const range = calculatedMax - calculatedMin || 1;
+  const range = calculatedMax - calculatedMin === 0 ? 1 : calculatedMax - calculatedMin;
 
-  // Converter pontos em coordenadas (x, y)
+  // Mapear pontos para coordenadas SVG (com margem de segurança de 4px para não cortar o traço)
+  const padding = 4;
+  const usableHeight = h - padding * 2;
+  const stepX = width / (primaryPoints.length - 1 || 1);
+
   const getCoordinates = (points: number[]) => {
-    const n = points.length;
     return points.map((val, idx) => {
-      const x = n > 1 ? (idx / (n - 1)) * width : width / 2;
+      const x = idx * stepX;
       const normalized = (val - calculatedMin) / range;
-      // Inverter o eixo Y com margem superior/inferior de 3px
-      const y = Math.max(3, Math.min(h - 3, h - 3 - normalized * (h - 8)));
+      // Inverter Y pois no SVG o topo é 0
+      const y = h - padding - normalized * usableHeight;
       return { x, y };
     });
   };
 
-  // Gerar caminho SVG suave com curvas Bézier cúbicas
-  const buildSmoothPath = (coords: { x: number; y: number }[]) => {
+  const primaryCoords = getCoordinates(primaryPoints);
+  const secCoords = secPoints ? getCoordinates(secPoints) : null;
+
+  // Gerar caminho suave SVG usando Curvas de Bézier Cúbicas
+  const createSmoothPath = (coords: { x: number; y: number }[]) => {
     if (coords.length === 0) return '';
     if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
 
-    let d = `M ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)}`;
+    let path = `M ${coords[0].x} ${coords[0].y}`;
 
     for (let i = 0; i < coords.length - 1; i++) {
-      const p0 = coords[Math.max(0, i - 1)];
-      const p1 = coords[i];
-      const p2 = coords[i + 1];
-      const p3 = coords[Math.min(coords.length - 1, i + 2)];
+      const current = coords[i];
+      const next = coords[i + 1];
 
-      // Controle de curvatura Catmull-Rom para Bézier
-      const tension = 0.2;
-      const cp1x = p1.x + (p2.x - p0.x) * tension;
-      const cp1y = p1.y + (p2.y - p0.y) * tension;
-      const cp2x = p2.x - (p3.x - p1.x) * tension;
-      const cp2y = p2.y - (p3.y - p1.y) * tension;
+      // Pontos de controle para suavização suave (tensão 0.25)
+      const controlX1 = current.x + (next.x - current.x) * 0.4;
+      const controlY1 = current.y;
+      const controlX2 = next.x - (next.x - current.x) * 0.4;
+      const controlY2 = next.y;
 
-      d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+      path += ` C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${next.x} ${next.y}`;
     }
 
-    return d;
+    return path;
   };
 
-  const primaryCoords = getCoordinates(primaryPoints);
-  const primaryLinePath = buildSmoothPath(primaryCoords);
-  const primaryLastPoint = primaryCoords[primaryCoords.length - 1];
+  const primaryLinePath = createSmoothPath(primaryCoords);
+  const secLinePath = secCoords ? createSmoothPath(secCoords) : '';
 
-  // Caminho fechado para o preenchimento com gradiente
-  const primaryAreaPath = primaryCoords.length > 1
-    ? `${primaryLinePath} L ${width},${h} L 0,${h} Z`
+  // Gerar caminho de preenchimento da área sob a curva fechando até a base
+  const primaryAreaPath = primaryCoords.length > 0
+    ? `${primaryLinePath} L ${primaryCoords[primaryCoords.length - 1].x} ${h} L ${primaryCoords[0].x} ${h} Z`
     : '';
 
-  // Caminhos para a curva secundária (ex: rede TX/RX)
-  let secCoords = null;
-  let secLinePath = '';
-  let secAreaPath = '';
-  let secLastPoint = null;
+  const secAreaPath = secCoords && secCoords.length > 0
+    ? `${secLinePath} L ${secCoords[secCoords.length - 1].x} ${h} L ${secCoords[0].x} ${h} Z`
+    : '';
 
-  if (secPoints) {
-    secCoords = getCoordinates(secPoints);
-    secLinePath = buildSmoothPath(secCoords);
-    secLastPoint = secCoords[secCoords.length - 1];
-    secAreaPath = secCoords.length > 1
-      ? `${secLinePath} L ${width},${h} L 0,${h} Z`
-      : '';
-  }
+  const primaryLastPoint = primaryCoords[primaryCoords.length - 1];
+  const secLastPoint = secCoords ? secCoords[secCoords.length - 1] : null;
 
   return (
-    <div className="w-full relative overflow-hidden select-none pointer-events-none" style={{ height: `${h}px` }}>
+    <div className="w-full overflow-hidden flex items-center justify-center">
       <svg
         viewBox={`0 0 ${width} ${h}`}
+        className="w-full overflow-visible transition-all duration-300"
+        style={{ height: `${h}px` }}
         preserveAspectRatio="none"
-        className="w-full h-full overflow-visible"
       >
         <defs>
-          {/* Gradiente primário */}
+          {/* Gradiente da curva primária */}
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={fillOpacity} />
-            <stop offset="100%" stopColor={color} stopOpacity={0.0} />
+            <stop offset="60%" stopColor={color} stopOpacity={fillOpacity * 0.3} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
 
-          {/* Gradiente secundário se houver */}
-          {secPoints && (
+          {/* Gradiente da curva secundária se existir */}
+          {secondaryData && (
             <linearGradient id={secondaryGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={secondaryColor} stopOpacity={fillOpacity * 0.75} />
-              <stop offset="100%" stopColor={secondaryColor} stopOpacity={0.0} />
+              <stop offset="0%" stopColor={secondaryColor} stopOpacity={fillOpacity * 0.7} />
+              <stop offset="100%" stopColor={secondaryColor} stopOpacity={0} />
             </linearGradient>
           )}
         </defs>
 
-        {/* Área secundária */}
+        {/* Área preenchida secundária */}
         {secAreaPath && (
-          <path d={secAreaPath} fill={`url(#${secondaryGradientId})`} />
+          <path
+            d={secAreaPath}
+            fill={`url(#${secondaryGradientId})`}
+            className="transition-all duration-300 pointer-events-none"
+          />
         )}
-        {/* Linha secundária */}
+
+        {/* Linha traçada secundária */}
         {secLinePath && (
           <path
             d={secLinePath}
             fill="none"
             stroke={secondaryColor}
-            strokeWidth={strokeWidth}
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeDasharray="2,2"
-            opacity={0.85}
+            className="opacity-80 transition-all duration-300 pointer-events-none"
           />
         )}
 
-        {/* Área primária preenchida */}
+        {/* Área preenchida primária */}
         {primaryAreaPath && (
-          <path d={primaryAreaPath} fill={`url(#${gradientId})`} />
+          <path
+            d={primaryAreaPath}
+            fill={`url(#${gradientId})`}
+            className="transition-all duration-300 pointer-events-none"
+          />
         )}
 
-        {/* Linha primária */}
+        {/* Linha traçada primária com Bézier */}
         {primaryLinePath && (
           <path
             d={primaryLinePath}
@@ -177,6 +182,7 @@ export const MiniSparkline: React.FC<MiniSparklineProps> = ({
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="transition-all duration-300 pointer-events-none filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
           />
         )}
 
@@ -214,3 +220,5 @@ export const MiniSparkline: React.FC<MiniSparklineProps> = ({
     </div>
   );
 };
+
+export const MiniSparkline = React.memo(MiniSparklineComponent);

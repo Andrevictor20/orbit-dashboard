@@ -1,6 +1,6 @@
 [package]
 name = "backend"
-version = "2.5.5"
+version = "2.6.0"
 edition = "2024"
 
 [dependencies]
@@ -38,6 +38,17 @@ tokio-stream = { version = "0.1.19", features = ["sync"] }
 axum-test = "21.0.0"
 http-body-util = "0.1.5"
 tower = "0.5.3"
+
+[profile.dev]
+opt-level = 0
+# debug = 1 provides file/line backtraces while cutting linker memory usage drastically
+debug = 1
+incremental = true
+
+[profile.test]
+opt-level = 0
+debug = 1
+incremental = true
 
 [profile.release]
 opt-level = 3

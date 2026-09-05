@@ -285,7 +285,7 @@ export const en = {
   },
   files: {
     title: "File Manager",
-    subtitle: "Browse, view, and manage your local and cloud storage",
+    subtitle: "Browse, view, and manage your local files and storage drives",
     new_folder: "New Folder",
     upload_file: "Upload Files",
     upload_folder: "Upload Folder",
@@ -296,7 +296,6 @@ export const en = {
     restore_file: "Restore",
     delete_permanent: "Delete Permanently",
     disk_analyzer: "Disk Analyzer",
-    cloud_connect: "Connect Cloud",
     share: "Share",
     download_zip: "Download as ZIP",
     rename: "Rename",

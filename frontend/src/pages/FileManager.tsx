@@ -22,12 +22,11 @@ import {
   ImageGalleryModal,
   DiskAnalyzerModal,
   ShareModal,
-  CloudConnectModal,
   FileOperationsModal,
 } from '../components/files';
 import type { OperationType } from '../components/files/FileOperationsModal';
-import type { FileItem, MountItem, CloudAccount, ShortcutPlace, TrashItem } from '../types/fileManager';
-export type { FileItem, MountItem, CloudAccount, ShortcutPlace, TrashItem };
+import type { FileItem, MountItem, ShortcutPlace, TrashItem } from '../types/fileManager';
+export type { FileItem, MountItem, ShortcutPlace, TrashItem };
 export { IMAGE_EXTENSIONS, ARCHIVE_EXTENSIONS, CODE_EXTENSIONS } from '../types/fileManager';
 import { useTasks } from '../contexts/InstallContext';
 import { isPhysicalStorage, formatBytes } from '../utils/format';
@@ -65,7 +64,6 @@ export function FileManager() {
   // Dropdown menus
   const [showCreateMenu, setShowCreateMenu] = useState<boolean>(false);
   const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
-  const [showLocationMenu, setShowLocationMenu] = useState<boolean>(false);
 
   // Manual path editing
   const [isEditingPath, setIsEditingPath] = useState<boolean>(false);
@@ -74,7 +72,6 @@ export function FileManager() {
   // Shortcuts & Disks
   const [places, setPlaces] = useState<ShortcutPlace[]>([]);
   const [storages, setStorages] = useState<MountItem[]>([]);
-  const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
   const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
 
   // Modals & Preview States
@@ -85,7 +82,6 @@ export function FileManager() {
   const [activePdfFile, setActivePdfFile] = useState<FileItem | null>(null);
   const [isDiskAnalyzerOpen, setIsDiskAnalyzerOpen] = useState<boolean>(false);
   const [shareFile, setShareFile] = useState<FileItem | null>(null);
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
 
   // File Operations Modal (Rename, New File, New Folder, Delete)
   const [opModalType, setOpModalType] = useState<OperationType | null>(null);
@@ -95,7 +91,7 @@ export function FileManager() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
-  const loadStoragesAndCloud = () => {
+  const loadStorages = () => {
     fetch('/api/files/storages')
       .then(res => res.json())
       .then(data => {
@@ -105,13 +101,6 @@ export function FileManager() {
           );
           setStorages(filtered);
         }
-      })
-      .catch(() => {});
-
-    fetch('/api/files/cloud/accounts')
-      .then(res => res.json())
-      .then(data => {
-        if (data.accounts && Array.isArray(data.accounts)) setCloudAccounts(data.accounts);
       })
       .catch(() => {});
   };
@@ -162,22 +151,6 @@ export function FileManager() {
       });
   };
 
-  const handleDisconnectCloud = async (id: string, name: string) => {
-    if (!window.confirm(`Deseja desconectar "${name}"?`)) return;
-    try {
-      const res = await fetch(`/api/files/cloud/accounts/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        toast.success(`"${name}" desconectado com sucesso.`);
-        loadStoragesAndCloud();
-        if (currentPath.includes(id)) {
-          navigateTo(places[0]?.path || '/');
-        }
-      }
-    } catch {
-      toast.error('Erro ao desconectar conta');
-    }
-  };
-
   // Sync with URL query parameter
   useEffect(() => {
     if (urlPath === '__trash__' || isTrashView) {
@@ -187,7 +160,7 @@ export function FileManager() {
     }
   }, [urlPath]);
 
-  // Load shortcuts, storages and cloud accounts once
+  // Load shortcuts and storages once
   useEffect(() => {
     fetch('/api/files/shortcuts')
       .then(res => res.json())
@@ -206,7 +179,7 @@ export function FileManager() {
       })
       .catch(() => {});
 
-    loadStoragesAndCloud();
+    loadStorages();
   }, []);
 
   // Reload files when path changes
@@ -750,7 +723,6 @@ export function FileManager() {
           setIsStorageDrawerOpen={setIsStorageDrawerOpen}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          setIsCloudModalOpen={setIsCloudModalOpen}
           places={places}
           currentPath={currentPath}
           isTrashView={isTrashView}
@@ -758,11 +730,7 @@ export function FileManager() {
           navigateToTrash={navigateToTrash}
           handleInternalDrop={handleInternalDrop}
           trashItems={trashItems}
-          showLocationMenu={showLocationMenu}
-          setShowLocationMenu={setShowLocationMenu}
           storages={storages}
-          cloudAccounts={cloudAccounts}
-          handleDisconnectCloud={handleDisconnectCloud}
           showHiddenFiles={showHiddenFiles}
           setShowHiddenFiles={setShowHiddenFiles}
           loadFiles={loadFiles}
@@ -962,11 +930,7 @@ export function FileManager() {
         />
       )}
 
-      <CloudConnectModal
-        isOpen={isCloudModalOpen}
-        onClose={() => setIsCloudModalOpen(false)}
-        onConnected={loadStoragesAndCloud}
-      />
+
 
       <FileOperationsModal
         isOpen={opModalType !== null}

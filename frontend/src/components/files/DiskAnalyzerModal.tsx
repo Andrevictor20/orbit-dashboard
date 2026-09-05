@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 
 interface DiskItemStat {
-  name: String;
-  path: String;
+  name: string;
+  path: string;
   is_dir: boolean;
   size: number;
   percentage: number;

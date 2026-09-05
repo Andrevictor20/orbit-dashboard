@@ -1,8 +1,33 @@
 use axum_test::TestServer;
 use backend::logs::{prune_old_log_files, read_last_n_lines_from_file};
+use jsonwebtoken::{encode, Header, EncodingKey};
+use backend::auth::Claims;
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
+
+fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
+    let expiration = SystemTime::now()
+        .checked_add(Duration::from_secs(3600))
+        .unwrap()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as usize;
+
+    let claims = Claims {
+        sub: "admin".to_string(),
+        exp: expiration,
+    };
+    
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(b"super_secret"),
+    ).unwrap();
+    
+    axum_extra::extract::cookie::Cookie::new("auth_token", token)
+}
 
 #[test]
 fn test_read_last_n_lines_bounded() {
@@ -85,15 +110,24 @@ fn test_prune_old_logs() {
 
 #[tokio::test]
 async fn test_clear_logs_endpoint_with_source() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
 
-    // Create a dummy log file
+    // 1. Unauthenticated request must be rejected (SEC-003 verification)
+    let unauth_res = server.post("/api/logs/clear")
+        .add_query_param("source", "orbit")
+        .await;
+    unauth_res.assert_status_unauthorized();
+
+    // 2. Create a dummy log file
     let _ = fs::create_dir_all("data");
     let dummy_log = "data/orbit.log";
     fs::write(dummy_log, "some old log line 1\nsome old log line 2\n").unwrap();
 
+    // 3. Authenticated request succeeds
     let res = server.post("/api/logs/clear")
+        .add_cookie(get_test_cookie())
         .add_query_param("source", "orbit")
         .await;
     res.assert_status_success();

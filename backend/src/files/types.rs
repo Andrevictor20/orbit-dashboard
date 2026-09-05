@@ -75,50 +75,6 @@ pub struct UnmountRequest {
     pub mount_point: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CloudProvider {
-    pub id: String,
-    pub name: String,
-    pub icon: String,
-    pub description: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CloudAccount {
-    pub id: String,
-    pub provider: String,
-    pub name: String,
-    pub config: serde_json::Value,
-    pub mount_point: Option<String>,
-    pub connected_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ConnectCloudRequest {
-    pub provider: String,
-    pub name: String,
-    pub config: serde_json::Value,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct OAuthAuthUrlQuery {
-    pub provider: String,
-    pub redirect_uri: Option<String>,
-    pub client_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct OAuthCallbackRequest {
-    pub provider: String,
-    pub code: Option<String>,
-    pub state: Option<String>,
-    pub name: Option<String>,
-    pub client_id: Option<String>,
-    pub client_secret: Option<String>,
-    pub redirect_uri: Option<String>,
-    pub mock_access_token: Option<String>,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct MkdirRequest {
     pub path: String,

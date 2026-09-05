@@ -285,7 +285,7 @@ export const pt = {
   },
   files: {
     title: "Gerenciador de Arquivos",
-    subtitle: "Navegue, visualize e gerencie seus arquivos locais e em nuvem",
+    subtitle: "Navegue, visualize e gerencie seus arquivos e dispositivos de armazenamento",
     new_folder: "Nova Pasta",
     upload_file: "Enviar Arquivos",
     upload_folder: "Enviar Pasta",
@@ -296,7 +296,6 @@ export const pt = {
     restore_file: "Restaurar",
     delete_permanent: "Excluir Permanentemente",
     disk_analyzer: "Analisador de Disco",
-    cloud_connect: "Conectar Nuvem",
     share: "Compartilhar",
     download_zip: "Baixar como ZIP",
     rename: "Renomear",
