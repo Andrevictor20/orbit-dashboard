@@ -1,23 +1,32 @@
-# Orbit Dashboard v2.5.0
+# Orbit Dashboard v2.5.1
 
-### 🚀 Novidades & Recursos Principais (v2.5.0)
+### 🚀 Novidades & Recursos Principais (v2.5.1)
 
-- **Detecção Inteligente de Rede & Telemetria em Tempo Real:**
-  - **Identificação Automática de Conexão (Cabo / Wi-Fi):** O sistema agora detecta e identifica automaticamente se o seu servidor está conectado via cabo de rede ethernet ou Wi-Fi, exibindo o ícone e nome da interface ativa no card de Tráfego de Rede da Visão Geral e no cabeçalho de Métricas.
-  - **Velocidade de Rede Adaptativa e Dinâmica:** Novo formato inteligente de exibição de velocidade (B/s, KB/s, MB/s, GB/s), eliminando números estáticos e exibindo em tempo real o consumo real de download e upload da sua rede.
+- **Atualizador de Containers em Tempo Real & Anti-Travamento:**
+  - **Streaming Contínuo de Download:** O console de atualização agora exibe em tempo real o progresso de cada camada sendo baixada do Docker Hub ou Compose (incluindo contagem de MBs e porcentagem), eliminando a sensação de travamento durante o download de imagens pesadas como o Home Assistant.
+  - **Cancelamento Imediato de Processos:** Botões para cancelar containers individuais ou toda a fila de atualização encerram os processos no host instantaneamente, liberando a fila sem locks pendentes.
+  - **Recuperação e Reinício Rápido:** Tarefas antigas são expiradas automaticamente e o sistema permite reiniciar downloads travados sem erro de concorrência ou falsos-positivos.
 
-- **Atualizador de Containers Resiliente:**
-  - **Logs e Progresso de Download em Tempo Real:** O console de atualização agora transmite ao vivo cada camada sendo baixada e extraída do Docker Hub e Docker Compose, eliminando a sensação de travamento durante o download de imagens pesadas (como Home Assistant).
-  - **Cancelamento Rápido e Seguro:** Possibilidade de cancelar processos em lote ou containers individuais imediatamente, liberando o sistema para novas tentativas sem bloqueios.
-  - **Recuperação Automática de Falhas:** Timeout e fallback resiliente que evitam congelamentos caso o download demore ou haja interrupção temporária de conexão.
+- **Acessibilidade & Alto Contraste no Tema Claro:**
+  - **Legibilidade Total no Modal de Atualização:** Textos das notas de versão, títulos e descrições com contraste profundo e fundo opaco no tema claro, garantindo leitura nítida e confortável (padrão WCAG AA).
+  - **Cards e Tabelas Reforçados:** Ajustes de contraste em badges de status, contadores de métricas, listas de containers e modais de configuração.
 
-- **Acessibilidade & Alto Contraste:**
-  - **Contraste Calibrado (Padrão WCAG AA):** Ajuste em todos os temas claros garantindo legibilidade perfeita de textos, tabelas, métricas e modais sem textos apagados ou cinzas difíceis de visualizar.
-  - **Leitura Impecável de Telas e Modais:** Reforço de contraste nos modais de atualização do sistema, conexões de nuvem, detalhes de containers e dispositivos inteligentes.
+- **Telemetria Inteligente de Rede (Cabo / Wi-Fi):**
+  - **Detecção Automática de Interface:** Identificação automática do tipo de conexão ativa do servidor com ícones dinâmicos no card de Tráfego de Rede da Visão Geral e no cabeçalho de Métricas.
+  - **Velocidade Adaptativa em Tempo Real:** Formatação inteligente e dinâmica de velocidade (B/s, KB/s, MB/s, GB/s), eliminando números congelados em 0.0 MB.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.5.0 — Network Telemetry, Domain Architecture & Contrast</summary>
+
+- **Detecção Inteligente de Rede & Telemetria em Tempo Real**
+- **Atualizador de Containers Resiliente**
+- **Acessibilidade & Alto Contraste**
+
+</details>
 
 <details>
 <summary>v2.4.0 — Home Assistant Device Grouping & Dynamic Areas</summary>
