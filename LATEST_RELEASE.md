@@ -1,6 +1,6 @@
-# Orbit Dashboard v2.5.4
+# Orbit Dashboard v2.5.5
 
-### 🚀 Novidades & Recursos Principais (v2.5.4)
+### 🚀 Novidades & Recursos Principais (v2.5.5)
 
 - **Detecção & Exibição Precisa de Atualizações de Imagens de Containers:**
   - **Suporte Completo a Stacks:** Identificação e contagem automática de containers desatualizados dentro de stacks, exibindo badge violeta interativo de atualização (`Atualizar (N)`) no cabeçalho dos cards e contagem no botão de sub-containers.
