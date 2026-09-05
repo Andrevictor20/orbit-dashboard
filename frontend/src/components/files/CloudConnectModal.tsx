@@ -37,7 +37,7 @@ const CLOUD_OAUTH_PROVIDERS: CloudProvider[] = [
     type: 'oauth',
     description: 'Acesse seus arquivos, fotos e documentos do Google Drive diretamente no Orbit',
     brandColor: 'hover:border-amber-500/50 hover:bg-amber-500/5',
-    iconBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    iconBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
   },
   {
     id: 'onedrive',
@@ -45,7 +45,7 @@ const CLOUD_OAUTH_PROVIDERS: CloudProvider[] = [
     type: 'oauth',
     description: 'Sincronize pastas de trabalho e arquivos pessoais da sua conta Microsoft',
     brandColor: 'hover:border-sky-500/50 hover:bg-sky-500/5',
-    iconBg: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    iconBg: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30',
   },
   {
     id: 'dropbox',
@@ -53,7 +53,7 @@ const CLOUD_OAUTH_PROVIDERS: CloudProvider[] = [
     type: 'oauth',
     description: 'Conecte sua pasta do Dropbox para transferências e backup na nuvem',
     brandColor: 'hover:border-blue-500/50 hover:bg-blue-500/5',
-    iconBg: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    iconBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
   },
 ];
 
@@ -64,7 +64,7 @@ const NETWORK_STORAGE_PROVIDERS: CloudProvider[] = [
     type: 'network',
     description: 'Pastas compartilhadas do Windows, NAS local ou servidor Samba',
     brandColor: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
-    iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    iconBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   },
   {
     id: 'webdav',
@@ -72,7 +72,7 @@ const NETWORK_STORAGE_PROVIDERS: CloudProvider[] = [
     type: 'network',
     description: 'Nextcloud, ownCloud ou qualquer servidor compatível com WebDAV',
     brandColor: 'hover:border-purple-500/50 hover:bg-purple-500/5',
-    iconBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    iconBg: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
   },
 ];
 
@@ -222,14 +222,14 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
+            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20">
               <Cloud className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-semibold text-primary text-base sm:text-lg">
                 Conectar Armazenamento
               </h3>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-slate-600 dark:text-secondary">
                 Vincule seu Google Drive, OneDrive ou servidores de rede ao Orbit
               </p>
             </div>
@@ -252,7 +252,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
               activeTab === 'oauth'
                 ? 'bg-orbit-500 text-white shadow-sm'
-                : 'text-secondary hover:text-primary'
+                : 'text-slate-700 dark:text-secondary hover:text-primary'
             }`}
           >
             ☁️ Nuvem com 1 Clique (OAuth)
@@ -263,7 +263,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
               activeTab === 'network'
                 ? 'bg-orbit-500 text-white shadow-sm'
-                : 'text-secondary hover:text-primary'
+                : 'text-slate-700 dark:text-secondary hover:text-primary'
             }`}
           >
             🖥️ Rede Local / Servidores (SMB, WebDAV)
@@ -272,8 +272,8 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
 
         {/* Error Alert */}
         {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2.5 text-xs text-rose-400">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center gap-2.5 text-xs text-rose-700 dark:text-rose-400 font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
             <span>{error}</span>
           </div>
         )}
@@ -302,7 +302,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-primary">{prov.name}</h4>
-                        <p className="text-xs text-secondary max-w-sm mt-0.5">{prov.description}</p>
+                        <p className="text-xs text-slate-600 dark:text-secondary max-w-sm mt-0.5">{prov.description}</p>
                       </div>
                     </div>
 
@@ -340,7 +340,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
               <button
                 type="button"
                 onClick={() => setShowAdvancedOAuth(!showAdvancedOAuth)}
-                className="flex items-center gap-2 text-xs text-secondary hover:text-primary transition-colors py-1"
+                className="flex items-center gap-2 text-xs text-slate-700 dark:text-secondary hover:text-primary transition-colors py-1 font-medium"
               >
                 <Settings2 className="w-3.5 h-3.5" />
                 <span>Configurar credenciais personalizadas de API (Opcional)</span>
@@ -348,12 +348,12 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
 
               {showAdvancedOAuth && (
                 <div className="mt-3 p-3.5 rounded-xl bg-accent/30 border border-border space-y-3 animate-in fade-in duration-150">
-                  <p className="text-[11px] text-secondary">
+                  <p className="text-[11px] text-slate-600 dark:text-secondary">
                     Por padrão, o Orbit usa as chaves integradas. Preencha apenas se quiser usar seu próprio aplicativo do Google Cloud Console ou Microsoft Azure.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-secondary block mb-1 font-medium">Custom Client ID</label>
+                      <label className="text-[11px] text-primary/80 dark:text-secondary block mb-1 font-semibold">Custom Client ID</label>
                       <input
                         type="text"
                         value={customClientId}
@@ -363,7 +363,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-secondary block mb-1 font-medium">Custom Client Secret</label>
+                      <label className="text-[11px] text-primary/80 dark:text-secondary block mb-1 font-semibold">Custom Client Secret</label>
                       <input
                         type="password"
                         value={customClientSecret}
@@ -404,7 +404,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-primary">{prov.name}</h4>
-                        <p className="text-xs text-secondary mt-0.5">{prov.description}</p>
+                        <p className="text-xs text-slate-600 dark:text-secondary mt-0.5">{prov.description}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-secondary" />
@@ -416,12 +416,12 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                 <div className="flex items-center justify-between pb-2 border-b border-border">
                   <span className="text-xs font-semibold text-primary flex items-center gap-2">
                     <span>Configuração:</span>
-                    <span className="text-orbit-400">{selectedNetworkProvider.name}</span>
+                    <span className="text-orbit-600 dark:text-orbit-400 font-bold">{selectedNetworkProvider.name}</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedNetworkProvider(null)}
-                    className="text-xs text-secondary hover:text-primary"
+                    className="text-xs text-slate-600 dark:text-secondary hover:text-primary font-medium"
                   >
                     Trocar protocolo
                   </button>
@@ -429,7 +429,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-secondary block mb-1 font-medium">Nome de Exibição</label>
+                    <label className="text-xs text-primary/80 dark:text-secondary block mb-1 font-semibold">Nome de Exibição</label>
                     <input
                       type="text"
                       required
@@ -441,7 +441,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                   </div>
 
                   <div>
-                    <label className="text-xs text-secondary block mb-1 font-medium">Host / Endereço IP / URL</label>
+                    <label className="text-xs text-primary/80 dark:text-secondary block mb-1 font-semibold">Host / Endereço IP / URL</label>
                     <input
                       type="text"
                       required
@@ -454,7 +454,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
 
                   {selectedNetworkProvider.id === 'smb' && (
                     <div>
-                      <label className="text-xs text-secondary block mb-1 font-medium">Nome do Compartilhamento (Share)</label>
+                      <label className="text-xs text-primary/80 dark:text-secondary block mb-1 font-semibold">Nome do Compartilhamento (Share)</label>
                       <input
                         type="text"
                         required
@@ -468,7 +468,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-secondary block mb-1 font-medium">Usuário</label>
+                      <label className="text-xs text-primary/80 dark:text-secondary block mb-1 font-semibold">Usuário</label>
                       <input
                         type="text"
                         value={username}
@@ -478,7 +478,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-secondary block mb-1 font-medium">Senha</label>
+                      <label className="text-xs text-primary/80 dark:text-secondary block mb-1 font-semibold">Senha</label>
                       <input
                         type="password"
                         value={password}
@@ -494,7 +494,7 @@ export function CloudConnectModal({ isOpen, onClose, onConnected }: CloudConnect
                   <button
                     type="button"
                     onClick={() => setSelectedNetworkProvider(null)}
-                    className="px-4 py-2 rounded-xl border border-border text-xs text-secondary hover:text-primary transition-colors"
+                    className="px-4 py-2 rounded-xl border border-border text-xs text-slate-700 dark:text-secondary hover:text-primary transition-colors font-medium"
                   >
                     Voltar
                   </button>

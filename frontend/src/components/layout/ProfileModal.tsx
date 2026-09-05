@@ -47,8 +47,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-card/90 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-250" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-border/70">
-          <h2 className="font-semibold text-lg">{t('sidebar.account') || 'Minha Conta'}</h2>
-          <button onClick={onClose} className="p-2 text-secondary hover:text-primary transition-colors rounded-xl hover:bg-accent/70">
+          <h2 className="font-bold text-lg text-primary">{t('sidebar.account') || 'Minha Conta'}</h2>
+          <button onClick={onClose} className="p-2 text-secondary hover:text-primary transition-colors rounded-xl hover:bg-accent/70" aria-label="Fechar">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -63,27 +63,27 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-secondary">{t('profile.current_password')}</label>
+              <label className="text-sm font-semibold text-primary">{t('profile.current_password')}</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full bg-accent/50 border shad-border rounded-md py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-orbit-500"
+                  className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-secondary">{t('profile.new_password')}</label>
+              <label className="text-sm font-semibold text-primary">{t('profile.new_password')}</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-accent/50 border shad-border rounded-md py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-orbit-500"
+                  className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all"
                   required
                   minLength={6}
                 />
@@ -92,7 +92,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <button
               type="submit"
               disabled={isChangingPassword}
-              className="w-full bg-orbit-500 hover:bg-orbit-600 text-white font-medium py-2 rounded-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full bg-orbit-500 hover:bg-orbit-600 text-white font-semibold py-2.5 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md shadow-orbit-500/20 text-sm"
             >
               {isChangingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
               {t('profile.change_password')}

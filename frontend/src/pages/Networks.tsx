@@ -246,14 +246,14 @@ export function Networks() {
             </button>
             <button
               onClick={() => setStatusFilter('used')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {t('networks.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               {t('networks.unused')} ({unusedCount})
@@ -296,7 +296,7 @@ export function Networks() {
                 <div key={net.id} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400 shrink-0">
+                      <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 shrink-0">
                         <Server className="h-4 w-4" />
                       </div>
                       <span className="font-semibold text-primary text-sm truncate" title={net.name}>
@@ -304,13 +304,13 @@ export function Networks() {
                       </span>
                     </div>
                     {net.in_use ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         Em uso {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 shrink-0">
-                        <AlertCircle className="w-3 h-3 text-zinc-400" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
+                        <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                         Não utilizada
                       </span>
                     )}
@@ -359,13 +359,13 @@ export function Networks() {
                     <tr key={net.id} className="hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         {net.in_use ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             Em uso {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
-                            <AlertCircle className="w-3 h-3 text-zinc-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
+                            <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                             Não utilizada
                           </span>
                         )}

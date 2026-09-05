@@ -219,11 +219,11 @@ export function ProcessMonitor() {
       {actionMessage && (
         <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top duration-200 shadow-lg ${
           actionMessage.type === 'success' 
-            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' 
-            : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-semibold' 
+            : 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300 font-semibold'
         }`}>
           <div className="flex items-center gap-2">
-            {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertTriangle className="w-4 h-4 text-rose-400" />}
+            {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
             <span>{actionMessage.text}</span>
           </div>
           <button onClick={() => setActionMessage(null)} className="p-1 hover:bg-white/10 rounded-lg">
@@ -238,7 +238,7 @@ export function ProcessMonitor() {
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.total_processes')}</span>
-            <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-400">
+            <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-600 dark:text-orbit-400">
               <Layers className="w-4 h-4" />
             </div>
           </div>
@@ -246,24 +246,24 @@ export function ProcessMonitor() {
             <span className="text-2xl font-bold text-primary font-mono">
               {data?.user_processes_count ?? data?.total_processes ?? '—'}
             </span>
-            <span className="text-xs text-secondary">
+            <span className="text-xs text-secondary font-medium">
               {data?.kernel_threads_count ? `(${data.total_processes} ${t('common.total').toLowerCase()})` : t('metrics.user_tasks')}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-border/50 text-[11px] flex-wrap">
-            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 font-medium">
+            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
               {data?.running_processes ?? 0} {t('common.running').toLowerCase()}
             </span>
-            <span className="px-1.5 py-0.5 rounded-md bg-background text-secondary border border-border/50">
+            <span className="px-1.5 py-0.5 rounded-md bg-background text-secondary border border-border/50 font-medium">
               {data?.sleeping_processes ?? 0} {t('common.paused').toLowerCase()}
             </span>
             {Boolean(data?.kernel_threads_count) && (
-              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-300 font-medium" title="Kernel Threads (kthr)">
+              <span className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold" title="Kernel Threads (kthr)">
                 {data?.kernel_threads_count} kthr
               </span>
             )}
             {Boolean(data?.zombie_processes) && (
-              <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold">
+              <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold">
                 {data?.zombie_processes} zombie
               </span>
             )}
@@ -274,7 +274,7 @@ export function ProcessMonitor() {
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.cpu_usage_history')}</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Cpu className="w-4 h-4" />
             </div>
           </div>
@@ -283,17 +283,17 @@ export function ProcessMonitor() {
               {data?.top_cpu_process?.name || '—'}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-semibold text-purple-400 font-mono">
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-400 font-mono font-bold">
                 {data?.top_cpu_process?.value ? `${data.top_cpu_process.value.toFixed(1)}% CPU` : '0.0%'}
               </span>
-              <span className="text-[11px] text-zinc-500 font-mono">PID {data?.top_cpu_process?.pid}</span>
+              <span className="text-[11px] text-secondary font-mono">PID {data?.top_cpu_process?.pid}</span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
             {t('logs.source')}: {data?.top_cpu_process?.container_name ? (
-              <span className="text-orbit-400 font-medium">{data.top_cpu_process.container_name}</span>
+              <span className="text-orbit-600 dark:text-orbit-400 font-semibold">{data.top_cpu_process.container_name}</span>
             ) : (
-              <span className="text-zinc-400 font-medium">Host</span>
+              <span className="text-secondary font-medium">Host</span>
             )}
           </div>
         </div>
@@ -302,7 +302,7 @@ export function ProcessMonitor() {
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.memory_usage_history')}</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <HardDrive className="w-4 h-4" />
             </div>
           </div>
@@ -311,17 +311,17 @@ export function ProcessMonitor() {
               {data?.top_memory_process?.name || '—'}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-semibold text-emerald-400 font-mono">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 font-mono font-bold">
                 {data?.top_memory_process?.value ? formatRAM(data.top_memory_process.value) : '0 B'}
               </span>
-              <span className="text-[11px] text-zinc-500 font-mono">PID {data?.top_memory_process?.pid}</span>
+              <span className="text-[11px] text-secondary font-mono">PID {data?.top_memory_process?.pid}</span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
             {t('logs.source')}: {data?.top_memory_process?.container_name ? (
-              <span className="text-orbit-400 font-medium">{data.top_memory_process.container_name}</span>
+              <span className="text-orbit-600 dark:text-orbit-400 font-semibold">{data.top_memory_process.container_name}</span>
             ) : (
-              <span className="text-zinc-400 font-medium">Host</span>
+              <span className="text-secondary font-medium">Host</span>
             )}
           </div>
         </div>
@@ -330,14 +330,14 @@ export function ProcessMonitor() {
         <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.system_overview')}</span>
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <Box className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-xs text-secondary flex items-center gap-1">
-                <Monitor className="w-3 h-3 text-zinc-400" /> Host
+              <span className="text-xs text-secondary flex items-center gap-1 font-medium">
+                <Monitor className="w-3 h-3 text-secondary" /> Host
               </span>
               <span className="text-xl font-bold text-primary font-mono mt-0.5">
                 {data?.host_processes_count ?? 0}
@@ -345,10 +345,10 @@ export function ProcessMonitor() {
             </div>
             <div className="h-8 w-px bg-border mx-2" />
             <div className="flex flex-col">
-              <span className="text-xs text-secondary flex items-center gap-1">
-                <Box className="w-3 h-3 text-orbit-400" /> Containers
+              <span className="text-xs text-secondary flex items-center gap-1 font-medium">
+                <Box className="w-3 h-3 text-orbit-600 dark:text-orbit-400" /> Containers
               </span>
-              <span className="text-xl font-bold text-orbit-400 font-mono mt-0.5">
+              <span className="text-xl font-bold text-orbit-600 dark:text-orbit-400 font-mono mt-0.5">
                 {data?.container_processes_count ?? 0}
               </span>
             </div>
@@ -537,12 +537,12 @@ export function ProcessMonitor() {
                             {p.name}
                           </span>
                           {p.is_kernel_thread && (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-sans font-medium bg-blue-500/15 text-blue-300 border border-blue-500/30 shrink-0">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-sans font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
                               kthr
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-zinc-500 truncate" title={p.cmd.join(' ') || p.exe}>
+                        <span className="text-[11px] text-secondary truncate font-mono" title={p.cmd.join(' ') || p.exe}>
                           {p.cmd.join(' ') || p.exe || '—'}
                         </span>
                       </div>
@@ -551,20 +551,20 @@ export function ProcessMonitor() {
                     {/* Scope / Container */}
                     <td className="px-3.5 py-2.5 font-sans whitespace-nowrap">
                       {p.container_name ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orbit-500/15 text-orbit-300 text-xs font-medium border border-orbit-500/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orbit-500/15 text-orbit-700 dark:text-orbit-300 text-xs font-semibold border border-orbit-500/30">
                           <Box className="w-3 h-3 shrink-0" />
                           <span className="truncate max-w-[120px]">{p.container_name}</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-zinc-400 text-xs font-medium border border-border">
-                          <Monitor className="w-3 h-3 shrink-0 text-zinc-500" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background text-secondary text-xs font-medium border border-border">
+                          <Monitor className="w-3 h-3 shrink-0 text-secondary" />
                           Host
                         </span>
                       )}
                     </td>
 
                     {/* User */}
-                    <td className="px-3.5 py-2.5 text-zinc-400 text-xs whitespace-nowrap">
+                    <td className="px-3.5 py-2.5 text-secondary text-xs font-medium whitespace-nowrap">
                       {p.user || 'root'}
                     </td>
 
@@ -572,7 +572,7 @@ export function ProcessMonitor() {
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className={`font-semibold ${isHighCpu ? 'text-purple-400 font-bold' : 'text-primary'}`}>
+                          <span className={`font-semibold ${isHighCpu ? 'text-purple-700 dark:text-purple-400 font-bold' : 'text-primary'}`}>
                             {p.cpu_usage.toFixed(1)}%
                           </span>
                         </div>
@@ -591,10 +591,10 @@ export function ProcessMonitor() {
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className={`font-semibold ${isHighRam ? 'text-emerald-400 font-bold' : 'text-primary'}`}>
+                          <span className={`font-semibold ${isHighRam ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-primary'}`}>
                             {formatRAM(p.memory_rss)}
                           </span>
-                          <span className="text-[10px] text-zinc-500">
+                          <span className="text-[10px] text-secondary font-mono">
                             {p.memory_percent.toFixed(1)}%
                           </span>
                         </div>
@@ -621,10 +621,10 @@ export function ProcessMonitor() {
                     <td className="px-3.5 py-2.5 font-sans whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
                         p.status === 'Running' 
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' 
                           : p.status === 'Zombie' 
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
-                          : 'bg-background text-zinc-400 border border-border'
+                          ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30' 
+                          : 'bg-background text-secondary border border-border font-medium'
                       }`}>
                         {p.status}
                       </span>
@@ -701,12 +701,12 @@ export function ProcessMonitor() {
               <div>
                 <span className="text-secondary block mb-1">Origem do Processo</span>
                 {selectedProcess.container_name ? (
-                  <div className="flex items-center gap-1.5 font-semibold text-orbit-400">
+                  <div className="flex items-center gap-1.5 font-semibold text-orbit-600 dark:text-orbit-400">
                     <Box className="w-4 h-4" />
                     <span>Container: {selectedProcess.container_name}</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-zinc-300">
                     <Monitor className="w-4 h-4" />
                     <span>Host / Raspberry Pi</span>
                   </div>
@@ -714,22 +714,22 @@ export function ProcessMonitor() {
               </div>
               <div>
                 <span className="text-secondary block mb-1">Status da Tarefa</span>
-                <span className="font-semibold text-emerald-400">{selectedProcess.status}</span>
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">{selectedProcess.status}</span>
               </div>
             </div>
 
             {/* Metrics Breakdown */}
             <div className="grid grid-cols-3 gap-2.5 text-center">
               <div className="bg-background/80 p-3 rounded-xl border border-border/50">
-                <span className="text-[10px] uppercase font-semibold text-purple-400 block mb-1">CPU Normalizada</span>
+                <span className="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-400 block mb-1">CPU Normalizada</span>
                 <span className="text-base font-bold text-primary font-mono">{selectedProcess.cpu_usage.toFixed(1)}%</span>
               </div>
               <div className="bg-background/80 p-3 rounded-xl border border-border/50">
-                <span className="text-[10px] uppercase font-semibold text-emerald-400 block mb-1">Memória Real (RSS)</span>
+                <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block mb-1">Memória Real (RSS)</span>
                 <span className="text-base font-bold text-primary font-mono">{formatRAM(selectedProcess.memory_rss)}</span>
               </div>
               <div className="bg-background/80 p-3 rounded-xl border border-border/50">
-                <span className="text-[10px] uppercase font-semibold text-orbit-400 block mb-1">% da RAM Total</span>
+                <span className="text-[10px] uppercase font-bold text-orbit-700 dark:text-orbit-400 block mb-1">% da RAM Total</span>
                 <span className="text-base font-bold text-primary font-mono">{selectedProcess.memory_percent.toFixed(2)}%</span>
               </div>
             </div>
@@ -745,7 +745,7 @@ export function ProcessMonitor() {
 
               <div>
                 <span className="text-xs font-semibold text-secondary block mb-1">Linha de Comando Completa (Arguments):</span>
-                <div className="bg-background p-2.5 rounded-lg border border-border font-mono text-xs text-zinc-300 max-h-32 overflow-y-auto break-all select-all">
+                <div className="bg-background p-2.5 rounded-lg border border-border font-mono text-xs text-primary max-h-32 overflow-y-auto break-all select-all">
                   {selectedProcess.cmd.length > 0 ? selectedProcess.cmd.join(' ') : selectedProcess.exe || selectedProcess.name}
                 </div>
               </div>
@@ -764,14 +764,14 @@ export function ProcessMonitor() {
                   setKillModalProcess(selectedProcess);
                   setSelectedProcess(null);
                 }}
-                className="px-4 py-2 bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 Finalizar Processo...
               </button>
               <button
                 onClick={() => setSelectedProcess(null)}
-                className="px-4 py-2 bg-accent hover:bg-white/10 text-secondary hover:text-primary rounded-xl text-xs sm:text-sm font-medium transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent/80 text-secondary hover:text-primary rounded-xl text-xs sm:text-sm font-medium transition-colors"
               >
                 Fechar
               </button>
@@ -817,7 +817,7 @@ export function ProcessMonitor() {
                 />
                 <div>
                   <span className="font-semibold text-primary">SIGTERM (Sinal 15 - Recomendado)</span>
-                  <p className="text-[11px] text-zinc-500">Solicita encerramento gracioso do processo.</p>
+                  <p className="text-[11px] text-secondary">Solicita encerramento gracioso do processo.</p>
                 </div>
               </label>
               <label className="flex items-center gap-2 cursor-pointer mt-1">
@@ -829,8 +829,8 @@ export function ProcessMonitor() {
                   className="accent-rose-500"
                 />
                 <div>
-                  <span className="font-semibold text-rose-400">SIGKILL (Sinal 9 - Forçado)</span>
-                  <p className="text-[11px] text-zinc-500">Mata o processo imediatamente sem cleanup.</p>
+                  <span className="font-semibold text-rose-700 dark:text-rose-400">SIGKILL (Sinal 9 - Forçado)</span>
+                  <p className="text-[11px] text-secondary">Mata o processo imediatamente sem cleanup.</p>
                 </div>
               </label>
             </div>

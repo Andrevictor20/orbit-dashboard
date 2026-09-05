@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatBytes, formatRAM, formatGB, formatStorage } from '../../utils/format';
+import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatBytes, formatRAM, formatGB, formatStorage, formatNetworkSpeed } from '../../utils/format';
 
 describe('Format and Storage Utils', () => {
   it('formats bytes, RAM, GB and TB correctly', () => {
@@ -73,5 +73,15 @@ describe('Format and Storage Utils', () => {
       category: 'external',
       typeLabel: 'HD Externo',
     });
+  });
+
+  it('formats network speed dynamically with appropriate units', () => {
+    expect(formatNetworkSpeed(0)).toBe('0 B/s');
+    expect(formatNetworkSpeed(undefined)).toBe('0 B/s');
+    expect(formatNetworkSpeed(500)).toBe('500 B/s');
+    expect(formatNetworkSpeed(1024)).toBe('1.0 KB/s');
+    expect(formatNetworkSpeed(51200)).toBe('50.0 KB/s');
+    expect(formatNetworkSpeed(10 * 1024 * 1024)).toBe('10.0 MB/s');
+    expect(formatNetworkSpeed(1.5 * 1024 * 1024 * 1024)).toBe('1.5 GB/s');
   });
 });

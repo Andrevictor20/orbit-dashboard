@@ -32,34 +32,34 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background border border-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl text-primary animate-in zoom-in-95 duration-200">
         
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-primary" />
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
+            <Terminal className="w-5 h-5 text-orbit-500" />
             Instalação Personalizada
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors" aria-label="Fechar">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {/* Ports */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-300">Portas</label>
+              <label className="text-sm font-semibold text-primary">Portas</label>
               <button 
                 type="button"
                 onClick={() => setPorts([...ports, { host: '', container: '', protocol: 'tcp' }])}
-                className="text-xs flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded transition-colors"
+                className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
               >
-                <Plus className="w-3 h-3" /> Adicionar
+                <Plus className="w-3.5 h-3.5 text-orbit-500" /> Adicionar
               </button>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {ports.map((port, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <input
@@ -70,9 +70,9 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                       newPorts[idx].host = e.target.value;
                       setPorts(newPorts);
                     }}
-                    className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 font-mono transition-all"
                   />
-                  <span className="text-gray-500">:</span>
+                  <span className="text-secondary font-bold font-mono">:</span>
                   <input
                     placeholder="Container"
                     value={port.container}
@@ -81,7 +81,7 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                       newPorts[idx].container = e.target.value;
                       setPorts(newPorts);
                     }}
-                    className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 font-mono transition-all"
                   />
                   <select
                     value={port.protocol}
@@ -90,7 +90,7 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                       newPorts[idx].protocol = e.target.value;
                       setPorts(newPorts);
                     }}
-                    className="w-24 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                    className="w-24 bg-background border border-border rounded-xl px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 font-mono transition-all"
                   >
                     <option value="tcp">TCP</option>
                     <option value="udp">UDP</option>
@@ -98,7 +98,8 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                   <button 
                     type="button" 
                     onClick={() => setPorts(ports.filter((_, i) => i !== idx))}
-                    className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-md transition-colors"
+                    className="p-2 text-secondary hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                    title="Remover porta"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -110,17 +111,17 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
           {/* Volumes */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-300">Volumes</label>
+              <label className="text-sm font-semibold text-primary">Volumes</label>
               <button 
                 type="button"
                 onClick={() => setVolumes([...volumes, { host: '', container: '' }])}
-                className="text-xs flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded transition-colors"
+                className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
               >
-                <Plus className="w-3 h-3" /> Adicionar
+                <Plus className="w-3.5 h-3.5 text-orbit-500" /> Adicionar
               </button>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {volumes.map((vol, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <input
@@ -131,9 +132,9 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                       newVols[idx].host = e.target.value;
                       setVolumes(newVols);
                     }}
-                    className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 font-mono transition-all"
                   />
-                  <span className="text-gray-500">:</span>
+                  <span className="text-secondary font-bold font-mono">:</span>
                   <input
                     placeholder="Container (/config)"
                     value={vol.container}
@@ -142,12 +143,13 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
                       newVols[idx].container = e.target.value;
                       setVolumes(newVols);
                     }}
-                    className="flex-1 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+                    className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 font-mono transition-all"
                   />
                   <button 
                     type="button" 
                     onClick={() => setVolumes(volumes.filter((_, i) => i !== idx))}
-                    className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-md transition-colors"
+                    className="p-2 text-secondary hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                    title="Remover volume"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -158,18 +160,18 @@ export function CustomInstallModal({ onClose, onInstall }: CustomInstallModalPro
 
         </form>
         
-        <div className="p-4 border-t border-gray-800 flex justify-end gap-3 bg-gray-900/50 rounded-b-xl">
+        <div className="p-4 sm:px-6 border-t border-border flex justify-end gap-3 bg-muted/20 rounded-b-2xl">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-transparent text-gray-300 hover:text-white transition-colors"
+            className="px-4 py-2 bg-transparent text-secondary hover:text-primary hover:bg-accent/60 rounded-xl transition-colors text-sm font-medium"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-orbit-500 text-white rounded-xl font-semibold hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/20 transition-all text-sm"
           >
             Instalar
           </button>

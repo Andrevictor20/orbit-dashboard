@@ -123,25 +123,25 @@ export function FileOperationsModal({
   const getIcon = () => {
     switch (type) {
       case 'new_folder':
-        return <FolderPlus className="w-5 h-5 text-orbit-400" />;
+        return <FolderPlus className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
       case 'new_file':
-        return <FilePlus className="w-5 h-5 text-orbit-400" />;
+        return <FilePlus className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
       case 'rename':
-        return <Edit3 className="w-5 h-5 text-orbit-400" />;
+        return <Edit3 className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
       case 'delete':
-        return <Trash2 className="w-5 h-5 text-rose-400" />;
+        return <Trash2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />;
     }
   };
 
   return typeof document !== 'undefined' ? createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl border ${type === 'delete' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-orbit-500/10 border-orbit-500/20'}`}>
+            <div className={`p-2.5 rounded-xl border ${type === 'delete' ? 'bg-rose-500/15 border-rose-500/30' : 'bg-orbit-500/15 border-orbit-500/30'}`}>
               {getIcon()}
             </div>
-            <h3 className="font-semibold text-primary text-base">{getTitle()}</h3>
+            <h3 className="font-bold text-primary text-base">{getTitle()}</h3>
           </div>
           <button
             onClick={onClose}
@@ -152,7 +152,7 @@ export function FileOperationsModal({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs font-medium">
             {error}
           </div>
         )}
@@ -160,19 +160,19 @@ export function FileOperationsModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {type === 'delete' ? (
             <div className="space-y-2 py-1">
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs font-medium">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <p>
                   Esta ação não pode ser desfeita. Todos os arquivos e subpastas selecionados serão permanentemente removidos.
                 </p>
               </div>
-              <p className="text-sm text-secondary px-1">
-                Tem certeza que deseja excluir <strong>{selectedItems.length > 0 ? `${selectedItems.length} itens` : targetItem?.name}</strong>?
+              <p className="text-sm text-slate-700 dark:text-secondary px-1 font-medium">
+                Tem certeza que deseja excluir <strong className="text-primary">{selectedItems.length > 0 ? `${selectedItems.length} itens` : targetItem?.name}</strong>?
               </p>
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1.5">
+              <label className="block text-xs font-semibold text-primary/80 dark:text-secondary mb-1.5">
                 {type === 'new_folder' ? 'Nome da Pasta' : type === 'new_file' ? 'Nome do Arquivo' : 'Novo Nome'}
               </label>
               <input
@@ -182,7 +182,7 @@ export function FileOperationsModal({
                 placeholder={type === 'new_file' ? 'exemplo.txt' : 'Nome do item'}
                 autoFocus
                 required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-accent/50 border border-border text-primary placeholder-zinc-500 text-sm focus:outline-none focus:border-orbit-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-primary placeholder:text-secondary/60 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all"
               />
             </div>
           )}

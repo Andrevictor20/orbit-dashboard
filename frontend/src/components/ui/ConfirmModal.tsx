@@ -32,19 +32,19 @@ export function ConfirmModal({
       <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden animate-slide-up relative my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className={`p-3 rounded-full ${isDestructive ? 'bg-rose-500/20 text-rose-500' : 'bg-orbit-500/20 text-orbit-500'}`}>
+            <div className={`p-3 rounded-full ${isDestructive ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-orbit-500/15 text-orbit-600 dark:text-orbit-400'}`}>
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-semibold text-primary">{title}</h3>
+            <h3 className="text-lg font-bold text-primary">{title}</h3>
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-secondary hover:text-primary transition-colors rounded-lg hover:bg-accent"
+              className="absolute top-4 right-4 p-2 text-secondary hover:text-primary transition-colors rounded-xl hover:bg-accent"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
           
-          <div className="mb-6 text-secondary text-sm">
+          <div className="mb-6 text-slate-700 dark:text-secondary text-sm font-medium leading-relaxed">
             {message}
           </div>
 
@@ -57,7 +57,7 @@ export function ConfirmModal({
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg font-medium text-secondary hover:text-primary hover:bg-accent transition-colors"
+              className="px-4 py-2 rounded-lg font-medium text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors"
             >
               {cancelText}
             </button>

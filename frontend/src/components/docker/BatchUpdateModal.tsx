@@ -16,7 +16,10 @@ import {
   ArrowUpCircle,
   Copy,
   Check,
-  Sparkles
+  Sparkles,
+  Ban,
+  XCircle,
+  StopCircle
 } from 'lucide-react';
 import type { ContainerLike } from '../../utils/containerGroups';
 import { useBatchUpdate } from '../../contexts/BatchUpdateContext';
@@ -145,6 +148,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
     selectedIds,
     successCount,
     failedCount,
+    cancelledCount,
     completedTasks,
     totalTasks,
     progressPercent,
@@ -172,19 +176,19 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
               <h2 id="batch-update-title" className="text-base sm:text-lg font-semibold tracking-tight text-primary flex items-center gap-2">
                 {t('batch_update_modal.title')}
                 {updatableContainers.length > 0 && !isUpdating && !isCompleted && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">
                     {updatableContainers.length} pendente(s)
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-secondary">
+              <p className="text-xs text-slate-600 dark:text-secondary">
                 {t('batch_update_modal.subtitle')}
               </p>
             </div>
           </div>
           <button
             onClick={isUpdating ? handleMinimize : handleClose}
-            className="p-2 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
+            className="p-2 text-slate-700 dark:text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
             aria-label={t('batch_update_modal.close')}
             title={isUpdating ? "Continuar em segundo plano" : "Fechar"}
           >
@@ -199,19 +203,19 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
             <div className="space-y-4">
               {/* Filter Tabs & Selection summary */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl border border-border bg-accent/30">
-                <span className="text-xs text-secondary font-medium">
+                <span className="text-xs text-slate-700 dark:text-secondary font-medium">
                   {updatableContainers.length} container(s) pronto(s) para atualização
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleSelectAll}
-                    className="text-xs text-orbit-600 dark:text-orbit-400 hover:text-orbit-500 font-medium px-2 py-1 rounded hover:bg-orbit-500/10 transition-colors"
+                    className="text-xs text-orbit-600 dark:text-orbit-400 hover:text-orbit-500 font-semibold px-2 py-1 rounded hover:bg-orbit-500/10 transition-colors"
                   >
                     {selectedIds.length === updatableContainers.length
                       ? t('batch_update_modal.deselect_all')
                       : t('batch_update_modal.select_all')}
                   </button>
-                  <span className="text-xs text-secondary font-mono">
+                  <span className="text-xs text-slate-700 dark:text-secondary font-mono font-medium">
                     {t('batch_update_modal.selected_count', {
                       selected: selectedIds.length,
                       total: updatableContainers.length,
@@ -259,33 +263,33 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-semibold text-primary truncate">{cleanName}</span>
                               {hasUpdate && !isOrbit && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">
                                   {t('containers.update_available')}
                                 </span>
                               )}
                               {isOrbit && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
                                   <Sparkles className="w-2.5 h-2.5" />
                                   Atualize pelo menu do Orbit
                                 </span>
                               )}
                               {stackName && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-accent text-secondary border border-border">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-accent text-slate-700 dark:text-zinc-300 border border-border font-medium">
                                   <Layers className="w-2.5 h-2.5" />
                                   {stackName}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-secondary font-mono truncate mt-0.5">{c.image}</p>
+                            <p className="text-xs text-slate-600 dark:text-secondary font-mono truncate mt-0.5">{c.image}</p>
                           </div>
                         </div>
 
                         <div className="flex items-center space-x-3 shrink-0">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               c.state === 'running'
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-accent text-secondary'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-accent text-slate-700 dark:text-zinc-300'
                             }`}
                           >
                             <span
@@ -324,7 +328,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                         : t('batch_update_modal.summary_title')}
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-secondary">
+                  <span className="text-xs font-mono text-slate-700 dark:text-secondary font-medium">
                     {completedTasks} / {totalTasks} ({progressPercent}%)
                   </span>
                 </div>
@@ -339,7 +343,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
 
                 {/* Status badges */}
                 <div className="flex flex-wrap items-center gap-4 text-xs font-medium pt-1">
-                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-semibold">
+                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {successCount} {t('batch_update_modal.status_success')}
                   </span>
@@ -349,8 +353,14 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                       {failedCount} {t('batch_update_modal.status_error')}
                     </span>
                   )}
+                  {cancelledCount > 0 && (
+                    <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1.5 font-semibold">
+                      <Ban className="w-3.5 h-3.5" />
+                      {cancelledCount} {t('batch_update_modal.status_cancelled')}
+                    </span>
+                  )}
                   {isUpdating && (
-                    <span className="text-orbit-600 dark:text-orbit-400 flex items-center gap-1.5">
+                    <span className="text-orbit-700 dark:text-orbit-400 flex items-center gap-1.5 font-semibold">
                       <DownloadCloud className="w-3.5 h-3.5 animate-pulse" />
                       {totalTasks - completedTasks} {t('batch_update_modal.status_pending')}
                     </span>
@@ -371,6 +381,8 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                           ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/30'
                           : task.state === 'success'
                           ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30'
+                          : task.state === 'cancelled'
+                          ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/30'
                           : task.state === 'pulling' || task.state === 'recreating'
                           ? 'bg-orbit-500/10 border-orbit-500/40 ring-1 ring-orbit-500/20'
                           : 'bg-card border-border'
@@ -383,20 +395,23 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                           {task.state === 'recreating' && <RefreshCw className="w-4 h-4 text-orbit-500 animate-spin shrink-0" />}
                           {task.state === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                           {task.state === 'error' && <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
+                          {task.state === 'cancelled' && <Ban className="w-4 h-4 text-amber-500 shrink-0" />}
 
                           <div className="min-w-0">
                             <span className="text-sm font-semibold text-primary truncate block">{task.name}</span>
-                            <span className="text-xs text-secondary font-mono truncate block">{task.image}</span>
+                            <span className="text-xs text-slate-600 dark:text-secondary font-mono truncate block">{task.image}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center space-x-2 shrink-0">
                           <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                            className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                               task.state === 'success'
                                 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                                 : task.state === 'error'
                                 ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400'
+                                : task.state === 'cancelled'
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                                 : 'bg-orbit-500/15 text-orbit-700 dark:text-orbit-400'
                             }`}
                           >
@@ -410,6 +425,17 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                               title={t('batch_update_modal.view_error_details')}
                             >
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                          )}
+
+                          {/* Individual cancel button for active/pending tasks */}
+                          {isUpdating && (task.state === 'pending' || task.state === 'pulling' || task.state === 'recreating') && (
+                            <button
+                              onClick={() => batch.cancelContainer(task.id)}
+                              className="p-1 rounded text-slate-700 dark:text-secondary hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/15 transition-colors"
+                              title={t('batch_update_modal.cancel_container')}
+                            >
+                              <XCircle className="w-4 h-4" />
                             </button>
                           )}
                         </div>
@@ -494,7 +520,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
             <>
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors"
+                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors"
               >
                 {t('batch_update_modal.cancel')}
               </button>
@@ -514,19 +540,28 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                 {failedCount > 0 && !isUpdating && (
                   <button
                     onClick={handleRetryFailed}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl transition-colors"
                   >
                     <RotateCcw className="w-4 h-4" />
                     {t('batch_update_modal.retry_failed')} ({failedCount})
                   </button>
                 )}
                 {isUpdating && (
-                  <button
-                    onClick={handleMinimize}
-                    className="px-4 py-2 text-sm font-medium text-orbit-600 dark:text-orbit-400 hover:bg-orbit-500/10 rounded-xl transition-colors border border-orbit-500/20"
-                  >
-                    Continuar em Segundo Plano
-                  </button>
+                  <>
+                    <button
+                      onClick={() => batch.cancelAll()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-colors"
+                    >
+                      <StopCircle className="w-4 h-4" />
+                      {t('batch_update_modal.cancel_all')}
+                    </button>
+                    <button
+                      onClick={handleMinimize}
+                      className="px-4 py-2 text-sm font-semibold text-orbit-700 dark:text-orbit-300 hover:bg-orbit-500/10 rounded-xl transition-colors border border-orbit-500/20"
+                    >
+                      Continuar em Segundo Plano
+                    </button>
+                  </>
                 )}
               </div>
 

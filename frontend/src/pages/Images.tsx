@@ -304,14 +304,14 @@ export function Images() {
             </button>
             <button
               onClick={() => setStatusFilter('used')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {t('images.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               {t('images.unused')} ({unusedCount})
@@ -357,7 +357,7 @@ export function Images() {
                   <div key={img.id} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400 shrink-0">
+                        <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 shrink-0">
                           <Package className="h-4 w-4" />
                         </div>
                         <span className="font-semibold text-primary text-sm font-mono break-all" title={primaryTag}>
@@ -365,13 +365,13 @@ export function Images() {
                         </span>
                       </div>
                       {img.in_use ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           Em uso {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 shrink-0">
-                          <AlertCircle className="w-3 h-3 text-zinc-400" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
+                          <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                           Não utilizada
                         </span>
                       )}
@@ -429,13 +429,13 @@ export function Images() {
                     <tr key={img.id} className="hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         {img.in_use ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             Em uso {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
-                            <AlertCircle className="w-3 h-3 text-zinc-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
+                            <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                             Não utilizada
                           </span>
                         )}

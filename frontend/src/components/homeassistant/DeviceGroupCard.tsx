@@ -35,7 +35,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'light':
         return {
           icon: Lightbulb,
-          color: 'text-amber-400',
+          color: 'text-amber-600 dark:text-amber-400',
           bg: 'bg-amber-500/15 border-amber-500/30 shadow-amber-500/10',
           glow: 'group-hover:border-amber-500/50',
           label: 'Iluminação',
@@ -43,7 +43,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'switch':
         return {
           icon: Zap,
-          color: 'text-indigo-400',
+          color: 'text-indigo-600 dark:text-indigo-400',
           bg: 'bg-indigo-500/15 border-indigo-500/30 shadow-indigo-500/10',
           glow: 'group-hover:border-indigo-500/50',
           label: 'Tomada / Interruptor',
@@ -51,7 +51,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'media':
         return {
           icon: Tv,
-          color: 'text-purple-400',
+          color: 'text-purple-600 dark:text-purple-400',
           bg: 'bg-purple-500/15 border-purple-500/30 shadow-purple-500/10',
           glow: 'group-hover:border-purple-500/50',
           label: 'Mídia & TV',
@@ -59,7 +59,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'camera':
         return {
           icon: Camera,
-          color: 'text-rose-400',
+          color: 'text-rose-600 dark:text-rose-400',
           bg: 'bg-rose-500/15 border-rose-500/30 shadow-rose-500/10',
           glow: 'group-hover:border-rose-500/50',
           label: 'Câmera',
@@ -67,7 +67,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'mobile':
         return {
           icon: Smartphone,
-          color: 'text-emerald-400',
+          color: 'text-emerald-600 dark:text-emerald-400',
           bg: 'bg-emerald-500/15 border-emerald-500/30 shadow-emerald-500/10',
           glow: 'group-hover:border-emerald-500/50',
           label: 'Dispositivo Móvel',
@@ -75,7 +75,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'climate':
         return {
           icon: Thermometer,
-          color: 'text-cyan-400',
+          color: 'text-cyan-600 dark:text-cyan-400',
           bg: 'bg-cyan-500/15 border-cyan-500/30 shadow-cyan-500/10',
           glow: 'group-hover:border-cyan-500/50',
           label: 'Climatização',
@@ -83,7 +83,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'network':
         return {
           icon: Globe,
-          color: 'text-sky-400',
+          color: 'text-sky-600 dark:text-sky-400',
           bg: 'bg-sky-500/15 border-sky-500/30 shadow-sky-500/10',
           glow: 'group-hover:border-sky-500/50',
           label: 'Rede & Internet',
@@ -92,7 +92,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
         if (device.id.includes('sun')) {
           return {
             icon: Sun,
-            color: 'text-yellow-400',
+            color: 'text-amber-600 dark:text-yellow-400',
             bg: 'bg-yellow-500/15 border-yellow-500/30 shadow-yellow-500/10',
             glow: 'group-hover:border-yellow-500/50',
             label: 'Ciclo Solar',
@@ -101,7 +101,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
         if (device.id.includes('backup')) {
           return {
             icon: Database,
-            color: 'text-blue-400',
+            color: 'text-blue-600 dark:text-blue-400',
             bg: 'bg-blue-500/15 border-blue-500/30 shadow-blue-500/10',
             glow: 'group-hover:border-blue-500/50',
             label: 'Backups',
@@ -110,7 +110,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
         if (device.id.includes('cloud')) {
           return {
             icon: Cloud,
-            color: 'text-teal-400',
+            color: 'text-teal-600 dark:text-teal-400',
             bg: 'bg-teal-500/15 border-teal-500/30 shadow-teal-500/10',
             glow: 'group-hover:border-teal-500/50',
             label: 'Nuvem & Voz',
@@ -118,7 +118,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
         }
         return {
           icon: ArrowUpCircle,
-          color: 'text-violet-400',
+          color: 'text-violet-600 dark:text-violet-400',
           bg: 'bg-violet-500/15 border-violet-500/30 shadow-violet-500/10',
           glow: 'group-hover:border-violet-500/50',
           label: 'Sistema',
@@ -126,7 +126,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       case 'automation':
         return {
           icon: Sliders,
-          color: 'text-amber-300',
+          color: 'text-amber-700 dark:text-amber-300',
           bg: 'bg-amber-500/15 border-amber-500/30 shadow-amber-500/10',
           glow: 'group-hover:border-amber-500/50',
           label: 'Automação / Modo',
@@ -134,7 +134,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       default:
         return {
           icon: Activity,
-          color: 'text-orbit-400',
+          color: 'text-orbit-600 dark:text-orbit-400',
           bg: 'bg-orbit-500/15 border-orbit-500/30 shadow-orbit-500/10',
           glow: 'group-hover:border-orbit-500/50',
           label: 'Dispositivo',
@@ -174,12 +174,12 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                     device.stateBadge.variant === 'success'
-                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                       : device.stateBadge.variant === 'warning'
-                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
                       : device.stateBadge.variant === 'info'
-                      ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
-                      : 'bg-accent text-secondary border-border/60'
+                      ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30'
+                      : 'bg-accent text-primary/80 dark:text-secondary border-border/80'
                   }`}
                 >
                   {device.stateBadge.text}
@@ -221,18 +221,18 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       </div>
 
       {device.summary && (
-        <div className="mt-3.5 text-xs text-secondary/90 truncate font-mono bg-accent/40 px-3 py-1.5 rounded-xl border border-border/40">
+        <div className="mt-3.5 text-xs text-primary/90 dark:text-secondary font-medium truncate font-mono bg-accent/60 px-3 py-1.5 rounded-xl border border-border/60">
           {device.summary}
         </div>
       )}
 
       <div className="mt-4 pt-3.5 border-t border-border/60 flex items-center justify-between text-xs">
         <span className="inline-flex items-center gap-1.5 text-secondary font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-orbit-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400" />
           {device.entities.length} {device.entities.length === 1 ? 'entidade' : 'entidades agrupadas'}
         </span>
 
-        <span className="inline-flex items-center gap-1 text-orbit-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+        <span className="inline-flex items-center gap-1 text-orbit-600 dark:text-orbit-400 font-semibold group-hover:translate-x-0.5 transition-transform">
           <span>Ver controles</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </span>

@@ -221,3 +221,18 @@ export function getDiskCategoryInfo(name?: string, mountPoint?: string): DiskCat
   };
 }
 
+/**
+ * Formats network transfer rate in bytes per second dynamically (B/s, KB/s, MB/s, GB/s).
+ */
+export function formatNetworkSpeed(bytesPerSec?: number): string {
+  if (bytesPerSec === undefined || bytesPerSec === null || isNaN(bytesPerSec) || bytesPerSec <= 0) {
+    return '0 B/s';
+  }
+  const k = 1024;
+  if (bytesPerSec < k) {
+    return `${Math.round(bytesPerSec)} B/s`;
+  }
+  const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
+  const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytesPerSec) / Math.log(k)));
+  return `${(bytesPerSec / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}

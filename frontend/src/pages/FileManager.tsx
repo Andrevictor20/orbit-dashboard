@@ -1,104 +1,36 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Folder, 
-  File, 
-  FileText, 
-  Film, 
-  Music, 
-  Image as ImageIcon, 
-  Archive, 
-  HardDrive, 
-  Cloud, 
-  Home, 
-  Download, 
   Upload, 
-  Plus, 
-  Grid, 
-  List, 
   Search, 
-  ChevronRight, 
-  ChevronLeft,
-  Trash2, 
-  Edit3, 
-  Copy, 
-  Scissors, 
-  Clipboard, 
-  Eye, 
-  EyeOff, 
-  FilePlus, 
-  FolderPlus, 
-  Loader2, 
-  X, 
-  RefreshCw, 
-  Code, 
-  ArrowUpDown, 
-  CheckSquare, 
-  Square,
-  Check,
-  PieChart,
-  Share2,
-  Terminal,
-  RotateCcw,
-  Package,
-  Share,
-  Sparkles,
-  FolderGit2
+  Loader2 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { AudioPlayerModal } from '../components/files/AudioPlayerModal';
-import type { FileItem } from '../components/files/AudioPlayerModal';
-export type { FileItem };
-import { VideoPlayerModal } from '../components/files/VideoPlayerModal';
-import { TextEditorModal } from '../components/files/TextEditorModal';
-import { PdfViewerModal } from '../components/files/PdfViewerModal';
-import { ImageGalleryModal } from '../components/files/ImageGalleryModal';
-import { DiskAnalyzerModal } from '../components/files/DiskAnalyzerModal';
-import { ShareModal } from '../components/files/ShareModal';
-import { CloudConnectModal } from '../components/files/CloudConnectModal';
-import { FileOperationsModal } from '../components/files/FileOperationsModal';
+import {
+  FileSidebar,
+  FileToolbar,
+  FileBreadcrumbs,
+  FileGridView,
+  FileTableView,
+  FileTrashView,
+  AudioPlayerModal,
+  VideoPlayerModal,
+  TextEditorModal,
+  PdfViewerModal,
+  ImageGalleryModal,
+  DiskAnalyzerModal,
+  ShareModal,
+  CloudConnectModal,
+  FileOperationsModal,
+} from '../components/files';
 import type { OperationType } from '../components/files/FileOperationsModal';
+import type { FileItem, MountItem, CloudAccount, ShortcutPlace, TrashItem } from '../types/fileManager';
+export type { FileItem, MountItem, CloudAccount, ShortcutPlace, TrashItem };
+export { IMAGE_EXTENSIONS, ARCHIVE_EXTENSIONS, CODE_EXTENSIONS } from '../types/fileManager';
 import { useTasks } from '../contexts/InstallContext';
-import { isPhysicalStorage, getFriendlyDiskName, formatBytes, formatStorage } from '../utils/format';
-
-export interface MountItem {
-  name: string;
-  mount_point: string;
-  fs_type: string;
-  total_bytes: number;
-  used_bytes: number;
-  available_bytes: number;
-}
-
-interface CloudAccount {
-  id: string;
-  provider: string;
-  name: string;
-  mount_point?: string;
-}
-
-interface ShortcutPlace {
-  id: string;
-  labelKey?: string;
-  label?: string;
-  path: string;
-  icon: string;
-}
-
-interface TrashItem {
-  id: string;
-  name: string;
-  original_path: string;
-  trash_path: string;
-  is_dir: boolean;
-  size: number;
-  deleted_at: string;
-}
-
-const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'];
-const ARCHIVE_EXTENSIONS = ['zip', 'tar', 'gz', 'tgz', 'rar', '7z'];
-const CODE_EXTENSIONS = ['js', 'ts', 'jsx', 'tsx', 'rs', 'py', 'json', 'yaml', 'yml', 'sh', 'html', 'css', 'toml', 'env', 'sql', 'c', 'cpp', 'go'];
+import { isPhysicalStorage, formatBytes } from '../utils/format';
 
 export function FileManager() {
   const { t } = useTranslation();
@@ -108,95 +40,60 @@ export function FileManager() {
   const isTrashView = urlPath === '__trash__';
   const [currentPath, setCurrentPath] = useState<string>(isTrashView ? '/' : (urlPath || '/'));
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
-  const [storages, setStorages] = useState<MountItem[]>([]);
-  const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
-  const [places, setPlaces] = useState<ShortcutPlace[]>([
-    { id: 'home', labelKey: 'files.home', label: 'Início', path: '/', icon: 'home' },
-    { id: 'documents', labelKey: 'files.documents', label: 'Documentos', path: '/Documents', icon: 'file-text' },
-    { id: 'downloads', labelKey: 'files.downloads', label: 'Downloads', path: '/Downloads', icon: 'download' },
-    { id: 'pictures', labelKey: 'files.pictures', label: 'Imagens', path: '/Pictures', icon: 'image' },
-    { id: 'music', labelKey: 'files.music', label: 'Músicas', path: '/Music', icon: 'music' },
-    { id: 'videos', labelKey: 'files.videos', label: 'Vídeos', path: '/Videos', icon: 'film' },
-    { id: 'root', labelKey: 'files.root', label: 'Sistema (Raiz)', path: '/', icon: 'hard-drive' },
-  ]);
-
+  const [selectedItems, setSelectedItems] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('name');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
-  const [selectedItems, setSelectedItems] = useState<FileItem[]>([]);
-  const [clipboard, setClipboard] = useState<{ items: FileItem[]; action: 'copy' | 'cut' } | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(false);
 
-  // History Navigation (< >)
-  const [history, setHistory] = useState<string[]>([urlPath || '/']);
+  // History navigation stack
+  const [history, setHistory] = useState<string[]>([currentPath]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
-  // Path Editing State
-  const [isEditingPath, setIsEditingPath] = useState(false);
-  const [manualPathInput, setManualPathInput] = useState('');
+  // Clipboard for Copy / Cut
+  const [clipboard, setClipboard] = useState<{
+    action: 'copy' | 'cut';
+    items: FileItem[];
+  } | null>(null);
 
-  // Dropdown states
-  const [showLocationMenu, setShowLocationMenu] = useState(false);
-  const [showCreateMenu, setShowCreateMenu] = useState(false);
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isStorageDrawerOpen, setIsStorageDrawerOpen] = useState(false);
+  // Storage drawer (mobile responsive)
+  const [isStorageDrawerOpen, setIsStorageDrawerOpen] = useState<boolean>(false);
 
-  // Modals state
+  // Dropdown menus
+  const [showCreateMenu, setShowCreateMenu] = useState<boolean>(false);
+  const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
+  const [showLocationMenu, setShowLocationMenu] = useState<boolean>(false);
+
+  // Manual path editing
+  const [isEditingPath, setIsEditingPath] = useState<boolean>(false);
+  const [manualPathInput, setManualPathInput] = useState<string>(currentPath);
+
+  // Shortcuts & Disks
+  const [places, setPlaces] = useState<ShortcutPlace[]>([]);
+  const [storages, setStorages] = useState<MountItem[]>([]);
+  const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([]);
+  const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
+
+  // Modals & Preview States
+  const [activeImageFile, setActiveImageFile] = useState<FileItem | null>(null);
   const [activeAudioFile, setActiveAudioFile] = useState<FileItem | null>(null);
   const [activeVideoFile, setActiveVideoFile] = useState<FileItem | null>(null);
   const [activeTextFile, setActiveTextFile] = useState<FileItem | null>(null);
   const [activePdfFile, setActivePdfFile] = useState<FileItem | null>(null);
-  const [activeImageFile, setActiveImageFile] = useState<FileItem | null>(null);
-  const [isDiskAnalyzerOpen, setIsDiskAnalyzerOpen] = useState(false);
+  const [isDiskAnalyzerOpen, setIsDiskAnalyzerOpen] = useState<boolean>(false);
   const [shareFile, setShareFile] = useState<FileItem | null>(null);
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
+
+  // File Operations Modal (Rename, New File, New Folder, Delete)
   const [opModalType, setOpModalType] = useState<OperationType | null>(null);
   const [opTargetItem, setOpTargetItem] = useState<FileItem | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const folderInputRef = useRef<HTMLInputElement | null>(null);
-
-  const navigateTo = (newPath: string, pushHistory = true) => {
-    const clean = newPath || '/';
-    setSearchQuery('');
-    setCurrentPath(clean);
-    setSearchParams({ path: clean }, { replace: true });
-    setIsEditingPath(false);
-
-    if (pushHistory) {
-      setHistory(prev => {
-        const next = prev.slice(0, historyIndex + 1);
-        return [...next, clean];
-      });
-      setHistoryIndex(prev => prev + 1);
-    }
-  };
-
-  const handleGoBack = () => {
-    if (historyIndex > 0) {
-      const prevPath = history[historyIndex - 1];
-      setHistoryIndex(prev => prev - 1);
-      navigateTo(prevPath, false);
-    }
-  };
-
-  const handleGoForward = () => {
-    if (historyIndex < history.length - 1) {
-      const nextPath = history[historyIndex + 1];
-      setHistoryIndex(prev => prev + 1);
-      navigateTo(nextPath, false);
-    }
-  };
-
-  const navigateToTrash = () => {
-    setSearchQuery('');
-    setSearchParams({ path: '__trash__' }, { replace: true });
-    setIsEditingPath(false);
-  };
+  // File Upload input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const loadStoragesAndCloud = () => {
     fetch('/api/files/storages')
@@ -283,7 +180,7 @@ export function FileManager() {
 
   // Sync with URL query parameter
   useEffect(() => {
-    if (urlPath === '__trash__') {
+    if (urlPath === '__trash__' || isTrashView) {
       loadTrash();
     } else if (urlPath && urlPath !== currentPath) {
       setCurrentPath(urlPath);
@@ -298,20 +195,12 @@ export function FileManager() {
         if (data) {
           if (Array.isArray(data.places) && data.places.length > 0) {
             setPlaces(data.places);
-          } else {
-            const newPlaces: ShortcutPlace[] = [];
-            if (data.home) newPlaces.push({ id: 'home', label: 'Início', path: data.home, icon: 'home' });
-            if (data.documents) newPlaces.push({ id: 'documents', label: 'Documentos', path: data.documents, icon: 'file-text' });
-            if (data.downloads) newPlaces.push({ id: 'downloads', label: 'Downloads', path: data.downloads, icon: 'download' });
-            if (data.pictures) newPlaces.push({ id: 'pictures', label: 'Imagens', path: data.pictures, icon: 'image' });
-            if (data.music) newPlaces.push({ id: 'music', label: 'Músicas', path: data.music, icon: 'music' });
-            if (data.videos) newPlaces.push({ id: 'videos', label: 'Vídeos', path: data.videos, icon: 'film' });
-            newPlaces.push({ id: 'root', label: 'Sistema (Raiz)', path: data.root || '/', icon: 'hard-drive' });
-            setPlaces(newPlaces);
           }
-
-          if (!urlPath && data.home) {
-            navigateTo(data.home);
+          if (Array.isArray(data.mounts)) {
+            const filtered = data.mounts.filter((m: MountItem) =>
+              isPhysicalStorage(m.name, m.mount_point, m.fs_type, m.total_bytes)
+            );
+            setStorages(filtered);
           }
         }
       })
@@ -320,6 +209,7 @@ export function FileManager() {
     loadStoragesAndCloud();
   }, []);
 
+  // Reload files when path changes
   useEffect(() => {
     if (isTrashView) {
       loadTrash();
@@ -328,68 +218,39 @@ export function FileManager() {
     }
   }, [currentPath, isTrashView]);
 
-  // File click handler
-  const handleItemClick = (item: FileItem) => {
-    if (item.is_dir) {
-      navigateTo(item.path);
-      return;
-    }
-
-    const ext = item.extension.toLowerCase();
-    if (IMAGE_EXTENSIONS.includes(ext)) {
-      setActiveImageFile(item);
-    } else if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
-      setActiveAudioFile(item);
-    } else if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
-      setActiveVideoFile(item);
-    } else if (['txt', 'log', 'json', 'yaml', 'yml', 'md', 'sh', 'js', 'ts', 'rs', 'toml', 'env', 'xml', 'html', 'css', 'py'].includes(ext)) {
-      setActiveTextFile(item);
-    } else if (ext === 'pdf') {
-      setActivePdfFile(item);
-    } else {
-      window.location.href = `/api/files/download?path=${encodeURIComponent(item.path)}`;
-    }
-  };
-
-  // Quick Look with Spacebar
+  // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ') {
-        const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
-          return;
-        }
+      // Don't trigger if user is in an input or modal
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
-        const isViewerOpen = activeAudioFile || activeVideoFile || activeTextFile || activePdfFile || activeImageFile || isDiskAnalyzerOpen || shareFile;
-        if (isViewerOpen) {
-          e.preventDefault();
-          setActiveAudioFile(null);
-          setActiveVideoFile(null);
-          setActiveTextFile(null);
-          setActivePdfFile(null);
-          setActiveImageFile(null);
-          setIsDiskAnalyzerOpen(false);
-          setShareFile(null);
-          return;
-        }
-
-        if (selectedItems.length === 1 && !isTrashView) {
-          e.preventDefault();
-          handleItemClick(selectedItems[0]);
-        }
+      if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
+        handleGoBack();
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        handleGoForward();
+      } else if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        loadFiles(currentPath);
+      } else if (e.ctrlKey && e.key === 'a') {
+        e.preventDefault();
+        selectAll();
+      } else if (e.key === 'Delete' && selectedItems.length > 0) {
+        e.preventDefault();
+        handleMoveToTrash(selectedItems);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedItems, activeAudioFile, activeVideoFile, activeTextFile, activePdfFile, activeImageFile, isDiskAnalyzerOpen, shareFile, isTrashView]);
+  }, [historyIndex, history, currentPath, selectedItems, files]);
 
-  // Upload handlers
+  // Upload handler via Task System
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const filesArray = Array.from(e.target.files);
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const filesArray = Array.from(fileList);
     const formData = new FormData();
-    filesArray.forEach(file => formData.append('files', file));
+    filesArray.forEach((f) => formData.append('files', f));
 
     startTask({
       type: 'file_upload',
@@ -418,14 +279,20 @@ export function FileManager() {
         loadFiles(currentPath);
       }
     });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Folder upload handler via Task System
   const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const filesArray = Array.from(e.target.files);
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const filesArray = Array.from(fileList);
     const formData = new FormData();
-    filesArray.forEach(file => {
-      formData.append('files', file);
+    filesArray.forEach((f) => {
+      const relativePath = (f as any).webkitRelativePath || f.name;
+      formData.append('files', f, relativePath);
     });
 
     startTask({
@@ -451,186 +318,304 @@ export function FileManager() {
         loadFiles(currentPath);
       }
     });
+
+    if (folderInputRef.current) folderInputRef.current.value = '';
   };
 
-  // Drag & drop upload handler
+  // External Drag & Drop
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingOver(false);
-    if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
-    const filesArray = Array.from(e.dataTransfer.files);
-    const formData = new FormData();
-    filesArray.forEach(file => formData.append('files', file));
 
-    startTask({
-      type: 'file_upload',
-      title: `Upload de ${filesArray.length} arquivo(s)`,
-      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
-      initialLogs: [
-        `[INFO] Iniciando upload via arrastar e soltar para ${currentPath}...`,
-        ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatBytes(f.size)})`)
-      ],
-      runner: async (helpers) => {
-        helpers.setProgress(30);
-        helpers.setStatus('running');
-        const token = localStorage.getItem('orbit_token');
-        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-        helpers.setProgress(85);
-        if (!res.ok) {
-          throw new Error('Falha no upload via arrastar e soltar.');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const filesArray = Array.from(e.dataTransfer.files);
+      const formData = new FormData();
+      filesArray.forEach((f) => formData.append('files', f));
+
+      startTask({
+        type: 'file_upload',
+        title: `Upload de ${filesArray.length} arquivo(s)`,
+        destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
+        initialLogs: [
+          `[INFO] Iniciando upload via arrastar e soltar para ${currentPath}...`,
+          ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatBytes(f.size)})`)
+        ],
+        runner: async (helpers) => {
+          helpers.setProgress(30);
+          helpers.setStatus('running');
+          const token = localStorage.getItem('orbit_token');
+          const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          });
+          helpers.setProgress(85);
+          if (!res.ok) {
+            throw new Error('Falha no upload via arrastar e soltar.');
+          }
+          filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
+          helpers.setDone(`Upload concluído com sucesso!`);
+          toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
+          loadFiles(currentPath);
         }
-        filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
-        helpers.setDone(`Upload concluído com sucesso!`);
-        toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
-        loadFiles(currentPath);
-      }
-    });
-  };
-
-  // Internal Move through Drag & Drop
-  const handleInternalDrop = async (e: React.DragEvent, targetDir: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      const raw = e.dataTransfer.getData('text/plain');
-      if (!raw) return;
-      const paths: string[] = JSON.parse(raw);
-      if (!paths || paths.length === 0) return;
-
-      for (const p of paths) {
-        const fileName = p.split('/').pop() || '';
-        const destination = targetDir === '/' ? `/${fileName}` : `${targetDir}/${fileName}`;
-        if (p === destination) continue;
-        await fetch('/api/files/move', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: p, destination }),
-        });
-      }
-      toast.success(`${paths.length} item(s) movido(s) para ${targetDir}!`);
-      loadFiles(currentPath);
-    } catch {
-      toast.error('Erro ao mover itens.');
+      });
     }
   };
 
-  // Archive Extract & Compress Handlers
+  // Internal Drag & Drop (Move items)
+  const handleInternalDrop = async (e: React.DragEvent, targetDestination: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rawData = e.dataTransfer.getData('text/plain');
+    if (!rawData) return;
+
+    try {
+      const paths: string[] = JSON.parse(rawData);
+      if (!Array.isArray(paths) || paths.length === 0) return;
+
+      for (const p of paths) {
+        if (p === targetDestination) continue;
+        const fileName = p.split('/').pop() || '';
+        const destPath = targetDestination === '/' ? `/${fileName}` : `${targetDestination}/${fileName}`;
+        
+        await fetch('/api/files/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: p, destination: destPath }),
+        });
+      }
+
+      toast.success(`${paths.length} item(s) movido(s)!`);
+      loadFiles(currentPath);
+    } catch {
+      // Ignored
+    }
+  };
+
+  // Click on File or Folder
+  const handleItemClick = (item: FileItem) => {
+    if (item.is_dir) {
+      navigateTo(item.path);
+      return;
+    }
+
+    const ext = item.extension.toLowerCase();
+
+    // Image viewer
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'].includes(ext)) {
+      setActiveImageFile(item);
+      return;
+    }
+
+    // Audio player
+    if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
+      setActiveAudioFile(item);
+      return;
+    }
+
+    // Video player
+    if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
+      setActiveVideoFile(item);
+      return;
+    }
+
+    // PDF viewer
+    if (ext === 'pdf') {
+      setActivePdfFile(item);
+      return;
+    }
+
+    // Code & Text Editor
+    const textExtensions = [
+      'txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'py', 'rs', 'go', 'c', 'cpp',
+      'h', 'html', 'css', 'scss', 'yml', 'yaml', 'toml', 'xml', 'sql', 'sh', 'env',
+      'dockerfile', 'gitignore', 'conf', 'ini', 'log', 'csv'
+    ];
+    if (textExtensions.includes(ext) || item.size < 500 * 1024) {
+      setActiveTextFile(item);
+      return;
+    }
+
+    // Fallback: Direct download
+    handleDownload(item);
+  };
+
+  // Archive Extraction
   const handleExtractArchive = async (item: FileItem) => {
+    const toastId = toast.loading(`Extraindo ${item.name}...`);
     try {
       const res = await fetch('/api/files/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: item.path, destination: currentPath }),
       });
-      if (!res.ok) throw new Error('Falha ao descompactar');
-      const json = await res.json();
-      toast.success(`Descompactado com sucesso (${json.files_count} arquivos)!`);
-      loadFiles(currentPath);
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao extrair');
-    }
-  };
-
-  const handleCompressSelection = async () => {
-    if (selectedItems.length === 0) return;
-    try {
-      const zipName = selectedItems.length === 1 ? `${selectedItems[0].name}.zip` : 'arquivos_comprimidos.zip';
-      const res = await fetch('/api/files/compress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paths: selectedItems.map(i => i.path),
-          destination_name: zipName,
-          destination_dir: currentPath,
-        }),
-      });
-      if (!res.ok) throw new Error('Falha ao compactar');
-      toast.success('Arquivo .zip criado com sucesso!');
-      setSelectedItems([]);
-      loadFiles(currentPath);
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao compactar');
+      if (res.ok) {
+        toast.success(`Arquivo ${item.name} extraído com sucesso!`, { id: toastId });
+        loadFiles(currentPath);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Erro ao extrair arquivo', { id: toastId });
+      }
+    } catch {
+      toast.error('Falha ao comunicar com o servidor', { id: toastId });
     }
   };
 
   // Trash Operations
-  const handleMoveToTrash = async (items: FileItem[]) => {
-    try {
-      const res = await fetch('/api/files/trash', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths: items.map(i => i.path) }),
-      });
-      if (!res.ok) throw new Error('Erro ao mover para a lixeira');
-      toast.success(`${items.length} item(s) movido(s) para a lixeira!`);
-      setSelectedItems([]);
-      loadFiles(currentPath);
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao mover para a lixeira');
-    }
-  };
-
   const handleRestoreTrash = async (ids: string[]) => {
+    const toastId = toast.loading('Restaurando itens da lixeira...');
     try {
       const res = await fetch('/api/files/trash/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids }),
       });
-      if (!res.ok) throw new Error('Erro ao restaurar');
-      toast.success('Item(ns) restaurado(s) com sucesso!');
-      loadTrash();
+      if (res.ok) {
+        toast.success('Itens restaurados com sucesso!', { id: toastId });
+        loadTrash();
+      } else {
+        toast.error('Erro ao restaurar itens', { id: toastId });
+      }
     } catch {
-      toast.error('Erro ao restaurar item(ns).');
+      toast.error('Falha de conexão', { id: toastId });
     }
   };
 
   const handleEmptyTrash = async () => {
-    if (!window.confirm('Tem certeza que deseja esvaziar a lixeira permanentemente?')) return;
+    if (!window.confirm('Tem certeza que deseja esvaziar permanentemente toda a lixeira?')) return;
+    const toastId = toast.loading('Esvaziando lixeira...');
     try {
-      const res = await fetch('/api/files/trash', { method: 'DELETE' });
-      if (!res.ok) throw new Error('Erro ao esvaziar');
-      toast.success('Lixeira esvaziada!');
-      loadTrash();
+      const res = await fetch('/api/files/trash/empty', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Lixeira esvaziada com sucesso!', { id: toastId });
+        loadTrash();
+      } else {
+        toast.error('Erro ao esvaziar lixeira', { id: toastId });
+      }
     } catch {
-      toast.error('Erro ao esvaziar lixeira.');
+      toast.error('Falha de conexão', { id: toastId });
     }
   };
 
-  // Clipboard operations
+  const handleMoveToTrash = async (items: FileItem[]) => {
+    const paths = items.map(i => i.path);
+    const count = paths.length;
+    const toastId = toast.loading(`Movendo ${count} item(s) para a lixeira...`);
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths, permanent: false }),
+      });
+      if (res.ok) {
+        toast.success(`${count} item(s) movido(s) para a lixeira!`, { id: toastId });
+        loadFiles(currentPath);
+        setSelectedItems([]);
+      } else {
+        toast.error('Erro ao mover itens para a lixeira', { id: toastId });
+      }
+    } catch {
+      toast.error('Falha na requisição', { id: toastId });
+    }
+  };
+
+  // Copy & Cut Operations
   const handleCopy = (items: FileItem[]) => {
-    setClipboard({ items, action: 'copy' });
-    toast.success(`${items.length} item(s) copiado(s) para a área de transferência`);
+    setClipboard({ action: 'copy', items });
+    toast.success(`${items.length} item(s) copiado(s)`);
   };
 
   const handleCut = (items: FileItem[]) => {
-    setClipboard({ items, action: 'cut' });
-    toast.success(`${items.length} item(s) recortado(s) para a área de transferência`);
+    setClipboard({ action: 'cut', items });
+    toast.success(`${items.length} item(s) recortado(s)`);
   };
 
   const handlePaste = async () => {
     if (!clipboard || clipboard.items.length === 0) return;
-    const isCut = clipboard.action === 'cut';
-    const endpoint = isCut ? '/api/files/move' : '/api/files/copy';
+    const toastId = toast.loading(`${clipboard.action === 'cut' ? 'Movendo' : 'Copiando'} ${clipboard.items.length} item(s)...`);
 
     try {
       for (const item of clipboard.items) {
-        const dest = currentPath === '/' ? `/${item.name}` : `${currentPath}/${item.name}`;
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: item.path, destination: dest }),
-        });
+        const fileName = item.name;
+        const destPath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+
+        if (clipboard.action === 'cut') {
+          await fetch('/api/files/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: item.path, destination: destPath }),
+          });
+        } else {
+          await fetch('/api/files/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: item.path, destination: destPath }),
+          });
+        }
       }
-      toast.success(`${clipboard.items.length} item(s) ${isCut ? 'movido(s)' : 'copiado(s)'}!`);
-      if (isCut) setClipboard(null);
+
+      toast.success('Operação concluída com sucesso!', { id: toastId });
+      if (clipboard.action === 'cut') setClipboard(null);
       loadFiles(currentPath);
     } catch {
-      toast.error('Erro ao colar itens.');
+      toast.error('Erro ao colar itens', { id: toastId });
+    }
+  };
+
+  // Compression
+  const handleCompressSelection = async () => {
+    if (selectedItems.length === 0) return;
+    const toastId = toast.loading('Compactando itens...');
+    try {
+      const paths = selectedItems.map(i => i.path);
+      const res = await fetch('/api/files/compress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths, destination: currentPath }),
+      });
+      if (res.ok) {
+        toast.success('Itens compactados com sucesso!', { id: toastId });
+        loadFiles(currentPath);
+        setSelectedItems([]);
+      } else {
+        toast.error('Erro ao compactar itens', { id: toastId });
+      }
+    } catch {
+      toast.error('Falha de conexão', { id: toastId });
+    }
+  };
+
+  // Navigation functions
+  const navigateTo = (newPath: string) => {
+    if (newPath === currentPath) return;
+    const cleanPath = newPath.replace(/\/+/g, '/') || '/';
+    const nextHistory = history.slice(0, historyIndex + 1);
+    nextHistory.push(cleanPath);
+    setHistory(nextHistory);
+    setHistoryIndex(nextHistory.length - 1);
+    setCurrentPath(cleanPath);
+    setSearchParams({ path: cleanPath });
+  };
+
+  const navigateToTrash = () => {
+    setSearchParams({ path: '__trash__' });
+  };
+
+  const handleGoBack = () => {
+    if (historyIndex > 0) {
+      const prevPath = history[historyIndex - 1];
+      setHistoryIndex(historyIndex - 1);
+      setCurrentPath(prevPath);
+      setSearchParams({ path: prevPath });
+    }
+  };
+
+  const handleGoForward = () => {
+    if (historyIndex < history.length - 1) {
+      const nextPath = history[historyIndex + 1];
+      setHistoryIndex(historyIndex + 1);
+      setCurrentPath(nextPath);
+      setSearchParams({ path: nextPath });
     }
   };
 
@@ -697,130 +682,6 @@ export function FileManager() {
     return crumbs;
   };
 
-  const getPlaceIcon = (iconName: string) => {
-    switch (iconName.toLowerCase()) {
-      case 'home': return Home;
-      case 'file-text':
-      case 'documents': return FileText;
-      case 'download':
-      case 'downloads': return Download;
-      case 'image':
-      case 'pictures': return ImageIcon;
-      case 'music': return Music;
-      case 'film':
-      case 'videos': return Film;
-      case 'hard-drive':
-      case 'root': return HardDrive;
-      case 'trash': return Trash2;
-      default: return Folder;
-    }
-  };
-
-  const getPlaceColorClass = (iconName: string, isActive: boolean) => {
-    if (isActive) return 'text-orbit-400';
-    switch (iconName.toLowerCase()) {
-      case 'documents':
-      case 'file-text': return 'text-amber-400';
-      case 'downloads':
-      case 'download': return 'text-sky-400';
-      case 'pictures':
-      case 'image': return 'text-violet-400';
-      case 'videos':
-      case 'film': return 'text-rose-400';
-      case 'music': return 'text-emerald-400';
-      default: return 'text-secondary';
-    }
-  };
-
-  const getFileBadgeVisual = (item: FileItem) => {
-    if (item.is_dir) {
-      return (
-        <div className="relative group-hover:scale-105 transition-transform">
-          {/* Modern Folder Graphic */}
-          <div className="w-14 h-12 sm:w-16 sm:h-14 relative flex items-center justify-center">
-            <div className="absolute top-0 left-1 w-6 h-2 bg-amber-600 rounded-t-md opacity-90" />
-            <div className="w-full h-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 rounded-2xl shadow-md flex items-center justify-center border border-amber-300/40">
-              <Folder className="w-7 h-7 sm:w-8 sm:h-8 text-amber-950/40 fill-amber-950/20" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const ext = item.extension.toLowerCase();
-
-    if (IMAGE_EXTENSIONS.includes(ext)) {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-border/70 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
-          <img
-            src={`/api/files/raw?path=${encodeURIComponent(item.path)}`}
-            alt={item.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLElement).style.display = 'none';
-            }}
-          />
-          <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 rounded text-[9px] font-bold text-violet-300 uppercase">
-            {ext}
-          </div>
-        </div>
-      );
-    }
-
-    if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 via-purple-600/30 to-black border border-violet-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-          <Music className="w-6 h-6 text-violet-400" />
-          <span className="text-[9px] font-bold text-violet-300 uppercase mt-0.5">{ext}</span>
-        </div>
-      );
-    }
-
-    if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-orange-600/30 to-black border border-rose-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-          <Film className="w-6 h-6 text-rose-400" />
-          <span className="text-[9px] font-bold text-rose-300 uppercase mt-0.5">{ext}</span>
-        </div>
-      );
-    }
-
-    if (ARCHIVE_EXTENSIONS.includes(ext)) {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 via-amber-600/30 to-black border border-orange-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-          <Archive className="w-6 h-6 text-orange-400" />
-          <span className="text-[9px] font-bold text-orange-300 uppercase mt-0.5">{ext}</span>
-        </div>
-      );
-    }
-
-    if (ext === 'pdf') {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-red-500/20 via-rose-700/30 to-black border border-red-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-          <FileText className="w-6 h-6 text-red-400" />
-          <span className="text-[9px] font-bold text-red-300 uppercase mt-0.5">PDF</span>
-        </div>
-      );
-    }
-
-    if (CODE_EXTENSIONS.includes(ext)) {
-      return (
-        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-700/30 to-black border border-emerald-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-          <Code className="w-6 h-6 text-emerald-400" />
-          <span className="text-[9px] font-bold text-emerald-300 uppercase mt-0.5">{ext}</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-black border border-border/70 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-        <File className="w-6 h-6 text-zinc-400" />
-        <span className="text-[9px] font-bold text-zinc-400 uppercase mt-0.5">{ext || 'FILE'}</span>
-      </div>
-    );
-  };
-
   const isSelected = (item: FileItem) => selectedItems.some(i => i.path === item.path);
 
   const toggleSelect = (e: React.MouseEvent, item: FileItem) => {
@@ -883,565 +744,69 @@ export function FileManager() {
 
       {/* BODY SPLIT: SIDEBAR + MAIN AREA */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* SIDEBAR (ZIMA / NAUTILUS HYBRID DESIGN) */}
-        <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-card border-r border-border/80 flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out ${
-            isStorageDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
-        >
-          <div className="flex-1 overflow-y-auto space-y-5 pr-1 scrollbar-thin">
-            {/* Sidebar Top: Logo & Instant Search */}
-            <div className="space-y-3 pb-2 border-b border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-400 shadow-inner">
-                    <FolderGit2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold tracking-tight text-primary">Arquivos</h2>
-                    <p className="text-[10px] text-secondary">Orbit Storage</p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => setIsStorageDrawerOpen(false)}
-                  className="lg:hidden p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-                  aria-label="Fechar gaveta de locais"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Instant Search Bar */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary/70 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-colors shadow-inner"
-                />
-                {searchQuery && (
-                  <button
-                    data-testid="clear-search-input-btn"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary p-0.5"
-                    title="Limpar busca"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Section: Compartilhamento / Shared */}
-            <div>
-              <div className="space-y-0.5">
-                <button
-                  onClick={() => {
-                    setIsCloudModalOpen(true);
-                    setIsStorageDrawerOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-secondary hover:text-primary hover:bg-accent transition-all group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Share className="w-4 h-4 text-violet-400 group-hover:scale-105 transition-transform" />
-                    <span>Compartilhado via Link/Samba</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-secondary/40 group-hover:text-primary transition-colors" />
-                </button>
-              </div>
-            </div>
-
-            {/* Section: Favoritos / Starred Folders */}
-            <div>
-              <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider px-3 mb-2 flex items-center justify-between">
-                <span>{t('files.favorites')}</span>
-                <Sparkles className="w-3 h-3 text-amber-400/70" />
-              </h3>
-              <div className="space-y-0.5">
-                {places.map((place) => {
-                  const Icon = getPlaceIcon(place.icon);
-                  const isActive = !isTrashView && currentPath === place.path;
-                  const colorClass = getPlaceColorClass(place.icon, isActive);
-                  return (
-                    <button
-                      key={place.id}
-                      onClick={() => {
-                        navigateTo(place.path);
-                        setIsStorageDrawerOpen(false);
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-orbit-500/20'); }}
-                      onDragLeave={(e) => e.currentTarget.classList.remove('bg-orbit-500/20')}
-                      onDrop={(e) => { e.currentTarget.classList.remove('bg-orbit-500/20'); handleInternalDrop(e, place.path); }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-orbit-500 text-white font-semibold shadow-md shadow-orbit-500/25'
-                          : 'text-secondary hover:text-primary hover:bg-accent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : colorClass}`} />
-                        <span className="truncate">{place.labelKey ? t(place.labelKey) : (place.label || place.id)}</span>
-                      </div>
-                      {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
-                    </button>
-                  );
-                })}
-
-                {/* Lixeira / Trash Shortcut */}
-                <button
-                  onClick={() => {
-                    navigateToTrash();
-                    setIsStorageDrawerOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                    isTrashView
-                      ? 'bg-rose-500 text-white font-semibold shadow-md shadow-rose-500/25'
-                      : 'text-secondary hover:text-primary hover:bg-accent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Trash2 className={`w-4 h-4 shrink-0 ${isTrashView ? 'text-white' : 'text-rose-400'}`} />
-                    <span className="truncate">{t('files.trash')}</span>
-                  </div>
-                  {trashItems.length > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      isTrashView ? 'bg-white/20 text-white' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
-                      {trashItems.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Section: Unidades de Armazenamento / Storage */}
-            <div>
-              <div className="flex items-center justify-between px-3 mb-2">
-                <h3 className="text-[11px] font-bold text-secondary uppercase tracking-wider">
-                  {t('files.units')}
-                </h3>
-                <button
-                  onClick={() => setShowLocationMenu(!showLocationMenu)}
-                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent transition-colors"
-                  title="Conectar Nuvem / LAN"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Location Dropdown Menu */}
-              {showLocationMenu && (
-                <div className="mb-2 p-1 bg-card border border-border/80 rounded-xl shadow-xl text-xs space-y-0.5 animate-in fade-in">
-                  <button
-                    onClick={() => { setShowLocationMenu(false); setIsCloudModalOpen(true); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors font-medium flex items-center gap-2"
-                  >
-                    <Cloud className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Conectar Nuvem / SMB</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Mounted Disks List */}
-              <div className="space-y-1.5">
-                {storages.map((st, idx) => {
-                  const usedFormatted = formatStorage(st.used_bytes, 1);
-                  const totalFormatted = formatStorage(st.total_bytes, 1);
-                  const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;
-                  const isActive = !isTrashView && (currentPath === st.mount_point || currentPath.startsWith(`${st.mount_point}/`));
-                  const friendlyName = getFriendlyDiskName(st.name, st.mount_point);
-
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        navigateTo(st.mount_point);
-                        setIsStorageDrawerOpen(false);
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-orbit-500'); }}
-                      onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-orbit-500')}
-                      onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-orbit-500'); handleInternalDrop(e, st.mount_point); }}
-                      className={`w-full text-left p-2.5 rounded-xl border transition-all ${
-                        isActive
-                          ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
-                          : 'bg-card border-border/70 hover:bg-accent text-primary'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <HardDrive className="w-4 h-4 shrink-0 text-orbit-400" />
-                        <span className="text-xs truncate font-medium">{friendlyName}</span>
-                      </div>
-                      {st.total_bytes > 0 && (
-                        <>
-                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-1">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
-                              }`}
-                              style={{ width: `${Math.min(pct, 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-[10px] text-secondary font-mono">
-                            <span>{usedFormatted} / {totalFormatted}</span>
-                            <span>{pct}%</span>
-                          </div>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-
-                {/* Connected Cloud Accounts */}
-                {cloudAccounts.map((acc) => {
-                  const isCurrent = acc.mount_point && currentPath.startsWith(acc.mount_point);
-                  const isGoogle = acc.provider === 'google_drive';
-                  const isOneDrive = acc.provider === 'onedrive';
-                  const isDropbox = acc.provider === 'dropbox';
-
-                  return (
-                    <div
-                      key={acc.id}
-                      className={`group relative flex items-center justify-between p-2 rounded-xl border transition-all ${
-                        isCurrent
-                          ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold'
-                          : 'border-border/70 bg-card hover:bg-accent text-primary'
-                      }`}
-                    >
-                      <button
-                        onClick={() => {
-                          if (acc.mount_point) navigateTo(acc.mount_point);
-                          setIsStorageDrawerOpen(false);
-                        }}
-                        className="flex-1 text-left flex items-center gap-2.5 min-w-0 pr-1"
-                        title={acc.name}
-                      >
-                        <div className={`p-1.5 rounded-lg border shrink-0 ${
-                          isGoogle ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          isOneDrive ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
-                          isDropbox ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          <Cloud className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs truncate block font-medium">{acc.name}</span>
-                          <span className="text-[10px] text-secondary capitalize block">{acc.provider.replace('_', ' ')}</span>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDisconnectCloud(acc.id, acc.name);
-                        }}
-                        className="p-1 rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title={`Desconectar ${acc.name}`}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-
-                {/* Add Cloud / LAN Button */}
-                <button
-                  onClick={() => setIsCloudModalOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-border/70 hover:border-orbit-500/50 hover:bg-accent/60 text-xs text-secondary hover:text-primary transition-all group"
-                >
-                  <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-orbit-400" />
-                  <span>+ Cloud, LAN ou USB</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Bottom Controls */}
-          <div className="pt-3 border-t border-border/60 space-y-1">
-            <button
-              data-testid="toggle-hidden-btn"
-              onClick={() => setShowHiddenFiles(!showHiddenFiles)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors font-medium ${
-                showHiddenFiles
-                  ? 'bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 font-semibold'
-                  : 'text-secondary hover:text-primary hover:bg-accent'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {showHiddenFiles ? <Eye className="w-3.5 h-3.5 text-orbit-400" /> : <EyeOff className="w-3.5 h-3.5" />}
-                <span>Arquivos ocultos</span>
-              </div>
-              <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? 'Visíveis' : 'Ocultos'}</span>
-            </button>
-            
-            <button
-              onClick={() => loadFiles(currentPath)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-accent transition-colors font-medium"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Atualizar lista</span>
-            </button>
-          </div>
-        </aside>
+        {/* SIDEBAR */}
+        <FileSidebar
+          isStorageDrawerOpen={isStorageDrawerOpen}
+          setIsStorageDrawerOpen={setIsStorageDrawerOpen}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setIsCloudModalOpen={setIsCloudModalOpen}
+          places={places}
+          currentPath={currentPath}
+          isTrashView={isTrashView}
+          navigateTo={navigateTo}
+          navigateToTrash={navigateToTrash}
+          handleInternalDrop={handleInternalDrop}
+          trashItems={trashItems}
+          showLocationMenu={showLocationMenu}
+          setShowLocationMenu={setShowLocationMenu}
+          storages={storages}
+          cloudAccounts={cloudAccounts}
+          handleDisconnectCloud={handleDisconnectCloud}
+          showHiddenFiles={showHiddenFiles}
+          setShowHiddenFiles={setShowHiddenFiles}
+          loadFiles={loadFiles}
+        />
 
         {/* MAIN VIEWPORT */}
         <main className="flex-1 flex flex-col min-w-0 bg-background/30 overflow-hidden relative">
-          {/* Top Navigation Bar */}
-          <header className="py-3 px-4 sm:px-6 border-b border-border/70 bg-card flex items-center justify-between gap-3 shrink-0">
-            {/* Left Section: Back/Forward history & Current Folder Title */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* Mobile Drawer Trigger */}
-              <button
-                onClick={() => setIsStorageDrawerOpen(true)}
-                className="lg:hidden p-2 rounded-xl bg-card border border-border text-secondary hover:text-primary hover:bg-accent transition-colors flex items-center gap-1.5 text-xs shrink-0 shadow-sm"
-                aria-label="Abrir locais de armazenamento"
-              >
-                <HardDrive className="w-4 h-4 text-orbit-400" />
-              </button>
-
-              {/* History Back/Forward */}
-              <div className="flex items-center gap-1 bg-accent/60 border border-border/70 p-0.5 rounded-xl shrink-0">
-                <button
-                  onClick={handleGoBack}
-                  disabled={historyIndex <= 0}
-                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  title="Voltar"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleGoForward}
-                  disabled={historyIndex >= history.length - 1}
-                  className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  title="Avançar"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Folder Title & Count */}
-              <div className="flex items-center gap-2.5 truncate">
-                <h1 className="text-base sm:text-lg font-bold text-primary tracking-tight truncate">
-                  {currentFolderName}
-                </h1>
-                {!isTrashView && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent text-secondary border border-border/60 shrink-0">
-                    {filteredFiles.length} {filteredFiles.length === 1 ? 'item' : 'itens'}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Right Action Toolbar */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-              {!isTrashView && (
-                <>
-                  {/* Create / New Menu */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowCreateMenu(!showCreateMenu)}
-                      className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
-                      title="Novo arquivo ou pasta"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-
-                    {showCreateMenu && (
-                      <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                        <button
-                          onClick={() => {
-                            setShowCreateMenu(false);
-                            setOpTargetItem(null);
-                            setOpModalType('new_folder');
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors"
-                        >
-                          <FolderPlus className="w-4 h-4 text-amber-400" />
-                          <span>Nova pasta</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowCreateMenu(false);
-                            setOpTargetItem(null);
-                            setOpModalType('new_file');
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-accent transition-colors"
-                        >
-                          <FilePlus className="w-4 h-4 text-emerald-400" />
-                          <span>Novo arquivo</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Disk Space Analyzer Button */}
-                  <Link
-                    to={`/disk-analyzer?path=${encodeURIComponent(currentPath)}`}
-                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-violet-500 hover:bg-accent transition-colors shadow-sm"
-                    title="Analisador de Espaço em Disco"
-                  >
-                    <PieChart className="w-4 h-4" />
-                  </Link>
-
-                  {/* Open in Terminal Button */}
-                  <Link
-                    to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
-                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-emerald-500 hover:bg-accent transition-colors shadow-sm"
-                    title="Abrir Terminal Aqui"
-                  >
-                    <Terminal className="w-4 h-4" />
-                  </Link>
-
-                  {/* Refresh Button */}
-                  <button
-                    onClick={() => loadFiles(currentPath)}
-                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
-                    title="Atualizar pasta"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-
-                  {/* Primary CTA: Import / Upload Button */}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all active:scale-95"
-                    title="Importar ou carregar arquivos"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">Importar</span>
-                  </button>
-
-                  {/* Clipboard Paste button */}
-                  {clipboard && (
-                    <button
-                      onClick={handlePaste}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orbit-500/15 text-orbit-500 dark:text-orbit-400 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
-                      title={`Colar ${clipboard.items.length} item(s)`}
-                    >
-                      <Clipboard className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Colar ({clipboard.items.length})</span>
-                    </button>
-                  )}
-
-                  {/* Sort Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowSortMenu(!showSortMenu)}
-                      className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
-                      title="Ordenar arquivos"
-                    >
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-
-                    {showSortMenu && (
-                      <div className="absolute right-0 mt-1.5 w-44 bg-card border border-border rounded-xl shadow-2xl z-30 p-1 space-y-0.5 text-xs animate-in fade-in">
-                        <button
-                          onClick={() => { setSortBy('name'); setSortAsc(sortBy === 'name' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                        >
-                          <span>Nome</span>
-                          {sortBy === 'name' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
-                        </button>
-                        <button
-                          onClick={() => { setSortBy('size'); setSortAsc(sortBy === 'size' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                        >
-                          <span>Tamanho</span>
-                          {sortBy === 'size' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Menor' : 'Maior'}</span>}
-                        </button>
-                        <button
-                          onClick={() => { setSortBy('modified'); setSortAsc(sortBy === 'modified' ? !sortAsc : true); setShowSortMenu(false); }}
-                          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
-                        >
-                          <span>Modificado</span>
-                          {sortBy === 'modified' && <span className="text-[10px] text-orbit-400">{sortAsc ? 'Antigo' : 'Recente'}</span>}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* View Mode Toggle */}
-                  <button
-                    data-testid="view-mode-toggle"
-                    onClick={() => setViewMode(v => (v === 'grid' ? 'list' : 'grid'))}
-                    className="p-2 rounded-xl border border-border/80 bg-card text-secondary hover:text-primary hover:bg-accent transition-colors shadow-sm"
-                    title={viewMode === 'grid' ? 'Modo Lista' : 'Modo Grade'}
-                  >
-                    {viewMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
-                  </button>
-                </>
-              )}
-
-              {isTrashView && (
-                <button
-                  onClick={handleEmptyTrash}
-                  disabled={trashItems.length === 0}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 active:scale-95 text-xs font-semibold transition-all disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Esvaziar Lixeira</span>
-                </button>
-              )}
-            </div>
-          </header>
-
-          {/* Selected Batch Action Bar */}
-          {selectedItems.length > 0 && !isTrashView && (
-            <div className="px-4 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-400 animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={selectAll}
-                  className="flex items-center gap-1.5 font-semibold hover:underline text-primary"
-                >
-                  {selectedItems.length === filteredFiles.length ? (
-                    <CheckSquare className="w-4 h-4 text-orbit-400" />
-                  ) : (
-                    <Square className="w-4 h-4" />
-                  )}
-                  <span>{selectedItems.length} item(s) selecionado(s)</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  onClick={handleCompressSelection}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-                  title="Compactar itens selecionados em .zip"
-                >
-                  <Package className="w-3.5 h-3.5 text-amber-400" /> <span className="hidden xs:inline">Compactar (.zip)</span>
-                </button>
-                <button
-                  onClick={() => handleCopy(selectedItems)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-                >
-                  <Copy className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Copiar</span>
-                </button>
-                <button
-                  onClick={() => handleCut(selectedItems)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-                >
-                  <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Recortar</span>
-                </button>
-                <button
-                  onClick={() => handleMoveToTrash(selectedItems)}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
-                  title="Mover itens para a lixeira"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> <span>Lixeira</span>
-                </button>
-                <button
-                  onClick={() => setSelectedItems([])}
-                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent ml-1"
-                  title="Desmarcar todos"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Top Navigation Bar & Batch Actions */}
+          <FileToolbar
+            setIsStorageDrawerOpen={setIsStorageDrawerOpen}
+            handleGoBack={handleGoBack}
+            historyIndex={historyIndex}
+            handleGoForward={handleGoForward}
+            historyLength={history.length}
+            currentFolderName={currentFolderName}
+            isTrashView={isTrashView}
+            filteredFilesCount={filteredFiles.length}
+            showCreateMenu={showCreateMenu}
+            setShowCreateMenu={setShowCreateMenu}
+            setOpTargetItem={setOpTargetItem}
+            setOpModalType={setOpModalType}
+            currentPath={currentPath}
+            loadFiles={loadFiles}
+            fileInputRef={fileInputRef}
+            clipboard={clipboard}
+            handlePaste={handlePaste}
+            showSortMenu={showSortMenu}
+            setShowSortMenu={setShowSortMenu}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            sortAsc={sortAsc}
+            setSortAsc={setSortAsc}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            handleEmptyTrash={handleEmptyTrash}
+            trashItemsCount={trashItems.length}
+            selectedItems={selectedItems}
+            selectAll={selectAll}
+            handleCompressSelection={handleCompressSelection}
+            handleCopy={handleCopy}
+            handleCut={handleCut}
+            handleMoveToTrash={handleMoveToTrash}
+            setSelectedItems={setSelectedItems}
+          />
 
           {/* Drag & Drop Overlay */}
           {isDraggingOver && (
@@ -1459,52 +824,10 @@ export function FileManager() {
                 <span className="text-xs font-medium">Carregando arquivos...</span>
               </div>
             ) : isTrashView ? (
-              /* TRASH VIEW */
-              <div>
-                {trashItems.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-                    <Trash2 className="w-14 h-14 stroke-[1.5] text-zinc-600" />
-                    <p className="text-base font-semibold text-primary">A Lixeira está vazia</p>
-                    <p className="text-xs text-secondary max-w-sm text-center">
-                      Os itens excluídos aparecerão aqui e poderão ser restaurados a qualquer momento.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-card/60 border border-border rounded-2xl overflow-hidden shadow-md">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-accent/40 text-secondary border-b border-border select-none font-semibold">
-                        <tr>
-                          <th className="py-3 px-4 font-bold">Nome</th>
-                          <th className="py-3 px-4 font-bold">Local Original</th>
-                          <th className="py-3 px-4 font-bold">Tamanho</th>
-                          <th className="py-3 px-4 font-bold text-right">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {trashItems.map((item) => (
-                          <tr key={item.id} className="hover:bg-accent/50 transition-colors">
-                            <td className="py-2.5 px-4 flex items-center gap-2.5">
-                              {item.is_dir ? <Folder className="w-4 h-4 text-sky-400" /> : <File className="w-4 h-4 text-zinc-400" />}
-                              <span className="font-semibold text-primary truncate max-w-xs">{item.name}</span>
-                            </td>
-                            <td className="py-2.5 px-4 text-secondary font-mono truncate max-w-xs">{item.original_path}</td>
-                            <td className="py-2.5 px-4 text-secondary font-mono">{formatBytes(item.size)}</td>
-                            <td className="py-2.5 px-4 text-right">
-                              <button
-                                onClick={() => handleRestoreTrash([item.id])}
-                                className="px-3 py-1.5 rounded-lg bg-orbit-500/15 text-orbit-400 hover:bg-orbit-500/25 border border-orbit-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
-                              >
-                                <RotateCcw className="w-3.5 h-3.5" />
-                                <span>Restaurar</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <FileTrashView
+                trashItems={trashItems}
+                handleRestoreTrash={handleRestoreTrash}
+              />
             ) : filteredFiles.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
                 {searchQuery ? (
@@ -1536,342 +859,50 @@ export function FileManager() {
                 )}
               </div>
             ) : viewMode === 'grid' ? (
-              /* GRID VIEW (ZIMA/CASAOS INSPIRED HIGH FIDELITY) */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
-                {filteredFiles.map((item) => {
-                  const selected = isSelected(item);
-                  const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
-
-                  return (
-                    <div
-                      key={item.path}
-                      draggable={true}
-                      onDragStart={(e) => {
-                        const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
-                        e.dataTransfer.setData('text/plain', JSON.stringify(list));
-                      }}
-                      onDragOver={(e) => {
-                        if (item.is_dir) {
-                          e.preventDefault();
-                          e.currentTarget.classList.add('ring-2', 'ring-orbit-500');
-                        }
-                      }}
-                      onDragLeave={(e) => {
-                        if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
-                      }}
-                      onDrop={(e) => {
-                        if (item.is_dir) {
-                          e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
-                          handleInternalDrop(e, item.path);
-                        }
-                      }}
-                      onClick={() => handleItemClick(item)}
-                      className={`group relative flex flex-col items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
-                        selected
-                          ? 'bg-orbit-500/15 border-orbit-500/50 ring-2 ring-orbit-500/30 shadow-lg'
-                          : item.is_hidden
-                          ? 'bg-card/70 border-border/60 opacity-60 hover:opacity-100 hover:bg-accent/60 hover:border-border'
-                          : 'bg-card border-border/70 hover:bg-accent/70 hover:border-orbit-500/40 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
-                      }`}
-                    >
-                      {/* Selection Checkbox */}
-                      <button
-                        onClick={(e) => toggleSelect(e, item)}
-                        className={`absolute top-2.5 left-2.5 z-10 w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
-                          selected
-                            ? 'bg-orbit-500 border-orbit-500 text-white'
-                            : 'border-border bg-card/90 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
-                        }`}
-                        title={selected ? 'Desmarcar' : 'Selecionar'}
-                      >
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </button>
-
-                      {/* Item Visual Graphic */}
-                      <div className="my-2.5 flex items-center justify-center">
-                        {getFileBadgeVisual(item)}
-                      </div>
-
-                      {/* Item Metadata */}
-                      <div className="w-full text-center min-w-0">
-                        <span 
-                          className="block text-xs font-semibold text-primary truncate px-1 group-hover:text-orbit-400 transition-colors"
-                          title={item.name}
-                        >
-                          {item.name}
-                        </span>
-                        <span className="text-[10px] text-secondary font-mono block mt-0.5">
-                          {item.is_dir ? (
-                            item.modified ? new Date(item.modified).toLocaleDateString() : 'Pasta'
-                          ) : (
-                            formatBytes(item.size)
-                          )}
-                        </span>
-                      </div>
-
-                      {/* Quick Action Overlay on hover */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-card/95 backdrop-blur-md rounded-lg p-0.5 shadow-md border border-border/80 z-10">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShareFile(item);
-                          }}
-                          className="p-1 rounded text-secondary hover:text-violet-400 hover:bg-accent"
-                          title="Compartilhar"
-                        >
-                          <Share2 className="w-3 h-3" />
-                        </button>
-                        {isArchive && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleExtractArchive(item);
-                            }}
-                            className="p-1 rounded text-secondary hover:text-amber-400 hover:bg-accent"
-                            title="Extrair Arquivo"
-                          >
-                            <Archive className="w-3 h-3" />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(item);
-                          }}
-                          className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
-                          title="Download"
-                        >
-                          <Download className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpTargetItem(item);
-                            setOpModalType('rename');
-                          }}
-                          className="p-1 rounded text-secondary hover:text-primary hover:bg-accent"
-                          title="Renomear"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <FileGridView
+                files={filteredFiles}
+                selectedItems={selectedItems}
+                isSelected={isSelected}
+                toggleSelect={toggleSelect}
+                handleItemClick={handleItemClick}
+                handleInternalDrop={handleInternalDrop}
+                setShareFile={setShareFile}
+                handleExtractArchive={handleExtractArchive}
+                handleDownload={handleDownload}
+                setOpTargetItem={setOpTargetItem}
+                setOpModalType={setOpModalType}
+              />
             ) : (
-              /* LIST VIEW */
-              <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/60 text-secondary border-b border-border/80 select-none font-semibold">
-                      <tr>
-                        <th className="py-3 px-4 w-8">
-                          <button onClick={selectAll} className="p-0.5 rounded hover:bg-accent">
-                            {selectedItems.length === filteredFiles.length && filteredFiles.length > 0 ? (
-                              <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
-                            ) : (
-                              <Square className="w-3.5 h-3.5 text-secondary" />
-                            )}
-                          </button>
-                        </th>
-                        <th className="py-3 px-4 font-bold">Nome</th>
-                        <th className="py-3 px-4 font-bold">Tamanho</th>
-                        <th className="py-3 px-4 font-bold hidden sm:table-cell">Modificado</th>
-                        <th className="py-3 px-4 font-bold text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {filteredFiles.map((item) => {
-                        const selected = isSelected(item);
-                        const isArchive = ARCHIVE_EXTENSIONS.includes(item.extension.toLowerCase());
-                        return (
-                          <tr
-                            key={item.path}
-                            draggable={true}
-                            onDragStart={(e) => {
-                              const list = selectedItems.length > 0 ? selectedItems.map(i => i.path) : [item.path];
-                              e.dataTransfer.setData('text/plain', JSON.stringify(list));
-                            }}
-                            onDragOver={(e) => {
-                              if (item.is_dir) {
-                                e.preventDefault();
-                                e.currentTarget.classList.add('bg-orbit-500/10');
-                              }
-                            }}
-                            onDragLeave={(e) => {
-                              if (item.is_dir) e.currentTarget.classList.remove('bg-orbit-500/10');
-                            }}
-                            onDrop={(e) => {
-                              if (item.is_dir) {
-                                e.currentTarget.classList.remove('bg-orbit-500/10');
-                                handleInternalDrop(e, item.path);
-                              }
-                            }}
-                            onClick={() => handleItemClick(item)}
-                            className={`hover:bg-accent/60 transition-colors cursor-pointer ${
-                              selected ? 'bg-orbit-500/10' : ''
-                            } ${item.is_hidden ? 'opacity-60 hover:opacity-100' : ''}`}
-                          >
-                            <td className="py-2.5 px-4" onClick={(e) => toggleSelect(e, item)}>
-                              <button className="p-0.5 rounded">
-                                {selected ? (
-                                  <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
-                                ) : (
-                                  <Square className="w-3.5 h-3.5 text-secondary opacity-40 hover:opacity-100" />
-                                )}
-                              </button>
-                            </td>
-                            <td className="py-2.5 px-4 flex items-center gap-2.5">
-                              <div className="shrink-0 scale-75 origin-left">{getFileBadgeVisual(item)}</div>
-                              <span className="font-semibold text-primary truncate max-w-[180px] xs:max-w-xs md:max-w-md">
-                                {item.name}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap">
-                              {item.is_dir ? '-' : formatBytes(item.size)}
-                            </td>
-                            <td className="py-2.5 px-4 text-secondary font-mono whitespace-nowrap hidden sm:table-cell">
-                              {item.modified ? new Date(item.modified).toLocaleDateString() : '-'}
-                            </td>
-                            <td className="py-2.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShareFile(item);
-                                  }}
-                                  className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-accent"
-                                  title="Compartilhar"
-                                >
-                                  <Share2 className="w-3.5 h-3.5" />
-                                </button>
-                                {isArchive && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleExtractArchive(item);
-                                    }}
-                                    className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-accent"
-                                    title="Extrair"
-                                  >
-                                    <Archive className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(item);
-                                  }}
-                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                                  title="Download"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpTargetItem(item);
-                                    setOpModalType('rename');
-                                  }}
-                                  className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                                  title="Renomear"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <FileTableView
+                files={filteredFiles}
+                selectedItems={selectedItems}
+                selectAll={selectAll}
+                isSelected={isSelected}
+                toggleSelect={toggleSelect}
+                handleItemClick={handleItemClick}
+                handleInternalDrop={handleInternalDrop}
+                setShareFile={setShareFile}
+                handleExtractArchive={handleExtractArchive}
+                handleDownload={handleDownload}
+                setOpTargetItem={setOpTargetItem}
+                setOpModalType={setOpModalType}
+              />
             )}
           </div>
 
           {/* BOTTOM BAR: PATH BREADCRUMB & CAPACITY VIEW */}
-          <footer className="py-2 px-4 sm:px-6 border-t border-border/70 bg-card/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-            {/* Left: Path View & Edit */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <button
-                onClick={() => {
-                  setManualPathInput(currentPath);
-                  setIsEditingPath(!isEditingPath);
-                }}
-                className={`p-1 rounded-md transition-colors ${
-                  isEditingPath ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary hover:bg-accent'
-                }`}
-                title="Editar caminho manualmente"
-              >
-                <Edit3 className="w-3 h-3" />
-              </button>
-
-              {isEditingPath ? (
-                <form onSubmit={handleManualPathSubmit} className="flex-1 max-w-md flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={manualPathInput}
-                    onChange={(e) => setManualPathInput(e.target.value)}
-                    className="w-full px-2.5 py-1 rounded-lg bg-background border border-orbit-500 text-xs text-primary focus:outline-none shadow-sm"
-                    autoFocus
-                  />
-                  <button type="submit" className="px-2 py-1 rounded-lg bg-orbit-500 text-white text-xs font-semibold shadow-sm">
-                    Ir
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsEditingPath(false)}
-                    className="p-1 rounded-lg text-secondary hover:text-primary"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </form>
-              ) : (
-                <div className="flex items-center gap-1 overflow-x-auto text-xs text-secondary font-mono scrollbar-none truncate">
-                  {breadcrumbSegments().map((crumb, idx, arr) => (
-                    <React.Fragment key={crumb.path}>
-                      <button
-                        onClick={() => crumb.path === '__trash__' ? navigateToTrash() : navigateTo(crumb.path)}
-                        className={`hover:text-orbit-400 transition-colors truncate ${
-                          idx === arr.length - 1 ? 'text-primary font-bold' : ''
-                        }`}
-                      >
-                        {crumb.label}
-                      </button>
-                      {idx < arr.length - 1 && (
-                        <span className="text-secondary/50">/</span>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Right: Storage Capacity View */}
-            {primaryStorage && primaryStorage.total_bytes > 0 && (
-              <div className="flex items-center gap-2.5 text-secondary font-mono text-[11px] shrink-0 bg-accent/60 px-3 py-1 rounded-xl border border-border/70 shadow-sm">
-                <div className="w-16 sm:w-24 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
-                  <div
-                    className="h-full bg-orbit-500 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(
-                        Math.round((primaryStorage.used_bytes / primaryStorage.total_bytes) * 100),
-                        100
-                      )}%`
-                    }}
-                  />
-                </div>
-                <span>
-                  <strong className="text-primary">
-                    {formatStorage(primaryStorage.available_bytes || (primaryStorage.total_bytes - primaryStorage.used_bytes), 1)}
-                  </strong>
-                  {' '}Disponível / {formatStorage(primaryStorage.total_bytes, 1)}
-                </span>
-              </div>
-            )}
-          </footer>
+          <FileBreadcrumbs
+            manualPathInput={manualPathInput}
+            setManualPathInput={setManualPathInput}
+            isEditingPath={isEditingPath}
+            setIsEditingPath={setIsEditingPath}
+            handleManualPathSubmit={handleManualPathSubmit}
+            currentPath={currentPath}
+            breadcrumbs={breadcrumbSegments()}
+            navigateTo={navigateTo}
+            navigateToTrash={navigateToTrash}
+            primaryStorage={primaryStorage}
+          />
         </main>
       </div>
 

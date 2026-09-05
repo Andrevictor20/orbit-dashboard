@@ -799,7 +799,7 @@ export function DiskAnalyzer() {
                                 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                                 : safety.level === 'safe'
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                : 'bg-accent text-secondary border-border'
+                                : 'bg-accent text-slate-700 dark:text-secondary border-border font-semibold'
                             }`}
                             title={safety.description}
                           >
@@ -904,11 +904,11 @@ export function DiskAnalyzer() {
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-primary">Logs Rotacionados & Systemd Journals</h3>
-                    <span className="text-[11px] text-amber-400 font-mono">Liberação média: 500 MB a 5 GB</span>
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 font-mono font-semibold">Liberação média: 500 MB a 5 GB</span>
                   </div>
                 </div>
                 <p className="text-xs text-secondary leading-relaxed mb-4">
-                  Arquivos em <code className="text-amber-300">/var/log</code> e journals do Linux podem crescer indefinidamente. Arquivos compactados (<code className="text-zinc-400">.gz</code>, <code className="text-zinc-400">.log.1</code>) são seguros para exclusão.
+                  Arquivos em <code className="text-amber-700 dark:text-amber-300 font-semibold">/var/log</code> e journals do Linux podem crescer indefinidamente. Arquivos compactados (<code className="text-primary font-medium">.gz</code>, <code className="text-primary font-medium">.log.1</code>) são seguros para exclusão.
                 </p>
               </div>
 

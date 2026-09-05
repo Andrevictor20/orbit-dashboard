@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import type { ContainerLike } from '../utils/containerGroups';
 
-export type ContainerUpdateState = 'pending' | 'pulling' | 'recreating' | 'success' | 'error';
+export type ContainerUpdateState = 'pending' | 'pulling' | 'recreating' | 'success' | 'error' | 'cancelled';
 
 export interface ContainerTaskStatus {
   id: string;
@@ -27,6 +27,7 @@ export interface BatchUpdateContextType {
   totalTasks: number;
   successCount: number;
   failedCount: number;
+  cancelledCount: number;
   openModal: (initialId?: string) => void;
   closeModal: () => void;
   minimizeModal: () => void;
@@ -36,6 +37,8 @@ export interface BatchUpdateContextType {
   deselectAllContainers: () => void;
   startBatchUpdate: (targetContainers: ContainerLike[]) => Promise<void>;
   retryFailed: (containers: ContainerLike[]) => Promise<void>;
+  cancelAll: () => void;
+  cancelContainer: (id: string) => void;
   clear: () => void;
 }
 
@@ -51,6 +54,8 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [activeContainerName, setActiveContainerName] = useState<string | null>(null);
 
   const updatingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelledIdsRef = useRef<Set<string>>(new Set());
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -90,6 +95,28 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     setSelectedIds([]);
   }, []);
 
+  const cancelAll = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    addLog('Cancelamento solicitado pelo usuário. Parando todos os processos...');
+  }, [addLog]);
+
+  const cancelContainer = useCallback((id: string) => {
+    cancelledIdsRef.current.add(id);
+    setTaskStatuses(prev => {
+      const task = prev[id];
+      if (task && task.state !== 'success' && task.state !== 'error') {
+        addLog(`[${task.name}] Cancelado pelo usuário.`);
+        return {
+          ...prev,
+          [id]: { ...task, state: 'cancelled', error: 'Cancelado pelo usuário' },
+        };
+      }
+      return prev;
+    });
+  }, [addLog]);
+
   const clear = useCallback(() => {
     if (updatingRef.current) return;
     setIsUpdating(false);
@@ -97,6 +124,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     setTaskStatuses({});
     setLogs([]);
     setActiveContainerName(null);
+    cancelledIdsRef.current.clear();
   }, []);
 
   const sanitizeErrorMessage = (rawText: string, status: number): string => {
@@ -149,6 +177,10 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     updatingRef.current = true;
     setIsUpdating(true);
     setIsCompleted(false);
+    cancelledIdsRef.current.clear();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Prioritize standard applications first and leave networking tunnels/proxies for the end
     // to guarantee unbroken connectivity while updating other services.
@@ -169,12 +201,34 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     addLog(`Iniciando atualização de ${orderedTargets.length} container(s)...`);
 
     const token = localStorage.getItem('orbit_token');
+    const POLLING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes per container
     let localSuccess = 0;
     let localFailed = 0;
 
     for (let i = 0; i < orderedTargets.length; i++) {
+      // Check if entire batch was cancelled
+      if (controller.signal.aborted) {
+        // Mark remaining containers as cancelled
+        for (let j = i; j < orderedTargets.length; j++) {
+          const remaining = orderedTargets[j];
+          const remainingName = remaining.name.replace(/^\//, '');
+          setTaskStatuses(prev => ({
+            ...prev,
+            [remaining.id]: { ...prev[remaining.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
+          }));
+          addLog(`[${remainingName}] Cancelado pelo usuário.`);
+        }
+        break;
+      }
+
       const c = orderedTargets[i];
       const cleanName = c.name.replace(/^\//, '');
+
+      // Check if this specific container was individually cancelled
+      if (cancelledIdsRef.current.has(c.id)) {
+        continue;
+      }
+
       setActiveContainerName(cleanName);
 
       // Step 1: Mark pulling state
@@ -191,6 +245,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          signal: controller.signal,
         });
 
         const rawText = await response.text().catch(() => '');
@@ -234,14 +289,52 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
         let lastStep = '';
         let completed = false;
         let consecutiveNetworkErrors = 0;
+        let consecutiveIdleHits = 0;
         const maxNetworkRetries = 15; // 15 * 2s = 30s buffer for tunnel reconnects
+        const maxIdleHits = 5; // 5 * 2s = 10s before treating as lost task
+        const pollingStartTime = Date.now();
 
         while (!completed) {
           await new Promise(res => setTimeout(res, 2000));
 
+          // Check cancellation (global)
+          if (controller.signal.aborted) {
+            completed = true;
+            setTaskStatuses(prev => ({
+              ...prev,
+              [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
+            }));
+            addLog(`[${cleanName}] Cancelado pelo usuário.`);
+            break;
+          }
+
+          // Check cancellation (individual)
+          if (cancelledIdsRef.current.has(c.id)) {
+            completed = true;
+            break;
+          }
+
+          // Check global timeout per container (10 minutes)
+          if (Date.now() - pollingStartTime > POLLING_TIMEOUT_MS) {
+            completed = true;
+            localFailed++;
+            const timeoutMsg = 'Tempo limite de polling excedido (10 minutos). A operação pode continuar em segundo plano no servidor.';
+            setTaskStatuses(prev => ({
+              ...prev,
+              [c.id]: {
+                ...prev[c.id],
+                state: 'error',
+                error: timeoutMsg,
+              },
+            }));
+            addLog(`[${cleanName}] ERRO: ${timeoutMsg}`);
+            break;
+          }
+
           try {
             const statusRes = await fetch(`/api/docker/containers/${c.id}/update-status`, {
               headers: { Authorization: `Bearer ${token}` },
+              signal: controller.signal,
             });
 
             if (!statusRes.ok) {
@@ -260,15 +353,42 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
 
             if (!task) continue;
 
+            // Handle 'idle' status — task not found in backend map
+            if (task.status === 'idle') {
+              consecutiveIdleHits++;
+              if (consecutiveIdleHits > maxIdleHits) {
+                completed = true;
+                localFailed++;
+                const idleMsg = 'Task perdida no servidor (status idle). A operação pode ter falhado silenciosamente.';
+                setTaskStatuses(prev => ({
+                  ...prev,
+                  [c.id]: {
+                    ...prev[c.id],
+                    state: 'error',
+                    error: idleMsg,
+                  },
+                }));
+                addLog(`[${cleanName}] ERRO: ${idleMsg}`);
+              }
+              continue;
+            }
+
+            consecutiveIdleHits = 0;
+
             if (task.step && task.step !== lastStep) {
               lastStep = task.step;
               addLog(`[${cleanName}] ${task.step}`);
             }
 
-            if (task.status === 'recreating') {
+            if (task.status === 'pulling') {
               setTaskStatuses(prev => ({
                 ...prev,
                 [c.id]: { ...prev[c.id], state: 'pulling' },
+              }));
+            } else if (task.status === 'recreating') {
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: { ...prev[c.id], state: 'recreating' },
               }));
             } else if (task.status === 'success') {
               completed = true;
@@ -293,6 +413,16 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
               addLog(`[${cleanName}] ERRO: ${err}`);
             }
           } catch (pollErr: any) {
+            // If aborted via AbortController, handle gracefully
+            if (controller.signal.aborted) {
+              completed = true;
+              setTaskStatuses(prev => ({
+                ...prev,
+                [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
+              }));
+              addLog(`[${cleanName}] Cancelado pelo usuário.`);
+              break;
+            }
             consecutiveNetworkErrors++;
             if (consecutiveNetworkErrors === 2) {
               addLog(`[${cleanName}] Conexão oscilando. Aguardando reconexão do proxy...`);
@@ -315,26 +445,42 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
           }
         }
       } catch (err: any) {
-        localFailed++;
-        const errorText = err?.message || 'Erro de conexão ou timeout na requisição';
-        setTaskStatuses(prev => ({
-          ...prev,
-          [c.id]: {
-            ...prev[c.id],
-            state: 'error',
-            error: errorText,
-            details: String(err),
-          },
-        }));
-        addLog(`[${cleanName}] ERRO: ${errorText}`);
+        // If aborted via AbortController, handle as cancellation not error
+        if (controller.signal.aborted) {
+          setTaskStatuses(prev => ({
+            ...prev,
+            [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
+          }));
+          addLog(`[${cleanName}] Cancelado pelo usuário.`);
+        } else {
+          localFailed++;
+          const errorText = err?.message || 'Erro de conexão ou timeout na requisição';
+          setTaskStatuses(prev => ({
+            ...prev,
+            [c.id]: {
+              ...prev[c.id],
+              state: 'error',
+              error: errorText,
+              details: String(err),
+            },
+          }));
+          addLog(`[${cleanName}] ERRO: ${errorText}`);
+        }
       }
     }
 
     updatingRef.current = false;
+    abortControllerRef.current = null;
     setIsUpdating(false);
     setIsCompleted(true);
     setActiveContainerName(null);
-    addLog(`Operação concluída. ${localSuccess} atualizado(s), ${localFailed} falha(s).`);
+
+    const wasCancelled = controller.signal.aborted;
+    if (wasCancelled) {
+      addLog(`Operação cancelada pelo usuário. ${localSuccess} atualizado(s), ${localFailed} falha(s).`);
+    } else {
+      addLog(`Operação concluída. ${localSuccess} atualizado(s), ${localFailed} falha(s).`);
+    }
 
     // Dispatch global refresh event so container lists re-fetch images automatically
     if (typeof window !== 'undefined') {
@@ -369,8 +515,9 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const successCount = Object.values(taskStatuses).filter(t => t.state === 'success').length;
   const failedCount = Object.values(taskStatuses).filter(t => t.state === 'error').length;
+  const cancelledCount = Object.values(taskStatuses).filter(t => t.state === 'cancelled').length;
   const totalTasks = Object.keys(taskStatuses).length;
-  const completedTasks = successCount + failedCount;
+  const completedTasks = successCount + failedCount + cancelledCount;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
@@ -388,6 +535,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
         totalTasks,
         successCount,
         failedCount,
+        cancelledCount,
         openModal,
         closeModal,
         minimizeModal,
@@ -397,6 +545,8 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
         deselectAllContainers,
         startBatchUpdate,
         retryFailed,
+        cancelAll,
+        cancelContainer,
         clear,
       }}
     >
@@ -418,6 +568,7 @@ const defaultBatchUpdateContext: BatchUpdateContextType = {
   totalTasks: 0,
   successCount: 0,
   failedCount: 0,
+  cancelledCount: 0,
   openModal: () => {},
   closeModal: () => {},
   minimizeModal: () => {},
@@ -427,6 +578,8 @@ const defaultBatchUpdateContext: BatchUpdateContextType = {
   deselectAllContainers: () => {},
   startBatchUpdate: async () => {},
   retryFailed: async () => {},
+  cancelAll: () => {},
+  cancelContainer: () => {},
   clear: () => {},
 };
 

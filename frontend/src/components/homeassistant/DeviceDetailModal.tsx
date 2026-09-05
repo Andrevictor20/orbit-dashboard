@@ -86,7 +86,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
         {/* Modal Header */}
         <div className="p-6 border-b border-border/60 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 text-orbit-400 shadow-inner">
+            <div className="p-3 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 text-orbit-600 dark:text-orbit-400 shadow-inner">
               <Sliders className="w-6 h-6" />
             </div>
             <div>
@@ -96,19 +96,19 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                       device.stateBadge.variant === 'success'
-                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                         : device.stateBadge.variant === 'warning'
-                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
                         : device.stateBadge.variant === 'info'
-                        ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
-                        : 'bg-accent text-secondary border-border/60'
+                        ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30'
+                        : 'bg-accent text-slate-700 dark:text-zinc-300 border-border/60 font-semibold'
                     }`}
                   >
                     {device.stateBadge.text}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-secondary mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-secondary mt-0.5">
                 {device.entities.length} {device.entities.length === 1 ? 'entidade associada' : 'entidades associadas a este dispositivo'}
               </p>
             </div>
@@ -116,7 +116,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-secondary hover:text-primary transition-all border border-border/60"
+            className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-all border border-border/60"
             aria-label="Fechar"
           >
             <X className="w-5 h-5" />
@@ -126,14 +126,14 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
         {/* Modal Body: Scrollable Entity Inspector */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-border">
           {device.summary && (
-            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 text-xs font-mono text-secondary flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 text-xs font-mono text-slate-600 dark:text-secondary flex items-center justify-between">
               <span>Status Consolidado:</span>
               <span className="font-semibold text-primary">{device.summary}</span>
             </div>
           )}
 
           <div className="space-y-2.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-secondary">
               Entidades & Controles deste Dispositivo
             </h3>
 
@@ -150,7 +150,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                     className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-accent/30 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 rounded-xl bg-card border border-border/60 text-secondary shrink-0">
+                      <div className="p-2 rounded-xl bg-card border border-border/60 text-slate-700 dark:text-secondary shrink-0">
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
@@ -160,16 +160,16 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] font-mono text-secondary truncate">
+                          <span className="text-[11px] font-mono text-slate-600 dark:text-secondary truncate">
                             {ent.entity_id}
                           </span>
                           <button
                             onClick={() => handleCopy(ent.entity_id)}
-                            className="text-secondary hover:text-primary transition-colors p-0.5"
+                            className="text-slate-600 dark:text-secondary hover:text-primary transition-colors p-0.5"
                             title="Copiar ID da entidade"
                           >
                             {copiedId === ent.entity_id ? (
-                              <Check className="w-3 h-3 text-emerald-400" />
+                              <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             ) : (
                               <Copy className="w-3 h-3" />
                             )}
@@ -192,7 +192,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                           className={`p-2 rounded-xl border transition-all active:scale-95 ${
                             isOn
                               ? 'bg-orbit-500 text-white border-orbit-400 shadow-md shadow-orbit-500/25'
-                              : 'bg-card text-secondary hover:text-primary border-border/80'
+                              : 'bg-card text-slate-700 dark:text-secondary hover:text-primary border-border/80'
                           }`}
                           title={isOn ? 'Desligar' : 'Ligar'}
                         >
@@ -209,7 +209,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
 
         {/* Modal Footer */}
         <div className="p-4 border-t border-border/60 bg-card/40 flex items-center justify-between">
-          <span className="text-xs text-secondary font-mono">
+          <span className="text-xs text-slate-600 dark:text-secondary font-mono">
             {device.category.toUpperCase()} · ID: {device.id}
           </span>
           <button

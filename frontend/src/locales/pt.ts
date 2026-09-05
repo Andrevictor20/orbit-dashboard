@@ -219,6 +219,7 @@ export const pt = {
     memory_usage_history: "Histórico de Memória RAM",
     disk_io_history: "I/O de Disco",
     network_io_history: "Tráfego de Rede",
+    cable: "Cabo",
     process_monitor: "Monitor de Processos",
     core_breakdown: "Distribuição por Núcleo",
     temperature: "Temperatura",
@@ -495,7 +496,11 @@ export const pt = {
     step_pull_done: "[{{name}}] Imagem baixada e verificada com sucesso.",
     step_recreate_start: "[{{name}}] Parando e recriando container...",
     step_recreate_done: "[{{name}}] Container recriado e em execução!",
-    step_error: "[{{name}}] ERRO: {{error}}"
+    step_error: "[{{name}}] ERRO: {{error}}",
+    status_cancelled: "Cancelado",
+    cancel_all: "Cancelar Tudo",
+    cancel_container: "Cancelar atualização",
+    cancelled_by_user: "Cancelado pelo usuário"
   },
   profile: {
     title: "Minha Conta",

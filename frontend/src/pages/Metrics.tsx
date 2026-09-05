@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStats } from '../contexts/StatsContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Network, Cpu, HardDrive, LayoutGrid, Monitor, Box, Rocket, Terminal, Clock, Info } from 'lucide-react';
+import { Activity, Network, Cpu, HardDrive, LayoutGrid, Monitor, Box, Rocket, Terminal, Clock, Info, Wifi, Cable } from 'lucide-react';
 import { ProcessMonitor } from '../components/metrics/ProcessMonitor';
 import { AlertsPanel } from '../components/metrics/AlertsPanel';
 
@@ -111,8 +111,8 @@ export function Metrics() {
                   onClick={() => setTimeRange(range)}
                   className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                     timeRange === range
-                      ? 'bg-accent text-white shadow'
-                      : 'text-secondary hover:text-primary hover:bg-neutral-800/50'
+                      ? 'bg-orbit-500 text-white shadow-sm font-semibold'
+                      : 'text-secondary hover:text-primary hover:bg-accent'
                   }`}
                 >
                   {t(`metrics.time_${range}`)}
@@ -125,35 +125,35 @@ export function Metrics() {
           <div className="bg-card border border-border p-1 rounded-lg flex items-center shadow-sm overflow-x-auto max-w-full scrollbar-none">
             <button 
               onClick={() => setActiveTab('overview')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               {t('common.all')}
             </button>
             <button 
               onClick={() => setActiveTab('system')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'system' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'system' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Monitor className="w-3.5 h-3.5" />
               Host
             </button>
             <button 
               onClick={() => setActiveTab('containers')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Box className="w-3.5 h-3.5" />
               {t('sidebar.containers')}
             </button>
             <button 
               onClick={() => setActiveTab('orbit')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'orbit' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'orbit' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Rocket className="w-3.5 h-3.5" />
               Orbit
             </button>
             <button 
               onClick={() => setActiveTab('processes')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'processes' ? 'bg-accent text-white shadow' : 'text-secondary hover:text-primary'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'processes' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Terminal className="w-3.5 h-3.5" />
               {t('metrics.process_monitor')}
@@ -298,10 +298,22 @@ export function Metrics() {
           {activeTab !== 'orbit' && (
             <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] lg:col-span-2 flex flex-col animate-in fade-in zoom-in-95 duration-300">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
-                  <Network className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                  {t('metrics.network_io_history')}
-                </h3>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
+                    <Network className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                    {t('metrics.network_io_history')}
+                  </h3>
+                  {stats?.network_interface && (
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-400 border border-blue-500/30 font-mono font-medium flex items-center gap-1.5">
+                      {stats.network_interface_type === 'wifi' ? (
+                        <Wifi className="w-3 h-3" />
+                      ) : (
+                        <Cable className="w-3 h-3" />
+                      )}
+                      {stats.network_interface} ({stats.network_interface_type === 'wifi' ? 'Wi-Fi' : t('metrics.cable', 'Cabo')})
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs text-secondary font-mono">
                   {filteredHistory.length} {filteredHistory.length === 1 ? 'amostra' : 'amostras'}
                 </span>

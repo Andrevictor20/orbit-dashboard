@@ -1,44 +1,26 @@
-import React, { Fragment, useEffect, useState, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Play, Square, RefreshCw, LayoutGrid, List, RotateCw, Pause, 
-  PlayCircle, ExternalLink, Settings2, X, Globe, 
-  DownloadCloud, Layers, ChevronDown, ChevronRight, Terminal 
+  RefreshCw, LayoutGrid, List, Layers, Terminal, DownloadCloud 
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { formatRAM, formatBytes } from '../../utils/format';
 import { getIconForImage } from '../../utils/icons';
-import { resolveWebUrl } from '../../utils/url';
-import { groupContainers, getContainerWebLink, getSortedDeduplicatedPorts, type GroupContainerItem } from '../../utils/containerGroups';
+import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
 import { AppGroupModal } from './AppGroupModal';
 import { DockerInstallModal } from './DockerInstallModal';
 import { BatchUpdateModal } from './BatchUpdateModal';
-import { ContainerIcon } from '../ui/ContainerIcon';
 import { useBatchUpdate } from '../../contexts/BatchUpdateContext';
+import {
+  type Container,
+  type PortInfo,
+  CustomLinkModal,
+  PrimaryContainerModal,
+  StackGridCard,
+  ContainerGridCard,
+  ContainerTableView,
+} from './container-list';
 
-interface PortInfo {
-  ip?: string;
-  private_port: number;
-  public_port?: number;
-  typ: string;
-}
-
-interface Container {
-  id: string;
-  name: string;
-  image: string;
-  state: string;
-  status: string;
-  cpu_percent?: number;
-  memory_used?: number;
-  memory_limit?: number;
-  ports?: PortInfo[];
-  labels?: Record<string, string>;
-  size_rw?: number;
-  size_root_fs?: number;
-}
+export type { Container, PortInfo };
 
 // Global memory cache for instantaneous tab switching (SWR)
 let globalContainerCache: Container[] | null = null;
@@ -48,7 +30,6 @@ export function resetContainerCache() {
 }
 
 export function ContainerList() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [containers, setContainers] = useState<Container[]>(() => globalContainerCache || []);
   const [loading, setLoading] = useState(() => !globalContainerCache || globalContainerCache.length === 0);
@@ -322,6 +303,18 @@ export function ContainerList() {
     return groupContainers(filteredAndSortedContainers, customLinks, getIconForImage);
   }, [filteredAndSortedContainers, groupByStack, customLinks]);
 
+  const displayItems = useMemo(() => {
+    return groupedItems || filteredAndSortedContainers.map(c => ({
+      type: 'single' as const,
+      id: c.id,
+      name: c.name,
+      container: c,
+      iconUrl: getIconForImage(c.image, c.name),
+      webLink: customLinks[c.id],
+      isRunning: c.state === 'running',
+    }));
+  }, [groupedItems, filteredAndSortedContainers, customLinks]);
+
   const toggleGroupExpanded = (groupKey: string) => {
     setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
   };
@@ -391,15 +384,15 @@ export function ContainerList() {
             onClick={handleUpdateAllContainers}
             className={`px-3 sm:px-4 py-2 rounded-md flex items-center gap-2 transition-all text-xs sm:text-sm font-medium border ${
               pendingUpdatesCount > 0
-                ? 'bg-violet-600/25 hover:bg-violet-600/40 text-violet-300 border-violet-500/50 shadow-sm shadow-violet-900/30 font-semibold'
-                : 'bg-card hover:bg-accent text-secondary hover:text-primary border-border'
+                ? 'bg-violet-600/25 hover:bg-violet-600/40 text-violet-800 dark:text-violet-300 border-violet-500/50 shadow-sm font-semibold'
+                : 'bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary border-border'
             }`}
             title={t('containers.update_all')}
           >
-            <DownloadCloud className={`w-3.5 h-3.5 ${pendingUpdatesCount > 0 ? 'text-violet-400' : ''}`} />
+            <DownloadCloud className={`w-3.5 h-3.5 ${pendingUpdatesCount > 0 ? 'text-violet-600 dark:text-violet-400' : ''}`} />
             <span>{t('containers.update_all')}</span>
             {pendingUpdatesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+              <span className="px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[10px] font-bold">
                 {pendingUpdatesCount}
               </span>
             )}
@@ -407,7 +400,7 @@ export function ContainerList() {
 
           <button 
             onClick={() => fetchContainers(true)}
-            className="px-3 sm:px-4 py-2 bg-accent hover:bg-orbit-700 text-white rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
+            className="px-3 sm:px-4 py-2 bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             {t('common.refresh')}
@@ -437,7 +430,7 @@ export function ContainerList() {
           />
         </div>
         <div className="flex gap-2 items-center">
-          <span className="text-xs sm:text-sm text-secondary font-medium whitespace-nowrap">{t('common.filter')}:</span>
+          <span className="text-xs sm:text-sm text-slate-600 dark:text-secondary font-medium whitespace-nowrap">{t('common.filter')}:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -450,7 +443,7 @@ export function ContainerList() {
           </select>
           <button
             onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-            className="px-3 py-2 bg-background border border-border rounded-md hover:bg-accent text-secondary hover:text-primary transition-colors text-sm font-medium"
+            className="px-3 py-2 bg-background border border-border rounded-md hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors text-sm font-medium"
             title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
             aria-label="Sort order"
           >
@@ -489,747 +482,50 @@ export function ContainerList() {
 
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pb-4">
-          {/* Render Grouped Items or Flat Items */}
-          {(groupedItems || filteredAndSortedContainers.map(c => ({ type: 'single' as const, id: c.id, name: c.name, container: c, iconUrl: getIconForImage(c.image, c.name), webLink: customLinks[c.id], isRunning: c.state === 'running' }))).map(item => {
+          {displayItems.map(item => {
             if (item.type === 'group') {
-              const group = item;
-              const isGroupActionLoading = (action: string) => actionLoading === `group:${group.groupKey}:${action}`;
-
               return (
-                <div
-                  key={group.id}
-                  onClick={() => setSelectedGroupModal(group)}
-                  className="bg-card border-2 border-orbit-500/30 hover:border-orbit-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-all cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5 overflow-hidden"
-                >
-                  {/* Top Layer indicator background glow */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-orbit-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-2 relative z-10">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-orbit-500/40 shadow-sm shrink-0 relative group-hover:scale-105 transition-transform p-1.5">
-                        <ContainerIcon
-                          src={group.iconUrl}
-                          name={group.name}
-                          size={32}
-                          className="w-full h-full"
-                        />
-                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white shadow-sm">
-                          <Layers className="w-2.5 h-2.5" />
-                        </div>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-bold text-primary text-base truncate group-hover:text-orbit-400 transition-colors" title={group.name}>
-                          {group.name}
-                        </span>
-                        <span className="text-[11px] text-orbit-400 font-mono flex items-center gap-1 font-medium">
-                          <Layers className="w-3 h-3" />
-                          <span>Stack ({group.totalCount} containers)</span>
-                        </span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <div className={`w-2 h-2 rounded-full ${group.allRunning ? 'bg-emerald-500 animate-pulse' : group.anyRunning ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                          <span className="text-xs text-secondary">{group.runningCount}/{group.totalCount} ativos</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-300 border border-orbit-500/40 text-[11px] font-bold font-mono shrink-0">
-                      Stack
-                    </span>
-                  </div>
-
-                  {/* Resource Metrics */}
-                  <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-xl border border-border/60">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-purple-400 uppercase font-semibold tracking-wider">CPU</span>
-                      <span className="text-xs text-primary font-mono font-bold">{group.totalCpu.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-emerald-400 uppercase font-semibold tracking-wider">RAM</span>
-                      <span className="text-xs text-primary font-mono font-bold">{formatRAM(group.totalMemory)}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
-                      <span className="text-xs text-primary font-mono font-bold">{formatBytes(group.totalDisk)}</span>
-                    </div>
-                  </div>
-
-                  {/* Sub-containers mini preview pills */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {group.containers.slice(0, 3).map(sub => (
-                      <span key={sub.id} className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent text-zinc-300 border border-border truncate max-w-[110px]" title={sub.name}>
-                        {sub.name.replace(`${group.groupKey}-`, '')}
-                      </span>
-                    ))}
-                    {group.containers.length > 3 && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orbit-500/15 text-orbit-300 font-semibold">
-                        +{group.containers.length - 3}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Stack Network / Ports / Web Link row */}
-                  <div className="flex items-center justify-between text-xs text-secondary gap-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1.5 overflow-hidden">
-                      {(() => {
-                        const sortedPorts = getSortedDeduplicatedPorts(
-                          group.primaryContainer.ports,
-                          group.primaryContainer.image,
-                          group.primaryContainer.name,
-                          group.primaryContainer.labels
-                        );
-                        if (sortedPorts.length > 0) {
-                          return (
-                            <div className="flex items-center gap-1 overflow-hidden">
-                              {sortedPorts.slice(0, 2).map((p, idx) => {
-                                const targetUrl = resolveWebUrl(p.public_port || p.private_port);
-                                const isPrimary = idx === 0 && Boolean(p.public_port || p.private_port);
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
-                                      isPrimary
-                                        ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
-                                        : 'bg-background border-border/50 text-secondary'
-                                    }`}
-                                  >
-                                    {p.public_port ? (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(targetUrl, '_blank');
-                                        }}
-                                        className="hover:underline flex items-center gap-1 cursor-pointer"
-                                        title={`Abrir porta principal: ${targetUrl}`}
-                                      >
-                                        <span>{p.public_port}:{p.private_port}</span>
-                                        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(targetUrl, '_blank');
-                                        }}
-                                        className="hover:underline flex items-center gap-1 cursor-pointer"
-                                        title={`Abrir porta: ${targetUrl}`}
-                                      >
-                                        <span>{p.private_port}/{p.typ || 'tcp'}</span>
-                                        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {sortedPorts.length > 2 && (
-                                <span className="text-[10px] text-secondary font-mono">+{sortedPorts.length - 2}</span>
-                              )}
-                            </div>
-                          );
-                        }
-                        return <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>;
-                      })()}
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      {group.webLink && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(resolveWebUrl(group.webLink), '_blank');
-                          }}
-                          className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
-                          title={`Abrir ${group.primaryContainer.name} (${group.webLink})`}
-                        >
-                          <Globe className="w-3 h-3 text-orbit-400" />
-                          <span className="truncate max-w-[70px]">{t('containers.open_app')}</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPrimarySelectorModal({ isOpen: true, group });
-                        }}
-                        className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-orbit-300 transition-colors border border-border/50"
-                        title={`${t('containers.select_primary')} (${group.primaryContainer.name})`}
-                      >
-                        <Settings2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Group Action Controls */}
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50 gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setSelectedGroupModal(group)}
-                      className="glass-button px-3 py-1.5 text-xs rounded-lg text-orbit-300 hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/30 flex-1 flex items-center justify-center gap-1.5 font-medium transition-colors"
-                      title="Ver e gerenciar todos os sub-containers"
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Ver Sub-containers</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => handleGroupAction(e, group, 'restart')}
-                      disabled={Boolean(actionLoading)}
-                      className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-                      title="Reiniciar todos os containers da stack"
-                    >
-                      {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <RotateCw className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {group.anyRunning ? (
-                      <button
-                        onClick={(e) => handleGroupAction(e, group, 'stop')}
-                        disabled={Boolean(actionLoading)}
-                        className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                        title="Parar todos os containers da stack"
-                      >
-                        {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-400" /> : <Square className="w-3.5 h-3.5" />}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => handleGroupAction(e, group, 'start')}
-                        disabled={Boolean(actionLoading)}
-                        className="glass-button p-2 text-xs rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                        title="Iniciar todos os containers da stack"
-                      >
-                        {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <StackGridCard
+                  key={item.id}
+                  group={item}
+                  actionLoading={actionLoading}
+                  onOpenGroupModal={(group) => setSelectedGroupModal(group)}
+                  onOpenPrimarySelector={(group) => setPrimarySelectorModal({ isOpen: true, group })}
+                  onGroupAction={handleGroupAction}
+                />
               );
             }
 
-            const c = item.container;
             return (
-              <div 
-                key={c.id} 
-                onClick={() => navigate(`/containers/${c.id}`)}
-                className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3.5 relative group hover:border-orbit-600 transition-all cursor-pointer shadow-sm overflow-hidden"
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-border/80 shadow-sm shrink-0 group-hover:border-orbit-500/30 transition-colors p-1.5">
-                      <ContainerIcon
-                        src={getIconForImage(c.image, c.name)}
-                        name={c.name}
-                        image={c.image}
-                        size={32}
-                        className="w-full h-full"
-                      />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-primary text-sm truncate" title={c.name}>{c.name}</span>
-                      <span className="text-[11px] text-zinc-400 truncate" title={c.image}>
-                        {c.labels?.['com.docker.compose.service'] || c.labels?.['io.casaos.app.name'] || c.image.split(':')[0].split('/').pop()}
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500 animate-pulse' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                        <span className="text-xs text-secondary capitalize">{c.state}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {updatesMap[c.id]?.has_update && (
-                    <button
-                      onClick={(e) => handleUpdateContainer(e, c.id)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shadow-violet-900/20 shrink-0"
-                      title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
-                    >
-                      <DownloadCloud className="w-3.5 h-3.5" />
-                      <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Resource Metrics */}
-                <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-lg border border-border/50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">CPU</span>
-                    <span className="text-xs text-primary font-mono font-medium">{c.cpu_percent?.toFixed(1) || '0.0'}%</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">RAM</span>
-                    <span className="text-xs text-primary font-mono font-medium">{formatRAM(c.memory_used)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
-                    <span className="text-xs text-primary font-mono font-medium">{formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}</span>
-                  </div>
-                </div>
-
-                {/* Network / Ports / Custom Link Status */}
-                <div className="flex items-center justify-between text-xs text-secondary gap-2" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-1.5 overflow-hidden">
-                    {(() => {
-                      const sortedPorts = getSortedDeduplicatedPorts(c.ports, c.image, c.name, c.labels);
-                      if (sortedPorts.length > 0) {
-                        return (
-                          <div className="flex items-center gap-1 overflow-hidden">
-                            {sortedPorts.slice(0, 2).map((p, idx) => {
-                              const targetUrl = resolveWebUrl(p.public_port || p.private_port);
-                              const isPrimary = idx === 0 && Boolean(p.public_port || p.private_port);
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
-                                    isPrimary
-                                      ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
-                                      : 'bg-background border-border/50 text-secondary'
-                                  }`}
-                                >
-                                  {p.public_port ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(targetUrl, '_blank');
-                                      }}
-                                      className="hover:underline flex items-center gap-1 cursor-pointer"
-                                      title={`Abrir porta principal: ${targetUrl}`}
-                                    >
-                                      <span>{p.public_port}:{p.private_port}</span>
-                                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(targetUrl, '_blank');
-                                      }}
-                                      className="hover:underline flex items-center gap-1 cursor-pointer"
-                                      title={`Abrir porta: ${targetUrl}`}
-                                    >
-                                      <span>{p.private_port}/{p.typ || 'tcp'}</span>
-                                      <ExternalLink className="w-2.5 h-2.5 shrink-0" />
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {sortedPorts.length > 2 && (
-                              <span className="text-[10px] text-secondary font-mono">+{sortedPorts.length - 2}</span>
-                            )}
-                          </div>
-                        );
-                      }
-                      return <span className="text-xs text-zinc-500 font-mono">{t('containers.no_public_ports')}</span>;
-                    })()}
-                  </div>
-
-                  {(() => {
-                    const webLink = getContainerWebLink(c, customLinks);
-                    if (webLink) {
-                      return (
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(webLink, '_blank');
-                            }}
-                            className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-400 hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
-                            title={`Abrir ${c.name} (${webLink})`}
-                          >
-                            <Globe className="w-3 h-3 text-orbit-400" />
-                            <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
-                          </button>
-                          <button
-                            onClick={(e) => handleSetCustomLink(e, c.id)}
-                            className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors border border-border/50"
-                            title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
-                          >
-                            <Settings2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      );
-                    }
-                    return (
-                      <button
-                        onClick={(e) => handleSetCustomLink(e, c.id)}
-                        className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
-                        title="Configurar Link"
-                      >
-                        <Settings2 className="w-3.5 h-3.5" />
-                      </button>
-                    );
-                  })()}
-                </div>
-
-                {/* Action Controls Bar */}
-                <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/50 gap-1.5">
-                  {c.state?.toLowerCase() === 'running' ? (
-                    <>
-                      <button 
-                        onClick={(e) => handleAction(e, c.id, 'stop')} 
-                        disabled={actionLoading === c.id} 
-                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-                        title="Parar container"
-                      >
-                        <Square className="w-3.5 h-3.5 shrink-0" />
-                        <span>Parar</span>
-                      </button>
-                      <button 
-                        onClick={(e) => handleAction(e, c.id, 'pause')} 
-                        disabled={actionLoading === c.id} 
-                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-                        title="Pausar container"
-                      >
-                        <Pause className="w-3.5 h-3.5 shrink-0" />
-                        <span>Pausar</span>
-                      </button>
-                      <button 
-                        onClick={(e) => handleAction(e, c.id, 'restart')} 
-                        disabled={actionLoading === c.id} 
-                        className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-                        title="Reiniciar container"
-                      >
-                        <RotateCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
-                        <span>Reiniciar</span>
-                      </button>
-                    </>
-                  ) : c.state?.toLowerCase() === 'paused' ? (
-                    <>
-                      <button 
-                        onClick={(e) => handleAction(e, c.id, 'unpause')} 
-                        disabled={actionLoading === c.id} 
-                        className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1.5 transition-colors"
-                        title="Retomar execução do container"
-                      >
-                        <PlayCircle className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-                        <span>Retomar</span>
-                      </button>
-                      <button 
-                        onClick={(e) => handleAction(e, c.id, 'stop')} 
-                        disabled={actionLoading === c.id} 
-                        className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1.5 transition-colors"
-                        title="Parar container"
-                      >
-                        <Square className="w-3.5 h-3.5" />
-                        <span>Parar</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button 
-                      onClick={(e) => handleAction(e, c.id, 'start')} 
-                      disabled={actionLoading === c.id} 
-                      className="glass-button px-3 py-1.5 text-xs rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/30 w-full flex items-center justify-center gap-1.5 font-medium transition-colors"
-                      title="Iniciar container"
-                    >
-                      <Play className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-                      <span>Iniciar Container</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+              <ContainerGridCard
+                key={item.container.id}
+                container={item.container}
+                customLinks={customLinks}
+                updatesMap={updatesMap}
+                actionLoading={actionLoading}
+                onAction={handleAction}
+                onUpdateContainer={handleUpdateContainer}
+                onSetCustomLink={handleSetCustomLink}
+              />
             );
           })}
         </div>
       )}
 
       {viewMode === 'table' && containers.length > 0 && (
-        <div className="flex-1 overflow-auto border border-border rounded-lg glass-panel">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-secondary uppercase bg-white/5 border-b border-border">
-              <tr>
-                <th className="px-4 py-4 font-medium">Nome</th>
-                <th className="px-4 py-4 font-medium">Estado</th>
-                <th className="px-4 py-4 font-medium">CPU</th>
-                <th className="px-4 py-4 font-medium">RAM</th>
-                <th className="px-4 py-4 font-medium">Disco</th>
-                <th className="px-4 py-4 font-medium text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(groupedItems || filteredAndSortedContainers.map(c => ({ type: 'single' as const, id: c.id, name: c.name, container: c, iconUrl: getIconForImage(c.image, c.name), webLink: customLinks[c.id], isRunning: c.state === 'running' }))).map((item) => {
-                if (item.type === 'group') {
-                  const group = item;
-                  const isExpanded = Boolean(expandedGroups[group.groupKey]);
-                  const isGroupActionLoading = (action: string) => actionLoading === `group:${group.groupKey}:${action}`;
-
-                  return (
-                    <Fragment key={group.id}>
-                      {/* Master Group Row */}
-                      <tr 
-                        onClick={() => toggleGroupExpanded(group.groupKey)} 
-                        className="border-b border-border bg-orbit-500/[0.04] hover:bg-orbit-500/[0.08] transition-colors cursor-pointer"
-                      >
-                        <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleGroupExpanded(group.groupKey);
-                            }}
-                            className="p-1 rounded text-orbit-400 hover:text-white"
-                          >
-                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                          </button>
-
-                          <div className="w-7 h-7 rounded-lg bg-background flex items-center justify-center border border-orbit-500/40 shrink-0 relative">
-                            <img 
-                              src={group.iconUrl} 
-                              alt="" 
-                              className="w-5 h-5 object-contain" 
-                            />
-                            <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white">
-                              <Layers className="w-2 h-2" />
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-primary leading-tight">{group.name}</span>
-                              <span className="px-2 py-0.5 rounded bg-orbit-500/20 text-orbit-300 text-[10px] font-bold border border-orbit-500/30">
-                                Stack ({group.totalCount} containers)
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-zinc-400 font-mono leading-tight">
-                              {group.containers.map(c => c.name).join(', ')}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${group.allRunning ? 'bg-emerald-500' : group.anyRunning ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                            <span className="text-secondary font-medium">{group.runningCount}/{group.totalCount} ativos</span>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 text-purple-400 font-mono font-bold">
-                          {group.totalCpu.toFixed(1)}%
-                        </td>
-
-                        <td className="px-4 py-4 text-emerald-400 font-mono font-bold">
-                          {formatRAM(group.totalMemory)}
-                        </td>
-
-                        <td className="px-4 py-4 text-orbit-400 font-mono font-bold">
-                          {formatBytes(group.totalDisk)}
-                        </td>
-
-                        <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-2 items-center">
-                            <button
-                              onClick={() => setSelectedGroupModal(group)}
-                              className="p-1.5 rounded glass-button text-orbit-300 hover:text-white bg-orbit-500/15 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1"
-                              title="Ver sub-containers"
-                            >
-                              <Layers className="w-3.5 h-3.5" />
-                              <span>Sub-containers</span>
-                            </button>
-
-                            <button
-                              onClick={(e) => handleGroupAction(e, group, 'restart')}
-                              disabled={Boolean(actionLoading)}
-                              className="p-1.5 rounded glass-button hover:text-cyan-400 transition-colors"
-                              title="Reiniciar Stack"
-                            >
-                              {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
-                            </button>
-
-                            {group.anyRunning ? (
-                              <button
-                                onClick={(e) => handleGroupAction(e, group, 'stop')}
-                                disabled={Boolean(actionLoading)}
-                                className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors"
-                                title="Parar Stack"
-                              >
-                                {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
-                              </button>
-                            ) : (
-                              <button
-                                onClick={(e) => handleGroupAction(e, group, 'start')}
-                                disabled={Boolean(actionLoading)}
-                                className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors"
-                                title="Iniciar Stack"
-                              >
-                                {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Expanded Sub-container Rows */}
-                      {isExpanded && group.containers.map(c => (
-                        <tr 
-                          key={c.id} 
-                          onClick={() => navigate(`/containers/${c.id}`)} 
-                          className="border-b border-border/60 bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer text-xs"
-                        >
-                          <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-orbit-500/50">
-                            <ContainerIcon
-                              src={getIconForImage(c.image, c.name)}
-                              name={c.name}
-                              image={c.image}
-                              size={20}
-                            />
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-medium text-primary">{c.name}</span>
-                              <span className="text-[10px] text-secondary font-mono">{c.image}</span>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-1.5 h-1.5 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                              <span className="capitalize text-secondary text-xs">{c.state}</span>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-3 font-mono text-primary">
-                            {c.cpu_percent?.toFixed(1) || '0.0'}%
-                          </td>
-
-                          <td className="px-4 py-3 font-mono text-primary">
-                            {formatRAM(c.memory_used)}
-                          </td>
-
-                          <td className="px-4 py-3 font-mono text-primary">
-                            {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
-                          </td>
-
-                          <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-end gap-1.5 items-center">
-                              {c.state === 'running' ? (
-                                <>
-                                  <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title="Parar">
-                                    <Square className="w-3 h-3" />
-                                  </button>
-                                  <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-400" title="Reiniciar">
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                </>
-                              ) : (
-                                <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-400" title="Iniciar">
-                                  <Play className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </Fragment>
-                  );
-                }
-
-                const c = item.container;
-                return (
-                  <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-accent/40 transition-colors cursor-pointer">
-                    <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
-                      <ContainerIcon
-                        src={getIconForImage(c.image, c.name)}
-                        name={c.name}
-                        image={c.image}
-                        size={24}
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-primary leading-tight">{c.name}</span>
-                          {updatesMap[c.id]?.has_update && (
-                            <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[10px] font-semibold border border-violet-500/30">
-                              Atualização
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-secondary font-mono leading-tight">{c.image}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                        <span className="capitalize text-secondary">{c.state}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-primary font-mono">
-                      {c.cpu_percent?.toFixed(1) || '0.0'}%
-                    </td>
-                    <td className="px-4 py-4 text-primary font-mono">
-                      {formatRAM(c.memory_used)}
-                    </td>
-                    <td className="px-4 py-4 text-primary font-mono">
-                      {formatBytes((c.size_rw || 0) + (c.size_root_fs || 0))}
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex justify-end gap-2 items-center">
-                        {/* Tabela: Links Rápidos */}
-                        {(() => {
-                          const webLink = getContainerWebLink(c, customLinks);
-                          if (webLink) {
-                            return (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); window.open(webLink, '_blank'); }}
-                                className="px-2 py-1 rounded glass-button text-orbit-400 hover:text-orbit-300 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1 font-medium" 
-                                title={`Abrir ${c.name} (${webLink})`}
-                              >
-                                <Globe className="w-3.5 h-3.5 text-orbit-400" />
-                                <span className="hidden xl:inline">{t('containers.open_app')}</span>
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
-                        
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSetCustomLink(e, c.id);
-                          }}
-                          className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" 
-                          title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
-                        >
-                          <Settings2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <div className="w-px h-4 bg-border mx-1"></div>
-
-                        {updatesMap[c.id]?.has_update && (
-                          <button 
-                            onClick={(e) => handleUpdateContainer(e, c.id)}
-                            className="p-1.5 rounded glass-button text-violet-300 hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1" 
-                            title="Atualizar container"
-                          >
-                            <DownloadCloud className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-
-                        {c.state?.toLowerCase() === 'running' ? (
-                          <>
-                            <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
-                              <Square className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-amber-400 transition-colors" title="Pausar">
-                              <Pause className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Reiniciar">
-                              <RotateCw className={`w-4 h-4 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
-                            </button>
-                          </>
-                        ) : c.state?.toLowerCase() === 'paused' ? (
-                          <>
-                            <button onClick={(e) => handleAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-400 transition-colors" title="Retomar">
-                              <PlayCircle className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
-                              <Square className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <button onClick={(e) => handleAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors" title="Iniciar">
-                            <Play className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <ContainerTableView
+          items={displayItems}
+          expandedGroups={expandedGroups}
+          actionLoading={actionLoading}
+          updatesMap={updatesMap}
+          customLinks={customLinks}
+          onToggleGroupExpanded={toggleGroupExpanded}
+          onOpenGroupModal={(group) => setSelectedGroupModal(group)}
+          onGroupAction={handleGroupAction}
+          onAction={handleAction}
+          onUpdateContainer={handleUpdateContainer}
+          onSetCustomLink={handleSetCustomLink}
+        />
       )}
 
       {/* App Group / Stack Modal */}
@@ -1241,243 +537,31 @@ export function ContainerList() {
         onEditLink={(id) => handleSetCustomLink({ stopPropagation: () => {} } as any, id)}
         customLinks={customLinks}
       />
-      
-      {linkModal.isOpen && typeof document !== 'undefined' && createPortal(
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200" 
-          onClick={() => setLinkModal({ isOpen: false, containerId: null })}
-        >
-          <div 
-            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-lg mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400">
-                  <Globe className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-primary">
-                    Link Customizado do App
-                  </h3>
-                  <p className="text-xs text-secondary">Configure a URL de acesso rápido para este container</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setLinkModal({ isOpen: false, containerId: null })}
-                className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                aria-label="Fechar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="flex bg-background/60 border border-border rounded-xl p-1 mb-4">
-              <button 
-                onClick={() => setLinkMode('builder')} 
-                className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
-                  linkMode === 'builder' 
-                    ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
-                    : 'text-secondary hover:text-primary'
-                }`}
-              >
-                Construtor Automático
-              </button>
-              <button 
-                onClick={() => setLinkMode('raw')} 
-                className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
-                  linkMode === 'raw' 
-                    ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
-                    : 'text-secondary hover:text-primary'
-                }`}
-              >
-                URL Completa
-              </button>
-            </div>
 
-            {linkMode === 'builder' ? (
-              <div className="mb-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-secondary mb-1.5">Subdomínio (App)</label>
-                    <input 
-                      type="text" 
-                      autoFocus
-                      className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
-                      placeholder="meu-app"
-                      value={linkSubdomain}
-                      onChange={(e) => setLinkSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-secondary mb-1.5">Domínio Base</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
-                      placeholder="exemplo.com"
-                      value={linkDomain}
-                      onChange={(e) => setLinkDomain(e.target.value.toLowerCase())}
-                    />
-                  </div>
-                </div>
-                <div className="bg-background/80 rounded-xl p-3.5 border border-border">
-                  <span className="text-xs text-secondary block mb-1 font-medium">Hostname final de acesso:</span>
-                  <span className="text-sm text-emerald-400 font-mono break-all font-semibold">
-                    {linkSubdomain && linkDomain ? `https://${linkSubdomain}.${linkDomain}` : 'Preencha os campos acima...'}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="mb-6 space-y-2">
-                <label className="block text-xs font-medium text-secondary">
-                  Insira a URL customizada completa (deixe em branco para remover):
-                </label>
-                <input 
-                  type="text" 
-                  autoFocus
-                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
-                  placeholder="https://exemplo.com:8080/caminho"
-                  value={linkInput}
-                  onChange={(e) => setLinkInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveLink();
-                    if (e.key === 'Escape') setLinkModal({ isOpen: false, containerId: null });
-                  }}
-                />
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-2">
-              <button 
-                onClick={() => setLinkModal({ isOpen: false, containerId: null })}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-secondary hover:text-primary hover:bg-accent/50 transition-colors text-sm font-medium text-center"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSaveLink}
-                className="w-full sm:w-auto px-5 py-2.5 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-xl transition-all text-sm font-semibold shadow-md shadow-orbit-500/20 text-center"
-              >
-                Salvar Link
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Custom Link Modal */}
+      <CustomLinkModal
+        isOpen={linkModal.isOpen}
+        linkMode={linkMode}
+        setLinkMode={setLinkMode}
+        linkSubdomain={linkSubdomain}
+        setLinkSubdomain={setLinkSubdomain}
+        linkDomain={linkDomain}
+        setLinkDomain={setLinkDomain}
+        linkInput={linkInput}
+        setLinkInput={setLinkInput}
+        onSave={handleSaveLink}
+        onClose={() => setLinkModal({ isOpen: false, containerId: null })}
+      />
 
       {/* Primary Container Selector Modal for Stacks */}
-      {primarySelectorModal.isOpen && primarySelectorModal.group && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
-        >
-          <div
-            className="bg-card border border-border rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-lg mx-auto my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-primary">
-                    {t('containers.select_primary')}
-                  </h3>
-                  <p className="text-xs text-secondary">{primarySelectorModal.group.name}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
-                className="p-1.5 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-                aria-label="Fechar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 mb-4">
-              {primarySelectorModal.group.containers.map(sub => {
-                const isSelected = primarySelectorModal.group?.primaryContainer.id === sub.id;
-                const ports = sub.ports?.filter(p => p.public_port) || [];
-                const link = customLinks[sub.id] || (ports.length > 0 ? resolveWebUrl(ports[0].public_port) : '');
-
-                return (
-                  <div
-                    key={sub.id}
-                    className={`w-full p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                      isSelected
-                        ? 'bg-orbit-500/15 border-orbit-500/60 text-white shadow-sm'
-                        : 'bg-background hover:bg-accent/40 border-border text-zinc-300'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleSelectStackPrimary(primarySelectorModal.group!.groupKey, sub.id, sub.name)}
-                      className="flex-1 text-left min-w-0 flex items-center gap-3"
-                    >
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                        isSelected ? 'border-orbit-500 bg-orbit-500 text-white' : 'border-zinc-600'
-                      }`}>
-                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm truncate">{sub.name}</span>
-                          {isSelected && (
-                            <span className="px-2 py-0.5 rounded-full bg-orbit-500 text-white text-[10px] font-bold">
-                              {t('containers.primary')}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-secondary font-mono block truncate mt-0.5">
-                          {link ? link : t('containers.no_public_ports')}
-                        </span>
-                      </div>
-                    </button>
-
-                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      {link && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(link, '_blank');
-                          }}
-                          className="p-1.5 rounded-lg text-orbit-300 hover:text-white bg-orbit-500/10 hover:bg-orbit-500/25 border border-orbit-500/30 transition-all"
-                          title={t('containers.open_app')}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => handleSetCustomLink(e, sub.id)}
-                        className="p-1.5 rounded-lg text-secondary hover:text-primary bg-accent/50 hover:bg-accent border border-border transition-all"
-                        title={t('containers.edit_link')}
-                      >
-                        <Settings2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setPrimarySelectorModal({ isOpen: false, group: null })}
-                className="px-4 py-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/50 transition-colors text-sm font-medium"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <PrimaryContainerModal
+        isOpen={primarySelectorModal.isOpen}
+        group={primarySelectorModal.group}
+        customLinks={customLinks}
+        onClose={() => setPrimarySelectorModal({ isOpen: false, group: null })}
+        onSelectPrimary={handleSelectStackPrimary}
+        onEditLink={handleSetCustomLink}
+      />
 
       {/* Docker Run / Compose Auto-Install Modal */}
       <DockerInstallModal

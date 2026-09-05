@@ -37,7 +37,7 @@ export const DeviceCardClimate: React.FC<DeviceCardClimateProps> = ({
     <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-3xl saturate-[190%] p-5 shadow-lg flex flex-col justify-between group hover:border-border transition-all duration-300 relative overflow-hidden">
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 shadow-sm">
+          <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shadow-sm">
             <Thermometer className="w-5 h-5" />
           </div>
           <div className="min-w-0">
@@ -56,7 +56,7 @@ export const DeviceCardClimate: React.FC<DeviceCardClimateProps> = ({
 
         {/* Badge de Umidade se disponível */}
         {humidity !== undefined && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/20 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold">
             <Droplets className="w-3.5 h-3.5" />
             <span>{humidity}%</span>
           </div>

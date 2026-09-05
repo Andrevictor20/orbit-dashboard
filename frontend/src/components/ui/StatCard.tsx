@@ -15,7 +15,7 @@ export function StatCard({ title, value, trend, trendUp, subText, icon: Icon }: 
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-medium text-secondary">{title}</h3>
         {trend && (
-          <div className="flex items-center px-2 py-0.5 rounded-full bg-accent border shad-border text-[11px] font-medium text-secondary">
+          <div className="flex items-center px-2 py-0.5 rounded-full bg-accent border shad-border text-[11px] font-semibold text-primary/80 dark:text-secondary">
             <span className="mr-1">{trendUp ? '↗' : '↘'}</span>
             {trend}
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, CheckCircle2, AlertCircle, ChevronUp, X } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertCircle, ChevronUp, X, StopCircle } from 'lucide-react';
 import { useBatchUpdate } from '../../contexts/BatchUpdateContext';
 
 export const BatchUpdateFloatingBar: React.FC = () => {
@@ -13,6 +13,7 @@ export const BatchUpdateFloatingBar: React.FC = () => {
     progressPercent,
     failedCount,
     openModal,
+    cancelAll,
     clear,
   } = useBatchUpdate();
 
@@ -53,12 +54,12 @@ export const BatchUpdateFloatingBar: React.FC = () => {
                 ? 'Atualização com Falhas'
                 : 'Atualização Concluída'}
             </span>
-            <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-accent text-secondary shrink-0">
+            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 border border-border/50 shrink-0">
               {completedTasks}/{totalTasks} ({progressPercent}%)
             </span>
           </div>
 
-          <p className="text-[11px] text-secondary truncate mt-0.5">
+          <p className="text-[11px] text-slate-600 dark:text-secondary truncate mt-0.5">
             {isUpdating && activeContainerName
               ? `Processando: ${activeContainerName}`
               : isCompleted
@@ -78,10 +79,21 @@ export const BatchUpdateFloatingBar: React.FC = () => {
           <ChevronUp className="w-3.5 h-3.5" />
         </button>
 
+        {isUpdating && (
+          <button
+            onClick={cancelAll}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm active:scale-95"
+            title="Cancelar todas as atualizações"
+          >
+            <StopCircle className="w-3.5 h-3.5" />
+            <span>Cancelar</span>
+          </button>
+        )}
+
         {isCompleted && (
           <button
             onClick={clear}
-            className="p-1 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
+            className="p-1 text-slate-700 dark:text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
             title="Dispensar aviso"
             aria-label="Dispensar aviso"
           >

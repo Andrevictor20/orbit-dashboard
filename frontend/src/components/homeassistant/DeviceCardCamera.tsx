@@ -81,7 +81,7 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
           {device.autofocusEntity && (
             <div className="flex items-center justify-between py-1 text-xs">
               <span className="flex items-center gap-2 text-primary font-medium">
-                <Sparkles className="w-3.5 h-3.5 text-orbit-400" />
+                <Sparkles className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                 {t('homeassistant.autofocus')}
               </span>
               <button
@@ -90,9 +90,9 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
                 className="text-secondary hover:text-primary transition-all active:scale-95"
               >
                 {isPending(device.autofocusEntity.entity_id) ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-orbit-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-orbit-600 dark:text-orbit-400" />
                 ) : device.autofocusEntity.state === 'on' ? (
-                  <ToggleRight className="w-6 h-6 text-orbit-400" />
+                  <ToggleRight className="w-6 h-6 text-orbit-600 dark:text-orbit-400" />
                 ) : (
                   <ToggleLeft className="w-6 h-6" />
                 )}
@@ -104,7 +104,7 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
           {device.irLampEntity && (
             <div className="flex items-center justify-between py-1 text-xs">
               <span className="flex items-center gap-2 text-primary font-medium">
-                <Eye className="w-3.5 h-3.5 text-amber-400" />
+                <Eye className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 {t('homeassistant.ir_lamp')}
               </span>
               <button
@@ -113,9 +113,9 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
                 className="text-secondary hover:text-primary transition-all active:scale-95"
               >
                 {isPending(device.irLampEntity.entity_id) ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-orbit-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-orbit-600 dark:text-orbit-400" />
                 ) : device.irLampEntity.state === 'on' ? (
-                  <ToggleRight className="w-6 h-6 text-amber-400" />
+                  <ToggleRight className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 ) : (
                   <ToggleLeft className="w-6 h-6" />
                 )}
@@ -127,7 +127,7 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
           {device.wiperEntity && (
             <div className="flex items-center justify-between py-1 text-xs">
               <span className="flex items-center gap-2 text-primary font-medium">
-                <Wind className="w-3.5 h-3.5 text-cyan-400" />
+                <Wind className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 {t('homeassistant.wiper')}
               </span>
               <button
@@ -136,9 +136,9 @@ export const DeviceCardCamera: React.FC<DeviceCardCameraProps> = ({
                 className="text-secondary hover:text-primary transition-all active:scale-95"
               >
                 {isPending(device.wiperEntity.entity_id) ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-orbit-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-orbit-600 dark:text-orbit-400" />
                 ) : device.wiperEntity.state === 'on' ? (
-                  <ToggleRight className="w-6 h-6 text-cyan-400" />
+                  <ToggleRight className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                 ) : (
                   <ToggleLeft className="w-6 h-6" />
                 )}

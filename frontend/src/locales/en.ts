@@ -219,6 +219,7 @@ export const en = {
     memory_usage_history: "RAM History",
     disk_io_history: "Disk I/O",
     network_io_history: "Network Traffic",
+    cable: "Cable",
     process_monitor: "Process Monitor",
     core_breakdown: "Per-Core Breakdown",
     temperature: "Temperature",
@@ -495,7 +496,11 @@ export const en = {
     step_pull_done: "[{{name}}] Image pulled and verified successfully.",
     step_recreate_start: "[{{name}}] Stopping and recreating container...",
     step_recreate_done: "[{{name}}] Container recreated and running!",
-    step_error: "[{{name}}] ERROR: {{error}}"
+    step_error: "[{{name}}] ERROR: {{error}}",
+    status_cancelled: "Cancelled",
+    cancel_all: "Cancel All",
+    cancel_container: "Cancel update",
+    cancelled_by_user: "Cancelled by user"
   },
   profile: {
     title: "My Account",

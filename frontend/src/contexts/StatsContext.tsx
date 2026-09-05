@@ -24,6 +24,8 @@ export interface SystemStats {
   docker_rx: number;
   orbit_cpu: number;
   orbit_memory: number;
+  network_interface?: string;
+  network_interface_type?: 'ethernet' | 'wifi' | string;
 }
 
 export interface MetricHistoryPoint {

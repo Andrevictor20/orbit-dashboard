@@ -50,7 +50,7 @@ export const DeviceCardMedia: React.FC<DeviceCardMediaProps> = ({
           <div
             className={`p-3 rounded-2xl transition-all duration-300 shadow-sm ${
               isOn
-                ? 'bg-sky-500/20 text-sky-400 ring-2 ring-sky-500/30 shadow-sky-500/20'
+                ? 'bg-sky-500/20 text-sky-600 dark:text-sky-400 ring-2 ring-sky-500/30 shadow-sky-500/20'
                 : 'bg-accent/80 text-secondary'
             }`}
           >
@@ -73,13 +73,13 @@ export const DeviceCardMedia: React.FC<DeviceCardMediaProps> = ({
           aria-label={`${t('homeassistant.quick_controls')}: ${device.name}`}
           className={`p-2.5 rounded-xl transition-all active:scale-95 shrink-0 ${
             isOn
-              ? 'text-sky-400 bg-sky-500/20 hover:bg-sky-500/30 shadow-sm'
+              ? 'text-sky-600 dark:text-sky-400 bg-sky-500/20 hover:bg-sky-500/30 shadow-sm'
               : 'text-secondary hover:text-primary bg-accent/70 hover:bg-accent'
           }`}
           title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
         >
           {pending ? (
-            <Loader2 className="w-4 h-4 animate-spin text-orbit-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-orbit-600 dark:text-orbit-400" />
           ) : (
             <Power className="w-4 h-4" />
           )}
@@ -91,7 +91,7 @@ export const DeviceCardMedia: React.FC<DeviceCardMediaProps> = ({
         <div className="flex items-center gap-2 text-secondary truncate">
           {isOn ? (
             <>
-              <Play className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <Play className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
               <span className="font-medium text-primary truncate">
                 {media?.attributes.media_title || t('homeassistant.state_on')}
               </span>

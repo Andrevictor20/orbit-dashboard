@@ -67,8 +67,10 @@ describe('Overview Component', () => {
         memory_used: 1024 * 1024 * 1024, // 1 GB
         memory_total: 4 * 1024 * 1024 * 1024, // 4 GB
         temperature: 45.0,
-        network_tx: 10 * 1024 * 1024, // 10 MB
-        network_rx: 20 * 1024 * 1024, // 20 MB
+        network_tx: 10 * 1024 * 1024, // 10 MB/s
+        network_rx: 20 * 1024 * 1024, // 20 MB/s
+        network_interface: 'eth0',
+        network_interface_type: 'ethernet',
         disks: [
           { name: '/dev/sda1', mount_point: '/', used: 50 * 1024 * 1024 * 1024, total: 100 * 1024 * 1024 * 1024 },
           { name: 'securityfs', mount_point: '/sys/kernel/security', used: 0, total: 0 },
@@ -89,8 +91,9 @@ describe('Overview Component', () => {
     expect(screen.getByText('45.0°C')).toBeTruthy(); // Temp
     expect(screen.getByText('1.00 GB')).toBeTruthy(); // Mem used
     expect(screen.getByText(/4.00 GB/)).toBeTruthy(); // Mem total
-    expect(screen.getByText('10.0 MB')).toBeTruthy(); // TX
-    expect(screen.getByText('20.0 MB')).toBeTruthy(); // RX
+    expect(screen.getByText('eth0')).toBeTruthy(); // Network interface badge
+    expect(screen.getByText('10.0 MB/s')).toBeTruthy(); // TX speed
+    expect(screen.getByText('20.0 MB/s')).toBeTruthy(); // RX speed
     
     // Physical disk name displayed
     expect(screen.getByText('SSD / HD Principal')).toBeTruthy();

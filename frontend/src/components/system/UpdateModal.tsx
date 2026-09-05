@@ -213,7 +213,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           currentSection = {
             title: heading.replace(/^[^\w\s]+/, '').trim() || 'Desempenho & Fluidez',
             badgeLabel: 'DESEMPENHO',
-            badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+            badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold',
             icon: Zap,
             items: [],
           };
@@ -221,7 +221,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           currentSection = {
             title: heading.replace(/^[^\w\s]+/, '').trim() || 'Correções & Estabilidade',
             badgeLabel: 'CORREÇÃO',
-            badgeClass: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+            badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30 font-semibold',
             icon: Wrench,
             items: [],
           };
@@ -229,7 +229,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           currentSection = {
             title: heading.replace(/^[^\w\s]+/, '').trim() || 'Novidades',
             badgeLabel: 'NOVIDADE',
-            badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+            badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold',
             icon: Sparkles,
             items: [],
           };
@@ -351,7 +351,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           <button
             onClick={onClose}
             disabled={updating && taskState.status !== 'error'}
-            className="p-1.5 text-secondary hover:text-primary rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-30"
+            className="p-1.5 text-slate-700 dark:text-secondary hover:text-primary rounded-xl hover:bg-accent transition-colors disabled:opacity-30"
             aria-label="Fechar"
           >
             <X className="w-5 h-5" />
@@ -366,17 +366,17 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               <div className="p-5 pb-3 space-y-3">
                 {/* CI/CD Building Alert Banner */}
                 {updateInfo?.ci_status === 'building' && (
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-200 shadow-sm">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 shadow-sm">
                     <div className="flex items-start gap-2.5">
-                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0 mt-0.5" />
+                      <RefreshCw className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0 mt-0.5" />
                       <div>
                         <p className="font-semibold text-primary flex items-center gap-1.5">
                           <span>Compilação Multi-Arch em Andamento</span>
-                          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                          <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono font-semibold">
                             GitHub Actions
                           </span>
                         </p>
-                        <p className="text-[11.5px] text-secondary mt-0.5 leading-relaxed">
+                        <p className="text-[11.5px] text-slate-600 dark:text-secondary mt-0.5 leading-relaxed">
                           A imagem da versão <strong className="text-primary font-mono">v{updateInfo.latest_version}</strong> está sendo compilada e empacotada no GitHub (~8 min). Esta tela atualizará automaticamente assim que estiver pronta.
                         </p>
                       </div>
@@ -384,7 +384,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={onRefreshInfo}
-                        className="px-2.5 py-1 rounded-xl bg-card hover:bg-neutral-800 text-secondary hover:text-primary text-[11px] font-semibold border border-border/70 flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1 rounded-xl bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary text-[11px] font-semibold border border-border/70 flex items-center gap-1 transition-colors"
                         title="Verificar status no GitHub agora"
                       >
                         <RefreshCw className="w-3 h-3" />
@@ -395,7 +395,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                           href={updateInfo.ci_workflow_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                          className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
                         >
                           <span>Ver CI/CD</span>
                           <ExternalLink className="w-3 h-3" />
@@ -407,8 +407,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
                 {/* Architecture & Date */}
                 <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-card border border-border/70 text-xs">
-                  <div className="flex items-center gap-1.5 text-secondary">
-                    <Cpu className="w-3.5 h-3.5 text-orbit-400" />
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-secondary">
+                    <Cpu className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                     <span>Arquitetura:</span>
                     <strong className="text-primary font-mono">
                       {updateInfo ? formatPlatformName(updateInfo.platform, updateInfo.arch) : 'Detectando...'}
@@ -416,7 +416,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                   </div>
 
                   {updateInfo?.published_at && (
-                    <div className="flex items-center gap-1 text-secondary font-mono text-[11px]">
+                    <div className="flex items-center gap-1 text-slate-600 dark:text-secondary font-mono text-[11px]">
                       <Clock className="w-3 h-3" />
                       <span>{new Date(updateInfo.published_at).toLocaleDateString('pt-BR')}</span>
                     </div>
@@ -426,11 +426,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 {/* 2-Column Version Deck */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex flex-col justify-between shadow-sm">
-                    <span className="text-xs text-secondary font-medium">Versão Instalada</span>
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Versão Instalada</span>
                     <span className="text-xl font-bold text-primary font-mono mt-1">
                       v{updateInfo?.current_version || '1.9.9'}
                     </span>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1 font-medium">
+                    <div className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 mt-1 font-semibold">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Instalação Ativa</span>
                     </div>
@@ -441,14 +441,14 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                       ? 'bg-orbit-500/10 border-orbit-500/40' 
                       : 'bg-card border-border/80'
                   }`}>
-                    <span className="text-xs text-secondary font-medium">Mais Recente</span>
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Mais Recente</span>
                     <span className={`text-xl font-bold font-mono mt-1 ${
-                      updateInfo?.has_update ? 'text-orbit-400' : 'text-primary'
+                      updateInfo?.has_update ? 'text-orbit-600 dark:text-orbit-400' : 'text-primary'
                     }`}>
                       v{updateInfo?.latest_version || updateInfo?.current_version || '1.9.9'}
                     </span>
-                    <div className="flex items-center gap-1 text-[11px] text-secondary mt-1 font-mono">
-                      <GitBranch className="w-3.5 h-3.5 text-orbit-400" />
+                    <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-secondary mt-1 font-mono">
+                      <GitBranch className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                       <span>ghcr.io:latest</span>
                     </div>
                   </div>
@@ -458,13 +458,13 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               {/* Title & Refresh */}
               <div className="px-5 pt-2 pb-1 flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles className="w-3.5 h-3.5 text-orbit-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                   <span>O que mudou nesta versão</span>
                 </div>
 
                 <button 
                   onClick={onRefreshInfo}
-                  className="text-[11px] text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-card hover:bg-neutral-800 px-2.5 py-1 rounded-lg border border-border/70 active:scale-95 shadow-sm"
+                  className="text-[11px] text-slate-700 dark:text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-card hover:bg-accent px-2.5 py-1 rounded-lg border border-border/70 active:scale-95 shadow-sm font-medium"
                   title="Verificar atualizações"
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -494,8 +494,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
                         <ul className="space-y-1.5 pl-2">
                           {section.items.map((item, iIdx) => (
-                            <li key={iIdx} className="text-xs text-secondary leading-relaxed flex items-start gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orbit-400 shrink-0 mt-1.5" />
+                            <li key={iIdx} className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400 shrink-0 mt-1.5" />
                               <div>
                                 {item.title && (
                                   <strong className="text-primary mr-1">
@@ -511,10 +511,10 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                     );
                   })
                 ) : (
-                  <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-card border border-border/60 text-secondary text-center space-y-2">
-                    <ShieldCheck className="w-8 h-8 text-emerald-400 mb-1" />
+                  <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-card border border-border/60 text-slate-600 dark:text-secondary text-center space-y-2">
+                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mb-1" />
                     <p className="text-sm font-semibold text-primary">Orbit 100% Atualizado</p>
-                    <p className="text-xs text-secondary">
+                    <p className="text-xs text-slate-600 dark:text-secondary">
                       Você está rodando a versão mais recente com todas as melhorias e correções aplicadas.
                     </p>
                   </div>
@@ -529,18 +529,18 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-primary flex items-center gap-2">
                       {taskState.status === 'recreating' ? (
-                        <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                       ) : (
-                        <Download className="w-4 h-4 text-orbit-400 animate-bounce" />
+                        <Download className="w-4 h-4 text-orbit-500 animate-bounce" />
                       )}
                       {taskState.current_step || 'Executando atualização...'}
                     </span>
-                    <span className="text-orbit-400 font-mono text-xs tabular-nums font-bold">
+                    <span className="text-orbit-600 dark:text-orbit-400 font-mono text-xs tabular-nums font-bold">
                       {taskState.progress}%
                     </span>
                   </div>
 
-                  <div className="w-full bg-neutral-900 rounded-full h-2 overflow-hidden border border-border/50">
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border/50">
                     <div 
                       className="bg-orbit-500 h-full rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${Math.max(taskState.progress, 5)}%` }}
@@ -548,9 +548,9 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                   </div>
 
                   {taskState.status === 'recreating' && (
-                    <div className="flex items-center justify-between text-[11px] text-secondary pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-secondary pt-1">
                       <span>Tentativa de reconexão:</span>
-                      <span className="font-mono text-amber-400 font-bold">{reconnectAttempts}/45</span>
+                      <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">{reconnectAttempts}/45</span>
                     </div>
                   )}
                 </div>
@@ -575,7 +575,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 </div>
 
                 {taskState.error && (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 font-medium">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{taskState.error}</span>
                   </div>
@@ -590,7 +590,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           <button
             onClick={onClose}
             disabled={updating && taskState.status !== 'error'}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-secondary hover:text-primary hover:bg-neutral-800 transition-colors disabled:opacity-30"
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors disabled:opacity-30"
           >
             Fechar
           </button>
@@ -599,18 +599,18 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             updateInfo?.ci_status === 'building' ? (
               <button
                 disabled
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold cursor-not-allowed opacity-80"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold cursor-not-allowed opacity-80"
                 title="A imagem Docker multi-arch está sendo gerada no GitHub. O botão será liberado automaticamente."
               >
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                 <span>Compilando Imagem no GitHub...</span>
               </button>
             ) : !updateInfo?.has_update ? (
               <button
                 disabled
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-border/80 text-secondary text-xs font-semibold cursor-default opacity-80"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-border/80 text-slate-700 dark:text-secondary text-xs font-semibold cursor-default opacity-80"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Sistema na Versão Mais Recente</span>
               </button>
             ) : (

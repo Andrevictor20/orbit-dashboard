@@ -42,6 +42,10 @@ pub struct SystemStats {
     pub docker_rx: u64,
     pub orbit_cpu: f32,
     pub orbit_memory: u64,
+    #[serde(default)]
+    pub network_interface: Option<String>,
+    #[serde(default)]
+    pub network_interface_type: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -194,32 +198,8 @@ fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
     pids
 }
 
-fn read_host_network_bytes() -> (u64, u64) {
-    let paths = ["/proc/1/net/dev", "/proc/net/dev", "/host/proc/net/dev"];
-    for p in paths {
-        if let Ok(content) = std::fs::read_to_string(p) {
-            let mut total_rx = 0u64;
-            let mut total_tx = 0u64;
-            for line in content.lines().skip(2) {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 10 {
-                    let iface = parts[0].trim_end_matches(':');
-                    if iface == "lo" {
-                        continue;
-                    }
-                    if let (Ok(rx), Ok(tx)) = (parts[1].parse::<u64>(), parts[9].parse::<u64>()) {
-                        total_rx += rx;
-                        total_tx += tx;
-                    }
-                }
-            }
-            if total_rx > 0 || total_tx > 0 {
-                return (total_rx, total_tx);
-            }
-        }
-    }
-    (0, 0)
-}
+pub use crate::system::network::*;
+
 
 async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut sys = System::new_with_specifics(
@@ -239,6 +219,7 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut prev_cpu_stats = std::collections::HashMap::new();
     let mut prev_host_rx = 0u64;
     let mut prev_host_tx = 0u64;
+    let mut prev_iface_name: Option<String> = None;
     let mut prev_docker_rx = 0u64;
     let mut prev_docker_tx = 0u64;
     let mut cached_docker_cpu = 0.0f32;
@@ -296,23 +277,26 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             .map(|&p| read_private_memory(p))
             .sum();
 
-        let (mut host_raw_rx, mut host_raw_tx) = read_host_network_bytes();
+        let (current_iface_info, mut host_raw_rx, mut host_raw_tx) = read_host_network_bytes(None);
         if host_raw_rx == 0 && host_raw_tx == 0 {
             for (iface, data) in &networks {
-                if iface != "lo" {
+                if iface != "lo" && !iface.starts_with("docker") && !iface.starts_with("veth") && !iface.starts_with("br-") {
                     host_raw_rx += data.total_received();
                     host_raw_tx += data.total_transmitted();
                 }
             }
         }
 
-        let host_rate_rx = if first_tick || host_raw_rx < prev_host_rx {
+        let iface_changed = current_iface_info.as_ref().map(|i| &i.name) != prev_iface_name.as_ref();
+        prev_iface_name = current_iface_info.as_ref().map(|i| i.name.clone());
+
+        let host_rate_rx = if first_tick || iface_changed || host_raw_rx < prev_host_rx {
             0u64
         } else {
             ((host_raw_rx - prev_host_rx) as f64 / elapsed_secs) as u64
         };
 
-        let host_rate_tx = if first_tick || host_raw_tx < prev_host_tx {
+        let host_rate_tx = if first_tick || iface_changed || host_raw_tx < prev_host_tx {
             0u64
         } else {
             ((host_raw_tx - prev_host_tx) as f64 / elapsed_secs) as u64
@@ -484,6 +468,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             disks: disk_stats,
             network_tx: host_rate_tx,
             network_rx: host_rate_rx,
+            network_interface: current_iface_info.as_ref().map(|i| i.name.clone()),
+            network_interface_type: current_iface_info.as_ref().map(|i| i.kind.clone()),
             temperature,
             docker_cpu: cached_docker_cpu,
             docker_memory: cached_docker_mem,
@@ -591,6 +577,8 @@ mod tests {
             disks: vec![],
             network_tx: 0,
             network_rx: 0,
+            network_interface: None,
+            network_interface_type: None,
             temperature: 50.0,
             docker_cpu: 0.0,
             docker_memory: 0,
@@ -647,6 +635,8 @@ mod tests {
             disks: vec![],
             network_tx: 0,
             network_rx: 0,
+            network_interface: None,
+            network_interface_type: None,
             temperature: 85.0, // Should trigger
             docker_cpu: 0.0,
             docker_memory: 0,
@@ -667,3 +657,4 @@ mod tests {
         }
     }
 }
+

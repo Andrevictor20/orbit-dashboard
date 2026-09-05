@@ -99,7 +99,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shrink-0">
               <Music className="w-5 h-5" />
             </div>
             <div className="truncate">
@@ -140,7 +140,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
             step="0.1"
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
+            className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-orbit-500"
           />
           <div className="flex justify-between text-xs text-secondary">
             <span>{formatTime(currentTime)}</span>
@@ -189,7 +189,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
               step="0.05"
               value={isMuted ? 0 : volume}
               onChange={handleVolume}
-              className="w-20 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
+              className="w-20 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-orbit-500"
             />
           </div>
         </div>

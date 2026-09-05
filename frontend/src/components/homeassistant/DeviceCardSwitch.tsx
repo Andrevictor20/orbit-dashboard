@@ -38,7 +38,7 @@ export const DeviceCardSwitch: React.FC<DeviceCardSwitchProps> = ({
           <div
             className={`p-3 rounded-2xl transition-all duration-300 shadow-sm ${
               isOn
-                ? 'bg-indigo-500/20 text-indigo-400 ring-2 ring-indigo-500/30 shadow-indigo-500/20'
+                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-500/30 shadow-indigo-500/20'
                 : 'bg-accent/80 text-secondary'
             }`}
           >
@@ -61,13 +61,13 @@ export const DeviceCardSwitch: React.FC<DeviceCardSwitchProps> = ({
           aria-label={`Alternar ${device.name}`}
           className={`p-1.5 rounded-xl transition-all active:scale-95 shrink-0 ${
             isOn
-              ? 'text-indigo-400 bg-indigo-500/15 hover:bg-indigo-500/25'
+              ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 hover:bg-indigo-500/25'
               : 'text-secondary hover:text-primary bg-accent/60'
           }`}
           title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
         >
           {pending ? (
-            <Loader2 className="w-6 h-6 animate-spin text-orbit-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-orbit-600 dark:text-orbit-400" />
           ) : isOn ? (
             <ToggleRight className="w-6 h-6" />
           ) : (
@@ -81,7 +81,7 @@ export const DeviceCardSwitch: React.FC<DeviceCardSwitchProps> = ({
         <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between gap-2 text-xs relative z-10">
           {device.energyEntity && (
             <div className="flex items-center gap-1.5 text-secondary">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               <span className="text-[11px]">{t('homeassistant.energy_consumed')}:</span>
               <span className="font-bold text-primary tabular-nums">
                 {device.energyEntity.state}{' '}
@@ -94,7 +94,7 @@ export const DeviceCardSwitch: React.FC<DeviceCardSwitchProps> = ({
 
           {device.powerEntity && (
             <div className="flex items-center gap-1.5 text-secondary">
-              <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+              <Gauge className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
               <span className="font-bold text-primary tabular-nums">
                 {device.powerEntity.state}{' '}
                 <span className="text-[10px] font-normal text-secondary">

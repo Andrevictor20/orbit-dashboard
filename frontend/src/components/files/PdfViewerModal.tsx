@@ -85,7 +85,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-3.5 border-b border-border bg-card/90 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 shrink-0">
+            <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -143,7 +143,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               data-testid="download-pdf-btn"
               href={downloadUrl}
               download={file.name}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 transition-colors text-xs font-medium"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 transition-colors text-xs font-semibold"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Download</span>
@@ -212,7 +212,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                       href={pdfUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded-xl bg-orbit-500/20 text-orbit-400 border border-orbit-500/30 text-xs font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-orbit-500/20 text-orbit-600 dark:text-orbit-400 border border-orbit-500/30 text-xs font-semibold"
                     >
                       Abrir em nova aba
                     </a>

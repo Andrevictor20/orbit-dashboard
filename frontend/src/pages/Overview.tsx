@@ -15,10 +15,12 @@ import {
   Network,
   Zap,
   CreditCard,
-  Usb
+  Usb,
+  Wifi,
+  Cable
 } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
-import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatStorage } from '../utils/format';
+import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatStorage, formatNetworkSpeed } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
 import { groupContainers, type GroupContainerItem, type GroupedContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
@@ -57,7 +59,7 @@ const AppCardItem = memo(function AppCardItem({
       >
         {/* Top-right stack indicator */}
         <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 font-semibold font-mono">
+          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/15 text-orbit-700 dark:text-orbit-400 border border-orbit-500/30 font-semibold font-mono">
             {item.totalCount}
           </span>
           <span className={`w-2 h-2 rounded-full ${
@@ -86,7 +88,7 @@ const AppCardItem = memo(function AppCardItem({
         {/* Subtext */}
         <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
           {item.anyRunning ? (
-            <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5 font-medium">
+            <span className="text-orbit-600 dark:text-orbit-400 group-hover:underline flex items-center gap-0.5 font-medium">
               {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
             </span>
           ) : (
@@ -132,11 +134,11 @@ const AppCardItem = memo(function AppCardItem({
       <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
         {isRunning ? (
           webLink ? (
-            <span className="text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
+            <span className="text-orbit-600 dark:text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
               {t('common.open', 'Abrir')} <ExternalLink className="w-2.5 h-2.5 inline" />
             </span>
           ) : (
-            <span className="text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
           )
         ) : (
           <span className="text-secondary/60">{t('common.stopped', 'Parado')}</span>
@@ -228,8 +230,8 @@ export function Overview() {
     : '0.0';
 
   const tempC = stats ? stats.temperature.toFixed(1) : '0.0';
-  const netTxMB = stats ? (stats.network_tx / 1024 / 1024).toFixed(1) : '0.0';
-  const netRxMB = stats ? (stats.network_rx / 1024 / 1024).toFixed(1) : '0.0';
+  const netTxSpeed = formatNetworkSpeed(stats?.network_tx);
+  const netRxSpeed = formatNetworkSpeed(stats?.network_rx);
 
   const safeHistory = Array.isArray(history) ? history : [];
 
@@ -368,13 +370,13 @@ export function Overview() {
           <div className="space-y-1">
             <div className="flex items-center justify-between text-secondary">
               <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
-              <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400 group-hover:scale-110 transition-transform">
+              <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform">
                 <Cpu className="w-4 h-4" />
               </div>
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
-              <span className="text-xs font-mono text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+              <span className="text-xs font-mono text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
                 {tempC}°C
               </span>
             </div>
@@ -416,7 +418,7 @@ export function Overview() {
           <div className="space-y-1">
             <div className="flex items-center justify-between text-secondary">
               <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                 <Activity className="w-4 h-4" />
               </div>
             </div>
@@ -466,12 +468,12 @@ export function Overview() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
               {uniqueDisks.length > 1 && (
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orbit-500/10 text-orbit-400 border border-orbit-500/20">
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orbit-500/15 text-orbit-700 dark:text-orbit-400 border border-orbit-500/30">
                   {uniqueDisks.length} unidades
                 </span>
               )}
             </div>
-            <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-400 group-hover:scale-110 transition-transform">
+            <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 group-hover:scale-110 transition-transform">
               <HardDrive className="w-4 h-4" />
             </div>
           </div>
@@ -521,18 +523,18 @@ export function Overview() {
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {info.category === 'sdcard' ? (
-                          <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <CreditCard className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                         ) : info.category === 'nvme' ? (
-                          <Zap className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                          <Zap className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400 shrink-0" />
                         ) : info.category === 'usb' ? (
-                          <Usb className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <Usb className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         ) : (
-                          <HardDrive className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                          <HardDrive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
                         )}
                         <span className="text-xs font-semibold text-primary truncate max-w-[125px] sm:max-w-[145px]" title={info.friendlyName}>
                           {info.friendlyName}
                         </span>
-                        <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.2 rounded bg-accent text-secondary border border-border/50 shrink-0">
+                        <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 font-semibold border border-border/50 shrink-0">
                           {info.typeLabel}
                         </span>
                       </div>
@@ -540,7 +542,7 @@ export function Overview() {
                         <span className="text-xs font-mono font-bold text-primary">
                           {usedFmt}
                         </span>
-                        <span className="text-[10px] font-mono text-secondary ml-1">
+                        <span className="text-[10px] font-mono text-slate-600 dark:text-secondary ml-1 font-medium">
                           / {totalFmt} ({percent}%)
                         </span>
                       </div>
@@ -582,19 +584,35 @@ export function Overview() {
         >
           <div className="space-y-1">
             <div className="flex items-center justify-between text-secondary">
-              <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Tráfego de Rede')}</span>
-              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 group-hover:scale-110 transition-transform">
-                <Network className="w-4 h-4" />
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Tráfego de Rede')}</span>
+                {stats?.network_interface && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-mono font-medium flex items-center gap-1">
+                    {stats.network_interface_type === 'wifi' ? (
+                      <Wifi className="w-2.5 h-2.5" />
+                    ) : (
+                      <Cable className="w-2.5 h-2.5" />
+                    )}
+                    {stats.network_interface}
+                  </span>
+                )}
+              </div>
+              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
+                {stats?.network_interface_type === 'wifi' ? (
+                  <Wifi className="w-4 h-4" />
+                ) : (
+                  <Network className="w-4 h-4" />
+                )}
               </div>
             </div>
             <div className="flex items-center justify-between font-mono text-xs text-secondary">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                TX: <strong className="text-primary">{netTxMB} MB</strong>
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+                TX: <strong className="text-primary">{netTxSpeed}</strong>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                RX: <strong className="text-primary">{netRxMB} MB</strong>
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 dark:bg-sky-400" />
+                RX: <strong className="text-primary">{netRxSpeed}</strong>
               </span>
             </div>
           </div>
@@ -614,8 +632,8 @@ export function Overview() {
 
           <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50">
             <span className="text-secondary text-[11px] font-medium">{containers.length} Containers</span>
-            <span className="text-emerald-400 font-semibold font-mono text-[11px] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold font-mono text-[11px] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {runningContainersCount} ativos
             </span>
           </div>
@@ -633,7 +651,7 @@ export function Overview() {
                 {t('dashboard.apps_grid', 'Aplicativos Instalados')}
               </h2>
             </div>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-accent border border-border text-secondary">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-accent border border-border text-primary/80 dark:text-secondary">
               {containers.length}
             </span>
           </div>

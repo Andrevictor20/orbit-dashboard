@@ -220,17 +220,17 @@ export function Logs() {
             <button
               onClick={handleCopyLogs}
               disabled={logs.length === 0}
-              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-secondary hover:text-white transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
+              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
               title={t('common.copy')}
             >
-              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? t('common.copied') : t('common.copy')}</span>
             </button>
 
             <button
               onClick={handleDownloadLogs}
               disabled={logs.length === 0}
-              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-secondary hover:text-white transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
+              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
               title={t('common.download')}
             >
               <Download className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export function Logs() {
             <button
               onClick={handleClearLogs}
               disabled={clearing}
-              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40 text-secondary transition-all text-xs font-medium flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
+              className="px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-500/40 text-slate-700 dark:text-secondary transition-all text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 shadow-sm"
               title={t('common.clear')}
             >
               <Trash2 className={`w-3.5 h-3.5 ${clearing ? 'animate-spin' : ''}`} />
@@ -493,24 +493,24 @@ export function Logs() {
                 const isInfo = /info/i.test(line);
 
                 let textColor = 'text-primary';
-                let badgeColor = 'bg-accent text-secondary border-border/70';
+                let badgeColor = 'bg-accent text-slate-700 dark:text-zinc-300 border-border/70 font-semibold';
                 let badgeText = 'LOG';
 
                 if (isError) {
-                  textColor = 'text-rose-600 dark:text-rose-300 font-medium';
-                  badgeColor = 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30';
+                  textColor = 'text-rose-700 dark:text-rose-300 font-medium';
+                  badgeColor = 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 font-semibold';
                   badgeText = 'ERR';
                 } else if (isWarn) {
-                  textColor = 'text-amber-600 dark:text-amber-300 font-medium';
-                  badgeColor = 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30';
+                  textColor = 'text-amber-700 dark:text-amber-300 font-medium';
+                  badgeColor = 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-semibold';
                   badgeText = 'WRN';
                 } else if (isDebug) {
-                  textColor = 'text-purple-600 dark:text-purple-300';
-                  badgeColor = 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30';
+                  textColor = 'text-purple-700 dark:text-purple-300';
+                  badgeColor = 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold';
                   badgeText = 'DBG';
                 } else if (isInfo) {
-                  textColor = 'text-emerald-600 dark:text-emerald-300/90';
-                  badgeColor = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30';
+                  textColor = 'text-emerald-700 dark:text-emerald-300/90';
+                  badgeColor = 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-semibold';
                   badgeText = 'INF';
                 }
 

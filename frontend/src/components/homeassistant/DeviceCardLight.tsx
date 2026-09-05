@@ -52,7 +52,7 @@ export const DeviceCardLight: React.FC<DeviceCardLightProps> = ({
           <div
             className={`p-3 rounded-2xl transition-all duration-300 shadow-sm ${
               isOn
-                ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-500/30 shadow-amber-500/20'
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/30 shadow-amber-500/20'
                 : 'bg-accent/80 text-secondary'
             }`}
           >
@@ -75,13 +75,13 @@ export const DeviceCardLight: React.FC<DeviceCardLightProps> = ({
           aria-label={`Alternar ${device.name}`}
           className={`p-1.5 rounded-xl transition-all active:scale-95 shrink-0 ${
             isOn
-              ? 'text-amber-400 bg-amber-500/15 hover:bg-amber-500/25'
+              ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 hover:bg-amber-500/25'
               : 'text-secondary hover:text-primary bg-accent/60'
           }`}
           title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
         >
           {pending ? (
-            <Loader2 className="w-6 h-6 animate-spin text-orbit-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-orbit-600 dark:text-orbit-400" />
           ) : isOn ? (
             <ToggleRight className="w-6 h-6" />
           ) : (
@@ -97,7 +97,7 @@ export const DeviceCardLight: React.FC<DeviceCardLightProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-secondary">
               <span className="flex items-center gap-1.5 font-medium">
-                <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                <Sliders className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 {t('homeassistant.brightness')}
               </span>
               <span className="font-semibold text-primary tabular-nums">
@@ -160,7 +160,7 @@ export const DeviceCardLight: React.FC<DeviceCardLightProps> = ({
               disabled={isPending(device.doNotDisturbEntity.entity_id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all active:scale-95 border ${
                 dndOn
-                  ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                  ? 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-400 font-semibold'
                   : 'bg-accent/60 border-border/60 text-secondary hover:text-primary'
               }`}
               title={t('homeassistant.do_not_disturb')}

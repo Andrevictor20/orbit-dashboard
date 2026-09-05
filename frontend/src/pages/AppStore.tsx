@@ -423,14 +423,14 @@ export function AppStore() {
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   selectedCategory === 'All'
                     ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                    : 'text-secondary hover:text-primary hover:bg-accent'
+                    : 'text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <LayoutGrid className="w-4 h-4" />
                   <span>Todas</span>
                 </div>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-accent text-secondary border border-border/60'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-accent text-slate-700 dark:text-zinc-300 border border-border/60 font-semibold'}`}>
                   {apps.length}
                 </span>
               </button>
@@ -451,14 +451,14 @@ export function AppStore() {
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                       isSelected
                         ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                        : 'text-secondary hover:text-primary hover:bg-accent'
+                        : 'text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate pr-2">
                       <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate">{category}</span>
                     </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-accent text-secondary border border-border/60'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-accent text-slate-700 dark:text-zinc-300 border border-border/60 font-semibold'}`}>
                       {count}
                     </span>
                   </button>
@@ -776,7 +776,7 @@ export function AppStore() {
                   <span>Instalado</span>
                 </span>
               )}
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-secondary border border-border/70 rounded-full">
+              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-primary/80 dark:text-secondary border border-border rounded-full">
                 {app.category}
               </span>
               <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20 rounded-full">
@@ -801,7 +801,7 @@ export function AppStore() {
         {/* Actions Grid (Explorar + Install / Gerenciar) */}
         <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
           <div 
-            className="w-full py-2 bg-accent/70 text-secondary hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm"
+            className="w-full py-2 bg-accent/70 text-primary/90 hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm"
           >
             <span>Explorar</span>
             <ExternalLink className="w-3 h-3 opacity-60" />

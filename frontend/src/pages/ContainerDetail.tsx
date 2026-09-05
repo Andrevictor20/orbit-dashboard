@@ -756,12 +756,12 @@ export function ContainerDetail() {
       {activeTab === 'overview' && (
         <>
           {hasUpdate && (
-            <div className="flex items-center justify-between p-3.5 mb-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs sm:text-sm animate-in fade-in">
+            <div className="flex items-center justify-between p-3.5 mb-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-900 dark:text-violet-300 text-xs sm:text-sm animate-in fade-in">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-violet-400 shrink-0" />
+                <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />
                 <div>
-                  <span className="font-semibold text-white">Atualização disponível</span>
-                  <p className="text-xs text-zinc-400 mt-0.5">Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.</p>
+                  <span className="font-semibold text-primary dark:text-white">Atualização disponível</span>
+                  <p className="text-xs text-secondary dark:text-zinc-400 mt-0.5 font-medium">Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.</p>
                 </div>
               </div>
               <button
@@ -860,18 +860,18 @@ export function ContainerDetail() {
                   <div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-secondary uppercase font-semibold">Variáveis (Env)</span>
-                      {!editingEnv && <button type="button" onClick={beginEnvEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-white">
+                      {!editingEnv && <button type="button" onClick={beginEnvEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
                         <Pencil className="w-3 h-3" /> Editar Variáveis
                       </button>}
                     </div>
                     {editingEnv ? <div className="mt-2 space-y-2">
-                      <p className="text-xs text-amber-300">Salvar recriará o container, causando breve indisponibilidade e um novo ID.</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container, causando breve indisponibilidade e um novo ID.</p>
                       {envVariables.map((variable, index) => <div className="flex gap-2" key={index}>
                         <input aria-label={`Chave da variável ${index + 1}`} value={variable.key} onChange={(event) => updateEnvField(index, 'key', event.target.value)} placeholder="CHAVE" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
                         <input aria-label={`Valor da variável ${index + 1}`} value={variable.value} onChange={(event) => updateEnvField(index, 'value', event.target.value)} placeholder="valor" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
                         <button type="button" aria-label={`Remover variável ${index + 1}`} onClick={() => setEnvVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
                       </div>)}
-                      <button type="button" onClick={() => setEnvVariables((current) => [...current, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-white"><Plus className="w-3 h-3" /> + Adicionar</button>
+                      <button type="button" onClick={() => setEnvVariables((current) => [...current, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
                       {envError && <p role="alert" className="text-xs text-rose-400">{envError}</p>}
                       <div className="flex gap-2">
                         <button type="button" onClick={handleUpdateEnv} disabled={envSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{envSaving ? 'Salvando...' : 'Salvar alterações'}</button>
@@ -893,19 +893,19 @@ export function ContainerDetail() {
                   <div className="pt-4 border-t border-border">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-secondary uppercase font-semibold">Volumes (Binds)</span>
-                      {!editingVolumes && <button type="button" onClick={beginVolumeEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-white">
+                      {!editingVolumes && <button type="button" onClick={beginVolumeEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
                         <Pencil className="w-3 h-3" /> Editar Volumes
                       </button>}
                     </div>
                     {editingVolumes ? <div className="mt-2 space-y-2">
-                      <p className="text-xs text-amber-300">Salvar recriará o container. Volumes anônimos podem ser perdidos.</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container. Volumes anônimos podem ser perdidos.</p>
                       {volumeVariables.map((variable, index) => <div className="flex gap-2" key={index}>
                         <input aria-label={`Host path ${index + 1}`} value={variable.host} onChange={(event) => updateVolumeField(index, 'host', event.target.value)} placeholder="/host/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
                         <span className="text-secondary flex items-center">:</span>
                         <input aria-label={`Container path ${index + 1}`} value={variable.container} onChange={(event) => updateVolumeField(index, 'container', event.target.value)} placeholder="/container/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
                         <button type="button" aria-label={`Remover volume ${index + 1}`} onClick={() => setVolumeVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
                       </div>)}
-                      <button type="button" onClick={() => setVolumeVariables((current) => [...current, { host: '', container: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-white"><Plus className="w-3 h-3" /> + Adicionar</button>
+                      <button type="button" onClick={() => setVolumeVariables((current) => [...current, { host: '', container: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
                       {volumeError && <p role="alert" className="text-xs text-rose-400">{volumeError}</p>}
                       <div className="flex gap-2">
                         <button type="button" onClick={handleUpdateVolumes} disabled={volumeSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{volumeSaving ? 'Salvando...' : 'Salvar alterações'}</button>

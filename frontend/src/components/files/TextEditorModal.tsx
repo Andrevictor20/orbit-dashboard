@@ -203,7 +203,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         {/* Header */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-card/90 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 shrink-0">
+            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -265,7 +265,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {saveSuccess && (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium animate-in fade-in">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold animate-in fade-in">
                 <Check className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Salvo!</span>
               </span>
@@ -366,7 +366,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                     <div className="w-full h-full flex flex-col rounded-xl overflow-hidden border border-border shadow-xl bg-white">
                       <div className="bg-card/95 px-4 py-2 flex items-center justify-between text-xs text-secondary border-b border-border">
                         <div className="flex items-center gap-2 font-medium text-primary">
-                          <Globe className="w-3.5 h-3.5 text-orbit-400" />
+                          <Globe className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                           <span>Prévia do Website (Live HTML)</span>
                         </div>
                       </div>
@@ -380,7 +380,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                     </div>
                   ) : isMarkdown ? (
                     <div className="max-w-3xl mx-auto py-2">
-                      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800 text-xs font-semibold text-orbit-400">
+                      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800 text-xs font-semibold text-orbit-600 dark:text-orbit-400">
                         <Sparkles className="w-4 h-4" />
                         <span>Prévia Markdown Estilizada</span>
                       </div>
@@ -414,13 +414,13 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
 
           <div className="flex items-center gap-2">
             {isDirty ? (
-              <span className="flex items-center gap-1 text-amber-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 Modificado
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Salvo
               </span>
             )}

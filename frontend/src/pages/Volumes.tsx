@@ -247,14 +247,14 @@ export function Volumes() {
             </button>
             <button
               onClick={() => setStatusFilter('used')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'used' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {t('volumes.in_use')} ({usedCount})
             </button>
             <button
               onClick={() => setStatusFilter('unused')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap ${statusFilter === 'unused' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/30' : 'text-secondary hover:text-primary font-medium'}`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               {t('volumes.unused')} ({unusedCount})
@@ -305,13 +305,13 @@ export function Volumes() {
                       </span>
                     </div>
                     {vol.in_use ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         Em uso {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 shrink-0">
-                        <AlertCircle className="w-3 h-3 text-zinc-400" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
+                        <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                         Não utilizado
                       </span>
                     )}
@@ -363,13 +363,13 @@ export function Volumes() {
                     <tr key={vol.name} className="hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         {vol.in_use ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             Em uso {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
-                            <AlertCircle className="w-3 h-3 text-zinc-400" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
+                            <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
                             Não utilizado
                           </span>
                         )}

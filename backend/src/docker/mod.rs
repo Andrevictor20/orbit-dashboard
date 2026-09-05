@@ -1,6 +1,9 @@
 pub mod types;
 pub mod stats;
 pub mod containers;
+pub mod port_prioritization;
+pub mod updates;
+pub mod update_runner;
 pub mod images;
 pub mod networks;
 pub mod volumes;

@@ -574,6 +574,7 @@ pub async fn get_system_version_handler() -> impl IntoResponse {
 
 pub mod processes;
 pub mod alerts;
+pub mod network;
 
 pub fn router() -> axum::Router<AppState> {
     axum::Router::new()

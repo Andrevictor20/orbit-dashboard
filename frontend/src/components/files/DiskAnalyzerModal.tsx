@@ -83,19 +83,19 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden text-zinc-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden text-primary animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-900/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/50">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+            <div className="p-2.5 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
               <PieChart size={20} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
+              <h2 className="text-base font-bold text-primary flex items-center gap-2">
                 Analisador de Espaço em Disco
               </h2>
-              <p className="text-xs text-zinc-400 font-mono max-w-lg truncate">
+              <p className="text-xs text-slate-600 dark:text-secondary font-mono max-w-lg truncate">
                 {currentPath}
               </p>
             </div>
@@ -105,14 +105,14 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
             <button
               onClick={fetchAnalysis}
               disabled={loading}
-              className="p-2 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors border border-zinc-700/40 disabled:opacity-50"
+              className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors border border-border disabled:opacity-50"
               title="Recarregar Análise"
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors border border-zinc-700/40"
+              className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors border border-border"
               title="Fechar"
             >
               <X size={16} />
@@ -123,38 +123,38 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-zinc-400">
-              <Loader2 className="animate-spin text-violet-400" size={32} />
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-600 dark:text-secondary">
+              <Loader2 className="animate-spin text-violet-600 dark:text-violet-400" size={32} />
               <p className="text-sm font-medium">Calculando tamanhos recursivos de arquivos...</p>
             </div>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-sm text-center font-medium">
               {error}
             </div>
           ) : data ? (
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-zinc-800/40 border border-zinc-800/80 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-zinc-400 font-medium">Espaço Total Ocupado</span>
-                    <h3 className="text-2xl font-bold text-violet-400 mt-1 font-mono">
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Espaço Total Ocupado</span>
+                    <h3 className="text-2xl font-bold text-violet-600 dark:text-violet-400 mt-1 font-mono">
                       {formatBytes(data.total_size)}
                     </h3>
                   </div>
-                  <div className="p-3 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                  <div className="p-3 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/30">
                     <HardDrive size={24} />
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-zinc-800/40 border border-zinc-800/80 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-zinc-400 font-medium">Total de Itens</span>
-                    <h3 className="text-2xl font-bold text-zinc-100 mt-1 font-mono">
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Total de Itens</span>
+                    <h3 className="text-2xl font-bold text-primary mt-1 font-mono">
                       {data.item_count}
                     </h3>
                   </div>
-                  <div className="p-3 rounded-xl bg-zinc-700/20 text-zinc-400 border border-zinc-700/30">
+                  <div className="p-3 rounded-xl bg-accent text-slate-700 dark:text-secondary border border-border">
                     <Folder size={24} />
                   </div>
                 </div>
@@ -162,12 +162,12 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
 
               {/* Items List Ranking */}
               <div className="space-y-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-secondary">
                   Ranking de Consumo por Item
                 </h4>
 
                 {data.items.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-zinc-500 rounded-xl bg-zinc-800/20 border border-zinc-800/40">
+                  <div className="p-6 text-center text-sm text-slate-600 dark:text-secondary rounded-xl bg-accent/20 border border-border">
                     Esta pasta está vazia.
                   </div>
                 ) : (
@@ -175,26 +175,26 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
                     {data.items.map((item) => (
                       <div
                         key={String(item.path)}
-                        className="p-3.5 rounded-xl bg-zinc-800/30 hover:bg-zinc-800/60 border border-zinc-800/60 transition-all flex flex-col gap-2 group"
+                        className="p-3.5 rounded-xl bg-card hover:bg-accent/30 border border-border transition-all flex flex-col gap-2 group"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2.5 min-w-0">
                             {getItemIcon(String(item.name), item.is_dir)}
-                            <span className="text-sm font-medium text-zinc-200 truncate group-hover:text-white">
+                            <span className="text-sm font-semibold text-primary truncate group-hover:text-violet-600 dark:group-hover:text-violet-300">
                               {String(item.name)}
                             </span>
                             {item.is_dir && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 font-medium">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 font-bold">
                                 Pasta
                               </span>
                             )}
                           </div>
 
                           <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className="text-xs font-mono font-bold text-zinc-200">
+                            <span className="text-xs font-mono font-bold text-primary">
                               {formatBytes(item.size)}
                             </span>
-                            <span className="text-xs font-mono text-zinc-400 w-12 text-right">
+                            <span className="text-xs font-mono text-slate-700 dark:text-secondary font-medium w-12 text-right">
                               {item.percentage.toFixed(1)}%
                             </span>
                             {item.is_dir && (
@@ -203,7 +203,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
                                   onNavigateTo(String(item.path));
                                   onClose();
                                 }}
-                                className="p-1 rounded-lg bg-zinc-700/30 hover:bg-violet-600 text-zinc-400 hover:text-white transition-colors"
+                                className="p-1.5 rounded-lg bg-accent hover:bg-violet-600 text-slate-700 dark:text-secondary hover:text-white transition-colors"
                                 title="Abrir esta pasta"
                               >
                                 <ArrowRight size={14} />
@@ -213,7 +213,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
                               item.is_dir ? 'bg-gradient-to-r from-violet-500 to-indigo-500' : 'bg-gradient-to-r from-blue-500 to-cyan-500'

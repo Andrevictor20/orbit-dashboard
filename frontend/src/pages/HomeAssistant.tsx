@@ -465,21 +465,21 @@ export function HomeAssistant() {
 
             <div className="space-y-3.5 text-xs text-secondary leading-relaxed">
               <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-400 font-bold shrink-0">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
                   1
                 </span>
                 <p>{t('homeassistant.step_1')}</p>
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-400 font-bold shrink-0">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
                   2
                 </span>
                 <p>{t('homeassistant.step_2')}</p>
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-400 font-bold shrink-0">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
                   3
                 </span>
                 <p>{t('homeassistant.step_3')}</p>
@@ -497,7 +497,7 @@ export function HomeAssistant() {
       {/* Top Header Card */}
       <div className="bg-card/55 backdrop-blur-3xl saturate-[190%] border border-border/70 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
         <div className="flex items-center gap-3.5 relative z-10">
-          <div className="p-3 rounded-2xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/20 shadow-sm">
+          <div className="p-3 rounded-2xl bg-orbit-500/15 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shadow-sm">
             <Home className="w-6 h-6" />
           </div>
           <div>
@@ -505,12 +505,12 @@ export function HomeAssistant() {
               <h1 className="text-xl font-bold tracking-tight text-primary">
                 {config.location_name || t('homeassistant.title')}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {t('homeassistant.status_connected')}
               </span>
               {config.version && (
-                <span className="text-xs text-secondary font-mono bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                <span className="text-xs text-primary/80 dark:text-secondary font-mono font-medium bg-accent px-2 py-0.5 rounded-md border border-border/60">
                   v{config.version}
                 </span>
               )}
@@ -554,7 +554,7 @@ export function HomeAssistant() {
             <span className="text-xs text-secondary font-medium">{t('homeassistant.total_devices')}</span>
             <div className="text-2xl font-bold text-primary mt-1">{stats.total}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400">
+          <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400">
             <Cpu className="w-5 h-5" />
           </div>
         </div>
@@ -562,9 +562,9 @@ export function HomeAssistant() {
         <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-amber-500/30 transition-all duration-300 flex items-center justify-between">
           <div>
             <span className="text-xs text-secondary font-medium">{t('homeassistant.lights_on')}</span>
-            <div className="text-2xl font-bold text-amber-400 mt-1">{stats.lightsOn}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.lightsOn}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <Lightbulb className="w-5 h-5" />
           </div>
         </div>
@@ -572,9 +572,9 @@ export function HomeAssistant() {
         <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-indigo-500/30 transition-all duration-300 flex items-center justify-between">
           <div>
             <span className="text-xs text-secondary font-medium">{t('homeassistant.switches_on')}</span>
-            <div className="text-2xl font-bold text-indigo-400 mt-1">{stats.switchesOn}</div>
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{stats.switchesOn}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400">
+          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
             <Zap className="w-5 h-5" />
           </div>
         </div>
@@ -582,9 +582,9 @@ export function HomeAssistant() {
         <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-emerald-500/30 transition-all duration-300 flex items-center justify-between">
           <div>
             <span className="text-xs text-secondary font-medium">{t('homeassistant.sensors_count')}</span>
-            <div className="text-2xl font-bold text-emerald-400 mt-1">{stats.sensorsCount}</div>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.sensorsCount}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <Activity className="w-5 h-5" />
           </div>
         </div>
@@ -671,7 +671,7 @@ export function HomeAssistant() {
                           disabled={pending}
                           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
                             isOn
-                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm'
+                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-sm font-bold'
                               : 'bg-card/80 border-border/80 text-secondary hover:text-primary'
                           }`}
                         >
@@ -689,10 +689,10 @@ export function HomeAssistant() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                      <Home className="w-3.5 h-3.5 text-orbit-400" />
+                      <Home className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                       {t('homeassistant.dynamic_areas', { defaultValue: 'Áreas do Home Assistant' })}
                     </span>
-                    <span className="text-[11px] text-secondary/70">
+                    <span className="text-[11px] text-secondary/70 font-medium">
                       {dynamicAreas.length} {t('homeassistant.areas_detected', { defaultValue: 'áreas detectadas' })}
                     </span>
                   </div>
@@ -707,8 +707,8 @@ export function HomeAssistant() {
                     >
                       <span>{t('homeassistant.all_areas', { defaultValue: 'Todas as Áreas' })}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          selectedAreaFilter === 'all' ? 'bg-white/20' : 'bg-accent text-secondary'
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                          selectedAreaFilter === 'all' ? 'bg-white/20 text-white' : 'bg-accent text-primary/80 dark:text-secondary border border-border/50'
                         }`}
                       >
                         {allDeviceGroups.length}
@@ -726,8 +726,8 @@ export function HomeAssistant() {
                       >
                         <span>{areaName}</span>
                         <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                            selectedAreaFilter === areaName ? 'bg-white/20' : 'bg-accent text-secondary'
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                            selectedAreaFilter === areaName ? 'bg-white/20 text-white' : 'bg-accent text-primary/80 dark:text-secondary border border-border/50'
                           }`}
                         >
                           {count}

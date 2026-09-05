@@ -126,10 +126,10 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
                   </td>
                   <td className="p-3">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium font-mono ${
+                      className={`inline-block px-2 py-0.5 rounded text-[11px] font-mono ${
                         isOn
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-accent text-secondary'
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold'
+                          : 'bg-accent text-primary/80 dark:text-secondary border border-border/60 font-medium'
                       }`}
                     >
                       {e.state}
@@ -144,9 +144,9 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
                         title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
                       >
                         {pending ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-orbit-400" />
+                          <Loader2 className="w-4 h-4 animate-spin text-orbit-600 dark:text-orbit-400" />
                         ) : isOn ? (
-                          <ToggleRight className="w-5 h-5 text-orbit-400" />
+                          <ToggleRight className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />
                         ) : (
                           <ToggleLeft className="w-5 h-5" />
                         )}
