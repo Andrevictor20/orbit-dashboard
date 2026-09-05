@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('Capture Screenshots for README', async ({ page }) => {
+  test.setTimeout(90000);
   await page.setViewportSize({ width: 1920, height: 1080 });
 
   // Navigate to root to set local storage and intercept routes
@@ -27,7 +28,7 @@ test('Capture Screenshots for README', async ({ page }) => {
 
   // Disk Analyzer
   await page.goto('http://localhost:5173/disk-analyzer');
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1000);
   await page.screenshot({ path: '../docs/images/13_disk_analyzer.png' });
 
   // File Manager - show orbit folder
@@ -40,12 +41,12 @@ test('Capture Screenshots for README', async ({ page }) => {
     ] });
   });
   await page.goto('http://localhost:5173/files');
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(1000);
   await page.screenshot({ path: '../docs/images/08_file_manager.png' });
 
   // Terminal
   await page.goto('http://localhost:5173/terminal');
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1000);
   
   // Fill the SSH login form
   // We use more robust locators
@@ -67,22 +68,16 @@ test('Capture Screenshots for README', async ({ page }) => {
   
   // Wait for the xterm canvas to appear
   try {
-    await page.waitForSelector('.xterm', { state: 'visible', timeout: 8000 });
-    await page.waitForTimeout(3000); // Wait for the terminal to print MOTD/prompt
+    await page.waitForSelector('.xterm', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(1500); // Wait for the terminal to print MOTD/prompt
   } catch (e) {
     console.log("Terminal might not have loaded properly", e);
   }
   await page.screenshot({ path: '../docs/images/10_terminal.png' });
 
-  // Logs
-  // await page.goto('http://localhost:5173/logs');
-  // await page.waitForTimeout(2000);
-  // await page.screenshot({ path: '../docs/images/11_logs.png' });
-  // Logs were correct according to the user, no need to overwrite if not necessary, but let's do it for completeness if we want.
-
   // Themes
   await page.goto('http://localhost:5173/');
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1000);
   
   await page.evaluate(() => {
     localStorage.setItem('orbit_theme', 'catppuccin-mocha');
@@ -98,6 +93,6 @@ test('Capture Screenshots for README', async ({ page }) => {
     }
   } catch(e) {}
   
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(500);
   await page.screenshot({ path: '../docs/images/12_themes.png' });
 });
