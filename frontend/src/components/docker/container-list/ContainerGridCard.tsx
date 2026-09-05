@@ -62,7 +62,7 @@ export function ContainerGridCard({
           </div>
         </div>
 
-        {updatesMap[c.id]?.has_update && (
+        {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
           <button
             onClick={(e) => onUpdateContainer(e, c.id)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"

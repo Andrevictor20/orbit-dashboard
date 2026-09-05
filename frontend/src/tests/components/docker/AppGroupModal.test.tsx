@@ -154,4 +154,30 @@ describe('AppGroupModal Component', () => {
 
     expect(onEditLink).toHaveBeenCalledWith('c11111111111');
   });
+
+  it('renders update badge for sub-containers with available updates and handles clicks', () => {
+    const onUpdateContainer = vi.fn();
+    const updatesMap = {
+      'c11111111111': { image: 'bitnami/moodle:latest', has_update: true },
+    };
+
+    render(
+      <BrowserRouter>
+        <AppGroupModal
+          group={mockGroup}
+          isOpen={true}
+          onClose={vi.fn()}
+          updatesMap={updatesMap}
+          onUpdateContainer={onUpdateContainer}
+        />
+      </BrowserRouter>
+    );
+
+    const updateBadge = screen.getByTitle(/Nova versão da imagem disponível/);
+    expect(updateBadge).toBeInTheDocument();
+    expect(updateBadge).toHaveTextContent(/Atualizar/);
+
+    fireEvent.click(updateBadge);
+    expect(onUpdateContainer).toHaveBeenCalledWith(expect.anything(), 'c11111111111');
+  });
 });

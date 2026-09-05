@@ -248,17 +248,30 @@ pub async fn require_auth(
 ) -> Result<Response, StatusCode> {
     let token = jar
         .get("auth_token")
-        .map(|cookie| cookie.value())
+        .map(|cookie| cookie.value().to_string())
+        .or_else(|| {
+            req.headers()
+                .get(axum::http::header::AUTHORIZATION)
+                .and_then(|h| h.to_str().ok())
+                .and_then(|h| {
+                    if let Some(stripped) = h.strip_prefix("Bearer ") {
+                        Some(stripped.trim().to_string())
+                    } else if let Some(stripped) = h.strip_prefix("bearer ") {
+                        Some(stripped.trim().to_string())
+                    } else {
+                        None
+                    }
+                })
+        })
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let token_data = decode::<Claims>(
-        token,
+        &token,
         &DecodingKey::from_secret(get_jwt_secret()),
         &Validation::default(),
     ).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     req.extensions_mut().insert(token_data.claims);
-
     Ok(next.run(req).await)
 }
 

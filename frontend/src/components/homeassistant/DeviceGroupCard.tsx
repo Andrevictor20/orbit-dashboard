@@ -158,21 +158,22 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       onClick={onClick}
       className={`group relative p-5 rounded-2xl bg-card/60 backdrop-blur-3xl saturate-[190%] border border-border/80 ${theme.glow} transition-all duration-300 shadow-lg hover:shadow-2xl cursor-pointer flex flex-col justify-between overflow-hidden hover:-translate-y-0.5`}
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* Layout de Tile Unificado */}
+      <div className="flex items-start justify-between gap-3.5">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`p-3 rounded-2xl border ${theme.bg} ${theme.color} shadow-inner transition-transform group-hover:scale-105`}
+            className={`p-2.5 rounded-xl border ${theme.bg} ${theme.color} shadow-inner transition-transform group-hover:scale-105 shrink-0`}
           >
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">
-                {theme.label}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary/80">
+                {device.area ? `${device.area} • ` : ''}{theme.label}
               </span>
-              {device.stateBadge && (
+              {device.stateBadge && !canQuickToggle && (
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${
                     device.stateBadge.variant === 'success'
                       ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                       : device.stateBadge.variant === 'warning'
@@ -186,19 +187,19 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
                 </span>
               )}
             </div>
-            <h3 className="text-sm font-bold text-primary truncate mt-0.5 group-hover:text-orbit-400 transition-colors">
+            <h3 className="text-sm font-bold text-primary truncate mt-0.5 group-hover:text-orbit-500 transition-colors">
               {device.name}
             </h3>
           </div>
         </div>
 
-        {canQuickToggle && (
+        {canQuickToggle ? (
           <div
             onClick={(e) => {
               e.stopPropagation();
               onQuickToggle(device.primaryEntity.entity_id, device.primaryEntity.state);
             }}
-            className="shrink-0"
+            className="shrink-0 pt-0.5"
           >
             <button
               disabled={isPending}
@@ -217,24 +218,28 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
               />
             </button>
           </div>
+        ) : (
+          <div className="shrink-0 text-secondary/50 group-hover:text-primary transition-colors pt-1">
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </div>
         )}
       </div>
 
-      {device.summary && (
-        <div className="mt-3.5 text-xs text-primary/90 dark:text-secondary font-medium truncate font-mono bg-accent/60 px-3 py-1.5 rounded-xl border border-border/60">
-          {device.summary}
-        </div>
-      )}
+      {/* Linha de Status / Resumo Sutil */}
+      <div className="mt-3 flex items-center justify-between gap-2 text-xs text-secondary/90">
+        {device.summary ? (
+          <span className="truncate font-mono text-[11px] text-secondary font-medium">
+            {device.summary}
+          </span>
+        ) : (
+          <span className="text-[11px] text-secondary/70 capitalize">
+            {device.primaryEntity.state}
+          </span>
+        )}
 
-      <div className="mt-4 pt-3.5 border-t border-border/60 flex items-center justify-between text-xs">
-        <span className="inline-flex items-center gap-1.5 text-secondary font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400" />
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-secondary/60 shrink-0 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-orbit-500/70" />
           {device.entities.length} {device.entities.length === 1 ? 'entidade' : 'entidades agrupadas'}
-        </span>
-
-        <span className="inline-flex items-center gap-1 text-orbit-600 dark:text-orbit-400 font-semibold group-hover:translate-x-0.5 transition-transform">
-          <span>Ver controles</span>
-          <ChevronRight className="w-3.5 h-3.5" />
         </span>
       </div>
     </div>

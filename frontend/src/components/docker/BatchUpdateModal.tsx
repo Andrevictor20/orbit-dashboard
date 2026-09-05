@@ -58,7 +58,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
 
   // Containers that need updates
   const outdatedContainers = useMemo(() => {
-    return containers.filter(c => updatesMap[c.id]?.has_update);
+    return containers.filter(c => updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update);
   }, [containers, updatesMap]);
 
   const displayedContainers = outdatedContainers;
@@ -235,7 +235,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
                   {displayedContainers.map(c => {
                     const isOrbit = isOrbitSelf(c);
                     const isSelected = selectedIds.includes(c.id);
-                    const hasUpdate = updatesMap[c.id]?.has_update;
+                    const hasUpdate = updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update;
                     const cleanName = c.name.replace(/^\//, '');
                     const stackName = c.labels?.['com.docker.compose.project'];
 

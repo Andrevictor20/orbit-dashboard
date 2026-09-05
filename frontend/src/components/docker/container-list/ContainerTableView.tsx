@@ -96,6 +96,14 @@ export function ContainerTableView({
                           <span className="px-2 py-0.5 rounded bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 text-[10px] font-bold border border-orbit-500/30">
                             Stack ({group.totalCount} containers)
                           </span>
+                          {(() => {
+                            const groupUpdates = group.containers.filter(c => updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update).length;
+                            return groupUpdates > 0 ? (
+                              <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
+                                Atualização ({groupUpdates})
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                         <span className="text-[11px] text-secondary font-mono leading-tight">
                           {group.containers.map(c => c.name).join(', ')}
@@ -180,7 +188,14 @@ export function ContainerTableView({
                           size={20}
                         />
                         <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-primary">{c.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-primary">{c.name}</span>
+                            {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
+                              <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
+                                Atualização
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-secondary font-mono">{c.image}</span>
                         </div>
                       </td>
@@ -241,7 +256,7 @@ export function ContainerTableView({
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-primary leading-tight">{c.name}</span>
-                      {updatesMap[c.id]?.has_update && (
+                      {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
                         <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
                           Atualização
                         </span>

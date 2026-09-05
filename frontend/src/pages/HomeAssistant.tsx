@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Home,
   Lightbulb,
   Zap,
   Activity,
-  Cpu,
   RefreshCw,
   Unlink,
   Eye,
@@ -17,7 +16,16 @@ import {
   Layers,
   Film,
   Sparkles,
-  Search
+  Search,
+  Tv,
+  Camera,
+  Smartphone,
+  Thermometer,
+  Globe,
+  Database,
+  MapPin,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -59,9 +67,21 @@ export function HomeAssistant() {
   const [activeTab, setActiveTab] = useState<MainTabType>('devices');
   const [deviceSubFilter, setDeviceSubFilter] = useState<DeviceSubFilter>('all');
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>('all');
-  const [isPendingAction, setIsPendingAction] = useState<Record<string, boolean>>({});
   const [selectedDevice, setSelectedDevice] = useState<HADeviceGroup | null>(null);
+  const [isPendingAction, setIsPendingAction] = useState<Record<string, boolean>>({});
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
+  const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
+  const areaDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (areaDropdownRef.current && !areaDropdownRef.current.contains(event.target as Node)) {
+        setIsAreaDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchConfig = async () => {
     try {
@@ -494,38 +514,97 @@ export function HomeAssistant() {
   // ESTADO CONECTADO (Dashboard Organizado)
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Header Card */}
-      <div className="bg-card/55 backdrop-blur-3xl saturate-[190%] border border-border/70 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+      {/* 1. TOP BAR CONSOLIDADA (Header + Glanceable Status Chips + Ações) */}
+      <div className="bg-card/55 backdrop-blur-3xl saturate-[190%] border border-border/70 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+        {/* Identificação da Instância */}
         <div className="flex items-center gap-3.5 relative z-10">
-          <div className="p-3 rounded-2xl bg-orbit-500/15 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shadow-sm">
-            <Home className="w-6 h-6" />
+          <div className="p-2.5 rounded-xl bg-orbit-500/15 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shadow-sm shrink-0">
+            <Home className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-bold tracking-tight text-primary">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-primary truncate">
                 {config.location_name || t('homeassistant.title')}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {t('homeassistant.status_connected')}
               </span>
               {config.version && (
-                <span className="text-xs text-primary/80 dark:text-secondary font-mono font-medium bg-accent px-2 py-0.5 rounded-md border border-border/60">
+                <span className="text-[11px] text-secondary font-mono bg-accent/70 px-2 py-0.5 rounded-md border border-border/60">
                   v{config.version}
                 </span>
               )}
             </div>
-            <p className="text-xs text-secondary font-mono mt-0.5 truncate max-w-sm sm:max-w-md">
+            <p className="text-[11px] text-secondary/70 font-mono mt-0.5 truncate max-w-xs sm:max-w-sm md:max-w-md">
               {config.url}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end md:self-auto relative z-10">
+        {/* Glanceable Status Chips (Apple Home Style) & Ações */}
+        <div className="flex items-center gap-2 flex-wrap relative z-10">
+          {/* Chip Luzes */}
+          <button
+            onClick={() => {
+              startTransition(() => {
+                setActiveTab('devices');
+                setDeviceSubFilter(stats.lightsOn > 0 ? 'lights' : 'all');
+              });
+            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+              stats.lightsOn > 0
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-sm shadow-amber-500/10 hover:bg-amber-500/25'
+                : 'bg-card/60 border-border/70 text-secondary hover:text-primary hover:bg-card/90'
+            }`}
+            title="Filtrar Luzes"
+          >
+            <Lightbulb className={`w-3.5 h-3.5 ${stats.lightsOn > 0 ? 'text-amber-600 dark:text-amber-400' : ''}`} />
+            <span>{stats.lightsOn} {t('homeassistant.lights_on', 'Luzes')}</span>
+          </button>
+
+          {/* Chip Tomadas/Interruptores */}
+          <button
+            onClick={() => {
+              startTransition(() => {
+                setActiveTab('devices');
+                setDeviceSubFilter(stats.switchesOn > 0 ? 'switches' : 'all');
+              });
+            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+              stats.switchesOn > 0
+                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 shadow-sm shadow-indigo-500/10 hover:bg-indigo-500/25'
+                : 'bg-card/60 border-border/70 text-secondary hover:text-primary hover:bg-card/90'
+            }`}
+            title="Filtrar Tomadas"
+          >
+            <Zap className={`w-3.5 h-3.5 ${stats.switchesOn > 0 ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
+            <span>{stats.switchesOn} {t('homeassistant.switches_on', 'Tomadas')}</span>
+          </button>
+
+          {/* Chip Sensores */}
+          <button
+            onClick={() => {
+              startTransition(() => {
+                setActiveTab('devices');
+                setDeviceSubFilter('sensors');
+              });
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 border bg-card/60 border-border/70 text-secondary hover:text-primary hover:bg-card/90"
+            title="Filtrar Sensores"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>{stats.sensorsCount} {t('homeassistant.sensors_count', 'Sensores')}</span>
+          </button>
+
+          {/* Divisor Vertical */}
+          <div className="h-5 w-px bg-border/80 hidden sm:block mx-0.5" />
+
+          {/* Sincronizar */}
           <button
             onClick={fetchEntities}
             disabled={loadingEntities}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 text-secondary hover:text-primary text-xs font-medium transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/70 bg-card/50 hover:bg-card text-secondary hover:text-primary text-xs font-medium transition-all active:scale-95 shadow-sm disabled:opacity-50"
             title={t('homeassistant.sync')}
             aria-label={t('homeassistant.sync')}
           >
@@ -535,89 +614,253 @@ export function HomeAssistant() {
             </span>
           </button>
 
+          {/* Desconectar */}
           <button
             onClick={handleDisconnect}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-rose-500/25 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium transition-all active:scale-[0.98] shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-rose-500/25 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium transition-all active:scale-95 shadow-sm"
             title={t('homeassistant.disconnect')}
             aria-label={t('homeassistant.disconnect')}
           >
             <Unlink className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('homeassistant.disconnect')}</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Ribbon */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-orbit-500/30 transition-all duration-300 flex items-center justify-between">
-          <div>
-            <span className="text-xs text-secondary font-medium">{t('homeassistant.total_devices')}</span>
-            <div className="text-2xl font-bold text-primary mt-1">{stats.total}</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400">
-            <Cpu className="w-5 h-5" />
-          </div>
+      {/* 2. AMBIENT STRIP & CENAS RÁPIDAS (Modo Cinema, etc.) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-2.5 text-xs text-secondary flex-wrap">
+          <span className="font-semibold text-primary">Olá! 👋</span>
+          <span className="text-secondary/50">•</span>
+          <span className="capitalize">{formattedDate}</span>
+          <span className="text-secondary/50">•</span>
+          <span className="font-medium text-orbit-600 dark:text-orbit-400">
+            {stats.lightsOn + stats.switchesOn} {t('homeassistant.active_devices', 'dispositivos ativos')}
+          </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-amber-500/30 transition-all duration-300 flex items-center justify-between">
-          <div>
-            <span className="text-xs text-secondary font-medium">{t('homeassistant.lights_on')}</span>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.lightsOn}</div>
+        {/* Cenas Rápidas Compactas */}
+        {grouped.quickBooleans.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {grouped.quickBooleans.map((bool) => {
+              const isOn = bool.state === 'on';
+              const pending = isPending(bool.entity_id);
+              return (
+                <button
+                  key={bool.entity_id}
+                  onClick={() => handleToggle(bool)}
+                  disabled={pending}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                    isOn
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-sm shadow-amber-500/10 font-bold'
+                      : 'bg-card/70 border-border/80 text-secondary hover:text-primary hover:bg-card'
+                  }`}
+                >
+                  <Film className={`w-3.5 h-3.5 ${isOn ? 'text-amber-600 dark:text-amber-400' : ''}`} />
+                  <span>{bool.attributes.friendly_name || t('homeassistant.cinema_mode')}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Lightbulb className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-indigo-500/30 transition-all duration-300 flex items-center justify-between">
-          <div>
-            <span className="text-xs text-secondary font-medium">{t('homeassistant.switches_on')}</span>
-            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{stats.switchesOn}</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <Zap className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card/50 backdrop-blur-3xl saturate-[190%] border border-border/60 shadow-sm hover:border-emerald-500/30 transition-all duration-300 flex items-center justify-between">
-          <div>
-            <span className="text-xs text-secondary font-medium">{t('homeassistant.sensors_count')}</span>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{stats.sensorsCount}</div>
-          </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Activity className="w-5 h-5" />
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Navegação por Abas Simplificada */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-1">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {(
-            [
-              { id: 'devices', label: t('homeassistant.tab_devices'), icon: Layers },
-              { id: 'system', label: t('homeassistant.tab_system'), icon: Activity },
-              { id: 'raw', label: t('homeassistant.tab_raw_entities'), icon: Sliders },
-            ] as const
-          ).map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => startTransition(() => setActiveTab(tab.id))}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 active:scale-95 ${
-                  isActive
-                    ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25'
-                    : 'bg-card/50 hover:bg-card/85 text-secondary hover:text-primary border border-border/70'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+      {/* 3. TOOLBAR UNIFICADA (Navegação Principal + Seletor de Áreas Dropdown + Busca) */}
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/60 pb-3">
+          {/* Segmented Switcher de Abas */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-card/60 border border-border/70 backdrop-blur-xl w-fit">
+            {(
+              [
+                { id: 'devices', label: t('homeassistant.tab_devices'), icon: Layers, count: allDeviceGroups.length },
+                { id: 'system', label: t('homeassistant.tab_system'), icon: Activity },
+                { id: 'raw', label: t('homeassistant.tab_raw_entities'), icon: Sliders },
+              ] as const
+            ).map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => startTransition(() => setActiveTab(tab.id))}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95 ${
+                    isActive
+                      ? 'bg-orbit-500 text-white shadow-sm shadow-orbit-500/25'
+                      : 'text-secondary hover:text-primary hover:bg-card/70'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  {'count' in tab && tab.count !== undefined && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-accent text-secondary'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Controles de Área e Busca (Aba de Dispositivos) */}
+          {activeTab === 'devices' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Dropdown de Áreas Dinâmicas */}
+              {dynamicAreas.length > 0 && (
+                <div className="relative" ref={areaDropdownRef}>
+                  <button
+                    onClick={() => setIsAreaDropdownOpen((prev) => !prev)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
+                      selectedAreaFilter !== 'all'
+                        ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-700 dark:text-orbit-300 font-semibold'
+                        : 'bg-card/60 border-border/70 text-secondary hover:text-primary hover:bg-card'
+                    }`}
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
+                    <span className="truncate max-w-[130px]">
+                      {selectedAreaFilter === 'all'
+                        ? t('homeassistant.all_areas', 'Todas as Áreas')
+                        : selectedAreaFilter}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-accent text-secondary font-mono">
+                      {selectedAreaFilter === 'all'
+                        ? allDeviceGroups.length
+                        : dynamicAreas.find(([a]) => a.toLowerCase() === selectedAreaFilter.toLowerCase())?.[1] || 0}
+                    </span>
+                    <ChevronDown className={`w-3 h-3 text-secondary transition-transform ${isAreaDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Menu Dropdown de Áreas */}
+                  {isAreaDropdownOpen && (
+                    <div className="absolute right-0 mt-1.5 w-56 max-h-72 overflow-y-auto rounded-xl bg-card/95 backdrop-blur-2xl border border-border/80 shadow-2xl p-1.5 z-30 animate-in fade-in zoom-in-95 scrollbar-thin">
+                      <div className="px-2.5 py-1 text-[10px] font-bold text-secondary uppercase tracking-wider">
+                        {t('homeassistant.dynamic_areas', 'Áreas Detectadas')} ({dynamicAreas.length})
+                      </div>
+                      <button
+                        onClick={() => {
+                          startTransition(() => setSelectedAreaFilter('all'));
+                          setIsAreaDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                          selectedAreaFilter === 'all'
+                            ? 'bg-orbit-500 text-white font-semibold'
+                            : 'text-secondary hover:text-primary hover:bg-accent/60'
+                        }`}
+                      >
+                        <span>{t('homeassistant.all_areas', 'Todas as Áreas')}</span>
+                        <span className="text-[10px] opacity-75 font-mono">{allDeviceGroups.length}</span>
+                      </button>
+                      <div className="h-px bg-border/60 my-1" />
+                      {dynamicAreas.map(([areaName, count]) => (
+                        <button
+                          key={areaName}
+                          onClick={() => {
+                            startTransition(() => setSelectedAreaFilter(areaName));
+                            setIsAreaDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                            selectedAreaFilter.toLowerCase() === areaName.toLowerCase()
+                              ? 'bg-orbit-500 text-white font-semibold'
+                              : 'text-secondary hover:text-primary hover:bg-accent/60'
+                          }`}
+                        >
+                          <span className="truncate">{areaName}</span>
+                          <span className="text-[10px] opacity-75 font-mono">{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Se houver área selecionada, botão de limpar */}
+              {selectedAreaFilter !== 'all' && (
+                <button
+                  onClick={() => startTransition(() => setSelectedAreaFilter('all'))}
+                  className="p-1.5 rounded-lg border border-border/60 bg-card/50 text-secondary hover:text-primary transition-colors text-xs"
+                  title="Limpar filtro de área"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* Campo de Busca Compacto */}
+              <div className="relative w-full sm:w-56 shrink-0">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
+                <input
+                  type="text"
+                  value={deviceSearchQuery}
+                  onChange={(e) => setDeviceSearchQuery(e.target.value)}
+                  placeholder={t('homeassistant.search_placeholder', 'Buscar dispositivos...')}
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-border/70 bg-card/70 text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all"
+                />
+                {deviceSearchQuery && (
+                  <button
+                    onClick={() => setDeviceSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Tier 2: Subcategorias por Tipo de Hardware e Contadores */}
+        {activeTab === 'devices' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {(
+                [
+                  { id: 'all', label: t('homeassistant.tab_all', 'Todos'), icon: Layers },
+                  { id: 'lights', label: t('homeassistant.tab_lights', 'Iluminação'), icon: Lightbulb },
+                  { id: 'switches', label: t('homeassistant.tab_switches', 'Tomadas & Interruptores'), icon: Zap },
+                  { id: 'media', label: t('homeassistant.media_players', 'Mídia & TVs'), icon: Tv },
+                  { id: 'climate', label: t('homeassistant.tab_climate', 'Climatização'), icon: Thermometer },
+                  { id: 'cameras', label: t('homeassistant.cameras', 'Câmeras'), icon: Camera },
+                  { id: 'mobile', label: t('homeassistant.mobile_devices', 'Móveis'), icon: Smartphone },
+                  { id: 'network', label: t('homeassistant.tab_network', 'Rede'), icon: Globe },
+                  { id: 'system', label: t('homeassistant.tab_system_backups', 'Sistema'), icon: Database },
+                  { id: 'automation', label: t('homeassistant.tab_automations', 'Automações'), icon: Sliders },
+                  { id: 'sensors', label: t('homeassistant.tab_sensors', 'Sensores'), icon: Activity },
+                ] as const
+              ).map((sub) => {
+                const SubIcon = sub.icon;
+                const isActive = deviceSubFilter === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => startTransition(() => setDeviceSubFilter(sub.id))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 border ${
+                      isActive
+                        ? 'bg-orbit-500 text-white shadow-sm font-semibold border-orbit-500'
+                        : 'bg-card/50 hover:bg-card text-secondary hover:text-primary border-border/70'
+                    }`}
+                  >
+                    <SubIcon className="w-3.5 h-3.5" />
+                    <span>{sub.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Contador Sutil */}
+            <div className="text-xs text-secondary shrink-0 hidden lg:flex items-center gap-2">
+              <span>
+                {t('homeassistant.showing_devices', {
+                  count: filteredDeviceGroups.length,
+                  defaultValue: `Exibindo ${filteredDeviceGroups.length} dispositivos consolidados`,
+                })}
+              </span>
+              <span className="font-mono text-[11px] bg-card/60 border border-border/60 px-2 py-0.5 rounded-md">
+                {entities.length} {t('homeassistant.entities_integrated', { defaultValue: 'entidades agrupadas' })}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Alerta de erro se houver falha de sincronização */}
@@ -643,155 +886,18 @@ export function HomeAssistant() {
         </div>
       ) : (
         <>
-          {/* ABA PRINCIPAL: DISPOSITIVOS CONSOLIDADOS COM ÁREAS DINÂMICAS */}
+          {/* ABA PRINCIPAL: DISPOSITIVOS CONSOLIDADOS */}
           {activeTab === 'devices' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Card de Saudação com Modo Cinema e Atalhos Rápidos */}
-              <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-3xl saturate-[190%] p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
-                    <span>{t('homeassistant.welcome', 'Olá!')}</span>
-                    <span className="text-xl">👋</span>
-                  </h2>
-                  <p className="text-xs text-secondary capitalize mt-0.5">
-                    {formattedDate}
-                  </p>
-                </div>
-
-                {/* Controles Rápidos em Destaque (Modo Cinema, etc.) */}
-                {grouped.quickBooleans.length > 0 && (
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {grouped.quickBooleans.map((bool) => {
-                      const isOn = bool.state === 'on';
-                      const pending = isPending(bool.entity_id);
-                      return (
-                        <button
-                          key={bool.entity_id}
-                          onClick={() => handleToggle(bool)}
-                          disabled={pending}
-                          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
-                            isOn
-                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-sm font-bold'
-                              : 'bg-card/80 border-border/80 text-secondary hover:text-primary'
-                          }`}
-                        >
-                          <Film className="w-3.5 h-3.5" />
-                          <span>{bool.attributes.friendly_name || t('homeassistant.cinema_mode')}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Seletor Dinâmico de Áreas do Home Assistant */}
-              {dynamicAreas.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                      <Home className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-                      {t('homeassistant.dynamic_areas', { defaultValue: 'Áreas do Home Assistant' })}
-                    </span>
-                    <span className="text-[11px] text-secondary/70 font-medium">
-                      {dynamicAreas.length} {t('homeassistant.areas_detected', { defaultValue: 'áreas detectadas' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                    <button
-                      onClick={() => startTransition(() => setSelectedAreaFilter('all'))}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
-                        selectedAreaFilter === 'all'
-                          ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                          : 'bg-card/60 hover:bg-card text-secondary hover:text-primary border border-border/70'
-                      }`}
-                    >
-                      <span>{t('homeassistant.all_areas', { defaultValue: 'Todas as Áreas' })}</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                          selectedAreaFilter === 'all' ? 'bg-white/20 text-white' : 'bg-accent text-primary/80 dark:text-secondary border border-border/50'
-                        }`}
-                      >
-                        {allDeviceGroups.length}
-                      </span>
-                    </button>
-                    {dynamicAreas.map(([areaName, count]) => (
-                      <button
-                        key={areaName}
-                        onClick={() => startTransition(() => setSelectedAreaFilter(areaName))}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
-                          selectedAreaFilter === areaName
-                            ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                            : 'bg-card/60 hover:bg-card text-secondary hover:text-primary border border-border/70'
-                        }`}
-                      >
-                        <span>{areaName}</span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                            selectedAreaFilter === areaName ? 'bg-white/20 text-white' : 'bg-accent text-primary/80 dark:text-secondary border border-border/50'
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Barra de Subfiltros por Categoria e Busca */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {(
-                    [
-                      { id: 'all', label: t('homeassistant.tab_all') },
-                      { id: 'lights', label: t('homeassistant.tab_lights') },
-                      { id: 'switches', label: t('homeassistant.tab_switches') },
-                      { id: 'media', label: t('homeassistant.media_players') },
-                      { id: 'climate', label: t('homeassistant.tab_climate') },
-                      { id: 'cameras', label: t('homeassistant.cameras') },
-                      { id: 'mobile', label: t('homeassistant.mobile_devices') },
-                      { id: 'network', label: t('homeassistant.tab_network') },
-                      { id: 'system', label: t('homeassistant.tab_system_backups') },
-                      { id: 'automation', label: t('homeassistant.tab_automations') },
-                      { id: 'sensors', label: t('homeassistant.tab_sensors') },
-                    ] as const
-                  ).map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => startTransition(() => setDeviceSubFilter(sub.id))}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
-                        deviceSubFilter === sub.id
-                          ? 'bg-orbit-500 text-white shadow-sm font-semibold'
-                          : 'bg-card/60 hover:bg-card text-secondary hover:text-primary border border-border/70'
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Campo de Busca de Dispositivos */}
-                <div className="relative w-full sm:w-64 shrink-0">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
-                  <input
-                    type="text"
-                    value={deviceSearchQuery}
-                    onChange={(e) => setDeviceSearchQuery(e.target.value)}
-                    placeholder={t('homeassistant.search_placeholder')}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-border/70 bg-card/70 text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Contador de Dispositivos Consolidados */}
-              <div className="flex items-center justify-between text-xs text-secondary px-1">
+            <div className="space-y-4 animate-in fade-in duration-300">
+              {/* Contador mobile/tablet */}
+              <div className="flex lg:hidden items-center justify-between text-xs text-secondary px-1">
                 <span>
                   {t('homeassistant.showing_devices', {
                     count: filteredDeviceGroups.length,
-                    defaultValue: `Exibindo ${filteredDeviceGroups.length} dispositivos consolidados`,
+                    defaultValue: `Exibindo ${filteredDeviceGroups.length} dispositivos`,
                   })}
                   {selectedAreaFilter !== 'all' && (
-                    <span className="ml-1 text-orbit-400 font-medium">({selectedAreaFilter})</span>
+                    <span className="ml-1 text-orbit-500 font-medium">({selectedAreaFilter})</span>
                   )}
                 </span>
                 <span className="font-mono text-[11px] bg-card/60 border border-border/60 px-2 py-0.5 rounded-md">

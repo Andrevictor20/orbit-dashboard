@@ -1,21 +1,33 @@
-# Orbit Dashboard v2.5.3
+# Orbit Dashboard v2.5.4
 
-### 🚀 Novidades & Recursos Principais (v2.5.3)
+### 🚀 Novidades & Recursos Principais (v2.5.4)
 
-- **Correção da Telemetria de Memória RAM nos Containers:**
-  - **Cálculo Preciso de Memória Utilizada:** Adequação ao padrão oficial da Docker Engine para Linux e cgroups (v1 e v2), evitando que páginas de cache e buffers zerem indevidamente a contagem e garantindo que o consumo real de cada container seja exibido dinamicamente em MB ou GB, em vez de permanecer congelado em 0.0 MB.
-  - **Sincronização de Telemetria:** Sincronização e pareamento confiável de snapshots de recursos entre todos os containers individuais e stacks.
+- **Detecção & Exibição Precisa de Atualizações de Imagens de Containers:**
+  - **Suporte Completo a Stacks:** Identificação e contagem automática de containers desatualizados dentro de stacks, exibindo badge violeta interativo de atualização (`Atualizar (N)`) no cabeçalho dos cards e contagem no botão de sub-containers.
+  - **Atualização Direta de Sub-containers:** No modal detalhado da stack, cada serviço com nova versão da imagem disponível conta agora com botão direto de atualização.
+  - **Checagem Concorrente de Baixíssima Latência:** Paralelização das consultas a registros de imagem (Docker Hub, GHCR, etc.) com concorrência limitada (`buffer_unordered(8)`) e deduplicação de imagens, reduzindo o tempo de varredura de ~60 segundos para menos de 2 segundos.
+  - **Lookup Resiliente de IDs:** Indexação dupla (short ID de 12 caracteres e ID completo de 64 caracteres), eliminando falhas de correspondência no frontend.
+  - **Compatibilidade Ampliada com Registries & Pinned Digests:** Tratamento inteligente de tags com hash (`@sha256:`), suporte a imagens do ecossistema LinuxServer (`lscr.io`) e desafio Bearer dinâmico para registries compatíveis com OCI/Docker v2.
+  - **Autenticação Flexível:** Middleware de autenticação no backend passa a aceitar tanto cookies quanto o cabeçalho `Authorization: Bearer <token>`.
 
-- **Contabilização Real de Uso de Disco (Armazenamento dos Containers):**
-  - **Métricas Reais de Armazenamento:** Contabilização precisa do tamanho virtual e da camada de leitura/escrita dos containers e stacks, eliminando a exibição incorreta de 0 B.
-  - **Cache Assíncrono de Baixo Impacto:** Coleta e atualização em segundo plano do tamanho dos containers no Docker daemon, garantindo que o inventário carregue instantaneamente mesmo em servidores com discos mais lentos como cartões microSD ou HDs mecânicos.
-
-- **Concorrência Otimizada e Prevenção de Timeouts:**
-  - **Consumo Inteligente de Recursos no Host:** Controle de concorrência na leitura de métricas do Docker Socket, evitando sobrecarga em dispositivos compactos como Raspberry Pi com dezenas de containers simultâneos.
+- **Redesign & Descongestionamento do Home Assistant:**
+  - **Layout Elegante em 2 Níveis:** Eliminação de faixas horizontais empilhadas, trazendo visual fluido inspirado no Apple Home e Lovelace Mushroom UI.
+  - **Top Bar com Status Chips Interativos:** Contadores rápidos de luzes, tomadas e sensores que filtram a interface instantaneamente com 1 toque.
+  - **Dropdown de Áreas Dinâmicas & Subfiltros:** Menu compacto de áreas (`[ 📍 Todas as Áreas (N) ▾ ]`) e barra de subcategorias com ícones dedicados e busca integrada.
+  - **Cards Tile/Mushroom:** Cards ~35% mais compactos com visual limpo, brilho adaptativo nos dispositivos ligados e eliminação de caixas de texto redundantes.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.5.3 — Telemetria de RAM, Armazenamento Real & Prevenção de Timeouts</summary>
+
+- Correção do cálculo de RAM conforme padrão oficial da Docker Engine
+- Contabilização real de uso de disco (armazenamento virtual e RW)
+- Concorrência otimizada e prevenção de sobrecarga em hosts compactos
+
+</details>
 
 <details>
 <summary>v2.5.2 — Acessibilidade, Tema Claro & Streaming de Atualização</summary>

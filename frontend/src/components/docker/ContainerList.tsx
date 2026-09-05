@@ -203,16 +203,25 @@ export function ContainerList() {
 
   const fetchUpdates = async () => {
     try {
-      const res = await fetch('/api/docker/containers/check-updates');
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch('/api/docker/containers/check-updates', {
+        headers,
+        credentials: 'include'
+      });
       if (res.ok) {
         const data = await res.json();
         setUpdatesMap(data);
+      } else {
+        console.warn('Failed to fetch container updates, status:', res.status);
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Network error checking container updates:', err);
+    }
   };
 
   const pendingUpdatesCount = useMemo(() => {
-    return containers.filter(c => updatesMap[c.id]?.has_update).length;
+    return containers.filter(c => updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update).length;
   }, [containers, updatesMap]);
 
   const handleUpdateAllContainers = () => {
@@ -411,7 +420,10 @@ export function ContainerList() {
           </button>
 
           <button 
-            onClick={() => fetchContainers(true)}
+            onClick={() => {
+              fetchContainers(true);
+              fetchUpdates();
+            }}
             className="px-3 sm:px-4 py-2 bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -501,9 +513,11 @@ export function ContainerList() {
                   key={item.id}
                   group={item}
                   actionLoading={actionLoading}
+                  updatesMap={updatesMap}
                   onOpenGroupModal={(group) => setSelectedGroupModal(group)}
                   onOpenPrimarySelector={(group) => setPrimarySelectorModal({ isOpen: true, group })}
                   onGroupAction={handleGroupAction}
+                  onUpdateContainer={handleUpdateContainer}
                 />
               );
             }
@@ -548,6 +562,8 @@ export function ContainerList() {
         onRefresh={() => fetchContainers(false)}
         onEditLink={(id) => handleSetCustomLink({ stopPropagation: () => {} } as any, id)}
         customLinks={customLinks}
+        updatesMap={updatesMap}
+        onUpdateContainer={handleUpdateContainer}
       />
 
       {/* Custom Link Modal */}

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   X, Layers, Play, Square, RotateCw, Pause, 
   ExternalLink, ArrowRight, Activity, Cpu, HardDrive, 
-  RefreshCw, Box, Radio, Settings2
+  RefreshCw, Box, Radio, Settings2, DownloadCloud
 } from 'lucide-react';
 import { 
   getContainerWebLink, 
@@ -23,6 +23,8 @@ interface AppGroupModalProps {
   onRefresh?: () => void;
   onEditLink?: (containerId: string) => void;
   customLinks?: Record<string, string>;
+  updatesMap?: Record<string, { image?: string; has_update?: boolean }>;
+  onUpdateContainer?: (e: React.MouseEvent, id: string) => void;
 }
 
 export function AppGroupModal({
@@ -32,6 +34,8 @@ export function AppGroupModal({
   onRefresh,
   onEditLink,
   customLinks = {},
+  updatesMap = {},
+  onUpdateContainer,
 }: AppGroupModalProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -282,6 +286,16 @@ export function AppGroupModal({
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && onUpdateContainer && (
+                        <button
+                          onClick={(e) => onUpdateContainer(e, c.id)}
+                          className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
+                          title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
+                        >
+                          <DownloadCloud className="w-3 h-3" />
+                          <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
+                        </button>
+                      )}
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold font-sans ${
                         isRunning 
                           ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Layers, Globe, Settings2, ExternalLink, RefreshCw, RotateCw, Square, Play } from 'lucide-react';
+import { Layers, Globe, Settings2, ExternalLink, RefreshCw, RotateCw, Square, Play, DownloadCloud } from 'lucide-react';
 import { formatRAM, formatBytes } from '../../../utils/format';
 import { resolveWebUrl } from '../../../utils/url';
 import { getSortedDeduplicatedPorts, type GroupContainerItem } from '../../../utils/containerGroups';
@@ -9,19 +9,26 @@ import { ContainerIcon } from '../../ui/ContainerIcon';
 export interface StackGridCardProps {
   group: GroupContainerItem;
   actionLoading: string | null;
+  updatesMap?: Record<string, { image?: string; has_update?: boolean }>;
   onOpenGroupModal: (group: GroupContainerItem) => void;
   onOpenPrimarySelector: (group: GroupContainerItem) => void;
   onGroupAction: (e: React.MouseEvent, group: GroupContainerItem, action: 'start' | 'stop' | 'restart') => void;
+  onUpdateContainer?: (e: React.MouseEvent, id: string) => void;
 }
 
 export function StackGridCard({
   group,
   actionLoading,
+  updatesMap = {},
   onOpenGroupModal,
   onOpenPrimarySelector,
   onGroupAction,
 }: StackGridCardProps) {
   const { t } = useTranslation();
+
+  const stackUpdatesCount = group.containers.filter(c =>
+    updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update
+  ).length;
 
   const isGroupActionLoading = (action: string) => 
     actionLoading === `group:${group.groupKey}:${action}` ||
@@ -64,9 +71,24 @@ export function StackGridCard({
           </div>
         </div>
 
-        <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 border border-orbit-500/40 text-[11px] font-bold font-mono shrink-0">
-          Stack
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {stackUpdatesCount > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenGroupModal(group);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
+              title={`${stackUpdatesCount} container(s) com atualização disponível nesta stack. Clique para ver e atualizar.`}
+            >
+              <DownloadCloud className="w-3.5 h-3.5" />
+              <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })} ({stackUpdatesCount})</span>
+            </button>
+          )}
+          <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 border border-orbit-500/40 text-[11px] font-bold font-mono shrink-0">
+            Stack
+          </span>
+        </div>
       </div>
 
       {/* Resource Metrics */}
@@ -199,6 +221,11 @@ export function StackGridCard({
         >
           <Layers className="w-3.5 h-3.5" />
           <span>Ver Sub-containers</span>
+          {stackUpdatesCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 rounded-full bg-violet-600 text-white text-[10px] font-bold">
+              {stackUpdatesCount}
+            </span>
+          )}
         </button>
 
         <button
