@@ -612,6 +612,11 @@ export const en = {
     no_devices_found: "No devices found in this category.",
     empty_search: "No devices match your search query.",
     error_loading: "Failed to load Home Assistant devices",
-    retry: "Try again"
+    retry: "Try again",
+    all_areas: "All Areas",
+    dynamic_areas: "Home Assistant Areas",
+    areas_detected: "areas detected",
+    showing_devices: "Showing {{count}} consolidated devices",
+    entities_integrated: "integrated entities"
   }
 };

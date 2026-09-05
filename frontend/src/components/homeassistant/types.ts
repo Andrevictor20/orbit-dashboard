@@ -10,6 +10,8 @@ export interface HAConfig {
 export interface HAEntity {
   entity_id: string;
   state: string;
+  area?: string;
+  device_name?: string;
   attributes: {
     friendly_name?: string;
     unit_of_measurement?: string;
@@ -114,6 +116,6 @@ export interface HADeviceGroup {
   };
 }
 
-export type MainTabType = 'overview' | 'living_room' | 'bedrooms' | 'devices' | 'system' | 'raw';
+export type MainTabType = 'devices' | 'system' | 'raw';
 export type DeviceSubFilter = 'all' | 'lights' | 'switches' | 'media' | 'climate' | 'cameras' | 'mobile' | 'network' | 'system' | 'automation' | 'sensors';
 

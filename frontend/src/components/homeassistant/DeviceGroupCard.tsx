@@ -202,6 +202,8 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           >
             <button
               disabled={isPending}
+              aria-label={`Alternar ${device.name}`}
+              title={`Alternar ${device.name}`}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
                 isPrimaryOn
                   ? 'bg-orbit-500 border-orbit-400 shadow-md shadow-orbit-500/30'

@@ -13,13 +13,8 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
-  Tv,
-  Camera,
-  Smartphone,
   Sliders,
-  Compass,
   Layers,
-  Thermometer,
   Film,
   Sparkles,
   Search
@@ -37,14 +32,6 @@ import type {
 import {
   groupEntities,
   groupAllDevices,
-  isItemInLivingRoom,
-  isItemInBedrooms,
-  DeviceCardLight,
-  DeviceCardSwitch,
-  DeviceCardMedia,
-  DeviceCardCamera,
-  DeviceCardClimate,
-  DeviceCardMobile,
   DeviceCardSystem,
   RawEntitiesTable,
   DeviceGroupCard,
@@ -69,8 +56,9 @@ export function HomeAssistant() {
   const [entities, setEntities] = useState<HAEntity[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(false);
   const [entitiesError, setEntitiesError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<MainTabType>('overview');
+  const [activeTab, setActiveTab] = useState<MainTabType>('devices');
   const [deviceSubFilter, setDeviceSubFilter] = useState<DeviceSubFilter>('all');
+  const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>('all');
   const [isPendingAction, setIsPendingAction] = useState<Record<string, boolean>>({});
   const [selectedDevice, setSelectedDevice] = useState<HADeviceGroup | null>(null);
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
@@ -221,27 +209,6 @@ export function HomeAssistant() {
     callService(domain, nextService, { entity_id: entity.entity_id });
   };
 
-  const handleBrightnessChange = (entityId: string, brightnessValue: number) => {
-    callService('light', 'turn_on', {
-      entity_id: entityId,
-      brightness: brightnessValue,
-    });
-  };
-
-  const handleSelectOption = (entityId: string, option: string) => {
-    callService('select', 'select_option', {
-      entity_id: entityId,
-      option,
-    });
-  };
-
-  const handleSetTemperature = (entityId: string, temp: number) => {
-    callService('climate', 'set_temperature', {
-      entity_id: entityId,
-      temperature: temp,
-    });
-  };
-
   const handleRunSpeedtest = () => {
     callService('homeassistant', 'update_entity', {
       entity_id: grouped.systemMetrics.speedtestDownload?.entity_id || 'sensor.speedtest_download',
@@ -272,10 +239,29 @@ export function HomeAssistant() {
     return allDeviceGroups.find((g) => g.id === selectedDevice.id) || selectedDevice;
   }, [selectedDevice, allDeviceGroups]);
 
-  // Filtragem de dispositivos por categoria e por texto de busca
+  // Áreas Dinâmicas extraídas diretamente do Home Assistant
+  const dynamicAreas = useMemo(() => {
+    const areaMap = new Map<string, number>();
+    allDeviceGroups.forEach((dev) => {
+      const a = dev.area?.trim() || 'Geral';
+      areaMap.set(a, (areaMap.get(a) || 0) + 1);
+    });
+    return Array.from(areaMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [allDeviceGroups]);
+
+  // Filtragem de dispositivos por área dinâmica, categoria e texto de busca
   const filteredDeviceGroups = useMemo(() => {
     let list = allDeviceGroups;
 
+    // 1. Filtragem por Área Dinâmica
+    if (selectedAreaFilter !== 'all') {
+      list = list.filter((dev) => {
+        const devArea = (dev.area?.trim() || 'Geral').toLowerCase();
+        return devArea === selectedAreaFilter.toLowerCase();
+      });
+    }
+
+    // 2. Filtragem por Subcategoria de Hardware
     if (deviceSubFilter !== 'all') {
       list = list.filter((dev) => {
         switch (deviceSubFilter) {
@@ -305,6 +291,7 @@ export function HomeAssistant() {
       });
     }
 
+    // 3. Filtragem por Busca em Tempo Real
     if (deviceSearchQuery.trim()) {
       const q = deviceSearchQuery.toLowerCase().trim();
       list = list.filter((dev) => {
@@ -321,9 +308,9 @@ export function HomeAssistant() {
     }
 
     return list;
-  }, [allDeviceGroups, deviceSubFilter, deviceSearchQuery]);
+  }, [allDeviceGroups, selectedAreaFilter, deviceSubFilter, deviceSearchQuery]);
 
-  // Agrupamento inteligente de dispositivos para abas clássicas
+  // Agrupamento inteligente de dispositivos para métricas e automações
   const grouped = useMemo(() => {
     return groupEntities(entities);
   }, [entities]);
@@ -344,26 +331,6 @@ export function HomeAssistant() {
 
     return { total, lightsOn, switchesOn, sensorsCount };
   }, [entities]);
-
-  // Dispositivos da Sala
-  const livingRoomDevices = useMemo(() => {
-    return {
-      lights: grouped.lights.filter((l) => isItemInLivingRoom(l.name, l.id)),
-      switches: grouped.switches.filter((s) => isItemInLivingRoom(s.name, s.id)),
-      cameras: grouped.cameras.filter((c) => isItemInLivingRoom(c.name, c.id) || true), // Geralmente câmeras estão na sala
-      media: grouped.mediaPlayers.filter((m) => isItemInLivingRoom(m.name, m.id)),
-    };
-  }, [grouped]);
-
-  // Dispositivos dos Quartos
-  const bedroomDevices = useMemo(() => {
-    return {
-      lights: grouped.lights.filter((l) => isItemInBedrooms(l.name, l.id)),
-      switches: grouped.switches.filter((s) => isItemInBedrooms(s.name, s.id) || (!isItemInLivingRoom(s.name, s.id) && s.name.toLowerCase().includes('tomada'))),
-      media: grouped.mediaPlayers.filter((m) => isItemInBedrooms(m.name, m.id)),
-      climate: grouped.climateEntities.filter((c) => isItemInBedrooms(c.attributes.friendly_name || '', c.entity_id) || true),
-    };
-  }, [grouped]);
 
   // Data formatada para a saudação
   const formattedDate = useMemo(() => {
@@ -623,14 +590,11 @@ export function HomeAssistant() {
         </div>
       </div>
 
-      {/* Navegação por Abas (Estrutura idêntica ao Home Assistant) */}
+      {/* Navegação por Abas Simplificada */}
       <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-1">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {(
             [
-              { id: 'overview', label: t('homeassistant.tab_overview'), icon: Compass },
-              { id: 'living_room', label: t('homeassistant.tab_living_room'), icon: Tv },
-              { id: 'bedrooms', label: t('homeassistant.tab_bedrooms'), icon: Thermometer },
               { id: 'devices', label: t('homeassistant.tab_devices'), icon: Layers },
               { id: 'system', label: t('homeassistant.tab_system'), icon: Activity },
               { id: 'raw', label: t('homeassistant.tab_raw_entities'), icon: Sliders },
@@ -679,10 +643,10 @@ export function HomeAssistant() {
         </div>
       ) : (
         <>
-          {/* 1. ABA: VISÃO GERAL */}
-          {activeTab === 'overview' && (
+          {/* ABA PRINCIPAL: DISPOSITIVOS CONSOLIDADOS COM ÁREAS DINÂMICAS */}
+          {activeTab === 'devices' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Card de Saudação com Clima e Data */}
+              {/* Card de Saudação com Modo Cinema e Atalhos Rápidos */}
               <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-3xl saturate-[190%] p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
@@ -694,253 +658,88 @@ export function HomeAssistant() {
                   </p>
                 </div>
 
-                {/* Controles Rápidos em Destaque (Modo Cinema, TVs, etc.) */}
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  {grouped.quickBooleans.map((bool) => {
-                    const isOn = bool.state === 'on';
-                    const pending = isPending(bool.entity_id);
-                    return (
-                      <button
-                        key={bool.entity_id}
-                        onClick={() => handleToggle(bool)}
-                        disabled={pending}
-                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
-                          isOn
-                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm'
-                            : 'bg-card/80 border-border/80 text-secondary hover:text-primary'
+                {/* Controles Rápidos em Destaque (Modo Cinema, etc.) */}
+                {grouped.quickBooleans.length > 0 && (
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {grouped.quickBooleans.map((bool) => {
+                      const isOn = bool.state === 'on';
+                      const pending = isPending(bool.entity_id);
+                      return (
+                        <button
+                          key={bool.entity_id}
+                          onClick={() => handleToggle(bool)}
+                          disabled={pending}
+                          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                            isOn
+                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-sm'
+                              : 'bg-card/80 border-border/80 text-secondary hover:text-primary'
+                          }`}
+                        >
+                          <Film className="w-3.5 h-3.5" />
+                          <span>{bool.attributes.friendly_name || t('homeassistant.cinema_mode')}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Seletor Dinâmico de Áreas do Home Assistant */}
+              {dynamicAreas.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <Home className="w-3.5 h-3.5 text-orbit-400" />
+                      {t('homeassistant.dynamic_areas', { defaultValue: 'Áreas do Home Assistant' })}
+                    </span>
+                    <span className="text-[11px] text-secondary/70">
+                      {dynamicAreas.length} {t('homeassistant.areas_detected', { defaultValue: 'áreas detectadas' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    <button
+                      onClick={() => startTransition(() => setSelectedAreaFilter('all'))}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
+                        selectedAreaFilter === 'all'
+                          ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
+                          : 'bg-card/60 hover:bg-card text-secondary hover:text-primary border border-border/70'
+                      }`}
+                    >
+                      <span>{t('homeassistant.all_areas', { defaultValue: 'Todas as Áreas' })}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          selectedAreaFilter === 'all' ? 'bg-white/20' : 'bg-accent text-secondary'
                         }`}
                       >
-                        <Film className="w-3.5 h-3.5" />
-                        <span>{bool.attributes.friendly_name || t('homeassistant.cinema_mode')}</span>
+                        {allDeviceGroups.length}
+                      </span>
+                    </button>
+                    {dynamicAreas.map(([areaName, count]) => (
+                      <button
+                        key={areaName}
+                        onClick={() => startTransition(() => setSelectedAreaFilter(areaName))}
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 ${
+                          selectedAreaFilter === areaName
+                            ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
+                            : 'bg-card/60 hover:bg-card text-secondary hover:text-primary border border-border/70'
+                        }`}
+                      >
+                        <span>{areaName}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            selectedAreaFilter === areaName ? 'bg-white/20' : 'bg-accent text-secondary'
+                          }`}
+                        >
+                          {count}
+                        </span>
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Grid Principal: Lâmpadas em Destaque */}
-              {grouped.lights.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4 text-amber-400" />
-                      {t('homeassistant.tab_lights')}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {grouped.lights.map((light) => (
-                      <DeviceCardLight
-                        key={light.id}
-                        device={light}
-                        isPending={isPending}
-                        onToggle={handleToggle}
-                        onBrightnessChange={handleBrightnessChange}
-                        onSelectOption={handleSelectOption}
-                      />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Grid: Tomadas & Energia */}
-              {grouped.switches.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-indigo-400" />
-                      {t('homeassistant.tab_switches')}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {grouped.switches.map((sw) => (
-                      <DeviceCardSwitch
-                        key={sw.id}
-                        device={sw}
-                        isPending={isPending}
-                        onToggle={handleToggle}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Grid: Climatização & Temperatura */}
-              {grouped.climateEntities.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                      <Thermometer className="w-4 h-4 text-cyan-400" />
-                      {t('homeassistant.tab_climate')}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {grouped.climateEntities.map((clim) => (
-                      <DeviceCardClimate
-                        key={clim.entity_id}
-                        entity={clim}
-                        isPending={isPending}
-                        onSetTemperature={handleSetTemperature}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Grid: Dispositivos Móveis e Presença */}
-              {grouped.mobiles.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-violet-400" />
-                    {t('homeassistant.mobile_devices')}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {grouped.mobiles.map((mob) => (
-                      <DeviceCardMobile key={mob.id} device={mob} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 2. ABA: SALA */}
-          {activeTab === 'living_room' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Coluna Esquerda: TVs e Iluminação */}
-                <div className="lg:col-span-6 space-y-4">
-                  {livingRoomDevices.media.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                        <Tv className="w-4 h-4 text-sky-400" />
-                        {t('homeassistant.media_players')}
-                      </h3>
-                      {livingRoomDevices.media.map((m) => (
-                        <DeviceCardMedia
-                          key={m.id}
-                          device={m}
-                          isPending={isPending}
-                          onToggle={handleToggle}
-                          onCallService={callService}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {livingRoomDevices.lights.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-amber-400" />
-                        {t('homeassistant.tab_lights')}
-                      </h3>
-                      {livingRoomDevices.lights.map((l) => (
-                        <DeviceCardLight
-                          key={l.id}
-                          device={l}
-                          isPending={isPending}
-                          onToggle={handleToggle}
-                          onBrightnessChange={handleBrightnessChange}
-                          onSelectOption={handleSelectOption}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Coluna Direita: Câmera C200 e Controles */}
-                <div className="lg:col-span-6 space-y-4">
-                  {livingRoomDevices.cameras.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-orbit-400" />
-                        {t('homeassistant.cameras')}
-                      </h3>
-                      {livingRoomDevices.cameras.map((cam) => (
-                        <DeviceCardCamera
-                          key={cam.id}
-                          device={cam}
-                          isPending={isPending}
-                          onToggle={handleToggle}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3. ABA: QUARTOS */}
-          {activeTab === 'bedrooms' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Climatização Quarto 2 */}
-              {bedroomDevices.climate.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                    <Thermometer className="w-4 h-4 text-cyan-400" />
-                    Temperatura & Umidade
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {bedroomDevices.climate.map((clim) => (
-                      <DeviceCardClimate
-                        key={clim.entity_id}
-                        entity={clim}
-                        isPending={isPending}
-                        onSetTemperature={handleSetTemperature}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tomadas & Consumo Quarto */}
-              {bedroomDevices.switches.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-indigo-400" />
-                    Tomadas & Energia Consumida
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {bedroomDevices.switches.map((sw) => (
-                      <DeviceCardSwitch
-                        key={sw.id}
-                        device={sw}
-                        isPending={isPending}
-                        onToggle={handleToggle}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* TVs do Quarto */}
-              {bedroomDevices.media.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-                    <Tv className="w-4 h-4 text-sky-400" />
-                    TVs dos Quartos
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {bedroomDevices.media.map((m) => (
-                      <DeviceCardMedia
-                        key={m.id}
-                        device={m}
-                        isPending={isPending}
-                        onToggle={handleToggle}
-                        onCallService={callService}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 4. ABA: DISPOSITIVOS AGRUPADOS (Consolidados & Interativos) */}
-          {activeTab === 'devices' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Barra de Subfiltros e Busca */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Barra de Subfiltros por Categoria e Busca */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {(
                     [
@@ -991,6 +790,9 @@ export function HomeAssistant() {
                     count: filteredDeviceGroups.length,
                     defaultValue: `Exibindo ${filteredDeviceGroups.length} dispositivos consolidados`,
                   })}
+                  {selectedAreaFilter !== 'all' && (
+                    <span className="ml-1 text-orbit-400 font-medium">({selectedAreaFilter})</span>
+                  )}
                 </span>
                 <span className="font-mono text-[11px] bg-card/60 border border-border/60 px-2 py-0.5 rounded-md">
                   {entities.length} {t('homeassistant.entities_integrated', { defaultValue: 'entidades agrupadas' })}

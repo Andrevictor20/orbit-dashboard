@@ -612,6 +612,11 @@ export const pt = {
     no_devices_found: "Nenhum dispositivo encontrado nesta categoria.",
     empty_search: "Nenhum dispositivo corresponde aos termos da busca.",
     error_loading: "Falha ao carregar dispositivos do Home Assistant",
-    retry: "Tentar novamente"
+    retry: "Tentar novamente",
+    all_areas: "Todas as Áreas",
+    dynamic_areas: "Áreas do Home Assistant",
+    areas_detected: "áreas detectadas",
+    showing_devices: "Exibindo {{count}} dispositivos consolidados",
+    entities_integrated: "entidades agrupadas"
   }
 };

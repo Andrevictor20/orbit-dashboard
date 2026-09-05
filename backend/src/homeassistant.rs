@@ -272,7 +272,8 @@ pub async fn get_entities() -> impl IntoResponse {
         }
     };
 
-    let states_url = format!("{}/api/states", cfg.url.trim_end_matches('/'));
+    let base_url = cfg.url.trim_end_matches('/');
+    let states_url = format!("{}/api/states", base_url);
     match HA_CLIENT
         .get(&states_url)
         .bearer_auth(&cfg.token)
@@ -281,7 +282,56 @@ pub async fn get_entities() -> impl IntoResponse {
     {
         Ok(resp) if resp.status().is_success() => {
             match resp.json::<serde_json::Value>().await {
-                Ok(data) => (StatusCode::OK, Json(data)).into_response(),
+                Ok(mut data) => {
+                    // Consulta dinâmica de áreas e dispositivos associados no Home Assistant via template Jinja2
+                    let template_url = format!("{}/api/template", base_url);
+                    let template_body = serde_json::json!({
+                        "template": "[{% for s in states %}{\"e\":\"{{ s.entity_id }}\",\"a\":{{ (area_name(s.entity_id) or '') | tojson }},\"d\":{{ (device_attr(device_id(s.entity_id), 'name') if device_id(s.entity_id) else '') | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]"
+                    });
+
+                    if let Ok(tpl_resp) = HA_CLIENT
+                        .post(&template_url)
+                        .bearer_auth(&cfg.token)
+                        .json(&template_body)
+                        .timeout(Duration::from_secs(3))
+                        .send()
+                        .await
+                    {
+                        if tpl_resp.status().is_success() {
+                            if let Ok(raw_json) = tpl_resp.text().await {
+                                #[derive(Deserialize)]
+                                struct EntityMeta {
+                                    e: String,
+                                    a: Option<String>,
+                                    d: Option<String>,
+                                }
+                                if let Ok(meta_list) = serde_json::from_str::<Vec<EntityMeta>>(&raw_json) {
+                                    let mut meta_map = std::collections::HashMap::new();
+                                    for m in meta_list {
+                                        meta_map.insert(m.e, (m.a.unwrap_or_default(), m.d.unwrap_or_default()));
+                                    }
+
+                                    if let Some(arr) = data.as_array_mut() {
+                                        for ent in arr.iter_mut() {
+                                            if let Some(eid) = ent.get("entity_id").and_then(|v| v.as_str()) {
+                                                if let Some((area, device)) = meta_map.get(eid) {
+                                                    if !area.is_empty() {
+                                                        ent["area"] = serde_json::Value::String(area.clone());
+                                                    }
+                                                    if !device.is_empty() {
+                                                        ent["device_name"] = serde_json::Value::String(device.clone());
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    (StatusCode::OK, Json(data)).into_response()
+                }
                 Err(e) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({ "error": format!("Failed to parse entities: {}", e) })),

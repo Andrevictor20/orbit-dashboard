@@ -412,6 +412,27 @@ export function isItemInBedrooms(name: string, entityId: string): boolean {
 }
 
 /**
+ * Determina dinamicamente a Área de uma entidade ou grupo de entidades
+ * priorizando informações enviadas pelo Home Assistant.
+ */
+export function resolveEntityArea(entity: HAEntity, fallbackName?: string): string | undefined {
+  if (entity.area && entity.area.trim()) return entity.area.trim();
+  if (entity.attributes?.area_name && String(entity.attributes.area_name).trim()) {
+    return String(entity.attributes.area_name).trim();
+  }
+  const str = `${entity.attributes?.friendly_name || ''} ${fallbackName || ''} ${entity.entity_id}`.toLowerCase();
+  if (str.includes('corredor')) return 'Corredor';
+  if (str.includes('sala')) return 'Sala';
+  if (str.includes('quarto') || str.includes('bedroom') || str.includes('suite')) return 'Quarto';
+  if (str.includes('cozinha')) return 'Cozinha';
+  if (str.includes('banheiro')) return 'Banheiro';
+  if (str.includes('varanda')) return 'Varanda';
+  if (str.includes('garagem')) return 'Garagem';
+  if (str.includes('escritorio') || str.includes('office')) return 'Escritório';
+  return undefined;
+}
+
+/**
  * Agrupa universalmente todas as entidades brutas em Dispositivos Consolidados
  * eliminando a exposição desorganizada de centenas de entidades na tela.
  */
@@ -419,11 +440,135 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
   const groups: HADeviceGroup[] = [];
   const consumed = new Set<string>();
 
-  // 1. Roteador e Rede (Huawei IGD, Speedtest, etc.)
-  const networkEntities = entities.filter((e) => {
+  // 1. CÂMERAS TAPO (ex: Tapo C200)
+  // Reúne TODAS as entidades (floodlight, privacy, motion, sound, alarms, lens, indicator, etc.) em um único dispositivo por câmera!
+  const tapoEntities = entities.filter((e) => {
     const id = e.entity_id.toLowerCase();
     const name = (e.attributes.friendly_name || '').toLowerCase();
-    return id.includes('huawei_igd') || id.includes('huawei') || name.includes('huawei') || id.includes('speedtest');
+    return id.includes('tapo') || id.includes('c200') || name.includes('tapo') || name.includes('c200');
+  });
+  if (tapoEntities.length > 0) {
+    tapoEntities.forEach((e) => consumed.add(e.entity_id));
+    const mainCam = tapoEntities.find((e) => e.entity_id.startsWith('camera.')) || tapoEntities[0];
+    const privacy = tapoEntities.find((e) => e.entity_id.includes('privacy'));
+    const primary = mainCam || privacy || tapoEntities[0];
+    const area = tapoEntities.map((e) => resolveEntityArea(e)).find(Boolean) || 'Sala';
+
+    groups.push({
+      id: 'tapo_c200_camera',
+      name: 'Câmera Tapo C200',
+      category: 'camera',
+      primaryEntity: primary,
+      entities: tapoEntities,
+      area,
+      summary: `${tapoEntities.length} entidades integradas · Alarme, Áudio, Privacidade e Detecção`,
+      stateBadge: {
+        text: primary.state === 'idle' || primary.state === 'recording' || primary.state === 'on' ? 'Ativa' : primary.state,
+        variant: 'success',
+      },
+    });
+  }
+
+  // 2. TOMADAS INTELIGENTES (Tomada 1, Tomada 2, etc.)
+  // Agrupa socket, trava para crianças e telemetria de energia em cada tomada individual!
+  ['tomada_1', 'tomada_2'].forEach((tPrefix, idx) => {
+    const tEntities = entities.filter((e) => {
+      if (consumed.has(e.entity_id)) return false;
+      const id = e.entity_id.toLowerCase();
+      const name = (e.attributes.friendly_name || '').toLowerCase();
+      return id.includes(tPrefix) || name.includes(`tomada ${idx + 1}`) || name.includes(`tomada_${idx + 1}`);
+    });
+
+    if (tEntities.length > 0) {
+      tEntities.forEach((e) => consumed.add(e.entity_id));
+      const socket = tEntities.find((e) => e.entity_id.includes('socket')) || tEntities.find((e) => e.entity_id.startsWith('switch.')) || tEntities[0];
+      const energy = tEntities.find((e) => e.entity_id.includes('energy') || (e.attributes.unit_of_measurement === 'kWh'));
+      const power = tEntities.find((e) => e.entity_id.includes('power') || (e.attributes.unit_of_measurement === 'W'));
+      const isOn = socket.state === 'on';
+
+      let summary = isOn ? 'Ligada' : 'Desligada';
+      if (power?.state && power.state !== 'unknown') summary += ` · ${power.state} W`;
+      if (energy?.state && energy.state !== 'unknown') summary += ` · ${energy.state} kWh`;
+
+      const area = tEntities.map((e) => resolveEntityArea(e)).find(Boolean) || (idx === 0 ? 'Sala' : 'Quarto');
+
+      groups.push({
+        id: tPrefix,
+        name: `Tomada Inteligente ${idx + 1}`,
+        category: 'switch',
+        primaryEntity: socket,
+        entities: tEntities,
+        area,
+        summary,
+        stateBadge: {
+          text: isOn ? 'Ligada' : 'Desligada',
+          variant: isOn ? 'success' : 'neutral',
+        },
+      });
+    }
+  });
+
+  // 3. SMART TV (Samsung TV / Smart TV Pro)
+  const tvEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
+    const id = e.entity_id.toLowerCase();
+    const name = (e.attributes.friendly_name || '').toLowerCase();
+    return id.includes('smart_tv') || id.includes('tv_samsung') || name.includes('smart tv') || name.includes('tv samsung') || (id.startsWith('script.') && id.includes('tv'));
+  });
+  if (tvEntities.length > 0) {
+    tvEntities.forEach((e) => consumed.add(e.entity_id));
+    const player = tvEntities.find((e) => e.entity_id.startsWith('media_player.')) || tvEntities[0];
+    const isOn = player.state === 'on' || player.state === 'playing';
+    const area = tvEntities.map((e) => resolveEntityArea(e)).find(Boolean) || 'Sala';
+
+    groups.push({
+      id: 'smart_tv_device',
+      name: 'Smart TV Pro',
+      category: 'media',
+      primaryEntity: player,
+      entities: tvEntities,
+      area,
+      summary: isOn ? 'Ligada' : 'Desligada',
+      stateBadge: {
+        text: isOn ? 'Ligada' : 'Desligada',
+        variant: isOn ? 'info' : 'neutral',
+      },
+    });
+  }
+
+  // 4. ECHO DOT (Alexa)
+  const echoEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
+    const id = e.entity_id.toLowerCase();
+    const name = (e.attributes.friendly_name || '').toLowerCase();
+    return id.includes('echo_dot') || name.includes('echo dot') || id.includes('alexa');
+  });
+  if (echoEntities.length > 0) {
+    echoEntities.forEach((e) => consumed.add(e.entity_id));
+    const player = echoEntities.find((e) => e.entity_id.startsWith('media_player.')) || echoEntities[0];
+    const area = echoEntities.map((e) => resolveEntityArea(e)).find(Boolean) || 'Sala';
+
+    groups.push({
+      id: 'echo_dot_device',
+      name: 'Echo Dot de André',
+      category: 'media',
+      primaryEntity: player,
+      entities: echoEntities,
+      area,
+      summary: `${echoEntities.length} controles (Mídia, Não Perturbe, Volume)`,
+      stateBadge: {
+        text: player.state === 'playing' ? 'Reproduzindo' : player.state === 'idle' ? 'Em espera' : player.state,
+        variant: 'info',
+      },
+    });
+  }
+
+  // 5. ROTEADOR E REDE (Huawei IGD)
+  const networkEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
+    const id = e.entity_id.toLowerCase();
+    const name = (e.attributes.friendly_name || '').toLowerCase();
+    return id.includes('huawei_igd') || id.includes('huawei') || name.includes('huawei');
   });
   if (networkEntities.length > 0) {
     networkEntities.forEach((e) => consumed.add(e.entity_id));
@@ -443,6 +588,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'network',
       primaryEntity: primary,
       entities: networkEntities,
+      area: 'Rede',
       summary: summaryParts.join(' · ') || `${networkEntities.length} métricas de rede`,
       stateBadge: {
         text: wan?.state === 'on' || wan?.state === 'detected' ? 'Conectado' : 'Monitorado',
@@ -451,8 +597,9 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   }
 
-  // 2. Backups do Sistema
+  // 6. BACKUPS DO SISTEMA
   const backupEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
     const id = e.entity_id.toLowerCase();
     return id.includes('backup') || (e.attributes.friendly_name || '').toLowerCase().includes('backup');
   });
@@ -466,6 +613,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'system',
       primaryEntity: primary,
       entities: backupEntities,
+      area: 'Sistema',
       summary: `${backupEntities.length} rotinas monitoradas · ${primary.state === 'idle' ? 'Em espera (Pronto)' : primary.state}`,
       stateBadge: {
         text: primary.state === 'idle' ? 'Pronto' : primary.state,
@@ -474,8 +622,11 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   }
 
-  // 3. Ciclo Solar & Astronomia
-  const sunEntities = entities.filter((e) => e.entity_id.startsWith('sun.') || e.entity_id.includes('sun_'));
+  // 7. CICLO SOLAR & ASTRONOMIA
+  const sunEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
+    return e.entity_id.startsWith('sun.') || e.entity_id.includes('sun_');
+  });
   if (sunEntities.length > 0) {
     sunEntities.forEach((e) => consumed.add(e.entity_id));
     const mainSun = sunEntities.find((e) => e.entity_id === 'sun.sun') || sunEntities[0];
@@ -486,6 +637,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'system',
       primaryEntity: mainSun,
       entities: sunEntities,
+      area: 'Geral',
       summary: `${isAbove ? 'Sol acima do horizonte' : 'Noite (abaixo do horizonte)'} · ${sunEntities.length} eventos solares`,
       stateBadge: {
         text: isAbove ? 'Dia' : 'Noite',
@@ -494,8 +646,9 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   }
 
-  // 4. Home Assistant Cloud / Voz / Nabu Casa
+  // 8. HOME ASSISTANT CLOUD & VOZ
   const cloudEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
     const id = e.entity_id.toLowerCase();
     return id.includes('home_assistant_cloud') || id.includes('remote_ui');
   });
@@ -508,6 +661,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'system',
       primaryEntity: remote,
       entities: cloudEntities,
+      area: 'Sistema',
       summary: `${cloudEntities.length} serviços (TTS, STT, Assistente, Remote UI)`,
       stateBadge: {
         text: remote.state === 'on' || remote.state === 'livre' ? 'Ativo' : remote.state,
@@ -516,8 +670,11 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   }
 
-  // 5. Atualizações de Componentes / HACS
-  const updateEntities = entities.filter((e) => e.entity_id.startsWith('update.'));
+  // 9. ATUALIZAÇÕES DO SISTEMA (HACS & CORE)
+  const updateEntities = entities.filter((e) => {
+    if (consumed.has(e.entity_id)) return false;
+    return e.entity_id.startsWith('update.');
+  });
   if (updateEntities.length > 0) {
     updateEntities.forEach((e) => consumed.add(e.entity_id));
     const hasPending = updateEntities.some((e) => e.state === 'on');
@@ -527,6 +684,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'system',
       primaryEntity: updateEntities[0],
       entities: updateEntities,
+      area: 'Sistema',
       summary: hasPending ? 'Novas atualizações disponíveis' : 'Todos os cards e componentes estão atualizados',
       stateBadge: {
         text: hasPending ? 'Atualização pendente' : 'Atualizado',
@@ -535,15 +693,82 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   }
 
-  // 6. Lâmpadas Inteligentes
+  // 9.5 DISPOSITIVOS IDENTIFICADOS PELO HOME ASSISTANT (via device_name nativo)
+  const entitiesWithDeviceName = entities.filter(
+    (e) => !consumed.has(e.entity_id) && e.device_name && e.device_name.trim() && !isTechnicalEntity(e)
+  );
+  if (entitiesWithDeviceName.length > 0) {
+    const deviceNameMap = new Map<string, HAEntity[]>();
+    entitiesWithDeviceName.forEach((e) => {
+      const dName = e.device_name!.trim();
+      if (!deviceNameMap.has(dName)) deviceNameMap.set(dName, []);
+      deviceNameMap.get(dName)!.push(e);
+    });
+
+    deviceNameMap.forEach((deviceEnts, dName) => {
+      deviceEnts.forEach((e) => consumed.add(e.entity_id));
+      const primary =
+        deviceEnts.find((e) => e.entity_id.startsWith('light.')) ||
+        deviceEnts.find((e) => e.entity_id.startsWith('switch.')) ||
+        deviceEnts.find((e) => e.entity_id.startsWith('climate.')) ||
+        deviceEnts.find((e) => e.entity_id.startsWith('media_player.')) ||
+        deviceEnts.find((e) => e.entity_id.startsWith('camera.')) ||
+        deviceEnts.find((e) => e.entity_id.startsWith('sensor.')) ||
+        deviceEnts[0];
+
+      const [domain] = primary.entity_id.split('.');
+      let cat: any = 'other';
+      if (domain === 'light') cat = 'light';
+      else if (domain === 'switch') cat = 'switch';
+      else if (domain === 'climate') cat = 'climate';
+      else if (domain === 'media_player') cat = 'media';
+      else if (domain === 'camera') cat = 'camera';
+      else if (domain === 'sensor' || domain === 'binary_sensor') cat = 'sensor';
+
+      const area = deviceEnts.map((e) => resolveEntityArea(e)).find(Boolean) || resolveEntityArea(primary, dName);
+      const isOn = primary.state === 'on';
+
+      groups.push({
+        id: `ha_device_${dName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        name: dName,
+        category: cat,
+        primaryEntity: primary,
+        entities: deviceEnts,
+        area,
+        summary: `${deviceEnts.length} entidades integradas`,
+        stateBadge: {
+          text: isOn ? 'Ligado' : primary.state === 'off' ? 'Desligado' : primary.state,
+          variant: isOn ? 'success' : 'neutral',
+        },
+      });
+    });
+  }
+
+  // 10. LÂMPADAS INTELIGENTES INDIVIDUAIS (Corredor, Sala, etc.)
   const lightEntities = entities.filter((e) => e.entity_id.startsWith('light.') && !consumed.has(e.entity_id));
   lightEntities.forEach((light) => {
     consumed.add(light.entity_id);
-    const lightBase = light.entity_id.replace('light.', '').replace(/_\d+$/, '').replace(/_wi_fi$/, '');
+    const friendlyName = light.attributes.friendly_name || light.entity_id.split('.')[1].replace(/_/g, ' ');
+    const lightBase = light.entity_id.replace('light.', '');
+
     const related = entities.filter((e) => {
       if (consumed.has(e.entity_id)) return false;
       const id = e.entity_id.toLowerCase();
-      return id.includes(lightBase) || id.includes('smart_lampada');
+      if (
+        id.includes('temperature') ||
+        id.includes('temperatura') ||
+        id.includes('humidity') ||
+        id.includes('umidade') ||
+        id.includes('door') ||
+        id.includes('porta') ||
+        id.includes('motion') ||
+        id.includes('presenca') ||
+        id.startsWith('camera.') ||
+        id.startsWith('climate.')
+      ) {
+        return false;
+      }
+      return id.includes(lightBase);
     });
     related.forEach((r) => consumed.add(r.entity_id));
 
@@ -551,13 +776,15 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     const isOn = light.state === 'on';
     const bri = light.attributes.brightness ? Math.round((light.attributes.brightness / 255) * 100) : null;
     const summary = isOn ? (bri ? `Ligada · Brilho ${bri}%` : 'Ligada') : 'Desligada';
+    const area = resolveEntityArea(light, friendlyName);
 
     groups.push({
       id: light.entity_id,
-      name: light.attributes.friendly_name || light.entity_id.split('.')[1].replace(/_/g, ' '),
+      name: friendlyName,
       category: 'light',
       primaryEntity: light,
       entities: allEnts,
+      area,
       summary,
       stateBadge: {
         text: isOn ? 'Ligada' : 'Desligada',
@@ -566,34 +793,46 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   });
 
-  // 7. Tomadas e Interruptores
-  const switchEntities = entities.filter((e) => e.entity_id.startsWith('switch.') && !consumed.has(e.entity_id));
-  switchEntities.forEach((sw) => {
+  // 11. TOMADAS RESTANTES INDIVIDUAIS
+  const remainingSwitches = entities.filter((e) => e.entity_id.startsWith('switch.') && !consumed.has(e.entity_id));
+  remainingSwitches.forEach((sw) => {
     consumed.add(sw.entity_id);
+    const friendlyName = sw.attributes.friendly_name || sw.entity_id.split('.')[1].replace(/_/g, ' ');
     const swBase = sw.entity_id.replace('switch.', '').toLowerCase();
+
     const related = entities.filter((e) => {
       if (consumed.has(e.entity_id)) return false;
       const id = e.entity_id.toLowerCase();
+      if (
+        id.includes('temperature') ||
+        id.includes('temperatura') ||
+        id.includes('humidity') ||
+        id.includes('umidade') ||
+        id.includes('door') ||
+        id.includes('porta') ||
+        id.includes('motion') ||
+        id.includes('presenca') ||
+        id.startsWith('camera.') ||
+        id.startsWith('climate.')
+      ) {
+        return false;
+      }
       return id.includes(swBase);
     });
     related.forEach((r) => consumed.add(r.entity_id));
 
     const allEnts = [sw, ...related];
     const isOn = sw.state === 'on';
-    const energy = related.find((e) => e.entity_id.includes('energy') || e.entity_id.includes('energia'));
-    const power = related.find((e) => e.entity_id.includes('power') || e.entity_id.includes('potencia'));
-
-    let summary = isOn ? 'Ativa' : 'Desligada';
-    if (power?.state && power.state !== 'unknown') summary += ` · ${power.state} ${power.attributes.unit_of_measurement || 'W'}`;
-    if (energy?.state && energy.state !== 'unknown') summary += ` · ${energy.state} ${energy.attributes.unit_of_measurement || 'kWh'}`;
+    const area = resolveEntityArea(sw, friendlyName);
 
     groups.push({
       id: sw.entity_id,
-      name: sw.attributes.friendly_name || sw.entity_id.split('.')[1].replace(/_/g, ' '),
+      name: friendlyName,
       category: 'switch',
       primaryEntity: sw,
       entities: allEnts,
-      summary,
+      area,
+      summary: isOn ? 'Ligada' : 'Desligada',
       stateBadge: {
         text: isOn ? 'Ligada' : 'Desligada',
         variant: isOn ? 'success' : 'neutral',
@@ -601,63 +840,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   });
 
-  // 8. Câmeras (Tapo, etc.)
-  const cameraEntities = entities.filter((e) => e.entity_id.startsWith('camera.') && !consumed.has(e.entity_id));
-  cameraEntities.forEach((cam) => {
-    consumed.add(cam.entity_id);
-    const camBase = cam.entity_id.replace('camera.', '').toLowerCase();
-    const related = entities.filter((e) => {
-      if (consumed.has(e.entity_id)) return false;
-      const id = e.entity_id.toLowerCase();
-      return id.includes(camBase) || id.includes('c200') || id.includes('tapo');
-    });
-    related.forEach((r) => consumed.add(r.entity_id));
-
-    groups.push({
-      id: cam.entity_id,
-      name: cam.attributes.friendly_name || cam.entity_id.split('.')[1].replace(/_/g, ' '),
-      category: 'camera',
-      primaryEntity: cam,
-      entities: [cam, ...related],
-      summary: `${related.length} controles vinculados (Autofoco, IR, Limpador)`,
-      stateBadge: {
-        text: cam.state === 'idle' || cam.state === 'recording' ? 'Ativa' : cam.state,
-        variant: 'success',
-      },
-    });
-  });
-
-  // 9. Mídia e TVs
-  const mediaEntities = entities.filter((e) => e.entity_id.startsWith('media_player.') && !consumed.has(e.entity_id));
-  mediaEntities.forEach((med) => {
-    consumed.add(med.entity_id);
-    const medBase = med.entity_id.replace('media_player.', '').toLowerCase();
-    const related = entities.filter((e) => {
-      if (consumed.has(e.entity_id)) return false;
-      const id = e.entity_id.toLowerCase();
-      return id.includes(medBase) || (id.startsWith('script.') && id.includes('tv'));
-    });
-    related.forEach((r) => consumed.add(r.entity_id));
-
-    const isPlaying = med.state === 'playing';
-    const isOn = med.state === 'on' || isPlaying;
-    const mediaTitle = med.attributes.media_title ? ` · ${med.attributes.media_title}` : '';
-
-    groups.push({
-      id: med.entity_id,
-      name: med.attributes.friendly_name || med.entity_id.split('.')[1].replace(/_/g, ' '),
-      category: 'media',
-      primaryEntity: med,
-      entities: [med, ...related],
-      summary: (isOn ? (isPlaying ? 'Reproduzindo' : 'Ligada') : 'Desligada') + mediaTitle,
-      stateBadge: {
-        text: isOn ? (isPlaying ? 'Reproduzindo' : 'Ligada') : 'Desligada',
-        variant: isOn ? 'info' : 'neutral',
-      },
-    });
-  });
-
-  // 10. Dispositivos Móveis e Pessoas (Andre, Moto G75, SM-A047M)
+  // 12. DISPOSITIVOS MÓVEIS E PESSOAS
   const mobileEntities = entities.filter(
     (e) =>
       (e.entity_id.startsWith('device_tracker.') || e.entity_id.startsWith('person.')) &&
@@ -673,11 +856,8 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
     related.forEach((r) => consumed.add(r.entity_id));
 
-    const bat = related.find((e) => e.entity_id.includes('battery_level'));
     const isHome = mob.state === 'home' || mob.state === 'casa';
-
-    let summary = isHome ? 'Em casa' : mob.state === 'not_home' ? 'Fora de casa' : mob.state;
-    if (bat?.state) summary += ` · Bateria ${bat.state}%`;
+    const area = resolveEntityArea(mob);
 
     groups.push({
       id: mob.entity_id,
@@ -685,7 +865,8 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
       category: 'mobile',
       primaryEntity: mob,
       entities: [mob, ...related],
-      summary,
+      area,
+      summary: isHome ? 'Em casa' : 'Ausente',
       stateBadge: {
         text: isHome ? 'Em casa' : 'Ausente',
         variant: isHome ? 'success' : 'neutral',
@@ -693,7 +874,7 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   });
 
-  // 11. Climatização (Termostatos / Temperatura)
+  // 13. CLIMATIZAÇÃO
   const climateList = entities.filter(
     (e) =>
       (e.entity_id.startsWith('climate.') || (e.entity_id.startsWith('sensor.') && e.entity_id.includes('temperature'))) &&
@@ -709,17 +890,17 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
     related.forEach((r) => consumed.add(r.entity_id));
 
-    const hum = related.find((e) => e.entity_id.includes('humidity') || e.entity_id.includes('umidade'));
-    let summary = `${clim.state} ${clim.attributes.unit_of_measurement || '°C'}`;
-    if (hum?.state) summary += ` · ${hum.state} ${hum.attributes.unit_of_measurement || '%'}`;
+    const friendlyName = clim.attributes.friendly_name || clim.entity_id.split('.')[1].replace(/_/g, ' ');
+    const area = resolveEntityArea(clim, friendlyName);
 
     groups.push({
       id: clim.entity_id,
-      name: clim.attributes.friendly_name || clim.entity_id.split('.')[1].replace(/_/g, ' '),
+      name: friendlyName,
       category: 'climate',
       primaryEntity: clim,
       entities: [clim, ...related],
-      summary,
+      area,
+      summary: `${clim.state} ${clim.attributes.unit_of_measurement || '°C'}`,
       stateBadge: {
         text: 'Monitorado',
         variant: 'info',
@@ -727,54 +908,47 @@ export function groupAllDevices(entities: HAEntity[]): HADeviceGroup[] {
     });
   });
 
-  // 12. Automações e Modos (Modo Cinema, etc.)
+  // 14. AUTOMAÇÕES / MODOS (ex: Modo Cinema)
   const autoList = entities.filter(
     (e) =>
       (e.entity_id.startsWith('input_boolean.') || e.entity_id.startsWith('scene.') || e.entity_id.startsWith('script.')) &&
       !consumed.has(e.entity_id)
   );
   if (autoList.length > 0) {
-    autoList.forEach((a) => {
-      consumed.add(a.entity_id);
-      const isOn = a.state === 'on';
-      groups.push({
-        id: a.entity_id,
-        name: a.attributes.friendly_name || a.entity_id.split('.')[1].replace(/_/g, ' '),
-        category: 'automation',
-        primaryEntity: a,
-        entities: [a],
-        summary: isOn ? 'Ativado' : 'Desativado',
-        stateBadge: {
-          text: isOn ? 'Ativo' : 'Inativo',
-          variant: isOn ? 'warning' : 'neutral',
-        },
-      });
+    const mainAuto = autoList[0];
+    autoList.forEach((a) => consumed.add(a.entity_id));
+    groups.push({
+      id: 'automations_and_modes',
+      name: 'Modo Cinema & Automações',
+      category: 'automation',
+      primaryEntity: mainAuto,
+      entities: autoList,
+      area: 'Geral',
+      summary: `${autoList.length} modos e atalhos rápidos configurados`,
+      stateBadge: {
+        text: 'Ativo',
+        variant: 'warning',
+      },
     });
   }
 
-  // 13. Entidades restantes não agrupadas (filtrando ruídos técnicos)
-  const remaining = entities.filter((e) => !consumed.has(e.entity_id) && !isTechnicalEntity(e));
-  remaining.forEach((rem) => {
-    consumed.add(rem.entity_id);
-    const domain = rem.entity_id.split('.')[0];
-    let cat: any = 'other';
-    if (domain === 'sensor') cat = 'sensor';
-    if (domain === 'switch') cat = 'switch';
-    if (domain === 'light') cat = 'light';
-
+  // 15. SENSORES RESTANTES
+  const remainingSensors = entities.filter((e) => !consumed.has(e.entity_id) && !isTechnicalEntity(e));
+  if (remainingSensors.length > 0) {
     groups.push({
-      id: rem.entity_id,
-      name: rem.attributes.friendly_name || rem.entity_id.split('.')[1].replace(/_/g, ' '),
-      category: cat,
-      primaryEntity: rem,
-      entities: [rem],
-      summary: `${rem.state} ${rem.attributes.unit_of_measurement || ''}`.trim(),
+      id: 'other_sensors_group',
+      name: 'Sensores Adicionais',
+      category: 'sensor',
+      primaryEntity: remainingSensors[0],
+      entities: remainingSensors,
+      area: 'Geral',
+      summary: `${remainingSensors.length} sensores secundários monitorados`,
       stateBadge: {
-        text: rem.state,
-        variant: 'neutral',
+        text: 'Monitorado',
+        variant: 'info',
       },
     });
-  });
+  }
 
   return groups;
 }
