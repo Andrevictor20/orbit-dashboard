@@ -78,9 +78,7 @@ RUN apt-get update && \
         ca-certificates \
         libssl3 \
         sshpass \
-        openssh-client \
-        rclone \
-        fuse3 && \
+        openssh-client && \
     apt-get clean && \
     rm -rf \
         /var/lib/apt/lists/* \
