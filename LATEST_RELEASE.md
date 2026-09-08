@@ -1,4 +1,4 @@
-# Orbit Dashboard v2.7.1
+# Orbit Dashboard v2.7.2
 
 ### Novidades e Recursos Principais (v2.7.0)
 
