@@ -266,55 +266,68 @@ pub async fn delete_container(
     Path(id): Path<String>,
     Query(query): Query<DeleteContainerQuery>,
 ) -> impl IntoResponse {
-    let docker = &state.docker;
-    let mut image_id = None;
-    let mut network_names = Vec::new();
+    let docker = state.docker.clone();
+    let container_id = id.clone();
+    let remove_volumes = query.v.unwrap_or(false);
+    let remove_image = query.image.unwrap_or(false);
+    let remove_network = query.network.unwrap_or(false);
 
-    // 1. Inspect container to check running state and collect image/network if requested
-    if let Ok(inspect) = docker.inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>).await {
-        // Stop container if running or paused before removal
-        if let Some(st) = inspect.state {
-            if st.running.unwrap_or(false) || st.paused.unwrap_or(false) {
-                let stop_opts = Some(bollard::query_parameters::StopContainerOptions { t: Some(5), signal: None });
-                let _ = docker.stop_container(&id, stop_opts).await;
+    // Spawn desacoplado: a task roda no scheduler de background do Tokio e NÃO é
+    // cancelada se o cliente fechar a aba, atualizar a página (F5) ou sofrer queda de rede.
+    let deletion_task = tokio::spawn(async move {
+        let mut image_id = None;
+        let mut network_names = Vec::new();
+
+        // 1. Inspect container to check running state and collect image/network if requested
+        if let Ok(inspect) = docker.inspect_container(&container_id, None::<bollard::query_parameters::InspectContainerOptions>).await {
+            // Stop container if running or paused before removal
+            if let Some(st) = inspect.state {
+                if st.running.unwrap_or(false) || st.paused.unwrap_or(false) {
+                    let stop_opts = Some(bollard::query_parameters::StopContainerOptions { t: Some(5), signal: None });
+                    let _ = docker.stop_container(&container_id, stop_opts).await;
+                }
             }
-        }
 
-        if query.image.unwrap_or(false) {
-            image_id = inspect.image;
-        }
-        if query.network.unwrap_or(false) {
-            if let Some(network_settings) = inspect.network_settings {
-                if let Some(networks) = network_settings.networks {
-                    network_names = networks.keys().cloned().collect();
+            if remove_image {
+                image_id = inspect.image;
+            }
+            if remove_network {
+                if let Some(network_settings) = inspect.network_settings {
+                    if let Some(networks) = network_settings.networks {
+                        network_names = networks.keys().cloned().collect();
+                    }
                 }
             }
         }
-    }
 
-    // 2. Remove the stopped container
-    let remove_volumes = query.v.unwrap_or(false);
-    let options = Some(bollard::query_parameters::RemoveContainerOptions {
-        force: true,
-        v: remove_volumes,
-        link: false,
-    });
-    
-    if let Err(e) = docker.remove_container(&id, options).await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-    }
+        // 2. Remove the container
+        let options = Some(bollard::query_parameters::RemoveContainerOptions {
+            force: true,
+            v: remove_volumes,
+            link: false,
+        });
 
-    if let Some(img_id) = image_id {
-        let _ = docker.remove_image(&img_id, None::<bollard::query_parameters::RemoveImageOptions>, None).await;
-    }
+        let remove_res = docker.remove_container(&container_id, options).await;
 
-    for net_name in network_names {
-        if net_name != "bridge" && net_name != "host" && net_name != "none" {
-            let _ = docker.remove_network(&net_name).await;
+        if let Some(img_id) = image_id {
+            let _ = docker.remove_image(&img_id, None::<bollard::query_parameters::RemoveImageOptions>, None).await;
         }
-    }
 
-    (StatusCode::OK, "Container stopped and removed successfully").into_response()
+        for net_name in network_names {
+            if net_name != "bridge" && net_name != "host" && net_name != "none" {
+                let _ = docker.remove_network(&net_name).await;
+            }
+        }
+
+        remove_res
+    });
+
+    // Se o cliente continuar conectado, aguarda a resposta e retorna o resultado
+    match deletion_task.await {
+        Ok(Ok(_)) => (StatusCode::OK, "Container stopped and removed successfully").into_response(),
+        Ok(Err(e)) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Deletion task error: {}", e)).into_response(),
+    }
 }
 
 pub async fn update_container_env(

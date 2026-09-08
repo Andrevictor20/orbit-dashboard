@@ -1,18 +1,16 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import type { ContainerLike } from '../utils/containerGroups';
+import {
+  type ContainerUpdateState,
+  type ContainerTaskStatus,
+  sanitizeErrorMessage,
+  isTunnelOrProxy,
+  pollContainerUpdate,
+} from '../utils/batchUpdateRunner';
 
-export type ContainerUpdateState = 'pending' | 'pulling' | 'recreating' | 'success' | 'error' | 'cancelled';
-
-export interface ContainerTaskStatus {
-  id: string;
-  name: string;
-  image: string;
-  state: ContainerUpdateState;
-  error?: string;
-  details?: string;
-}
+export type { ContainerUpdateState, ContainerTaskStatus };
 
 export interface BatchUpdateContextType {
   isUpdating: boolean;
@@ -43,6 +41,29 @@ export interface BatchUpdateContextType {
 }
 
 const BatchUpdateContext = createContext<BatchUpdateContextType | undefined>(undefined);
+
+const BATCH_STORAGE_KEY = 'orbit_batch_update_session';
+
+interface PersistedBatchSession {
+  orderedTargets: ContainerLike[];
+  startIndex: number;
+  taskStatuses: Record<string, ContainerTaskStatus>;
+  logs: string[];
+  activeContainerName: string | null;
+  timestamp: number;
+}
+
+const saveBatchSession = (session: PersistedBatchSession) => {
+  try {
+    localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(session));
+  } catch {}
+};
+
+const clearBatchSession = () => {
+  try {
+    localStorage.removeItem(BATCH_STORAGE_KEY);
+  } catch {}
+};
 
 export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -99,6 +120,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    clearBatchSession();
     const token = localStorage.getItem('orbit_token');
     try {
       await fetch('/api/docker/containers/update/cancel-all', {
@@ -133,6 +155,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const clear = useCallback(() => {
     if (updatingRef.current) return;
+    clearBatchSession();
     setIsUpdating(false);
     setIsCompleted(false);
     setTaskStatuses({});
@@ -141,52 +164,12 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     cancelledIdsRef.current.clear();
   }, []);
 
-  const sanitizeErrorMessage = (rawText: string, status: number): string => {
-    if (!rawText) {
-      return status === 504 
-        ? 'Tempo limite de conexão esgotado (Gateway Timeout)' 
-        : `Erro ao atualizar container (HTTP ${status})`;
-    }
-
-    if (rawText.includes('<!DOCTYPE html') || rawText.includes('<html')) {
-      if (status === 524 || rawText.includes('524: A timeout occurred') || rawText.includes('Error 524')) {
-        return 'Tempo limite esgotado no proxy/Cloudflare (Error 524). A operação continuará em segundo plano.';
-      }
-      if (status === 502 || rawText.includes('502 Bad Gateway') || rawText.includes('Bad gateway')) {
-        return 'Falha temporária de comunicação com o gateway/tunnel (HTTP 502).';
-      }
-      if (status === 504 || rawText.includes('504 Gateway Time-out') || rawText.includes('Gateway Timeout')) {
-        return 'Tempo limite de conexão esgotado pelo proxy (Gateway Timeout 504).';
-      }
-      if (status === 403 || rawText.includes('Access denied') || rawText.includes('Attention Required!')) {
-        return 'Acesso bloqueado por regras de firewall ou proxy (HTTP 403).';
-      }
-      const titleMatch = rawText.match(/<title>([^<]+)<\/title>/i);
-      if (titleMatch && titleMatch[1]) {
-        return `Erro no proxy/rede: ${titleMatch[1].trim()}`;
-      }
-      return `Erro HTTP ${status} retornado pelo proxy ou rede.`;
-    }
-
-    return rawText.length > 200 ? rawText.slice(0, 200) + '...' : rawText;
-  };
-
-  const isTunnelOrProxy = (c: ContainerLike) => {
-    const name = (c.name || '').toLowerCase();
-    const img = (c.image || '').toLowerCase();
-    return (
-      name.includes('cloudflared') ||
-      name.includes('tunnel') ||
-      name.includes('traefik') ||
-      name.includes('nginx-proxy') ||
-      name.includes('caddy') ||
-      img.includes('cloudflared') ||
-      img.includes('traefik') ||
-      img.includes('nginx-proxy')
-    );
-  };
-
-  const runUpdateLoop = async (targetContainers: ContainerLike[]) => {
+  const runUpdateLoop = async (
+    targetContainers: ContainerLike[],
+    startIndex = 0,
+    savedStatuses?: Record<string, ContainerTaskStatus>,
+    savedLogs?: string[]
+  ) => {
     if (updatingRef.current) return;
     updatingRef.current = true;
     setIsUpdating(true);
@@ -202,36 +185,47 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     const proxyContainers = targetContainers.filter(c => isTunnelOrProxy(c));
     const orderedTargets = [...normalContainers, ...proxyContainers];
 
-    const initialTasks: Record<string, ContainerTaskStatus> = {};
-    orderedTargets.forEach(c => {
-      initialTasks[c.id] = {
-        id: c.id,
-        name: c.name.replace(/^\//, ''),
-        image: c.image,
-        state: 'pending',
-      };
-    });
-    setTaskStatuses(initialTasks);
-    addLog(`Iniciando atualização de ${orderedTargets.length} container(s)...`);
+    const currentStatuses: Record<string, ContainerTaskStatus> = savedStatuses ? { ...savedStatuses } : {};
+    if (!savedStatuses) {
+      orderedTargets.forEach(c => {
+        currentStatuses[c.id] = {
+          id: c.id,
+          name: c.name.replace(/^\//, ''),
+          image: c.image,
+          state: 'pending',
+        };
+      });
+      setTaskStatuses(currentStatuses);
+      addLog(`Iniciando atualização de ${orderedTargets.length} container(s)...`);
+    } else {
+      setTaskStatuses(currentStatuses);
+      if (savedLogs && savedLogs.length > 0) {
+        setLogs(savedLogs);
+      }
+      addLog(`Retomando lote de atualização a partir do container ${startIndex + 1}/${orderedTargets.length}...`);
+    }
 
     const token = localStorage.getItem('orbit_token');
-    const POLLING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes per container
-    let localSuccess = 0;
-    let localFailed = 0;
+    let localSuccess = Object.values(currentStatuses).filter(t => t.state === 'success').length;
+    let localFailed = Object.values(currentStatuses).filter(t => t.state === 'error').length;
 
-    for (let i = 0; i < orderedTargets.length; i++) {
+    for (let i = startIndex; i < orderedTargets.length; i++) {
       // Check if entire batch was cancelled
       if (controller.signal.aborted) {
         // Mark remaining containers as cancelled
         for (let j = i; j < orderedTargets.length; j++) {
           const remaining = orderedTargets[j];
           const remainingName = remaining.name.replace(/^\//, '');
-          setTaskStatuses(prev => ({
-            ...prev,
-            [remaining.id]: { ...prev[remaining.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
-          }));
+          setTaskStatuses(prev => {
+            const next = {
+              ...prev,
+              [remaining.id]: { ...prev[remaining.id], state: 'cancelled' as const, error: 'Cancelado pelo usuário' },
+            };
+            return next;
+          });
           addLog(`[${remainingName}] Cancelado pelo usuário.`);
         }
+        clearBatchSession();
         break;
       }
 
@@ -243,220 +237,148 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
         continue;
       }
 
+      // Check if container was already successfully updated in a previous run before reload
+      if (currentStatuses[c.id]?.state === 'success') {
+        continue;
+      }
+
       setActiveContainerName(cleanName);
 
+      // Persiste o progresso no localStorage para recuperação imediata em caso de F5
+      saveBatchSession({
+        orderedTargets,
+        startIndex: i,
+        taskStatuses: currentStatuses,
+        logs: [],
+        activeContainerName: cleanName,
+        timestamp: Date.now(),
+      });
+
       // Step 1: Mark pulling state
-      setTaskStatuses(prev => ({
-        ...prev,
-        [c.id]: { ...prev[c.id], state: 'pulling' },
-      }));
+      currentStatuses[c.id] = { ...currentStatuses[c.id], state: 'pulling' };
+      setTaskStatuses(prev => ({ ...prev, [c.id]: { ...prev[c.id], state: 'pulling' } }));
       addLog(`[${cleanName}] Iniciando download da imagem '${c.image}'...`);
 
       try {
-        const response = await fetch(`/api/docker/containers/${c.id}/update?force=true`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        const rawText = await response.text().catch(() => '');
-        let data: any = null;
+        // Verifica se o backend já tem uma task ativa para esse container antes de forçar novo POST
+        let skipTrigger = false;
         try {
-          data = JSON.parse(rawText);
-        } catch {
-          data = null;
-        }
+          const checkActiveRes = await fetch(`/api/docker/containers/${c.id}/update-status`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            signal: controller.signal,
+          });
+          if (checkActiveRes.ok) {
+            const activeData = await checkActiveRes.json().catch(() => null);
+            if (activeData?.status === 'pulling' || activeData?.status === 'recreating') {
+              skipTrigger = true;
+              addLog(`[${cleanName}] Sincronizado com processo já em execução no servidor...`);
+            } else if (activeData?.status === 'success') {
+              localSuccess++;
+              currentStatuses[c.id] = { ...currentStatuses[c.id], state: 'success' };
+              setTaskStatuses(prev => ({ ...prev, [c.id]: { ...prev[c.id], state: 'success' } }));
+              addLog(`[${cleanName}] Container já atualizado e reiniciado com sucesso!`);
+              continue;
+            }
+          }
+        } catch {}
 
-        if (!response.ok || data?.status === 'error') {
-          localFailed++;
-          const errorMessage = data?.message || sanitizeErrorMessage(rawText, response.status);
-          const errorDetails = data?.details || rawText || JSON.stringify(data);
-          setTaskStatuses(prev => ({
-            ...prev,
-            [c.id]: {
-              ...prev[c.id],
+        if (!skipTrigger) {
+          const response = await fetch(`/api/docker/containers/${c.id}/update?force=true`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+
+          const rawText = await response.text().catch(() => '');
+          let data: any = null;
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            data = null;
+          }
+
+          if (!response.ok || data?.status === 'error') {
+            localFailed++;
+            const errorMessage = data?.message || sanitizeErrorMessage(rawText, response.status);
+            const errorDetails = data?.details || rawText || JSON.stringify(data);
+            currentStatuses[c.id] = {
+              ...currentStatuses[c.id],
               state: 'error',
               error: errorMessage,
               details: errorDetails,
-            },
+            };
+            setTaskStatuses(prev => ({
+              ...prev,
+              [c.id]: currentStatuses[c.id],
+            }));
+            addLog(`[${cleanName}] ERRO: ${errorMessage}`);
+            continue;
+          }
+
+          // If backend executed synchronously and finished immediately
+          if (data?.status === 'success') {
+            localSuccess++;
+            currentStatuses[c.id] = { ...currentStatuses[c.id], state: 'success' };
+            setTaskStatuses(prev => ({
+              ...prev,
+              [c.id]: { ...prev[c.id], state: 'success' },
+            }));
+            addLog(`[${cleanName}] Parando e recriando container...`);
+            addLog(`[${cleanName}] Container atualizado e reiniciado com sucesso!`);
+            continue;
+          }
+        }
+
+        // Asynchronous background task polling via Activity-Based Watchdog
+        const pollResult = await pollContainerUpdate({
+          containerId: c.id,
+          cleanName,
+          token,
+          signal: controller.signal,
+          isCancelled: () => cancelledIdsRef.current.has(c.id),
+          onStatusChange: (status) => {
+            setTaskStatuses(prev => ({
+              ...prev,
+              [c.id]: { ...prev[c.id], state: status },
+            }));
+          },
+          addLog,
+        });
+
+        if (pollResult.wasCancelled) {
+          setTaskStatuses(prev => ({
+            ...prev,
+            [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
           }));
-          addLog(`[${cleanName}] ERRO: ${errorMessage}`);
+          addLog(`[${cleanName}] Cancelado pelo usuário.`);
           continue;
         }
 
-        // If backend executed synchronously and finished immediately
-        if (data?.status === 'success') {
+        if (pollResult.success) {
           localSuccess++;
+          currentStatuses[c.id] = { ...currentStatuses[c.id], state: 'success' };
           setTaskStatuses(prev => ({
             ...prev,
             [c.id]: { ...prev[c.id], state: 'success' },
           }));
-          addLog(`[${cleanName}] Parando e recriando container...`);
           addLog(`[${cleanName}] Container atualizado e reiniciado com sucesso!`);
-          continue;
-        }
-
-        // Asynchronous background task polling
-        let lastStep = '';
-        let completed = false;
-        let consecutiveNetworkErrors = 0;
-        let consecutiveIdleHits = 0;
-        const maxNetworkRetries = 15; // 15 * 2s = 30s buffer for tunnel reconnects
-        const maxIdleHits = 5; // 5 * 2s = 10s before treating as lost task
-        const pollingStartTime = Date.now();
-
-        while (!completed) {
-          await new Promise(res => setTimeout(res, 2000));
-
-          // Check cancellation (global)
-          if (controller.signal.aborted) {
-            completed = true;
-            setTaskStatuses(prev => ({
-              ...prev,
-              [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
-            }));
-            addLog(`[${cleanName}] Cancelado pelo usuário.`);
-            break;
-          }
-
-          // Check cancellation (individual)
-          if (cancelledIdsRef.current.has(c.id)) {
-            completed = true;
-            break;
-          }
-
-          // Check global timeout per container (10 minutes)
-          if (Date.now() - pollingStartTime > POLLING_TIMEOUT_MS) {
-            completed = true;
-            localFailed++;
-            const timeoutMsg = 'Tempo limite de polling excedido (10 minutos). A operação pode continuar em segundo plano no servidor.';
-            setTaskStatuses(prev => ({
-              ...prev,
-              [c.id]: {
-                ...prev[c.id],
-                state: 'error',
-                error: timeoutMsg,
-              },
-            }));
-            addLog(`[${cleanName}] ERRO: ${timeoutMsg}`);
-            break;
-          }
-
-          try {
-            const statusRes = await fetch(`/api/docker/containers/${c.id}/update-status`, {
-              headers: { Authorization: `Bearer ${token}` },
-              signal: controller.signal,
-            });
-
-            if (!statusRes.ok) {
-              consecutiveNetworkErrors++;
-              if (consecutiveNetworkErrors === 2) {
-                addLog(`[${cleanName}] Aguardando resposta do container/rede...`);
-              }
-              if (consecutiveNetworkErrors > maxNetworkRetries) {
-                throw new Error(`Servidor inacessível após ${maxNetworkRetries} tentativas (HTTP ${statusRes.status})`);
-              }
-              continue;
-            }
-
-            consecutiveNetworkErrors = 0;
-            const task = await statusRes.json().catch(() => null);
-
-            if (!task) continue;
-
-            // Handle 'idle' status — task not found in backend map
-            if (task.status === 'idle') {
-              consecutiveIdleHits++;
-              if (consecutiveIdleHits > maxIdleHits) {
-                completed = true;
-                localFailed++;
-                const idleMsg = 'Task perdida no servidor (status idle). A operação pode ter falhado silenciosamente.';
-                setTaskStatuses(prev => ({
-                  ...prev,
-                  [c.id]: {
-                    ...prev[c.id],
-                    state: 'error',
-                    error: idleMsg,
-                  },
-                }));
-                addLog(`[${cleanName}] ERRO: ${idleMsg}`);
-              }
-              continue;
-            }
-
-            consecutiveIdleHits = 0;
-
-            if (task.step && task.step !== lastStep) {
-              lastStep = task.step;
-              addLog(`[${cleanName}] ${task.step}`);
-            }
-
-            if (task.status === 'pulling') {
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: { ...prev[c.id], state: 'pulling' },
-              }));
-            } else if (task.status === 'recreating') {
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: { ...prev[c.id], state: 'recreating' },
-              }));
-            } else if (task.status === 'success') {
-              completed = true;
-              localSuccess++;
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: { ...prev[c.id], state: 'success' },
-              }));
-            } else if (task.status === 'error') {
-              completed = true;
-              localFailed++;
-              const err = task.error || 'Falha na atualização do container';
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: {
-                  ...prev[c.id],
-                  state: 'error',
-                  error: err,
-                  details: task.details,
-                },
-              }));
-              addLog(`[${cleanName}] ERRO: ${err}`);
-            }
-          } catch (pollErr: any) {
-            // If aborted via AbortController, handle gracefully
-            if (controller.signal.aborted) {
-              completed = true;
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: { ...prev[c.id], state: 'cancelled', error: 'Cancelado pelo usuário' },
-              }));
-              addLog(`[${cleanName}] Cancelado pelo usuário.`);
-              break;
-            }
-            consecutiveNetworkErrors++;
-            if (consecutiveNetworkErrors === 2) {
-              addLog(`[${cleanName}] Conexão oscilando. Aguardando reconexão do proxy...`);
-            }
-            if (consecutiveNetworkErrors > maxNetworkRetries) {
-              completed = true;
-              localFailed++;
-              const errMsg = pollErr?.message || 'Falha de comunicação persistente com o servidor';
-              setTaskStatuses(prev => ({
-                ...prev,
-                [c.id]: {
-                  ...prev[c.id],
-                  state: 'error',
-                  error: errMsg,
-                  details: String(pollErr),
-                },
-              }));
-              addLog(`[${cleanName}] ERRO: ${errMsg}`);
-            }
-          }
+        } else {
+          localFailed++;
+          const err = pollResult.error || 'Falha na atualização do container';
+          currentStatuses[c.id] = {
+            ...currentStatuses[c.id],
+            state: 'error',
+            error: err,
+            details: pollResult.details,
+          };
+          setTaskStatuses(prev => ({
+            ...prev,
+            [c.id]: currentStatuses[c.id],
+          }));
+          addLog(`[${cleanName}] ERRO: ${err}`);
         }
       } catch (err: any) {
         // If aborted via AbortController, handle as cancellation not error
@@ -488,6 +410,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
     setIsUpdating(false);
     setIsCompleted(true);
     setActiveContainerName(null);
+    clearBatchSession();
 
     const wasCancelled = controller.signal.aborted;
     if (wasCancelled) {
@@ -512,6 +435,31 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
       });
     }
   };
+
+  // Auto-Resume após F5: restaura sessão salva no localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BATCH_STORAGE_KEY);
+      if (!raw) return;
+      const session: PersistedBatchSession = JSON.parse(raw);
+      if (
+        !session ||
+        !Array.isArray(session.orderedTargets) ||
+        session.orderedTargets.length === 0 ||
+        Date.now() - session.timestamp > 3600000 // 1h expiry
+      ) {
+        clearBatchSession();
+        return;
+      }
+
+      toast('Recuperando atualização de containers em lote em andamento...', {
+        icon: '🔄',
+        duration: 4000,
+      });
+
+      runUpdateLoop(session.orderedTargets, session.startIndex, session.taskStatuses, session.logs);
+    } catch {}
+  }, []);
 
   const startBatchUpdate = async (targetContainers: ContainerLike[]) => {
     if (targetContainers.length === 0) return;

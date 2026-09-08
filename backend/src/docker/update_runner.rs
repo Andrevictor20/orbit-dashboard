@@ -267,10 +267,10 @@ pub async fn execute_container_update(
                             "message": "Atualização cancelada pelo usuário"
                         })));
                     }
-                    _ = tokio::time::sleep(std::time::Duration::from_secs(600)) => {
+                    _ = tokio::time::sleep(std::time::Duration::from_secs(1800)) => {
                         let _ = child.kill().await;
                         reader_task.abort();
-                        tracing::warn!("Docker compose pull timed out after 600s for container '{}'. Falling back to standalone.", clean_name);
+                        tracing::warn!("Docker compose pull timed out after 1800s for container '{}'. Falling back to standalone.", clean_name);
                         false
                     }
                 };
@@ -330,9 +330,9 @@ pub async fn execute_container_update(
                                     "message": "Atualização cancelada pelo usuário"
                                 })));
                             }
-                            _ = tokio::time::sleep(std::time::Duration::from_secs(180)) => {
+                            _ = tokio::time::sleep(std::time::Duration::from_secs(300)) => {
                                 let _ = up_child.kill().await;
-                                tracing::warn!("docker compose up timed out after 180s. Falling back to standalone.");
+                                tracing::warn!("docker compose up timed out after 300s. Falling back to standalone.");
                             }
                         }
                     }
@@ -766,6 +766,17 @@ pub async fn execute_container_update(
                 None,
                 None,
             );
+            if !created.id.is_empty() && created.id != id {
+                update_task_status(
+                    &created.id,
+                    &clean_name,
+                    &image_name,
+                    "success",
+                    "Container atualizado e reiniciado com sucesso!",
+                    None,
+                    None,
+                );
+            }
 
             (StatusCode::OK, Json(serde_json::json!({
                 "id": created.id,
@@ -960,7 +971,15 @@ pub async fn get_container_update_status(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     if let Ok(tasks) = CONTAINER_UPDATE_TASKS.read() {
-        if let Some(task) = tasks.get(&id) {
+        if let Some(task) = tasks.get(&id).or_else(|| {
+            tasks.values().find(|t| {
+                t.name == id
+                    || t.name == format!("/{}", id)
+                    || (!t.name.is_empty() && id == t.name.trim_start_matches('/'))
+                    || (id.len() >= 12 && t.id.starts_with(&id[..12]))
+                    || (t.id.len() >= 12 && id.starts_with(&t.id[..12]))
+            })
+        }) {
             return (StatusCode::OK, Json(serde_json::to_value(task).unwrap_or_default())).into_response();
         }
     }
@@ -972,4 +991,16 @@ pub async fn get_container_update_status(
         "error": null,
         "details": null
     }))).into_response()
+}
+
+pub async fn get_active_container_updates() -> impl IntoResponse {
+    if let Ok(tasks) = CONTAINER_UPDATE_TASKS.read() {
+        let active_tasks: Vec<ContainerUpdateTask> = tasks
+            .values()
+            .cloned()
+            .collect();
+        return (StatusCode::OK, Json(active_tasks)).into_response();
+    }
+
+    (StatusCode::OK, Json(Vec::<ContainerUpdateTask>::new())).into_response()
 }

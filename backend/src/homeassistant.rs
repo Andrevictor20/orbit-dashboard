@@ -7,10 +7,11 @@ use axum::{
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use crate::state::AppState;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -52,6 +53,43 @@ static HA_CONFIG_CACHE: Lazy<Arc<RwLock<Option<HomeAssistantConfig>>>> = Lazy::n
     }
     Arc::new(RwLock::new(None))
 });
+
+// Cache 1: Entidades enriquecidas prontas para envio (TTL curto: 4s)
+// Elimina requisições redundantes de abas concorrentes ou navegações rápidas
+struct CachedEntities {
+    data: serde_json::Value,
+    timestamp: Instant,
+}
+
+static HA_ENTITIES_CACHE: Lazy<Arc<RwLock<Option<CachedEntities>>>> = Lazy::new(|| {
+    Arc::new(RwLock::new(None))
+});
+
+// Cache 2: Mapeamento de metadados de áreas e dispositivos resolvidos (TTL longo: 180s / 3 minutos)
+// Elimina a execução contínua e repetitiva de templates Jinja2 caros no daemon do Home Assistant
+struct CachedMeta {
+    mapping: HashMap<String, (String, String)>,
+    timestamp: Instant,
+}
+
+static HA_META_CACHE: Lazy<Arc<RwLock<Option<CachedMeta>>>> = Lazy::new(|| {
+    Arc::new(RwLock::new(None))
+});
+
+pub fn invalidate_ha_caches() {
+    if let Ok(mut guard) = HA_ENTITIES_CACHE.write() {
+        *guard = None;
+    }
+    if let Ok(mut guard) = HA_META_CACHE.write() {
+        *guard = None;
+    }
+}
+
+pub fn invalidate_ha_entities_cache() {
+    if let Ok(mut guard) = HA_ENTITIES_CACHE.write() {
+        *guard = None;
+    }
+}
 
 pub fn get_config_path() -> PathBuf {
     let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -231,6 +269,7 @@ pub async fn save_config(Json(payload): Json<SaveConfigRequest>) -> impl IntoRes
     }
 
     save_config_to_disk(&Some(new_config));
+    invalidate_ha_caches();
 
     (
         StatusCode::OK,
@@ -249,6 +288,7 @@ pub async fn delete_config() -> impl IntoResponse {
         *guard = None;
     }
     save_config_to_disk(&None);
+    invalidate_ha_caches();
 
     (
         StatusCode::OK,
@@ -257,6 +297,15 @@ pub async fn delete_config() -> impl IntoResponse {
 }
 
 pub async fn get_entities() -> impl IntoResponse {
+    // 1. Verificação de Cache de Curto Prazo (4 segundos)
+    if let Ok(guard) = HA_ENTITIES_CACHE.read() {
+        if let Some(cached) = guard.as_ref() {
+            if cached.timestamp.elapsed() < Duration::from_secs(4) {
+                return (StatusCode::OK, Json(cached.data.clone())).into_response();
+            }
+        }
+    }
+
     let cfg = {
         let guard = HA_CONFIG_CACHE.read().unwrap();
         guard.clone()
@@ -283,51 +332,81 @@ pub async fn get_entities() -> impl IntoResponse {
         Ok(resp) if resp.status().is_success() => {
             match resp.json::<serde_json::Value>().await {
                 Ok(mut data) => {
-                    // Consulta dinâmica de áreas e dispositivos associados no Home Assistant via template Jinja2
-                    let template_url = format!("{}/api/template", base_url);
-                    let template_body = serde_json::json!({
-                        "template": "[{% for s in states %}{\"e\":\"{{ s.entity_id }}\",\"a\":{{ (area_name(s.entity_id) or '') | tojson }},\"d\":{{ (device_attr(device_id(s.entity_id), 'name') if device_id(s.entity_id) else '') | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]"
-                    });
+                    // 2. Resolução Eficiente de Metadados (Áreas e Dispositivos) com Cache de 180s (3 minutos)
+                    // Evita processamento Jinja2 repetido em cada request no daemon do Home Assistant
+                    let mut meta_map: Option<HashMap<String, (String, String)>> = None;
 
-                    if let Ok(tpl_resp) = HA_CLIENT
-                        .post(&template_url)
-                        .bearer_auth(&cfg.token)
-                        .json(&template_body)
-                        .timeout(Duration::from_secs(3))
-                        .send()
-                        .await
-                    {
-                        if tpl_resp.status().is_success() {
-                            if let Ok(raw_json) = tpl_resp.text().await {
-                                #[derive(Deserialize)]
-                                struct EntityMeta {
-                                    e: String,
-                                    a: Option<String>,
-                                    d: Option<String>,
-                                }
-                                if let Ok(meta_list) = serde_json::from_str::<Vec<EntityMeta>>(&raw_json) {
-                                    let mut meta_map = std::collections::HashMap::new();
-                                    for m in meta_list {
-                                        meta_map.insert(m.e, (m.a.unwrap_or_default(), m.d.unwrap_or_default()));
+                    if let Ok(guard) = HA_META_CACHE.read() {
+                        if let Some(cached_meta) = guard.as_ref() {
+                            if cached_meta.timestamp.elapsed() < Duration::from_secs(180) {
+                                meta_map = Some(cached_meta.mapping.clone());
+                            }
+                        }
+                    }
+
+                    if meta_map.is_none() {
+                        let template_url = format!("{}/api/template", base_url);
+                        let template_body = serde_json::json!({
+                            "template": "[{% for s in states %}{\"e\":\"{{ s.entity_id }}\",\"a\":{{ (area_name(s.entity_id) or '') | tojson }},\"d\":{{ (device_attr(device_id(s.entity_id), 'name') if device_id(s.entity_id) else '') | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]"
+                        });
+
+                        if let Ok(tpl_resp) = HA_CLIENT
+                            .post(&template_url)
+                            .bearer_auth(&cfg.token)
+                            .json(&template_body)
+                            .timeout(Duration::from_secs(4))
+                            .send()
+                            .await
+                        {
+                            if tpl_resp.status().is_success() {
+                                if let Ok(raw_json) = tpl_resp.text().await {
+                                    #[derive(Deserialize)]
+                                    struct EntityMeta {
+                                        e: String,
+                                        a: Option<String>,
+                                        d: Option<String>,
                                     }
+                                    if let Ok(meta_list) = serde_json::from_str::<Vec<EntityMeta>>(&raw_json) {
+                                        let mut new_map = HashMap::new();
+                                        for m in meta_list {
+                                            new_map.insert(m.e, (m.a.unwrap_or_default(), m.d.unwrap_or_default()));
+                                        }
+                                        if let Ok(mut guard) = HA_META_CACHE.write() {
+                                            *guard = Some(CachedMeta {
+                                                mapping: new_map.clone(),
+                                                timestamp: Instant::now(),
+                                            });
+                                        }
+                                        meta_map = Some(new_map);
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-                                    if let Some(arr) = data.as_array_mut() {
-                                        for ent in arr.iter_mut() {
-                                            if let Some(eid) = ent.get("entity_id").and_then(|v| v.as_str()) {
-                                                if let Some((area, device)) = meta_map.get(eid) {
-                                                    if !area.is_empty() {
-                                                        ent["area"] = serde_json::Value::String(area.clone());
-                                                    }
-                                                    if !device.is_empty() {
-                                                        ent["device_name"] = serde_json::Value::String(device.clone());
-                                                    }
-                                                }
-                                            }
+                    if let Some(map) = meta_map {
+                        if let Some(arr) = data.as_array_mut() {
+                            for ent in arr.iter_mut() {
+                                if let Some(eid) = ent.get("entity_id").and_then(|v| v.as_str()) {
+                                    if let Some((area, device)) = map.get(eid) {
+                                        if !area.is_empty() {
+                                            ent["area"] = serde_json::Value::String(area.clone());
+                                        }
+                                        if !device.is_empty() {
+                                            ent["device_name"] = serde_json::Value::String(device.clone());
                                         }
                                     }
                                 }
                             }
                         }
+                    }
+
+                    // 3. Salva no cache de curto prazo
+                    if let Ok(mut guard) = HA_ENTITIES_CACHE.write() {
+                        *guard = Some(CachedEntities {
+                            data: data.clone(),
+                            timestamp: Instant::now(),
+                        });
                     }
 
                     (StatusCode::OK, Json(data)).into_response()
@@ -377,6 +456,7 @@ pub async fn call_service(
         .await
     {
         Ok(resp) if resp.status().is_success() => {
+            invalidate_ha_entities_cache();
             let data: serde_json::Value = resp.json().await.unwrap_or(serde_json::json!({"status": "ok"}));
             (StatusCode::OK, Json(data)).into_response()
         }

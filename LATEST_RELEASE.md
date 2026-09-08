@@ -1,36 +1,39 @@
-# Orbit Dashboard v2.6.0
+# Orbit Dashboard v2.7.0
 
-### Novidades e Recursos Principais (v2.6.0)
+### Novidades e Recursos Principais (v2.7.0)
 
-- **Telemetria Completa de Rede do Host nos Gráficos:**
-  - **Curvas de Tráfego do Host:** Inclusão das séries temporais de Download (`Host Download`) e Upload (`Host Upload`) no gráfico de área do painel de métricas, permitindo monitoramento completo da máquina física além dos contêineres Docker.
-  - **Filtros Segmentados por Abas:** Alternância ágil entre a visão unificada (Host e Contêineres), foco exclusivo na interface física do host ou foco exclusivo nos contêineres gerenciados.
-  - **Velocidades em Tempo Real:** Indicadores instantâneos de taxa de download (↓) e upload (↑) no cabeçalho do card com formatação dinâmica adaptativa (B/s, KB/s, MB/s).
+- **Watchdog Inteligente e Resiliência em Atualizações em Lote:**
+  - **Eliminação de Falsos Timeouts:** Atualizações de imagens volumosas (como n8n, Ollama, Nextcloud e Home Assistant) agora contam com monitoramento baseado em atividade real, evitando interrupções prematuras enquanto dados continuam sendo descompactados e baixados.
+  - **Execução Serial Segura:** Prevenção contra sobrecarga de disco e contenção no Docker daemon, garantindo que cada contêiner conclua seu ciclo antes de iniciar o próximo.
+  - **Tolerância a Oscilações de Rede:** Buffer resiliente de até 90 segundos para absorver quedas temporárias de proxies, túneis Cloudflare ou saturação de banda.
 
-- **Ergonomia e Navegação Aprimorada em Dispositivos Móveis:**
-  - **Menu Unificado de Preferências:** Em telas menores que 640px, os seletores independentes de paleta e idioma foram consolidados em um único botão táctil de preferências com popover em vidro fosco.
-  - **Alvos de Toque Padronizados (WCAG AA):** Botões da barra superior calibrados para dimensões mínimas de 36x36px com espaçamento central preservado para operação confortável com uma mão.
-  - **Ocultação de Controles Redundantes:** Otimização do espaço visual em smartphones com ocultação automática de controles gerenciados nativamente pelos navegadores móveis.
+- **Limpeza Automática de Imagens Antigas do Orbit:**
+  - **Liberação Automática de Armazenamento:** Ao confirmar e concluir a atualização do próprio Orbit, as imagens anteriores e camadas desvinculadas são automaticamente identificadas e removidas do disco, sem necessidade de faxina manual.
+  - **Proteção contra Órfãos:** Higienização executada tanto pelo processo de atualização quanto na inicialização do novo contêiner.
 
-- **Resolução Resiliente de Memória RAM em Ambientes Homelab:**
-  - **Fallback Automático de Cgroups:** Caso a distribuição Linux (ex.: Raspberry Pi OS, CasaOS, Armbian ou containers LXC) esteja com a contabilidade de memória em cgroups desabilitada no kernel, o sistema aciona automaticamente a amostragem de processos via RSS, impedindo que o indicador de memória dos contêineres fique congelado em 0.0 MB.
-  - **Teto Físico de Memória:** Adoção determinística da memória total do host quando os limites de contêiner forem ilimitados.
+- **Persistência Anti-F5 e Recuperação de Sessão:**
+  - **Recuperação Imediata:** Atualizações em lote, downloads de aplicativos da loja e operações longas são preservadas localmente e continuam automaticamente mesmo se a aba do navegador for atualizada (F5) ou a conexão oscilar.
 
-- **Otimizações Gerais de Desempenho e Eficiência:**
-  - **Telemetria em Alta Frequência:** Redução drástica de alocações e clonagens de memória no loop de transmissão WebSocket e no monitor de processos.
-  - **Renderização Fluida de Gráficos:** Memoização de mini gráficos SVG e limite no anel de histórico em memória para navegação suave mesmo em hardware compacto.
+- **Otimização Extrema de Desempenho no Home Assistant:**
+  - **Redução de Carga no Host:** Sistema de particionamento e cache inteligente em dois níveis reduz em mais de 90% a sobrecarga de CPU sobre o servidor do Home Assistant, mantendo dispositivos e entidades perfeitamente responsivos.
 
-- **Hardening de Segurança e Conformidade Local:**
-  - **Isolamento de Logs:** Rotas de visualização e limpeza de logs do sistema protegidas por autenticação obrigatória.
-  - **Proteção contra IDOR de Processos:** Bloqueio mandatório contra encerramento acidental do próprio processo do Orbit, PID 1 e daemons vitais do sistema operacional.
-  - **CORS Dinâmico Local:** Aceitação controlada de requisições de sub-redes privadas RFC 1918, domínios mDNS, Tailscale e túneis Cloudflare, rejeitando origens públicas arbitrárias.
-
-- **Documentação Técnica Completa:**
-  - Manuais de arquitetura, instalação com exemplos de proxies reversos (Nginx e Caddy), políticas de segurança e estratégia de testes totalmente reformulados com especificações técnicas detalhadas.
+- **Identidade Visual Adaptativa:**
+  - **Favicon Dinâmico:** O ícone da aba do navegador agora sincroniza dinamicamente com a paleta de cores e o tema ativo (claro ou escuro).
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.6.0 — Telemetria de Rede do Host, Ergonomia Mobile & Fallback de RAM</summary>
+
+- Telemetria completa de rede do host nos gráficos com curvas de download e upload
+- Filtros segmentados por abas (Host, Contêineres ou Unificado)
+- Menu unificado de preferências em telas móveis com alvos de toque WCAG AA
+- Fallback automático de cgroups via amostragem RSS para memória em homelab
+- Otimizações de desempenho e hardening de segurança com CORS dinâmico local
+
+</details>
 
 <details>
 <summary>v2.5.5 — Otimização de CI/CD e Estabilidade em Runners Headless</summary>

@@ -113,11 +113,12 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 logs: [
                   ...prev.logs, 
                   '🎉 [SUCCESS] Novo container ativo e respondendo na porta 5172!',
+                  '🧹 [CLEANUP] Imagens antigas e camadas não utilizadas do Orbit removidas automaticamente.',
                   '🚀 [REDIRECT] Redirecionando para a tela de login...'
                 ]
               }));
 
-              toast.success('Orbit atualizado com sucesso! Redirecionando para o login...');
+              toast.success('Orbit atualizado com sucesso! Imagens antigas removidas.');
               
               setTimeout(() => {
                 window.location.replace(`/login?updated=true&version=${encodeURIComponent(targetVersion)}&_t=${Date.now()}`);

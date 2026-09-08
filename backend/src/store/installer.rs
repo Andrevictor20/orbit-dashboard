@@ -415,6 +415,12 @@ pub async fn install_status(Path(task_id): Path<String>) -> impl IntoResponse {
     }
 }
 
+pub async fn active_install_tasks() -> impl IntoResponse {
+    let tasks = INSTALL_TASKS.read().unwrap();
+    let list: Vec<InstallTask> = tasks.values().cloned().collect();
+    (StatusCode::OK, Json(list)).into_response()
+}
+
 pub fn ensure_safe_logging_config(compose_str: &str) -> String {
     if let Ok(mut parsed) = serde_yaml::from_str::<Value>(compose_str) {
         if let Some(services) = parsed.get_mut("services").and_then(|s| s.as_mapping_mut()) {

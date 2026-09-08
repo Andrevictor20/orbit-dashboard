@@ -53,6 +53,9 @@ export function HomeAssistant() {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [config, setConfig] = useState<HAConfig | null>(null);
 
+  // Cache em memória de curto prazo no cliente para evitar refetches imediatos em alternância de abas
+  const clientEntitiesCacheRef = useRef<{ data: HAEntity[]; timestamp: number } | null>(null);
+
   // Formulário de conexão
   const [urlInput, setUrlInput] = useState('');
   const [tokenInput, setTokenInput] = useState('');
@@ -91,7 +94,7 @@ export function HomeAssistant() {
         const data: HAConfig = await res.json();
         setConfig(data);
         if (data.configured && data.connected) {
-          fetchEntities();
+          fetchEntities(false);
         }
       }
     } catch {
@@ -101,13 +104,25 @@ export function HomeAssistant() {
     }
   };
 
-  const fetchEntities = async () => {
+  const fetchEntities = async (force = false) => {
+    // Se a aba estiver oculta e não for um clique forçado do usuário, evita I/O de rede
+    if (!force && typeof document !== 'undefined' && document.hidden) {
+      return;
+    }
+
+    // Aproveita cache recente do cliente (< 10 segundos) em navegação entre abas
+    if (!force && clientEntitiesCacheRef.current && Date.now() - clientEntitiesCacheRef.current.timestamp < 10000) {
+      setEntities(clientEntitiesCacheRef.current.data);
+      return;
+    }
+
     try {
       setLoadingEntities(true);
       setEntitiesError(null);
       const res = await fetch('/api/homeassistant/entities');
       if (res.ok) {
         const data: HAEntity[] = await res.json();
+        clientEntitiesCacheRef.current = { data, timestamp: Date.now() };
         setEntities(data);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
@@ -122,6 +137,15 @@ export function HomeAssistant() {
 
   useEffect(() => {
     fetchConfig();
+
+    // Sincronização ao retornar para a aba caso o cache esteja expirado
+    const handleVisibilityChange = () => {
+      if (!document.hidden && clientEntitiesCacheRef.current && Date.now() - clientEntitiesCacheRef.current.timestamp > 30000) {
+        fetchEntities(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -164,6 +188,7 @@ export function HomeAssistant() {
       const res = await fetch('/api/homeassistant/config', { method: 'DELETE' });
       if (res.ok) {
         toast.success(t('homeassistant.disconnect') + ': ' + t('common.success'));
+        clientEntitiesCacheRef.current = null;
         setConfig(null);
         setEntities([]);
         setUrlInput('');
@@ -189,6 +214,7 @@ export function HomeAssistant() {
       });
 
       if (res.ok) {
+        clientEntitiesCacheRef.current = null;
         // Atualização otimista de estado
         if (service === 'turn_on' || service === 'turn_off' || service === 'toggle') {
           const nextState = service === 'turn_on' ? 'on' : service === 'turn_off' ? 'off' : undefined;
@@ -602,7 +628,7 @@ export function HomeAssistant() {
 
           {/* Sincronizar */}
           <button
-            onClick={fetchEntities}
+            onClick={() => fetchEntities(true)}
             disabled={loadingEntities}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/70 bg-card/50 hover:bg-card text-secondary hover:text-primary text-xs font-medium transition-all active:scale-95 shadow-sm disabled:opacity-50"
             title={t('homeassistant.sync')}
@@ -871,7 +897,7 @@ export function HomeAssistant() {
             <span>{entitiesError}</span>
           </div>
           <button
-            onClick={fetchEntities}
+            onClick={() => fetchEntities(true)}
             className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-medium transition-colors"
           >
             {t('homeassistant.retry')}

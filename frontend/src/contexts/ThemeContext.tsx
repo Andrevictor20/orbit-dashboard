@@ -67,6 +67,36 @@ export function ThemeProvider({
     root.classList.add(`theme-${color}`);
   }, [color]);
 
+  useEffect(() => {
+    const updateFavicon = () => {
+      let resolvedTheme: "dark" | "light" = "dark";
+      if (theme === "system") {
+        resolvedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      } else {
+        resolvedTheme = theme === "light" ? "light" : "dark";
+      }
+
+      const iconPath = `/icons/orbit/orbit-${color}-${resolvedTheme}.svg`;
+      let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        link.type = "image/svg+xml";
+        document.head.appendChild(link);
+      }
+      link.href = iconPath;
+    };
+
+    updateFavicon();
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => updateFavicon();
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
+    }
+  }, [theme, color]);
+
   const value = {
     theme,
     setTheme: (theme: Theme) => {

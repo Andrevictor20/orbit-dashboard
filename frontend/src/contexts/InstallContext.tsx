@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import toast from 'react-hot-toast';
 
 export type TaskType = 
   | 'app_install' 
@@ -65,11 +66,90 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
+const INSTALL_STORAGE_KEY = 'orbit_install_tasks';
+const CURRENT_TASK_ID_KEY = 'orbit_install_current_id';
+
 export function InstallProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useState<InstallTask[]>([]);
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<InstallTask[]>(() => {
+    try {
+      const raw = localStorage.getItem(INSTALL_STORAGE_KEY);
+      if (raw) {
+        const parsed: InstallTask[] = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CURRENT_TASK_ID_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Sincroniza persistência de tarefas no localStorage
+  useEffect(() => {
+    try {
+      if (tasks.length > 0) {
+        localStorage.setItem(INSTALL_STORAGE_KEY, JSON.stringify(tasks.slice(0, 10)));
+      } else {
+        localStorage.removeItem(INSTALL_STORAGE_KEY);
+      }
+    } catch {}
+  }, [tasks]);
+
+  // Sincroniza o ID da tarefa corrente no localStorage
+  useEffect(() => {
+    try {
+      if (currentTaskId) {
+        localStorage.setItem(CURRENT_TASK_ID_KEY, currentTaskId);
+      } else {
+        localStorage.removeItem(CURRENT_TASK_ID_KEY);
+      }
+    } catch {}
+  }, [currentTaskId]);
+
+  // Auto-Resume no mount: detecta se havia tarefa ativa ou consulta backend
+  useEffect(() => {
+    const hasActiveTask = tasks.some(t => t.status !== 'done' && t.status !== 'error');
+    if (hasActiveTask) {
+      toast('Recuperando download/instalação de container em andamento...', {
+        icon: '📦',
+        duration: 4000,
+      });
+      setIsModalOpen(true);
+    }
+
+    // Consulta tarefas ativas no backend para sincronização completa
+    const token = localStorage.getItem('orbit_token');
+    fetch('/api/store/install/active', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then((activeList: InstallTask[]) => {
+        if (Array.isArray(activeList) && activeList.length > 0) {
+          activeList.forEach(backendTask => {
+            addOrUpdateTask({
+              ...backendTask,
+              title: backendTask.title || `Instalação ${backendTask.id.slice(0, 8)}`,
+              type: 'app_install',
+              destinationUrl: '/containers',
+            });
+          });
+          const lastActive = activeList.find(t => t.status !== 'done' && t.status !== 'error');
+          if (lastActive) {
+            setCurrentTaskId(lastActive.id);
+            setIsModalOpen(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const currentTask = tasks.find(t => t.id === currentTaskId) || null;
   const currentTitle = currentTask ? (currentTask.title || (currentTask as any).appName || 'Tarefa') : '';

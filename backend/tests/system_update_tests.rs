@@ -360,4 +360,26 @@ async fn test_system_update_blocks_when_ci_is_building() {
     }
 }
 
+#[tokio::test]
+async fn test_system_update_cleanup_endpoint() {
+    let _lock = TEST_MUTEX.lock().unwrap();
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+
+    let app = backend::app();
+    let server = TestServer::new(app);
+
+    // 1. Without auth must fail with 401
+    let unauth_res = server.post("/api/system/update/cleanup").await;
+    assert_eq!(unauth_res.status_code(), axum::http::StatusCode::UNAUTHORIZED);
+
+    // 2. With auth must return 200 OK with success
+    let cookie = get_test_cookie();
+    let res = server.post("/api/system/update/cleanup")
+        .add_cookie(cookie)
+        .await;
+    assert_eq!(res.status_code(), axum::http::StatusCode::OK);
+    let json: serde_json::Value = res.json();
+    assert_eq!(json.get("success").and_then(|v| v.as_bool()), Some(true));
+}
+
 

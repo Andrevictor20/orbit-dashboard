@@ -21,7 +21,7 @@ import {
 import type { MountItem, ShortcutPlace, TrashItem } from '../../types/fileManager';
 import { formatStorage, getFriendlyDiskName } from '../../utils/format';
 
-export const getPlaceIcon = (iconName: string) => {
+const getPlaceIcon = (iconName: string) => {
   switch (iconName.toLowerCase()) {
     case 'home': return Home;
     case 'file-text':
@@ -40,7 +40,7 @@ export const getPlaceIcon = (iconName: string) => {
   }
 };
 
-export const getPlaceColorClass = (iconName: string, isActive: boolean) => {
+const getPlaceColorClass = (iconName: string, isActive: boolean) => {
   if (isActive) return 'text-orbit-400';
   switch (iconName.toLowerCase()) {
     case 'documents':

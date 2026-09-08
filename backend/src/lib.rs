@@ -48,6 +48,13 @@ pub fn app() -> Router {
     // Start background stats collector immediately so metrics history is populated continuously
     ws::ensure_stats_collector(state.docker.clone());
 
+    // Background automatic cleanup of old/dangling Orbit images post-update
+    let docker_cleanup = state.docker.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        system::cleanup_old_orbit_images(docker_cleanup).await;
+    });
+
     let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))

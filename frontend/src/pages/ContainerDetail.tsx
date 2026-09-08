@@ -1,39 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Activity, HardDrive, Play, Square, RotateCw, Pause, PlayCircle, Trash2, Terminal as TerminalIcon, AlignLeft, Info, ExternalLink, Pencil, Plus, X, Copy, ClipboardPaste, CheckCircle2, DownloadCloud, Sparkles } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { StatCard } from '../components/ui/StatCard';
+import { ArrowLeft, Play, Square, RotateCw, Pause, PlayCircle, Trash2, Terminal as TerminalIcon, AlignLeft, Info, ExternalLink, DownloadCloud } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
-import { Terminal as XTerm } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
-import { formatBytes } from '../utils/format';
 import { resolveWebUrl } from '../utils/url';
 import { getIconForImage } from '../utils/icons';
 import { ContainerIcon } from '../components/ui/ContainerIcon';
-
-interface ContainerData {
-  id: string;
-  name: string;
-  image: string;
-  state: string;
-  status: string;
-  size_rw?: number;
-  size_root_fs?: number;
-}
-
-interface StatPoint {
-  time: string;
-  cpu: number;
-  memory: number;
-  memory_limit: number;
-}
-
-interface EnvVariable {
-  key: string;
-  value: string;
-}
+import {
+  ContainerOverviewTab,
+  type ContainerData,
+  type StatPoint,
+  type EnvVariable,
+} from '../components/docker/container-detail/ContainerOverviewTab';
+import { ContainerLogsTab } from '../components/docker/container-detail/ContainerLogsTab';
+import { ContainerTerminalTab } from '../components/docker/container-detail/ContainerTerminalTab';
+import { ContainerDeleteModal } from '../components/docker/container-detail/ContainerDeleteModal';
+import { pollContainerUpdate } from '../utils/batchUpdateRunner';
 
 const toEnvVariables = (env: string[] = []): EnvVariable[] => env.map((entry) => {
   const [key, ...value] = entry.split('=');
@@ -54,94 +36,6 @@ export function ContainerDetail() {
   const [hasUpdate, setHasUpdate] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'logs' | 'terminal'>('overview');
 
-  useEffect(() => {
-    if (id) {
-      const token = localStorage.getItem('orbit_token');
-      fetch(`/api/docker/containers/${id}/check-update`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data && data.has_update) {
-            setHasUpdate(true);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [id]);
-
-  const handleUpdate = async () => {
-    if (!id) return;
-    setUpdating(true);
-    try {
-      const token = localStorage.getItem('orbit_token');
-      const res = await fetch(`/api/docker/containers/${id}/update`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const rawText = await res.text().catch(() => '');
-      let data: any = null;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        data = null;
-      }
-
-      if (!res.ok || data?.status === 'error') {
-        let err = data?.message || rawText;
-        if (rawText.includes('<!DOCTYPE html') || rawText.includes('<html')) {
-          err = 'Tempo limite ou erro retornado pelo proxy intermediário/rede.';
-        }
-        toast.error(`Falha ao atualizar container: ${err}`);
-        return;
-      }
-
-      // If finished synchronously
-      if (data?.status === 'success') {
-        setHasUpdate(false);
-        toast.success('Container atualizado e reiniciado com sucesso!');
-        await fetchContainer();
-        await fetchInspect();
-        return;
-      }
-
-      // Polling background update
-      toast('Download da imagem iniciado em segundo plano...', { icon: '⏳' });
-      let completed = false;
-      let retries = 0;
-      while (!completed && retries < 180) { // up to 6 minutes
-        await new Promise(r => setTimeout(r, 2000));
-        retries++;
-        try {
-          const statusRes = await fetch(`/api/docker/containers/${id}/update-status`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (!statusRes.ok) continue;
-          const task = await statusRes.json().catch(() => null);
-          if (!task) continue;
-
-          if (task.status === 'success') {
-            completed = true;
-            setHasUpdate(false);
-            toast.success('Container atualizado e reiniciado com sucesso!');
-            await fetchContainer();
-            await fetchInspect();
-          } else if (task.status === 'error') {
-            completed = true;
-            toast.error(`Falha ao atualizar container: ${task.error || 'Erro desconhecido'}`);
-          }
-        } catch {
-          // Transient network reconnection retry
-        }
-      }
-    } catch (e) {
-      console.error('Update error:', e);
-      toast.error('Erro de conexão ao atualizar container.');
-    } finally {
-      setUpdating(false);
-    }
-  };
   const [editingEnv, setEditingEnv] = useState(false);
   const [envVariables, setEnvVariables] = useState<EnvVariable[]>([]);
   const [hiddenEnvVariables, setHiddenEnvVariables] = useState<EnvVariable[]>([]);
@@ -149,12 +43,10 @@ export function ContainerDetail() {
   const [envError, setEnvError] = useState<string | null>(null);
 
   const [editingVolumes, setEditingVolumes] = useState(false);
-  const [volumeVariables, setVolumeVariables] = useState<{host: string, container: string}[]>([]);
+  const [volumeVariables, setVolumeVariables] = useState<{ host: string; container: string }[]>([]);
   const [volumeSaving, setVolumeSaving] = useState(false);
   const [volumeError, setVolumeError] = useState<string | null>(null);
 
-  const [copiedLogs, setCopiedLogs] = useState(false);
-  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteOptions, setDeleteOptions] = useState({
     volumes: false,
@@ -173,10 +65,22 @@ export function ContainerDetail() {
     message: '',
     onConfirm: () => {},
   });
-  
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      const token = localStorage.getItem('orbit_token');
+      fetch(`/api/docker/containers/${id}/check-update`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && data.has_update) {
+            setHasUpdate(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [id]);
 
   const fetchContainer = async () => {
     try {
@@ -257,10 +161,58 @@ export function ContainerDetail() {
     }
   };
 
+  const pollUpdateStatus = async (token: string | null) => {
+    if (!id) return;
+    const cleanName = (container?.name || id).replace(/^\//, '');
+    const result = await pollContainerUpdate({
+      containerId: id,
+      cleanName,
+      token,
+      signal: new AbortController().signal,
+    });
+
+    if (result.success) {
+      setHasUpdate(false);
+      toast.success('Container atualizado e reiniciado com sucesso!');
+      await fetchContainer();
+      await fetchInspect();
+    } else if (!result.wasCancelled) {
+      toast.error(`Falha ao atualizar container: ${result.error || 'Erro desconhecido'}`);
+    }
+  };
+
   useEffect(() => {
+    if (!id) return;
+
+    // Se a página foi recarregada (F5) enquanto uma exclusão estava em andamento
+    if (sessionStorage.getItem(`orbit_deleting_${id}`)) {
+      sessionStorage.removeItem(`orbit_deleting_${id}`);
+      toast('A exclusão do container continua em andamento em segundo plano.', { icon: '🗑️' });
+      navigate('/containers');
+      return;
+    }
+
     fetchContainer();
     fetchStats();
     fetchInspect();
+
+    // Verifica se há atualização em segundo plano já ativa no servidor após F5
+    const token = localStorage.getItem('orbit_token');
+    fetch(`/api/docker/containers/${id}/update-status`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(task => {
+        if (task && (task.status === 'pulling' || task.status === 'recreating')) {
+          setUpdating(true);
+          toast('Recuperando processo de atualização em andamento...', { icon: '⏳' });
+          pollUpdateStatus(token).finally(() => {
+            setUpdating(false);
+            sessionStorage.removeItem(`orbit_updating_${id}`);
+          });
+        }
+      })
+      .catch(() => {});
     
     const interval = setInterval(() => {
       fetchContainer();
@@ -268,119 +220,60 @@ export function ContainerDetail() {
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, navigate]);
 
   useEffect(() => {
     if (activeTab === 'logs') {
       fetchLogs();
-    } else if (activeTab === 'terminal') {
-      // Setup Xterm
-      if (!terminalRef.current) return;
-      terminalRef.current.innerHTML = '';
-      
-      const term = new XTerm({
-        theme: {
-          background: '#090d13',
-          foreground: '#e6edf3',
-          cursor: '#10b981',
-          cursorAccent: '#090d13',
-          selectionBackground: '#388bfd55',
-          selectionForeground: '#ffffff',
-          black: '#484f58',
-          red: '#ff7b72',
-          green: '#3fb950',
-          yellow: '#d29922',
-          blue: '#58a6ff',
-          magenta: '#bc8cff',
-          cyan: '#39c5cf',
-          white: '#ffffff',
-        },
-        fontFamily: '"Fira Code", "JetBrains Mono", Menlo, Monaco, monospace',
-        fontSize: 14,
-        lineHeight: 1.25,
-        cursorBlink: true,
-        allowProposedApi: true,
-      });
-
-      const fitAddon = new FitAddon();
-      term.loadAddon(fitAddon);
-      term.open(terminalRef.current);
-      requestAnimationFrame(() => fitAddon.fit());
-
-      xtermRef.current = term;
-
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/api/docker/containers/${id}/exec`;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      const sendResize = (cols: number, rows: number) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-        }
-      };
-
-      term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-        const isCtrlOrCmd = event.ctrlKey || event.metaKey;
-        if (isCtrlOrCmd && (event.key === 'c' || event.key === 'C')) {
-          if (term.hasSelection() || event.shiftKey) {
-            const selected = term.getSelection();
-            if (selected) {
-              navigator.clipboard.writeText(selected).then(() => toast.success('Copiado!')).catch(() => {});
-              return false;
-            }
-          }
-        }
-        if (isCtrlOrCmd && (event.key === 'v' || event.key === 'V')) {
-          navigator.clipboard.readText().then(text => {
-            if (text && ws.readyState === WebSocket.OPEN) ws.send(text);
-          }).catch(() => {});
-          return false;
-        }
-        return true;
-      });
-
-      ws.onopen = () => {
-        term.writeln('\x1b[1;32mConectado ao shell do container...\x1b[0m');
-        sendResize(term.cols, term.rows);
-      };
-
-      ws.onmessage = (event) => {
-        term.write(event.data);
-      };
-
-      ws.onclose = () => {
-        term.writeln('\r\n\x1b[1;31mConexão encerrada.\x1b[0m');
-      };
-
-      term.onData((data) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data);
-        }
-      });
-
-      term.onResize(({ cols, rows }) => sendResize(cols, rows));
-
-      const handleResize = () => {
-        fitAddon.fit();
-        sendResize(term.cols, term.rows);
-      };
-      window.addEventListener('resize', handleResize);
-
-      const observer = new ResizeObserver(() => handleResize());
-      observer.observe(terminalRef.current);
-
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        observer.disconnect();
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        }
-        term.dispose();
-        xtermRef.current = null;
-      };
     }
-  }, [activeTab, id]);
+  }, [activeTab]);
+
+  const handleUpdate = async () => {
+    if (!id) return;
+    setUpdating(true);
+    sessionStorage.setItem(`orbit_updating_${id}`, 'true');
+    try {
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch(`/api/docker/containers/${id}/update`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const rawText = await res.text().catch(() => '');
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = null;
+      }
+
+      if (!res.ok || data?.status === 'error') {
+        let err = data?.message || rawText;
+        if (rawText.includes('<!DOCTYPE html') || rawText.includes('<html')) {
+          err = 'Tempo limite ou erro retornado pelo proxy intermediário/rede.';
+        }
+        toast.error(`Falha ao atualizar container: ${err}`);
+        return;
+      }
+
+      if (data?.status === 'success') {
+        setHasUpdate(false);
+        toast.success('Container atualizado e reiniciado com sucesso!');
+        await fetchContainer();
+        await fetchInspect();
+        return;
+      }
+
+      toast('Download da imagem iniciado em segundo plano...', { icon: '⏳' });
+      await pollUpdateStatus(token);
+    } catch (e) {
+      console.error('Update error:', e);
+      toast.error('Erro de conexão ao atualizar container.');
+    } finally {
+      setUpdating(false);
+      sessionStorage.removeItem(`orbit_updating_${id}`);
+    }
+  };
 
   const handleAction = async (action: 'start' | 'stop' | 'restart' | 'pause' | 'unpause') => {
     if (!container) return;
@@ -399,13 +292,10 @@ export function ContainerDetail() {
     }
   };
 
-  const confirmDeleteContainer = () => {
-    setShowDeleteModal(true);
-  };
-
   const executeDelete = async () => {
     if (!container) return;
     setActionLoading(true);
+    sessionStorage.setItem(`orbit_deleting_${id}`, 'true');
     const loadingToast = toast.loading('Parando e excluindo container com segurança...');
     try {
       const token = localStorage.getItem('orbit_token');
@@ -426,9 +316,11 @@ export function ContainerDetail() {
         throw new Error(`HTTP ${res.status} ${res.statusText}`);
       }
       
+      sessionStorage.removeItem(`orbit_deleting_${id}`);
       toast.success('Container excluído com sucesso!', { id: loadingToast });
       navigate('/containers');
     } catch (err) {
+      sessionStorage.removeItem(`orbit_deleting_${id}`);
       console.error('Failed to delete container', err);
       toast.error('Erro ao excluir o container.', { id: loadingToast });
       setActionLoading(false);
@@ -604,17 +496,6 @@ export function ContainerDetail() {
     );
   }
 
-
-  const handleCopyLogs = async () => {
-    try {
-      await navigator.clipboard.writeText(logs);
-      setCopiedLogs(true);
-      setTimeout(() => setCopiedLogs(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy logs', err);
-    }
-  };
-
   const latestStat = history[history.length - 1];
   const cpuPercent = latestStat ? latestStat.cpu.toFixed(1) : '0.0';
   const memUsed = latestStat ? latestStat.memory.toFixed(1) : '0.0';
@@ -730,7 +611,7 @@ export function ContainerDetail() {
 
           <div className="w-px h-6 sm:h-8 bg-white/10 mx-1"></div>
           <button 
-            onClick={confirmDeleteContainer} 
+            onClick={() => setShowDeleteModal(true)} 
             disabled={actionLoading} 
             title="Excluir Container"
             className="p-2 bg-accent border border-border hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/50 rounded-md text-secondary transition-all"
@@ -754,258 +635,47 @@ export function ContainerDetail() {
       </div>
 
       {activeTab === 'overview' && (
-        <>
-          {hasUpdate && (
-            <div className="flex items-center justify-between p-3.5 mb-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-900 dark:text-violet-300 text-xs sm:text-sm animate-in fade-in">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />
-                <div>
-                  <span className="font-semibold text-primary dark:text-white">Atualização disponível</span>
-                  <p className="text-xs text-secondary dark:text-zinc-400 mt-0.5 font-medium">Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.</p>
-                </div>
-              </div>
-              <button
-                onClick={handleUpdate}
-                disabled={updating}
-                className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium text-xs transition-colors shrink-0 shadow-md shadow-violet-900/30 flex items-center gap-1.5"
-              >
-                <DownloadCloud className={`w-3.5 h-3.5 ${updating ? 'animate-bounce' : ''}`} />
-                <span>{updating ? 'Atualizando...' : 'Atualizar Agora'}</span>
-              </button>
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard 
-              title="Uso de CPU" 
-              value={`${cpuPercent}%`} 
-              trend="Realtime"
-              trendUp={parseFloat(cpuPercent) < 80}
-              subText="Consumo atual do processo"
-              icon={Activity}
-            />
-            <StatCard 
-              title="Uso de Memória" 
-              value={`${memUsed} MB`} 
-              trend={`${memLimit} MB`}
-              trendUp={true}
-              subText="Limite configurado"
-              icon={HardDrive}
-            />
-            <StatCard 
-              title="Armazenamento" 
-              value={formatBytes((container.size_rw || 0) + (container.size_root_fs || 0))} 
-              trend="RW + RootFS"
-              trendUp={true}
-              subText="Espaço ocupado em disco"
-              icon={HardDrive}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-6 flex-1">
-            <div className="col-span-2 glass-panel rounded-xl p-6 min-h-[400px] flex flex-col border border-border">
-              <h3 className="text-lg font-bold mb-6 text-primary flex items-center gap-2">
-                <Activity className="w-5 h-5 text-secondary" />
-                Desempenho em Tempo Real
-              </h3>
-              <div className="flex-1 min-h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={history} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorCpuC" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorMemoryC" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="time" stroke="#525252" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="left" stroke="#8b5cf6" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#10b981" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}MB`} />
-                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                    <Tooltip 
-                      formatter={(value: any) => typeof value === 'number' ? value.toFixed(1) : value}
-                      contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #262626', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}
-                      itemStyle={{ color: '#d4d4d4', fontWeight: 600 }}
-                      labelStyle={{ color: '#a3a3a3', marginBottom: '4px' }}
-                    />
-                    <Area yAxisId="left" type="monotone" dataKey="cpu" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorCpuC)" name="CPU (%)" />
-                    <Area yAxisId="right" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorMemoryC)" name="RAM (MB)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            
-            <div className="col-span-1 space-y-6">
-              <div className="glass-panel rounded-xl p-6 border border-border">
-                <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">Informações da Rede</h3>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-xs text-secondary uppercase font-semibold">Acessos e Portas</span>
-                    <div className="mt-2">
-                      {renderPorts()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-panel rounded-xl p-6 border border-border">
-                <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">Ambiente & Config</h3>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-xs text-secondary uppercase font-semibold">Criado em</span>
-                    <p className="text-sm mt-1">{inspectData?.Created ? new Date(inspectData.Created).toLocaleString() : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-secondary uppercase font-semibold">Variáveis (Env)</span>
-                      {!editingEnv && <button type="button" onClick={beginEnvEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
-                        <Pencil className="w-3 h-3" /> Editar Variáveis
-                      </button>}
-                    </div>
-                    {editingEnv ? <div className="mt-2 space-y-2">
-                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container, causando breve indisponibilidade e um novo ID.</p>
-                      {envVariables.map((variable, index) => <div className="flex gap-2" key={index}>
-                        <input aria-label={`Chave da variável ${index + 1}`} value={variable.key} onChange={(event) => updateEnvField(index, 'key', event.target.value)} placeholder="CHAVE" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                        <input aria-label={`Valor da variável ${index + 1}`} value={variable.value} onChange={(event) => updateEnvField(index, 'value', event.target.value)} placeholder="valor" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                        <button type="button" aria-label={`Remover variável ${index + 1}`} onClick={() => setEnvVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
-                      </div>)}
-                      <button type="button" onClick={() => setEnvVariables((current) => [...current, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
-                      {envError && <p role="alert" className="text-xs text-rose-400">{envError}</p>}
-                      <div className="flex gap-2">
-                        <button type="button" onClick={handleUpdateEnv} disabled={envSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{envSaving ? 'Salvando...' : 'Salvar alterações'}</button>
-                        <button type="button" onClick={() => { setEditingEnv(false); setEnvError(null); }} disabled={envSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">Cancelar</button>
-                      </div>
-                    </div> : <div className="mt-2 max-h-[150px] overflow-y-auto space-y-1">
-                      {inspectData?.Config?.Env ? inspectData.Config.Env.map((e: string, i: number) => {
-                        const [key, ...val] = e.split('=');
-                        if (isHiddenEnv(key)) return null;
-                        return (
-                          <div key={i} className="text-xs font-mono bg-black/50 p-1 rounded border border-border truncate" title={e}>
-                            <span className="text-secondary">{key}</span>={val.join('=')}
-                          </div>
-                        )
-                      }) : <span className="text-secondary text-sm">Nenhuma variável configurada</span>}
-                    </div>}
-                  </div>
-
-                  <div className="pt-4 border-t border-border">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-secondary uppercase font-semibold">Volumes (Binds)</span>
-                      {!editingVolumes && <button type="button" onClick={beginVolumeEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
-                        <Pencil className="w-3 h-3" /> Editar Volumes
-                      </button>}
-                    </div>
-                    {editingVolumes ? <div className="mt-2 space-y-2">
-                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container. Volumes anônimos podem ser perdidos.</p>
-                      {volumeVariables.map((variable, index) => <div className="flex gap-2" key={index}>
-                        <input aria-label={`Host path ${index + 1}`} value={variable.host} onChange={(event) => updateVolumeField(index, 'host', event.target.value)} placeholder="/host/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                        <span className="text-secondary flex items-center">:</span>
-                        <input aria-label={`Container path ${index + 1}`} value={variable.container} onChange={(event) => updateVolumeField(index, 'container', event.target.value)} placeholder="/container/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                        <button type="button" aria-label={`Remover volume ${index + 1}`} onClick={() => setVolumeVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
-                      </div>)}
-                      <button type="button" onClick={() => setVolumeVariables((current) => [...current, { host: '', container: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
-                      {volumeError && <p role="alert" className="text-xs text-rose-400">{volumeError}</p>}
-                      <div className="flex gap-2">
-                        <button type="button" onClick={handleUpdateVolumes} disabled={volumeSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{volumeSaving ? 'Salvando...' : 'Salvar alterações'}</button>
-                        <button type="button" onClick={() => { setEditingVolumes(false); setVolumeError(null); }} disabled={volumeSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">Cancelar</button>
-                      </div>
-                    </div> : <div className="mt-2 max-h-[150px] overflow-y-auto space-y-1">
-                      {inspectData?.HostConfig?.Binds && inspectData.HostConfig.Binds.length > 0 ? inspectData.HostConfig.Binds.map((b: string, i: number) => {
-                        const parts = b.split(':');
-                        return (
-                          <div key={i} className="text-xs font-mono bg-black/50 p-1 rounded border border-border truncate" title={b}>
-                            <span className="text-secondary">{parts[0]}</span>:{parts[1]}
-                          </div>
-                        )
-                      }) : <span className="text-secondary text-sm">Nenhum volume mapeado</span>}
-                    </div>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <ContainerOverviewTab
+          container={container}
+          inspectData={inspectData}
+          history={history}
+          cpuPercent={cpuPercent}
+          memUsed={memUsed}
+          memLimit={memLimit}
+          hasUpdate={hasUpdate}
+          updating={updating}
+          onUpdate={handleUpdate}
+          renderPorts={renderPorts}
+          editingEnv={editingEnv}
+          envVariables={envVariables}
+          envSaving={envSaving}
+          envError={envError}
+          beginEnvEdit={beginEnvEdit}
+          updateEnvField={updateEnvField}
+          setEnvVariables={setEnvVariables}
+          handleUpdateEnv={handleUpdateEnv}
+          setEditingEnv={setEditingEnv}
+          setEnvError={setEnvError}
+          editingVolumes={editingVolumes}
+          volumeVariables={volumeVariables}
+          volumeSaving={volumeSaving}
+          volumeError={volumeError}
+          beginVolumeEdit={beginVolumeEdit}
+          updateVolumeField={updateVolumeField}
+          setVolumeVariables={setVolumeVariables}
+          handleUpdateVolumes={handleUpdateVolumes}
+          setEditingVolumes={setEditingVolumes}
+          setVolumeError={setVolumeError}
+          isHiddenEnv={isHiddenEnv}
+        />
       )}
 
       {activeTab === 'logs' && (
-        <div className="flex-1 glass-panel rounded-xl p-0 border border-border flex flex-col overflow-hidden min-h-[500px]">
-          <div className="bg-black/50 p-3 border-b border-border flex justify-between items-center">
-            <span className="text-sm font-semibold text-secondary">Logs (Últimas 500 linhas)</span>
-            <div className="flex gap-2">
-              <button onClick={handleCopyLogs} className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary px-3 py-1.5 rounded transition-colors">
-                {copiedLogs ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                {copiedLogs ? 'Copiado!' : 'Copiar'}
-              </button>
-              <button onClick={fetchLogs} className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary px-3 py-1.5 rounded transition-colors">
-                <RotateCw className="w-3 h-3" /> Atualizar Logs
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-4 text-sm font-mono whitespace-pre-wrap">
-            {logs ? logs : <span className="text-secondary">Nenhum log encontrado...</span>}
-          </div>
-        </div>
+        <ContainerLogsTab logs={logs} onRefresh={fetchLogs} />
       )}
 
       {activeTab === 'terminal' && (
-        <div className="flex-1 glass-panel rounded-xl p-0 border border-border flex flex-col overflow-hidden min-h-[500px]">
-          <div className="bg-black/50 p-3 border-b border-border flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <TerminalIcon className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-primary">Shell TTY do Container (sh)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  if (xtermRef.current) {
-                    const sel = xtermRef.current.getSelection();
-                    if (sel) {
-                      navigator.clipboard.writeText(sel).then(() => toast.success('Copiado!')).catch(() => {});
-                    } else {
-                      toast('Selecione um texto para copiar');
-                    }
-                  }
-                }}
-                className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
-                title="Copiar Seleção"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copiar</span>
-              </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.readText().then(text => {
-                    if (text && wsRef.current?.readyState === WebSocket.OPEN) {
-                      wsRef.current.send(text);
-                      toast.success('Conteúdo colado!');
-                    }
-                  }).catch(() => toast.error('Permissão necessária para colar'));
-                }}
-                className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
-                title="Colar da Área de Transferência"
-              >
-                <ClipboardPaste className="w-3 h-3" />
-                <span>Colar</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (xtermRef.current) {
-                    xtermRef.current.clear();
-                  }
-                }}
-                className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2 py-1 rounded transition-colors"
-                title="Limpar Terminal"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 bg-[#090d13] p-2">
-            <div ref={terminalRef} className="h-full w-full" />
-          </div>
-        </div>
+        <ContainerTerminalTab id={id!} />
       )}
 
       <ConfirmModal
@@ -1018,60 +688,14 @@ export function ContainerDetail() {
         confirmText="Sim, continuar"
       />
 
-      <ConfirmModal
+      <ContainerDeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        title="Excluir Container"
-        message={`Tem certeza que deseja excluir permanentemente o container ${container.name}?`}
+        containerName={container.name}
+        deleteOptions={deleteOptions}
+        setDeleteOptions={setDeleteOptions}
         onConfirm={executeDelete}
-        isDestructive={true}
-        confirmText="Sim, excluir"
-      >
-        <div className="bg-black/20 p-4 rounded-lg border border-border/50">
-          <p className="text-sm text-primary font-medium mb-3">Opções de exclusão em cascata:</p>
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer pb-2 mb-2 border-b border-border/50">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-border bg-black/40 text-rose-500 focus:ring-rose-500/20"
-                checked={deleteOptions.volumes && deleteOptions.image && deleteOptions.network}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setDeleteOptions({ volumes: checked, image: checked, network: checked });
-                }}
-              />
-              <span className="text-sm font-semibold text-primary">Selecionar tudo</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-border bg-black/40 text-rose-500 focus:ring-rose-500/20"
-                checked={deleteOptions.volumes}
-                onChange={(e) => setDeleteOptions(prev => ({ ...prev, volumes: e.target.checked }))}
-              />
-              <span className="text-sm text-secondary">Excluir volumes anônimos associados</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-border bg-black/40 text-rose-500 focus:ring-rose-500/20"
-                checked={deleteOptions.image}
-                onChange={(e) => setDeleteOptions(prev => ({ ...prev, image: e.target.checked }))}
-              />
-              <span className="text-sm text-secondary">Excluir imagem do container</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 rounded border-border bg-black/40 text-rose-500 focus:ring-rose-500/20"
-                checked={deleteOptions.network}
-                onChange={(e) => setDeleteOptions(prev => ({ ...prev, network: e.target.checked }))}
-              />
-              <span className="text-sm text-secondary">Excluir redes exclusivas do container</span>
-            </label>
-          </div>
-        </div>
-      </ConfirmModal>
+      />
     </div>
   );
 }
