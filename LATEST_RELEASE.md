@@ -1,24 +1,28 @@
 # Orbit Dashboard v2.7.2
 
-### Novidades e Recursos Principais (v2.7.0)
+### Novidades e Recursos Principais (v2.7.2)
+
+- **Eliminação Definitiva de Falsos-Positivos de Atualização:**
+  - **Comparação SemVer Rigorosa:** O Orbit agora valida a versão estritamente por regras semânticas (`major.minor.patch`), garantindo que o ícone de atualização e o modal nunca afirmem que há novidades se o sistema já estiver na versão mais recente.
+  - **Imunidade a Divergências de Digest Multi-Arch:** Eliminação de falsos avisos no ARM64 causados pela diferença entre o digest do índice OCI remoto e o digest da imagem local do Docker.
+
+- **Prevenção de Conflitos de Porta e Containers Duplicados:**
+  - **Transição Limpa e Segura:** O atualizador agora encerra e substitui instâncias sob qualquer nomeação (`orbit` ou `orbit-dashboard`), liberando a porta do painel e impedindo a criação de contêineres duplicados em estado inativo (`created`).
+  - **Auto-Faxina de Contêineres Órfãos:** Higienização automática no startup e sob demanda para remover quaisquer instâncias paradas ou obsoletas do Orbit.
+
+- **Recarregamento Suave e Sessão Preservada:**
+  - **Healthcheck Não-Prematuro:** A interface agora aguarda a confirmação de subida do novo contêiner antes de concluir a etapa de atualização.
+  - **Sem Deslogar:** O painel é recarregado com cache renovado mantendo a sessão autenticada do usuário.
 
 - **Watchdog Inteligente e Resiliência em Atualizações em Lote:**
   - **Eliminação de Falsos Timeouts:** Atualizações de imagens volumosas (como n8n, Ollama, Nextcloud e Home Assistant) agora contam com monitoramento baseado em atividade real, evitando interrupções prematuras enquanto dados continuam sendo descompactados e baixados.
   - **Execução Serial Segura:** Prevenção contra sobrecarga de disco e contenção no Docker daemon, garantindo que cada contêiner conclua seu ciclo antes de iniciar o próximo.
-  - **Tolerância a Oscilações de Rede:** Buffer resiliente de até 90 segundos para absorver quedas temporárias de proxies, túneis Cloudflare ou saturação de banda.
 
 - **Limpeza Automática de Imagens Antigas do Orbit:**
-  - **Liberação Automática de Armazenamento:** Ao confirmar e concluir a atualização do próprio Orbit, as imagens anteriores e camadas desvinculadas são automaticamente identificadas e removidas do disco, sem necessidade de faxina manual.
-  - **Proteção contra Órfãos:** Higienização executada tanto pelo processo de atualização quanto na inicialização do novo contêiner.
-
-- **Persistência Anti-F5 e Recuperação de Sessão:**
-  - **Recuperação Imediata:** Atualizações em lote, downloads de aplicativos da loja e operações longas são preservadas localmente e continuam automaticamente mesmo se a aba do navegador for atualizada (F5) ou a conexão oscilar.
-
-- **Otimização Extrema de Desempenho no Home Assistant:**
-  - **Redução de Carga no Host:** Sistema de particionamento e cache inteligente em dois níveis reduz em mais de 90% a sobrecarga de CPU sobre o servidor do Home Assistant, mantendo dispositivos e entidades perfeitamente responsivos.
+  - **Liberação Automática de Armazenamento:** Imagens anteriores e camadas desvinculadas são automaticamente identificadas e removidas do disco após a atualização.
 
 - **Identidade Visual Adaptativa:**
-  - **Favicon Dinâmico:** O ícone da aba do navegador agora sincroniza dinamicamente com a paleta de cores e o tema ativo (claro ou escuro).
+  - **Favicon Dinâmico:** O ícone da aba do navegador sincroniza dinamicamente com a paleta de cores e o tema ativo (claro ou escuro).
 
 ---
 
