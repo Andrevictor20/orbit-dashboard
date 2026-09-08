@@ -652,7 +652,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all"
               >
                 <Download className="w-4 h-4" />
-                <span>Atualizar para v{updateInfo.latest_version}</span>
+                <span>Atualizar para v{updateInfo?.latest_version}</span>
               </button>
             )
           )}
