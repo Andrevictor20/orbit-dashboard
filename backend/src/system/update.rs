@@ -257,8 +257,20 @@ pub async fn check_update_handler(
 
     let mut info = get_system_update_info().await;
 
-    // Check remote registry digest on ghcr.io
-    let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+    // Check remote registry digest (checks either Docker Hub or GHCR based on local container image)
+    let mut image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+    for cname in &["orbit-dashboard", "orbit"] {
+        if let Ok(ins) = state.docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
+            if let Some(config) = ins.config {
+                if let Some(img) = config.image {
+                    if img.contains("victorandre280/orbit-dashboard") {
+                        image_name = "victorandre280/orbit-dashboard:latest";
+                        break;
+                    }
+                }
+            }
+        }
+    }
     let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
     if image_has_update {
         info.has_update = true;
@@ -339,18 +351,30 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
     // Spawn background worker
     tokio::spawn(async move {
         let platform = get_host_platform();
-        let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+        let mut image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest".to_string();
+        for cname in &["orbit-dashboard", "orbit"] {
+            if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                if let Some(config) = ins.config {
+                    if let Some(img) = config.image {
+                        if img.contains("victorandre280/orbit-dashboard") {
+                            image_name = "victorandre280/orbit-dashboard:latest".to_string();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         append_task_log(format!("ℹ️ [INFO] Plataforma de destino confirmada: {}", platform), Some(10), Some("Baixando imagem multi-arch..."));
 
         // 1. Pull the new multi-arch image specifying platform
         let create_options = bollard::query_parameters::CreateImageOptions {
-            from_image: Some(image_name.to_string()),
+            from_image: Some(image_name.clone()),
             platform: platform.to_string(),
             ..Default::default()
         };
 
-        append_task_log(format!("📥 [PULL] Conectando ao GitHub Container Registry ({})", image_name), Some(15), None);
+        append_task_log(format!("📥 [PULL] Conectando ao Registry ({})", image_name), Some(15), None);
 
         let mut pull_stream = docker.create_image(Some(create_options), None, None);
         let mut pull_progress = 15u8;
@@ -533,7 +557,7 @@ else
 fi
 sleep 5
 docker image prune -f 2>/dev/null || true
-docker images "ghcr.io/andrevictor20/orbit-dashboard" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
+docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dashboard" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
 )"#,
             host_dir = host_dir_val,
             compose_file = compose_file_name,
@@ -548,7 +572,7 @@ docker images "ghcr.io/andrevictor20/orbit-dashboard" --filter "dangling=true" -
                 "-d",
                 "-v", "/var/run/docker.sock:/var/run/docker.sock",
                 "-v", "/:/host",
-                image_name,
+                &image_name,
                 "sh", "-c",
                 &helper_script,
             ])
@@ -591,7 +615,13 @@ pub async fn cleanup_old_orbit_images(docker: Arc<bollard::Docker>) -> (usize, i
     // 3. Procura imagens do Orbit Dashboard antigas não utilizadas
     if let Some(ref current_img) = current_orbit_image_id {
         let mut list_filters = std::collections::HashMap::new();
-        list_filters.insert("reference".to_string(), vec!["ghcr.io/andrevictor20/orbit-dashboard*".to_string()]);
+        list_filters.insert(
+            "reference".to_string(),
+            vec![
+                "ghcr.io/andrevictor20/orbit-dashboard*".to_string(),
+                "victorandre280/orbit-dashboard*".to_string(),
+            ],
+        );
         let list_opts = bollard::query_parameters::ListImagesOptions {
             filters: Some(list_filters),
             all: true,

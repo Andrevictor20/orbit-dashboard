@@ -16,6 +16,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: andrevictor20/orbit-dashboard
+  DOCKERHUB_IMAGE: victorandre280/orbit-dashboard
 
 jobs:
   build-and-publish:
@@ -53,11 +54,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'victorandre280' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_IMAGE }}
           tags: |
             type=raw,value=latest,enable=true
             type=raw,value=v${{ steps.get_version.outputs.VERSION }},enable=true
@@ -101,6 +111,8 @@ jobs:
           echo "### 🐳 Multi-Arch Docker Image Published Successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`v${{ steps.get_version.outputs.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registries:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` (GHCR)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.DOCKERHUB_IMAGE }}\` (Docker Hub)" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`latest\`, \`v${{ steps.get_version.outputs.VERSION }}\`, \`sha-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Platforms:** \`linux/amd64\`, \`linux/arm64\`" >> $GITHUB_STEP_SUMMARY
