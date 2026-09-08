@@ -5,7 +5,8 @@
 **Painel de gerenciamento de contêineres Docker, orquestração de stacks Compose e telemetria de hardware para servidores locais e ambientes homelab.**
 
 [![CI Pipeline](https://github.com/Andrevictor20/orbit-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrevictor20/orbit-dashboard/actions/workflows/ci.yml)
-[![Docker Image](https://img.shields.io/badge/Docker-Multi--Arch%20(amd64%20%7C%20arm64)-blue?logo=docker)](https://github.com/Andrevictor20/orbit-dashboard/pkgs/container/orbit-dashboard)
+[![Docker Image](https://img.shields.io/badge/GHCR-Multi--Arch%20(amd64%20%7C%20arm64)-blue?logo=docker)](https://github.com/Andrevictor20/orbit-dashboard/pkgs/container/orbit-dashboard)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-victorandre280%2Forbit--dashboard-2496ED?logo=docker)](https://hub.docker.com/r/victorandre280/orbit-dashboard)
 [![Backend](https://img.shields.io/badge/Backend-Rust%20%2B%20Axum-orange?logo=rust)](https://www.rust-lang.org/)
 [![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite%208-61DAFB?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Style-Tailwind%20CSS%20v4-38B2AC?logo=tailwindcss)](https://tailwindcss.com/)
@@ -51,7 +52,8 @@ Instalação orientada a manifestos declarativos, com validação de portas e vo
 | **Terminal Web Integrado (XTerm.js)** | ![Terminal](./docs/images/terminal.png) |
 | **Autenticação Local Segura (Argon2id)** | ![Login](./docs/images/login.png) |
 | **Gerenciador de Arquivos do Host** | ![File Manager](./docs/images/file_manager.png) |
-| **Paletas Visuais e Alto Contraste** | ![Themes](./docs/images/themes.png) |
+| **Paletas Visuais e Alto Contraste (Transição Dinâmica)** | ![Themes](./docs/videos/themes.webp) |
+| **Integração com Home Assistant** | ![Home Assistant](./docs/images/home_assistant.png) |
 
 </details>
 
