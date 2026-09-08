@@ -545,8 +545,8 @@ elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
   cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
 else
-  docker stop orbit-dashboard 2>/dev/null || true
-  docker rm orbit-dashboard 2>/dev/null || true
+  docker stop orbit-dashboard orbit 2>/dev/null || true
+  docker rm orbit-dashboard orbit 2>/dev/null || true
   docker run -d --name orbit-dashboard --restart unless-stopped \
     --privileged \
     --pid host \
@@ -596,6 +596,32 @@ docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dash
 pub async fn cleanup_old_orbit_images(docker: Arc<bollard::Docker>) -> (usize, i64) {
     let mut deleted_count = 0usize;
     let mut space_reclaimed = 0i64;
+
+    // 0. Remove containers órfãos inativos do Orbit (ex: criados com erro de porta ou duplicatas paradas)
+    let list_c_opts = bollard::query_parameters::ListContainersOptions {
+        all: true,
+        ..Default::default()
+    };
+    if let Ok(containers) = docker.list_containers(Some(list_c_opts)).await {
+        for c in containers {
+            let names = c.names.unwrap_or_default();
+            let is_orbit = names.iter().any(|n| {
+                let clean = n.trim_start_matches('/');
+                clean == "orbit" || clean == "orbit-dashboard"
+            });
+            let state = c.state.map(|s| s.to_string()).unwrap_or_default().to_lowercase();
+            if is_orbit && (state == "created" || state == "exited" || state == "dead") {
+                if let Some(id) = c.id {
+                    tracing::info!("Removendo container inativo/órfão do Orbit: {}", id);
+                    let rm_opts = bollard::query_parameters::RemoveContainerOptions {
+                        force: true,
+                        ..Default::default()
+                    };
+                    let _ = docker.remove_container(&id, Some(rm_opts)).await;
+                }
+            }
+        }
+    }
 
     // 1. Limpa imagens dangling (<none>:<none>) geradas pela substituição da tag :latest
     let mut filters = std::collections::HashMap::new();

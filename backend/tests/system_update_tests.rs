@@ -121,8 +121,8 @@ elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
   cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
 else
-  docker stop orbit-dashboard 2>/dev/null || true
-  docker rm orbit-dashboard 2>/dev/null || true
+  docker stop orbit-dashboard orbit 2>/dev/null || true
+  docker rm orbit-dashboard orbit 2>/dev/null || true
   docker run -d --name orbit-dashboard --restart unless-stopped \
     --privileged \
     --pid host \
