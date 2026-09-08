@@ -382,4 +382,72 @@ async fn test_system_update_cleanup_endpoint() {
     assert_eq!(json.get("success").and_then(|v| v.as_bool()), Some(true));
 }
 
+#[test]
+fn test_is_newer_version_logic() {
+    // Newer versions
+    assert!(backend::system::is_newer_version("2.7.1", "2.7.0"));
+    assert!(backend::system::is_newer_version("v2.8.0", "v2.7.0"));
+    assert!(backend::system::is_newer_version("3.0.0", "2.7.0"));
+    assert!(backend::system::is_newer_version("2.7.0-beta.2", "2.6.9"));
+
+    // Equal versions must NEVER be considered newer
+    assert!(!backend::system::is_newer_version("2.7.0", "2.7.0"));
+    assert!(!backend::system::is_newer_version("v2.7.0", "v2.7.0"));
+    assert!(!backend::system::is_newer_version("v2.7.0", "2.7.0"));
+    assert!(!backend::system::is_newer_version("2.7.0", "v2.7.0"));
+
+    // Older versions must NEVER be considered newer
+    assert!(!backend::system::is_newer_version("2.6.9", "2.7.0"));
+    assert!(!backend::system::is_newer_version("v2.5.0", "v2.7.0"));
+    assert!(!backend::system::is_newer_version("1.9.9", "2.7.0"));
+}
+
+#[tokio::test]
+async fn test_check_update_never_has_update_when_versions_equal() {
+    let _lock = TEST_MUTEX.lock().unwrap();
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+
+    let current = env!("CARGO_PKG_VERSION");
+
+    // Mock cache with latest_version equal to current_version
+    {
+        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        *guard = Some((
+            SystemUpdateInfo {
+                current_version: current.to_string(),
+                latest_version: current.to_string(),
+                has_update: true, // artificially simulated stale or digest flag
+                platform: "linux/amd64".to_string(),
+                arch: "x86_64".to_string(),
+                release_name: format!("Orbit v{}", current),
+                release_notes: "Notes".to_string(),
+                published_at: None,
+                ci_status: None,
+                ci_workflow_url: None,
+            },
+            std::time::Instant::now(),
+        ));
+    }
+
+    let app = backend::app();
+    let server = TestServer::new(app);
+    let cookie = get_test_cookie();
+
+    let res = server.get("/api/system/update/check")
+        .add_cookie(cookie)
+        .await;
+    res.assert_status_success();
+
+    let info: SystemUpdateInfo = res.json();
+    assert_eq!(info.current_version, current);
+    assert_eq!(info.latest_version, current);
+    assert!(!info.has_update, "When current_version == latest_version, has_update MUST be false!");
+
+    // Clean up cache
+    {
+        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        *guard = None;
+    }
+}
+
 

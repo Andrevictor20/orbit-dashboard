@@ -133,4 +133,34 @@ describe('UpdateModal Component', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('suppresses update button and badge when current_version equals latest_version even if has_update is true', () => {
+    const upToDateInfo: SystemUpdateInfo = {
+      ...mockInfo,
+      current_version: '2.7.0',
+      latest_version: '2.7.0',
+      has_update: true, // simulated false-positive from server
+    };
+
+    render(
+      <UpdateModal
+        isOpen={true}
+        onClose={vi.fn()}
+        updateInfo={upToDateInfo}
+        onRefreshInfo={vi.fn()}
+      />
+    );
+
+    // Should NOT have "Nova Versão Disponível" badge
+    expect(screen.queryByText('Nova Versão Disponível')).not.toBeInTheDocument();
+
+    // Should have "Sistema na Versão Mais Recente"
+    const upToDateButton = screen.getByText('Sistema na Versão Mais Recente');
+    expect(upToDateButton).toBeInTheDocument();
+    expect(upToDateButton.closest('button')).toBeDisabled();
+
+    // Should NOT have "Atualizar para v2.7.0"
+    expect(screen.queryByText(/Atualizar para v2\.7\.0/i)).not.toBeInTheDocument();
+  });
 });
+

@@ -48,6 +48,18 @@ pub static SYSTEM_UPDATE_TASK: Lazy<RwLock<SystemUpdateTask>> = Lazy::new(|| RwL
     error: None,
 }));
 
+pub fn is_newer_version(latest: &str, current: &str) -> bool {
+    let parse = |v: &str| -> (u64, u64, u64) {
+        let clean = v.trim_start_matches('v').trim();
+        let parts: Vec<&str> = clean.split('.').collect();
+        let major = parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let minor = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let patch = parts.get(2).and_then(|s| s.split('-').next().unwrap_or("0").parse().ok()).unwrap_or(0);
+        (major, minor, patch)
+    };
+    parse(latest) > parse(current)
+}
+
 pub fn get_app_version() -> String {
     std::env::var("APP_VERSION")
         .or_else(|_| std::env::var("ORBIT_VERSION"))
@@ -91,8 +103,12 @@ pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> b
 }
 
 pub async fn get_system_update_info() -> SystemUpdateInfo {
-    // Check cache
-    if let Ok(guard) = UPDATE_CACHE.read() {
+    // Check cache in isolated block so RwLockReadGuard is dropped before any .await
+    {
+        let guard = match UPDATE_CACHE.read() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         if let Some((ref info, instant)) = *guard {
             if instant.elapsed() < CACHE_TTL {
                 return info.clone();
@@ -154,8 +170,10 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
                             published_at = Some(pub_at.to_string());
                         }
 
-                        if clean_tag != current_version {
+                        if is_newer_version(clean_tag, &current_version) {
                             has_update = true;
+                        } else {
+                            has_update = false;
                         }
                     }
                 }
@@ -247,36 +265,25 @@ pub struct CheckUpdateParams {
 
 pub async fn check_update_handler(
     Query(params): Query<CheckUpdateParams>,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<SystemUpdateInfo>) {
     if params.force.unwrap_or(false) {
-        if let Ok(mut guard) = UPDATE_CACHE.write() {
+        {
+            let mut guard = match UPDATE_CACHE.write() {
+                Ok(g) => g,
+                Err(p) => p.into_inner(),
+            };
             *guard = None;
         }
     }
 
     let mut info = get_system_update_info().await;
 
-    // Check remote registry digest (checks either Docker Hub or GHCR based on local container image)
-    let mut image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
-    for cname in &["orbit-dashboard", "orbit"] {
-        if let Ok(ins) = state.docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
-            if let Some(config) = ins.config {
-                if let Some(img) = config.image {
-                    if img.contains("victorandre280/orbit-dashboard") {
-                        image_name = "victorandre280/orbit-dashboard:latest";
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    let image_has_update = crate::docker::containers::check_single_image_update(&state.docker, image_name).await;
-    if image_has_update {
-        info.has_update = true;
-    }
+    // Strict semantic version guard: An update for Orbit ONLY exists if the remote version
+    // is strictly newer than the currently running version. Prevents false-positives
+    // from multi-arch container manifest digest mismatches.
+    info.has_update = is_newer_version(&info.latest_version, &info.current_version);
 
-    (StatusCode::OK, Json(info)).into_response()
+    (StatusCode::OK, Json(info))
 }
 
 pub async fn get_update_status_handler() -> impl IntoResponse {

@@ -33,6 +33,7 @@ import { useInstall } from '../../contexts/InstallContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supportedLanguages } from '../../i18n';
 import { InstallProgressModal } from '../docker/InstallProgressModal';
+import { isNewerVersion } from '../../utils/version';
 import { BatchUpdateFloatingBar } from '../docker/BatchUpdateFloatingBar';
 import { ProfileModal } from './ProfileModal';
 import { UpdateModal, type SystemUpdateInfo } from '../system/UpdateModal';
@@ -272,6 +273,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [updateInfo, setUpdateInfo] = useState<SystemUpdateInfo | null>(null);
   const { appName, task, maximize } = useInstall();
 
+  // Strict check: only show notification when a strictly newer version is available
+  const hasUpdate = Boolean(
+    updateInfo?.has_update &&
+    updateInfo?.latest_version &&
+    updateInfo?.current_version &&
+    isNewerVersion(updateInfo.latest_version, updateInfo.current_version)
+  );
+
   // Close mobile drawer on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -291,10 +300,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    checkUpdates();
+    // If redirected after update with ?updated=true, force check with cache bypass
+    const params = new URLSearchParams(location.search);
+    if (params.get('updated') === 'true') {
+      checkUpdates(true);
+      window.history.replaceState({}, '', location.pathname);
+    } else {
+      checkUpdates();
+    }
     const interval = setInterval(checkUpdates, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [location.search]);
 
   const handleLogout = () => {
     logout();
@@ -449,15 +465,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setIsUpdateModalOpen(true)}
               className={`relative w-9 h-9 rounded-xl border transition-all duration-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none shadow-sm ${
-                updateInfo?.has_update 
+                hasUpdate 
                   ? 'flex items-center justify-center text-amber-400 bg-amber-500/15 border-amber-500/35 hover:bg-amber-500/25' 
                   : 'hidden sm:flex items-center justify-center text-secondary hover:text-primary border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl'
               }`}
-              title={updateInfo?.has_update ? "Nova versão do Orbit disponível! Clique para ver." : "Verificar atualizações do Orbit"}
+              title={hasUpdate ? "Nova versão do Orbit disponível! Clique para ver." : "Verificar atualizações do Orbit"}
               aria-label="Atualizações do Orbit"
             >
               <Sparkles className="w-4 h-4" />
-              {updateInfo?.has_update && (
+              {hasUpdate && (
                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>

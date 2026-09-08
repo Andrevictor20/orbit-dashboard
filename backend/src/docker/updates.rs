@@ -244,7 +244,17 @@ pub async fn check_container_updates(
     for c in containers {
         if let (Some(id), Some(image)) = (c.id, c.image) {
             let short_id: String = id.chars().take(12).collect();
-            let has_update = image_results.get(&image).copied().unwrap_or(false);
+            let has_update = if image.contains("orbit-dashboard") {
+                let current = crate::system::get_app_version();
+                let latest_info = crate::system::update::UPDATE_CACHE.read().ok().and_then(|g| g.as_ref().map(|(info, _)| info.clone()));
+                if let Some(info) = latest_info {
+                    crate::system::update::is_newer_version(&info.latest_version, &current)
+                } else {
+                    false
+                }
+            } else {
+                image_results.get(&image).copied().unwrap_or(false)
+            };
             let val = serde_json::json!({
                 "image": image,
                 "has_update": has_update
@@ -268,7 +278,17 @@ pub async fn check_single_container_update(
     };
 
     let image = inspect.config.and_then(|c| c.image).unwrap_or_default();
-    let has_update = check_single_image_update(&state.docker, &image).await;
+    let has_update = if image.contains("orbit-dashboard") {
+        let current = crate::system::get_app_version();
+        let latest_info = crate::system::update::UPDATE_CACHE.read().ok().and_then(|g| g.as_ref().map(|(info, _)| info.clone()));
+        if let Some(info) = latest_info {
+            crate::system::update::is_newer_version(&info.latest_version, &current)
+        } else {
+            false
+        }
+    } else {
+        check_single_image_update(&state.docker, &image).await
+    };
 
     (StatusCode::OK, Json(serde_json::json!({
         "id": id,

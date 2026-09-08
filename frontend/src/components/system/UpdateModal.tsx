@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { OrbitLogo } from '../ui/OrbitLogo';
+import { isNewerVersion } from '../../utils/version';
 
 export interface SystemUpdateInfo {
   current_version: string;
@@ -66,6 +67,13 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
+  const hasNewVersion = Boolean(
+    updateInfo?.has_update &&
+    updateInfo?.latest_version &&
+    updateInfo?.current_version &&
+    isNewerVersion(updateInfo.latest_version, updateInfo.current_version)
+  );
+
   // Auto-scroll terminal on new logs
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
@@ -92,50 +100,72 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
     const startHealthPolling = () => {
       let attempts = 0;
+      const targetVersion = updateInfo?.latest_version;
+      const currentVersion = updateInfo?.current_version;
+      let sawDownOrNewVersion = false;
+      const startTime = Date.now();
+
       healthInterval = setInterval(async () => {
         attempts++;
         if (isSubscribed) setReconnectAttempts(attempts);
 
+        const elapsed = Date.now() - startTime;
+
         try {
-          const health = await fetch('/health');
+          const health = await fetch(`/health?_t=${Date.now()}`);
           if (health.ok) {
-            clearInterval(healthInterval);
-            if (isSubscribed) {
-              const targetVersion = updateInfo?.latest_version || updateInfo?.current_version || '1.9.9';
-              localStorage.setItem('orbit_last_updated_version', targetVersion);
-              localStorage.removeItem('orbit_token');
+            const data = await health.json().catch(() => null);
+            const returnedVersion = data?.version;
 
-              setTaskState(prev => ({
-                ...prev,
-                status: 'done',
-                progress: 100,
-                current_step: 'Orbit atualizado com sucesso! Redirecionando para o login...',
-                logs: [
-                  ...prev.logs, 
-                  '🎉 [SUCCESS] Novo container ativo e respondendo na porta 5172!',
-                  '🧹 [CLEANUP] Imagens antigas e camadas não utilizadas do Orbit removidas automaticamente.',
-                  '🚀 [REDIRECT] Redirecionando para a tela de login...'
-                ]
-              }));
+            const isTargetReached = Boolean(targetVersion && returnedVersion && returnedVersion === targetVersion);
+            const isStillOld = Boolean(currentVersion && returnedVersion && returnedVersion === currentVersion && targetVersion !== currentVersion);
 
-              toast.success('Orbit atualizado com sucesso! Imagens antigas removidas.');
-              
-              setTimeout(() => {
-                window.location.replace(`/login?updated=true&version=${encodeURIComponent(targetVersion)}&_t=${Date.now()}`);
-              }, 1200);
+            if (isStillOld && elapsed < 20000 && !sawDownOrNewVersion) {
+              // Old container is still terminating; keep waiting
+              return;
             }
+
+            if (isTargetReached || sawDownOrNewVersion || elapsed > 10000) {
+              clearInterval(healthInterval);
+              if (isSubscribed) {
+                const finalVersion = returnedVersion || targetVersion || currentVersion || '2.7.0';
+                localStorage.setItem('orbit_last_updated_version', finalVersion);
+
+                setTaskState(prev => ({
+                  ...prev,
+                  status: 'done',
+                  progress: 100,
+                  current_step: 'Orbit atualizado com sucesso! Recarregando painel...',
+                  logs: [
+                    ...prev.logs, 
+                    `🎉 [SUCCESS] Novo container v${finalVersion} ativo e respondendo na porta 5172!`,
+                    '🧹 [CLEANUP] Imagens antigas e camadas não utilizadas do Orbit removidas automaticamente.',
+                    '🚀 [RELOAD] Recarregando interface atualizada...'
+                  ]
+                }));
+
+                toast.success(`Orbit v${finalVersion} atualizado com sucesso!`);
+                
+                setTimeout(() => {
+                  window.location.replace(`/?updated=true&version=${encodeURIComponent(finalVersion)}&_t=${Date.now()}`);
+                }, 1200);
+              }
+            }
+          } else {
+            sawDownOrNewVersion = true;
           }
         } catch {
-          // Expected while container restarts
+          // Expected while container restarts - marks that container went down!
+          sawDownOrNewVersion = true;
         }
 
-        if (attempts > 45) {
+        if (attempts > 60) {
           clearInterval(healthInterval);
           if (isSubscribed) {
             setTaskState(prev => ({
               ...prev,
               status: 'error',
-              error: 'Tempo limite atingido. Atualize a página manualmente.'
+              error: 'Tempo limite atingido. O container pode estar demorando para iniciar. Atualize a página manualmente.'
             }));
             setUpdating(false);
           }
@@ -336,7 +366,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                     <span>Compilando Imagem</span>
                   </span>
                 )}
-                {!updating && updateInfo?.has_update && updateInfo?.ci_status !== 'building' && (
+                {!updating && hasNewVersion && updateInfo?.ci_status !== 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     Nova Versão Disponível
                   </span>
@@ -440,13 +470,13 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                   </div>
 
                   <div className={`p-3.5 rounded-2xl border flex flex-col justify-between shadow-sm ${
-                    updateInfo?.has_update 
+                    hasNewVersion 
                       ? 'bg-orbit-500/10 border-orbit-500/40' 
                       : 'bg-card border-border/80'
                   }`}>
                     <span className="text-xs text-slate-600 dark:text-secondary font-medium">Mais Recente</span>
                     <span className={`text-xl font-bold font-mono mt-1 ${
-                      updateInfo?.has_update ? 'text-orbit-600 dark:text-orbit-400' : 'text-primary'
+                      hasNewVersion ? 'text-orbit-600 dark:text-orbit-400' : 'text-primary'
                     }`}>
                       v{updateInfo?.latest_version || updateInfo?.current_version || '1.9.9'}
                     </span>
@@ -608,7 +638,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
                 <span>Compilando Imagem no GitHub...</span>
               </button>
-            ) : !updateInfo?.has_update ? (
+            ) : !hasNewVersion ? (
               <button
                 disabled
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-border/80 text-slate-700 dark:text-secondary text-xs font-semibold cursor-default opacity-80"
