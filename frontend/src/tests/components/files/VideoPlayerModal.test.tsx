@@ -34,25 +34,25 @@ describe('VideoPlayerModal Component', () => {
     
     // Subtitles selector
     expect(await screen.findByTestId('subtitle-selector')).toBeTruthy();
-    expect(screen.getByText(/Português/i)).toBeTruthy();
+    expect(await screen.findByText(/Português/i)).toBeTruthy();
   });
 
-  it('calls onClose when close button is clicked', () => {
+  it('calls onClose when close button is clicked', async () => {
     const onClose = vi.fn();
     render(<VideoPlayerModal file={mockFile} onClose={onClose} />);
 
-    const closeBtn = screen.getByTestId('close-video-modal');
+    const closeBtn = await screen.findByTestId('close-video-modal');
     fireEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('renders play button and progress slider', () => {
+  it('renders play button and progress slider', async () => {
     render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
 
-    const playBtn = screen.getByTestId('video-play-btn');
+    const playBtn = await screen.findByTestId('video-play-btn');
     expect(playBtn).toBeTruthy();
 
-    const progressSlider = screen.getByTestId('video-progress');
+    const progressSlider = await screen.findByTestId('video-progress');
     expect(progressSlider).toBeTruthy();
   });
 
@@ -61,6 +61,9 @@ describe('VideoPlayerModal Component', () => {
 
     const subSelector = await screen.findByTestId('subtitle-selector') as HTMLSelectElement;
     expect(subSelector).toBeTruthy();
+
+    // Wait for subtitles to be loaded from fetch and populated as options
+    await screen.findByRole('option', { name: /English/i });
 
     fireEvent.change(subSelector, { target: { value: '/DATA/movies/movie.en.vtt' } });
     expect(subSelector.value).toBe('/DATA/movies/movie.en.vtt');
