@@ -167,3 +167,138 @@ pub async fn install_custom_compose_handler(
     )
         .into_response()
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StackSummary {
+    pub name: String,
+    pub path: String,
+    pub has_env: bool,
+    pub compose_exists: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StackDetail {
+    pub name: String,
+    pub compose_yaml: String,
+    pub env_content: String,
+}
+
+#[derive(Deserialize)]
+pub struct SaveComposePayload {
+    pub name: String,
+    pub compose_yaml: String,
+    pub env_content: Option<String>,
+}
+
+pub async fn list_stacks_handler() -> impl IntoResponse {
+    let mut stacks = Vec::new();
+    let apps_dir = std::path::Path::new("data/apps");
+    if let Ok(entries) = std::fs::read_dir(apps_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let compose_exists = path.join("docker-compose.yml").exists() || path.join("compose.yml").exists();
+                let has_env = path.join(".env").exists();
+                if compose_exists {
+                    stacks.push(StackSummary {
+                        name,
+                        path: path.to_string_lossy().to_string(),
+                        has_env,
+                        compose_exists,
+                    });
+                }
+            }
+        }
+    }
+    stacks.sort_by(|a, b| a.name.cmp(&b.name));
+    (StatusCode::OK, Json(stacks)).into_response()
+}
+
+pub async fn get_stack_compose_handler(
+    axum::extract::Path(name): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    let safe_name = name.trim().replace("..", "").replace('/', "-");
+    let app_dir = std::path::PathBuf::from("data/apps").join(&safe_name);
+
+    let compose_path = if app_dir.join("docker-compose.yml").exists() {
+        app_dir.join("docker-compose.yml")
+    } else {
+        app_dir.join("compose.yml")
+    };
+
+    if !compose_path.exists() {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Stack ou compose não encontrado" })),
+        )
+            .into_response();
+    }
+
+    let compose_yaml = std::fs::read_to_string(&compose_path).unwrap_or_default();
+    let env_content = std::fs::read_to_string(app_dir.join(".env")).unwrap_or_default();
+
+    (
+        StatusCode::OK,
+        Json(StackDetail {
+            name: safe_name,
+            compose_yaml,
+            env_content,
+        }),
+    )
+        .into_response()
+}
+
+pub async fn save_custom_compose_handler(
+    Json(payload): Json<SaveComposePayload>,
+) -> impl IntoResponse {
+    let safe_name = payload.name.trim().replace("..", "").replace('/', "-");
+    if safe_name.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "Nome da stack inválido" })),
+        )
+            .into_response();
+    }
+
+    // Validate YAML syntax
+    if let Err(e) = serde_yaml::from_str::<serde_yaml::Value>(&payload.compose_yaml) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": format!("Sintaxe YAML inválida: {}", e) })),
+        )
+            .into_response();
+    }
+
+    let app_dir = std::path::PathBuf::from("data/apps").join(&safe_name);
+    if let Err(e) = std::fs::create_dir_all(&app_dir) {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Falha ao criar diretório: {}", e) })),
+        )
+            .into_response();
+    }
+
+    let compose_path = app_dir.join("docker-compose.yml");
+    if let Err(e) = std::fs::write(&compose_path, &payload.compose_yaml) {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Falha ao salvar compose: {}", e) })),
+        )
+            .into_response();
+    }
+
+    if let Some(env_content) = payload.env_content {
+        let env_path = app_dir.join(".env");
+        let _ = std::fs::write(&env_path, env_content);
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "success": true,
+            "name": safe_name
+        })),
+    )
+        .into_response()
+}

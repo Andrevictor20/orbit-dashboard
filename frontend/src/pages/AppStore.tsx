@@ -28,6 +28,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
 import { DockerInstallModal } from '../components/docker/DockerInstallModal';
+import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import toast from 'react-hot-toast';
 
 interface AppStoreItem {
@@ -99,6 +100,7 @@ export function AppStore() {
   const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [customModalApp, setCustomModalApp] = useState<{ id: string; name: string } | null>(null);
 
   const fetchInstalledContainers = async () => {
     try {
@@ -197,6 +199,39 @@ export function AppStore() {
       }
     } catch (err: any) {
       console.error('Install error:', err);
+    } finally {
+      setInstalling(null);
+    }
+  };
+
+  const handleCustomInstall = async (payload: any) => {
+    if (!customModalApp) return;
+    const { id, name } = customModalApp;
+    try {
+      setInstalling(id);
+      setCustomModalApp(null);
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch(`/api/store/install/custom/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Falha na instalação personalizada');
+      }
+
+      const data = await res.json();
+      if (data.task_id) {
+        startInstall(data.task_id, name);
+      }
+    } catch (err: any) {
+      console.error('Custom install error:', err);
+      toast.error(err.message || 'Erro ao instalar aplicativo');
     } finally {
       setInstalling(null);
     }
@@ -746,6 +781,15 @@ export function AppStore() {
           )}
         </main>
       </div>
+
+      {customModalApp && (
+        <CustomInstallModal
+          appId={customModalApp.id}
+          appName={customModalApp.name}
+          onClose={() => setCustomModalApp(null)}
+          onInstall={handleCustomInstall}
+        />
+      )}
     </div>
   );
 
@@ -820,23 +864,37 @@ export function AppStore() {
               <span>Gerenciar</span>
             </button>
           ) : (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleInstall(app.id, app.name);
-              }}
-              disabled={installing !== null}
-              className="w-full py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              {installing === app.id ? (
-                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Install</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-1.5 w-full">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleInstall(app.id, app.name);
+                }}
+                disabled={installing !== null}
+                className="flex-1 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {installing === app.id ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Install</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCustomModalApp(app);
+                }}
+                disabled={installing !== null}
+                title="Configurar portas, volumes e ambiente antes de instalar"
+                className="p-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl border border-border transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -1,32 +1,44 @@
-# Orbit Dashboard v2.7.4
+# Orbit Dashboard v3.0.0
 
-### Novidades e Recursos Principais (v2.7.2)
+### Novidades e Recursos Principais (v3.0.0)
 
-- **Eliminação Definitiva de Falsos-Positivos de Atualização:**
-  - **Comparação SemVer Rigorosa:** O Orbit agora valida a versão estritamente por regras semânticas (`major.minor.patch`), garantindo que o ícone de atualização e o modal nunca afirmem que há novidades se o sistema já estiver na versão mais recente.
-  - **Imunidade a Divergências de Digest Multi-Arch:** Eliminação de falsos avisos no ARM64 causados pela diferença entre o digest do índice OCI remoto e o digest da imagem local do Docker.
+- **Integração Nativa com Pi-hole (DNS & Bloqueio de Anúncios):**
+  - **Telemetria de Rede em Tempo Real:** Monitoramento completo de consultas DNS, total de domínios bloqueados pelo Gravity, taxa percentual de bloqueio e clientes ativos na rede.
+  - **Controle de Bloqueio Instantâneo:** Ativação e desativação direta do bloqueio pelo Orbit, com opções de pausa programada (10 segundos, 30 segundos, 5 minutos ou indeterminado).
+  - **Gestão de Domínios:** Adicione e remova domínios da Lista Branca (Allowlist) e Lista Negra (Blocklist) com validação visual e persistência imediata.
+  - **Rankings de Domínios:** Gráficos e tabelas dos domínios mais requisitados e domínios mais bloqueados em toda a sua infraestrutura.
 
-- **Prevenção de Conflitos de Porta e Containers Duplicados:**
-  - **Transição Limpa e Segura:** O atualizador agora encerra e substitui instâncias sob qualquer nomeação (`orbit` ou `orbit-dashboard`), liberando a porta do painel e impedindo a criação de contêineres duplicados em estado inativo (`created`).
-  - **Auto-Faxina de Contêineres Órfãos:** Higienização automática no startup e sob demanda para remover quaisquer instâncias paradas ou obsoletas do Orbit.
+- **Central de Configurações & Perfil Unificada ("Minha Conta"):**
+  - **Gestão Reativa de Integrações:** Ativação/desativação sob demanda para Home Assistant e Pi-hole, ocultando ou exibindo os itens na barra lateral instantaneamente com indicadores de status de conexão em tempo real.
+  - **Configurações do Servidor & Porta Web:** Customização da porta de rede do contêiner do Orbit com validação de socket em tempo real no host, nome personalizado do servidor homelab, definição de página inicial padrão após login, ajuste na taxa de atualização da telemetria e confirmação para ações críticas.
+  - **Personalização Visual e Novos Temas:** Upload de avatar de perfil customizado, planos de fundo personalizados (wallpaper) com controles de opacidade e desfoque, além de novos temas elegantes para homelab (Gruvbox Dark/Light, Catppuccin Mocha/Latte, Tokyo Night, Dracula, Nord e Cyberpunk).
 
-- **Recarregamento Suave e Sessão Preservada:**
-  - **Healthcheck Não-Prematuro:** A interface agora aguarda a confirmação de subida do novo contêiner antes de concluir a etapa de atualização.
-  - **Sem Deslogar:** O painel é recarregado com cache renovado mantendo a sessão autenticada do usuário.
+- **App Store & Docker Stacks Avançados:**
+  - **Customização Pré-Deploy na App Store:** Inspecione e personalize portas conflitantes, diretórios montados e variáveis de ambiente (PUID, PGID, senhas) antes de instalar qualquer aplicativo.
+  - **Editor de Docker Compose YAML:** Crie e edite stacks completas através de um editor integrado com Monaco/CodeMirror, validação de sintaxe, biblioteca de templates e deploy 1-clique.
+  - **Mecanismo de Backup & Restauração 1-Clique:** Crie backups compactados (.tar.gz) dos volumes e dados das aplicações com suporte a agendamento automático, histórico e restauração 1-clique.
 
-- **Watchdog Inteligente e Resiliência em Atualizações em Lote:**
-  - **Eliminação de Falsos Timeouts:** Atualizações de imagens volumosas (como n8n, Ollama, Nextcloud e Home Assistant) agora contam com monitoramento baseado em atividade real, evitando interrupções prematuras enquanto dados continuam sendo descompactados e baixados.
-  - **Execução Serial Segura:** Prevenção contra sobrecarga de disco e contenção no Docker daemon, garantindo que cada contêiner conclua seu ciclo antes de iniciar o próximo.
-
-- **Limpeza Automática de Imagens Antigas do Orbit:**
-  - **Liberação Automática de Armazenamento:** Imagens anteriores e camadas desvinculadas são automaticamente identificadas e removidas do disco após a atualização.
-
-- **Identidade Visual Adaptativa:**
-  - **Favicon Dinâmico:** O ícone da aba do navegador sincroniza dinamicamente com a paleta de cores e o tema ativo (claro ou escuro).
+- **Gerenciador de Arquivos & Multimídia:**
+  - **Compartilhamento Samba (SMB):** Gerenciamento e compartilhamento de diretórios do host na rede local configurável diretamente pela interface.
+  - **Upload Resiliente em Chunks:** Envio de arquivos grandes com particionamento inteligente, permitindo pausar e continuar transferências mesmo após recarregar o navegador.
+  - **Player de Vídeo Otimizado:** Streaming de mídia de alta performance com suporte a legendas externas (.srt e .vtt) e compatibilidade com hardware modesto.
+  - **Widget Meteorológico:** Card de previsão do tempo na Home com informações geolocalizadas em tempo real.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v2.7.5 — Estabilidade, Transição Segura & Watchdog de Containers</summary>
+
+- **Eliminação de Falsos-Positivos de Atualização:** Comparação SemVer rigorosa (`major.minor.patch`) e imunidade a divergências de digest multi-arch (ARM64/AMD64).
+- **Prevenção de Conflitos de Porta:** Transição limpa e encerramento de contêineres órfãos no startup e sob demanda.
+- **Recarregamento Suave e Sessão Preservada:** Healthcheck inteligente antes de concluir a etapa de atualização sem deslogar o usuário.
+- **Watchdog Inteligente em Lote:** Execução serial segura e monitoramento de atividade real em imagens volumosas.
+- **Limpeza Automática:** Liberação automática de armazenamento removendo camadas e imagens antigas do Orbit.
+- **Identidade Visual Adaptativa:** Favicon dinâmico sincronizado com o tema ativo.
+
+</details>
 
 <details>
 <summary>v2.6.0 — Telemetria de Rede do Host, Ergonomia Mobile & Fallback de RAM</summary>

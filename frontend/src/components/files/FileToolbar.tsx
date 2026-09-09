@@ -22,6 +22,7 @@ import {
   Copy,
   Scissors,
   X,
+  Network,
 } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import type { OperationType } from './FileOperationsModal';
@@ -61,6 +62,7 @@ export interface FileToolbarProps {
   handleCut: (items: FileItem[]) => void;
   handleMoveToTrash: (items: FileItem[]) => void;
   setSelectedItems: (items: FileItem[]) => void;
+  onOpenSamba?: () => void;
 }
 
 export const FileToolbar: React.FC<FileToolbarProps> = ({
@@ -98,6 +100,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
   handleCut,
   handleMoveToTrash,
   setSelectedItems,
+  onOpenSamba,
 }) => {
   return (
     <>
@@ -205,6 +208,17 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
               >
                 <Terminal className="w-4 h-4" />
               </Link>
+
+              {/* Samba Network Sharing Button */}
+              {onOpenSamba && (
+                <button
+                  onClick={onOpenSamba}
+                  className="p-2 rounded-xl border border-border/80 bg-card text-slate-700 dark:text-secondary hover:text-orbit-500 hover:bg-accent transition-colors shadow-sm"
+                  title="Compartilhamento de Rede Samba (SMB)"
+                >
+                  <Network className="w-4 h-4" />
+                </button>
+              )}
 
               {/* Refresh Button */}
               <button

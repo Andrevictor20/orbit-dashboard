@@ -6,9 +6,11 @@ import { InstallProvider } from './contexts/InstallContext';
 import { StatsProvider } from './contexts/StatsContext';
 import { AlertsProvider } from './contexts/AlertsContext';
 import { BatchUpdateProvider } from './contexts/BatchUpdateContext';
+import { UploadManagerProvider } from './contexts/UploadManagerContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { Loader2 } from 'lucide-react';
 
 // Code Splitting & Dynamic Route Imports for Minimal Memory Footprint
@@ -26,6 +28,9 @@ const Logs = lazy(() => import('./pages/Logs').then(m => ({ default: m.Logs })))
 const FileManager = lazy(() => import('./pages/FileManager').then(m => ({ default: m.FileManager })));
 const DiskAnalyzer = lazy(() => import('./pages/DiskAnalyzer').then(m => ({ default: m.DiskAnalyzer })));
 const HomeAssistant = lazy(() => import('./pages/HomeAssistant').then(m => ({ default: m.HomeAssistant })));
+const PiHole = lazy(() => import('./pages/PiHole').then(m => ({ default: m.PiHole })));
+const Backups = lazy(() => import('./pages/Backups'));
+const ComposeEditor = lazy(() => import('./pages/ComposeEditor'));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup })));
 
@@ -43,8 +48,9 @@ function PageFallback() {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" defaultColor="zinc">
-      <AuthProvider>
-        <InstallProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <InstallProvider>
           <BrowserRouter>
             <Suspense fallback={<PageFallback />}>
               <Routes>
@@ -59,27 +65,32 @@ function App() {
                       <StatsProvider>
                         <AlertsProvider>
                           <BatchUpdateProvider>
-                            <DashboardLayout>
-                              <Suspense fallback={<PageFallback />}>
-                                <Routes>
-                                  <Route path="/" element={<Overview />} />
-                                  <Route path="/metrics" element={<Metrics />} />
-                                  <Route path="/containers" element={<Containers />} />
-                                  <Route path="/containers/:id" element={<ContainerDetail />} />
-                                  <Route path="/store" element={<AppStore />} />
-                                  <Route path="/store/app/:id" element={<AppDetail />} />
-                                  <Route path="/images" element={<Images />} />
-                                  <Route path="/networks" element={<Networks />} />
-                                  <Route path="/volumes" element={<Volumes />} />
-                                  <Route path="/files" element={<FileManager />} />
-                                  <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
-                                  <Route path="/terminal" element={<Terminal />} />
-                                  <Route path="/logs" element={<Logs />} />
-                                  <Route path="/homeassistant" element={<HomeAssistant />} />
-                                  <Route path="*" element={<Navigate to="/" replace />} />
-                                </Routes>
-                              </Suspense>
-                            </DashboardLayout>
+                            <UploadManagerProvider>
+                              <DashboardLayout>
+                                <Suspense fallback={<PageFallback />}>
+                                  <Routes>
+                                    <Route path="/" element={<Overview />} />
+                                    <Route path="/metrics" element={<Metrics />} />
+                                    <Route path="/containers" element={<Containers />} />
+                                    <Route path="/containers/:id" element={<ContainerDetail />} />
+                                    <Route path="/store" element={<AppStore />} />
+                                    <Route path="/store/app/:id" element={<AppDetail />} />
+                                    <Route path="/compose" element={<ComposeEditor />} />
+                                    <Route path="/images" element={<Images />} />
+                                    <Route path="/networks" element={<Networks />} />
+                                    <Route path="/volumes" element={<Volumes />} />
+                                    <Route path="/backups" element={<Backups />} />
+                                    <Route path="/files" element={<FileManager />} />
+                                    <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
+                                    <Route path="/terminal" element={<Terminal />} />
+                                    <Route path="/logs" element={<Logs />} />
+                                    <Route path="/homeassistant" element={<HomeAssistant />} />
+                                    <Route path="/pihole" element={<PiHole />} />
+                                    <Route path="*" element={<Navigate to="/" replace />} />
+                                  </Routes>
+                                </Suspense>
+                              </DashboardLayout>
+                            </UploadManagerProvider>
                           </BatchUpdateProvider>
                         </AlertsProvider>
                       </StatsProvider>
@@ -106,7 +117,8 @@ function App() {
             },
           }}
         />
-      </AuthProvider>
+        </AuthProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

@@ -1,7 +1,9 @@
 pub mod alerts;
 pub mod network;
 pub mod processes;
+pub mod settings;
 pub mod update;
+pub mod weather;
 
 pub use update::*;
 
@@ -18,4 +20,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/system/processes", axum::routing::get(processes::get_processes_handler))
         .route("/api/system/processes/{pid}/kill", axum::routing::post(processes::kill_process_handler))
         .route("/api/system/alerts", axum::routing::get(alerts::get_alerts_handler))
+        .route("/api/system/weather", axum::routing::get(weather::get_weather_handler))
+        .route("/api/system/settings", axum::routing::get(settings::get_settings_handler).post(settings::update_settings_handler))
+        .route("/api/system/settings/check-port", axum::routing::post(settings::check_port_handler))
 }

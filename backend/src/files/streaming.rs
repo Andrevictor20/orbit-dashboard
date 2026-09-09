@@ -9,7 +9,13 @@ use tokio_util::io::ReaderStream;
 use super::path_utils::{get_mime_type, sanitize_path};
 use super::types::DownloadQuery;
 
-// --- STREAMING (AUDIO, VIDEO, MKV, RANGE REQUESTS) ---
+// --- HIGH-PERFORMANCE VIDEO & AUDIO STREAMING ---
+// Optimized for low-power hardware (Raspberry Pi, ARM, Celeron) with 64KB async buffer,
+// adaptive initial burst (2MB) for instant playback TTFB and 4MB sustained chunks.
+
+const IO_BUFFER_CAPACITY: usize = 64 * 1024; // 64KB async I/O buffer to reduce syscalls by 16x
+const INITIAL_BURST_CHUNK: u64 = 2 * 1024 * 1024; // 2MB initial burst for instant start
+const SUSTAINED_STREAM_CHUNK: u64 = 4 * 1024 * 1024; // 4MB sustained chunk for low latency seeking
 
 pub async fn stream_media(
     headers: HeaderMap,
@@ -20,16 +26,20 @@ pub async fn stream_media(
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let mut file = tokio::fs::File::open(&path).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let total_size = file.metadata().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.len();
+    let mut file = tokio::fs::File::open(&path)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let total_size = file
+        .metadata()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .len();
 
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let mime = get_mime_type(ext);
 
     let range_header = headers.get(header::RANGE).and_then(|r| r.to_str().ok());
-
-    // 8MB maximum chunk size per open range request for instant playback start and smooth buffering
-    const MAX_CHUNK_SIZE: u64 = 8 * 1024 * 1024;
 
     if let Some(range_str) = range_header {
         if let Some(range_spec) = range_str.strip_prefix("bytes=") {
@@ -39,7 +49,11 @@ pub async fn stream_media(
             let raw_end: Option<u64> = parts.get(1).and_then(|s| s.parse().ok());
             let end: u64 = match raw_end {
                 Some(e) => e.min(total_size.saturating_sub(1)),
-                None => (start + MAX_CHUNK_SIZE - 1).min(total_size.saturating_sub(1)),
+                None => {
+                    // Adaptive chunk sizing: initial burst for instant moov/header parsing, sustained for playing
+                    let max_chunk = if start == 0 { INITIAL_BURST_CHUNK } else { SUSTAINED_STREAM_CHUNK };
+                    (start + max_chunk - 1).min(total_size.saturating_sub(1))
+                }
             };
 
             if start > end || start >= total_size {
@@ -49,9 +63,12 @@ pub async fn stream_media(
             }
 
             let chunk_size = (end - start) + 1;
-            file.seek(SeekFrom::Start(start)).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            file.seek(SeekFrom::Start(start))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-            let stream = ReaderStream::new(file.take(chunk_size));
+            // 64KB capacity stream reduces context switching on weak CPUs by 16x
+            let stream = ReaderStream::with_capacity(file.take(chunk_size), IO_BUFFER_CAPACITY);
             let body = Body::from_stream(stream);
 
             let mut resp_headers = HeaderMap::new();
@@ -62,21 +79,21 @@ pub async fn stream_media(
                 format!("bytes {}-{}/{}", start, end, total_size).parse().unwrap(),
             );
             resp_headers.insert(header::CONTENT_LENGTH, chunk_size.to_string().parse().unwrap());
-            resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
+            resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400, stale-while-revalidate=604800"));
 
             return Ok((StatusCode::PARTIAL_CONTENT, resp_headers, body).into_response());
         }
     }
 
-    // Standard GET without Range header -> return 200 OK with full stream
-    let stream = ReaderStream::new(file);
+    // Standard GET without Range header -> stream full file with 64KB buffer
+    let stream = ReaderStream::with_capacity(file, IO_BUFFER_CAPACITY);
     let body = Body::from_stream(stream);
 
     let mut resp_headers = HeaderMap::new();
     resp_headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
     resp_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
     resp_headers.insert(header::CONTENT_LENGTH, total_size.to_string().parse().unwrap());
-    resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
+    resp_headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400, stale-while-revalidate=604800"));
 
     Ok((StatusCode::OK, resp_headers, body).into_response())
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Share2, Archive, Download, Edit3 } from 'lucide-react';
+import { Check, Share2, Archive, Download, Edit3, Network } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import { ARCHIVE_EXTENSIONS } from '../../types/fileManager';
 import { formatBytes } from '../../utils/format';
@@ -18,6 +18,7 @@ export interface FileGridViewProps {
   handleDownload: (item: FileItem) => void;
   setOpTargetItem: (item: FileItem | null) => void;
   setOpModalType: (type: OperationType | null) => void;
+  onShareSamba?: (item: FileItem) => void;
 }
 
 export const FileGridView: React.FC<FileGridViewProps> = ({
@@ -32,6 +33,7 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
   handleDownload,
   setOpTargetItem,
   setOpModalType,
+  onShareSamba,
 }) => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
@@ -118,6 +120,18 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
               >
                 <Share2 className="w-3 h-3" />
               </button>
+              {item.is_dir && onShareSamba && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShareSamba(item);
+                  }}
+                  className="p-1 rounded text-secondary hover:text-orbit-400 hover:bg-accent"
+                  title="Compartilhar via Samba (SMB)"
+                >
+                  <Network className="w-3 h-3" />
+                </button>
+              )}
               {isArchive && (
                 <button
                   onClick={(e) => {

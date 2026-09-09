@@ -17,6 +17,7 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/store/apps", get(list_apps))
+        .route("/api/store/apps/{id}/config", get(inspect_app_config))
         .route("/api/store/sync", post(sync_apps))
         .route("/api/store/install/{id}", post(install_app))
         .route("/api/store/install/custom/{id}", post(install_custom_app))

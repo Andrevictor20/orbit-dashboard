@@ -8,6 +8,8 @@ pub mod subtitles;
 pub mod streaming;
 pub mod trash;
 pub mod shares;
+pub mod samba;
+pub mod chunked_upload;
 
 pub use types::*;
 pub use path_utils::*;
@@ -19,6 +21,8 @@ pub use subtitles::*;
 pub use streaming::*;
 pub use trash::*;
 pub use shares::*;
+pub use samba::*;
+pub use chunked_upload::*;
 
 use axum::{
     routing::{delete, get, post, put},
@@ -54,6 +58,13 @@ pub fn protected_router() -> Router<AppState> {
         .route("/api/files/share", post(create_share))
         .route("/api/files/shares", get(list_shares))
         .route("/api/files/share/{token}", delete(delete_share))
+        .route("/api/samba/status", get(get_samba_status))
+        .route("/api/samba/toggle", post(toggle_samba_service))
+        .route("/api/samba/shares", get(list_samba_shares).post(create_samba_share))
+        .route("/api/samba/shares/{name}", delete(delete_samba_share))
+        .route("/api/files/upload/chunk", post(upload_chunk_handler))
+        .route("/api/files/upload/status", get(get_upload_status_handler))
+        .route("/api/files/upload/complete", post(complete_upload_handler))
 }
 
 pub fn public_router() -> Router {

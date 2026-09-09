@@ -2,27 +2,17 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Play, 
-  Pause, 
-  Volume2, 
-  VolumeX, 
   X, 
   Film, 
-  Maximize, 
-  Subtitles, 
-  RotateCcw, 
-  RotateCw,
   Loader2,
   Download,
   AlertCircle
 } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
+import { VideoControls } from './VideoControls';
+import { VideoSubtitleMenu, type SubtitleItem } from './VideoSubtitleMenu';
 
-interface SubtitleItem {
-  name: string;
-  path: string;
-  label: string;
-  lang: string;
-}
+export type { SubtitleItem };
 
 interface VideoPlayerModalProps {
   file: FileItem;
@@ -196,6 +186,26 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     };
   }, []);
 
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    if (isMuted) {
+      videoRef.current.volume = volume || 0.5;
+      setIsMuted(false);
+    } else {
+      videoRef.current.volume = 0;
+      setIsMuted(true);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      containerRef.current.requestFullscreen().catch(() => {});
+    }
+  };
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -234,7 +244,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, duration]);
+  }, [togglePlay, duration, isMuted, volume]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
@@ -253,23 +263,18 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }
   };
 
-  const toggleMute = () => {
+  const handleSkip = (seconds: number) => {
     if (!videoRef.current) return;
-    if (isMuted) {
-      videoRef.current.volume = volume || 0.5;
-      setIsMuted(false);
-    } else {
-      videoRef.current.volume = 0;
-      setIsMuted(true);
-    }
+    const target = seconds < 0 
+      ? Math.max(0, videoRef.current.currentTime + seconds)
+      : Math.min(duration, videoRef.current.currentTime + seconds);
+    videoRef.current.currentTime = target;
   };
 
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    } else {
-      containerRef.current.requestFullscreen().catch(() => {});
+  const handleRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
     }
   };
 
@@ -331,7 +336,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             ref={videoRef}
             data-testid="video-element"
             src={videoSrc}
-            preload="auto"
+            preload="metadata"
             autoPlay
             playsInline
             crossOrigin="anonymous"
@@ -354,12 +359,12 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
               <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/70 text-white shadow-2xl border border-white/10">
                 <Loader2 className="w-8 h-8 text-orbit-400 animate-spin" />
-                <span className="text-xs text-zinc-300 font-medium">Carregando fluxo...</span>
+                <span className="text-xs text-zinc-300 font-medium">Otimizando fluxo...</span>
               </div>
             </div>
           )}
 
-          {/* Error Banner (e.g. unsupported container or codec) */}
+          {/* Error Banner */}
           {hasError && (
             <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md" onClick={(e) => e.stopPropagation()}>
               <div className="max-w-md p-6 rounded-2xl bg-zinc-900 border border-red-500/30 text-center space-y-4 shadow-2xl">
@@ -393,138 +398,32 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           )}
         </div>
 
-        {/* Bottom Controls Overlay */}
-        <div className={`absolute bottom-0 inset-x-0 z-20 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent space-y-2 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Progress Slider with Buffer Indicator */}
-          <div className="relative w-full flex items-center">
-            {/* Background & Buffer Bar */}
-            <div className="absolute inset-x-0 h-1.5 bg-zinc-800 rounded-lg overflow-hidden pointer-events-none">
-              <div 
-                className="h-full bg-zinc-600 transition-all duration-200" 
-                style={{ width: `${duration > 0 ? (bufferedEnd / duration) * 100 : 0}%` }}
-              />
-            </div>
-            <input
-              data-testid="video-progress"
-              type="range"
-              min="0"
-              max={duration || 100}
-              step="0.1"
-              value={currentTime}
-              onChange={handleSeek}
-              className="relative z-10 w-full h-1.5 bg-transparent rounded-lg appearance-none cursor-pointer accent-orbit-500"
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-white text-xs md:text-sm">
-            {/* Left Controls */}
-            <div className="flex items-center gap-3">
-              <button
-                data-testid="video-play-btn"
-                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                className="p-2 rounded-lg text-white hover:bg-white/10 transition-colors"
-              >
-                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); if (videoRef.current) videoRef.current.currentTime = Math.max(0, currentTime - 10); }}
-                className="p-1.5 text-zinc-300 hover:text-white transition-colors"
-                title="-10s"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={(e) => { e.stopPropagation(); if (videoRef.current) videoRef.current.currentTime = Math.min(duration, currentTime + 10); }}
-                className="p-1.5 text-zinc-300 hover:text-white transition-colors"
-                title="+10s"
-              >
-                <RotateCw className="w-4 h-4" />
-              </button>
-
-              {/* Volume */}
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <button onClick={toggleMute} className="text-zinc-300 hover:text-white transition-colors">
-                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolume}
-                  className="w-16 md:w-24 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
-                />
-              </div>
-
-              {/* Timestamps */}
-              <span className="text-xs text-zinc-300 font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-
-            {/* Right Controls (Subtitles, Speed, Fullscreen) */}
-            <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-              {/* Subtitles Dropdown */}
-              <div className="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-1 rounded-lg border border-zinc-700/50">
-                <Subtitles className="w-4 h-4 text-orbit-400" />
-                <select
-                  data-testid="subtitle-selector"
-                  value={activeSubtitle}
-                  onChange={(e) => handleSubtitleChange(e.target.value)}
-                  className="bg-transparent text-xs text-white outline-none cursor-pointer max-w-[130px] md:max-w-[200px] truncate"
-                >
-                  <option value="off" className="bg-zinc-900 text-white">Legendas: Off</option>
-                  {subtitlesList.map((sub, idx) => (
-                    <option key={idx} value={sub.path} className="bg-zinc-900 text-white">
-                      {sub.label} ({sub.name})
-                    </option>
-                  ))}
-                </select>
-                <label 
-                  className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white cursor-pointer transition-colors"
-                  title="Carregar legenda do dispositivo (.srt, .vtt)"
-                >
-                  <span className="text-[10px] font-mono border border-zinc-600 px-1 py-0.5 rounded">.SRT</span>
-                  <input
-                    type="file"
-                    accept=".srt,.vtt,.ass"
-                    onChange={handleCustomSubtitleUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* Speed Selector */}
-              <select
-                value={playbackRate}
-                onChange={(e) => {
-                  const rate = parseFloat(e.target.value);
-                  setPlaybackRate(rate);
-                  if (videoRef.current) videoRef.current.playbackRate = rate;
-                }}
-                className="bg-zinc-800/80 text-xs text-white px-2 py-1 rounded-lg border border-zinc-700/50 outline-none cursor-pointer"
-              >
-                <option value="0.5" className="bg-zinc-900">0.5x</option>
-                <option value="1" className="bg-zinc-900">1.0x</option>
-                <option value="1.25" className="bg-zinc-900">1.25x</option>
-                <option value="1.5" className="bg-zinc-900">1.5x</option>
-                <option value="2" className="bg-zinc-900">2.0x</option>
-              </select>
-
-              {/* Fullscreen */}
-              <button
-                onClick={toggleFullscreen}
-                className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-                title="Tela Cheia"
-              >
-                <Maximize className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Modular Video Controls */}
+        <VideoControls
+          isPlaying={isPlaying}
+          onTogglePlay={togglePlay}
+          currentTime={currentTime}
+          duration={duration}
+          bufferedEnd={bufferedEnd}
+          volume={volume}
+          isMuted={isMuted}
+          onSeek={handleSeek}
+          onVolumeChange={handleVolume}
+          onToggleMute={toggleMute}
+          onSkip={handleSkip}
+          playbackRate={playbackRate}
+          onRateChange={handleRateChange}
+          onToggleFullscreen={toggleFullscreen}
+          formatTime={formatTime}
+          showControls={showControls}
+        >
+          <VideoSubtitleMenu
+            subtitlesList={subtitlesList}
+            activeSubtitle={activeSubtitle}
+            onSubtitleChange={handleSubtitleChange}
+            onCustomSubtitleUpload={handleCustomSubtitleUpload}
+          />
+        </VideoControls>
       </div>
     </div>,
     document.body

@@ -88,4 +88,57 @@ async fn test_custom_install_and_progress() {
     
     assert!(status.get("status").is_some(), "Expected status field");
     assert!(status.get("progress").is_some(), "Expected progress field");
+
+    // 4. GET /api/store/apps/:id/config
+    let config_response = server.get(&format!("/api/store/apps/{}/config", first_app_id))
+        .add_cookie(auth_cookie.clone())
+        .await;
+    config_response.assert_status_ok();
+    let config: serde_json::Value = config_response.json();
+    assert_eq!(config.get("id").unwrap().as_str().unwrap(), first_app_id);
+    assert!(config.get("ports").is_some());
+    assert!(config.get("volumes").is_some());
+    assert!(config.get("env").is_some());
+}
+
+#[test]
+fn test_apply_custom_config_logic() {
+    use backend::store::installer::apply_custom_config;
+    use backend::store::types::{CustomInstallPayload, PortMapping, VolumeMapping};
+    use std::collections::HashMap;
+
+    let raw_compose = r#"
+version: '3'
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - 8080:80
+    volumes:
+      - /DATA/AppData/$AppID/config:/config
+"#;
+
+    let mut env = HashMap::new();
+    env.insert("TZ".to_string(), "America/Sao_Paulo".to_string());
+    env.insert("PUID".to_string(), "1002".to_string());
+
+    let payload = CustomInstallPayload {
+        ports: Some(vec![PortMapping {
+            host: 9090,
+            container: 80,
+            protocol: "tcp".to_string(),
+        }]),
+        volumes: Some(vec![VolumeMapping {
+            host: "/custom/path".to_string(),
+            container: "/config".to_string(),
+        }]),
+        env: Some(env),
+    };
+
+    let (compose, env_str) = apply_custom_config(raw_compose, &payload, "my-app");
+    assert!(compose.contains("9090:80"));
+    assert!(compose.contains("/custom/path:/config"));
+    assert!(env_str.contains("AppID=my-app"));
+    assert!(env_str.contains("PUID=1002"));
+    assert!(env_str.contains("TZ=America/Sao_Paulo"));
 }

@@ -10,29 +10,76 @@ use std::path::Path;
 use super::path_utils::{get_mime_type, sanitize_path, to_display_path};
 use super::types::{CompressRequest, DownloadQuery, ExtractRequest, UploadQuery};
 
-pub async fn download_file(Query(q): Query<DownloadQuery>) -> Result<Response, StatusCode> {
+pub async fn download_file(
+    headers: HeaderMap,
+    Query(q): Query<DownloadQuery>,
+) -> Result<Response, StatusCode> {
     let path = sanitize_path(&q.path)?;
     if !path.exists() || path.is_dir() {
         return Err(StatusCode::NOT_FOUND);
     }
 
-    let mut file = File::open(&path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let mut contents = Vec::new();
-    file.read_to_end(&mut contents).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let file_len = std::fs::metadata(&path)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .len();
 
     let file_name = path.file_name().and_then(|f| f.to_str()).unwrap_or("file");
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let mime = get_mime_type(ext);
 
-    let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, mime.parse().unwrap());
-    headers.insert(
+    let mut resp_headers = HeaderMap::new();
+    resp_headers.insert(header::CONTENT_TYPE, mime.parse().unwrap());
+    resp_headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
+    resp_headers.insert(
         header::CONTENT_DISPOSITION,
         format!("attachment; filename=\"{}\"", file_name).parse().unwrap(),
     );
-    headers.insert(header::CONTENT_LENGTH, contents.len().to_string().parse().unwrap());
 
-    Ok((headers, contents).into_response())
+    // Check for Range header (e.g. "bytes=0-1023" or "bytes=1024-")
+    if let Some(range_header) = headers.get(header::RANGE).and_then(|h| h.to_str().ok()) {
+        if let Some(range_str) = range_header.strip_prefix("bytes=") {
+            let parts: Vec<&str> = range_str.split('-').collect();
+            let start = parts[0].parse::<u64>().unwrap_or(0);
+            let end = if parts.len() > 1 && !parts[1].is_empty() {
+                parts[1].parse::<u64>().unwrap_or(file_len - 1).min(file_len - 1)
+            } else {
+                file_len - 1
+            };
+
+            if start <= end && start < file_len {
+                let chunk_len = end - start + 1;
+                use tokio::io::AsyncSeekExt;
+                let mut tokio_file = tokio::fs::File::open(&path)
+                    .await
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                let _ = tokio_file.seek(std::io::SeekFrom::Start(start)).await;
+
+                use tokio::io::AsyncReadExt;
+                let limited = tokio_file.take(chunk_len);
+                let stream = tokio_util::io::ReaderStream::new(limited);
+                let body = axum::body::Body::from_stream(stream);
+
+                resp_headers.insert(
+                    header::CONTENT_RANGE,
+                    format!("bytes {}-{}/{}", start, end, file_len).parse().unwrap(),
+                );
+                resp_headers.insert(header::CONTENT_LENGTH, chunk_len.to_string().parse().unwrap());
+
+                return Ok((StatusCode::PARTIAL_CONTENT, resp_headers, body).into_response());
+            }
+        }
+    }
+
+    // Stream the whole file with constant memory
+    let tokio_file = tokio::fs::File::open(&path)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let stream = tokio_util::io::ReaderStream::new(tokio_file);
+    let body = axum::body::Body::from_stream(stream);
+
+    resp_headers.insert(header::CONTENT_LENGTH, file_len.to_string().parse().unwrap());
+
+    Ok((StatusCode::OK, resp_headers, body).into_response())
 }
 
 pub async fn archive_folder(Query(q): Query<DownloadQuery>) -> Result<Response, StatusCode> {

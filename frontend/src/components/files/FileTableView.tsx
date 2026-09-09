@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, Square, Share2, Archive, Download, Edit3 } from 'lucide-react';
+import { CheckSquare, Square, Share2, Archive, Download, Edit3, Network } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import { ARCHIVE_EXTENSIONS } from '../../types/fileManager';
 import { formatBytes } from '../../utils/format';
@@ -19,6 +19,7 @@ export interface FileTableViewProps {
   handleDownload: (item: FileItem) => void;
   setOpTargetItem: (item: FileItem | null) => void;
   setOpModalType: (type: OperationType | null) => void;
+  onShareSamba?: (item: FileItem) => void;
 }
 
 export const FileTableView: React.FC<FileTableViewProps> = ({
@@ -34,6 +35,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
   handleDownload,
   setOpTargetItem,
   setOpModalType,
+  onShareSamba,
 }) => {
   return (
     <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
@@ -123,6 +125,18 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                       >
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
+                      {item.is_dir && onShareSamba && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShareSamba(item);
+                          }}
+                          className="p-1 rounded-lg text-secondary hover:text-orbit-400 hover:bg-accent"
+                          title="Compartilhar via Samba (SMB)"
+                        >
+                          <Network className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       {isArchive && (
                         <button
                           onClick={(e) => {

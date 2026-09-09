@@ -181,6 +181,7 @@ export function AppDetail() {
       {showCustomModal && (
         <CustomInstallModal 
           appId={app.id} 
+          appName={app.name}
           onClose={() => setShowCustomModal(false)}
           onInstall={(payload) => {
             setShowCustomModal(false);

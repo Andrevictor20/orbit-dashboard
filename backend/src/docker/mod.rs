@@ -11,6 +11,7 @@ pub mod exec;
 pub mod parser;
 pub mod ports;
 pub mod compose;
+pub mod backups;
 
 pub use types::*;
 pub use stats::*;
@@ -22,6 +23,7 @@ pub use exec::*;
 pub use parser::*;
 pub use ports::*;
 pub use compose::*;
+pub use backups::*;
 pub use crate::state::AppState;
 
 use axum::{
@@ -49,6 +51,17 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/compose/parse", post(compose::parse_compose_or_command_handler))
         .route("/api/docker/ports/check", post(compose::check_ports_handler))
         .route("/api/docker/compose/install", post(compose::install_custom_compose_handler))
+        .route("/api/docker/compose/stacks", get(compose::list_stacks_handler))
+        .route("/api/docker/compose/stacks/{name}", get(compose::get_stack_compose_handler))
+        .route("/api/docker/compose/save", post(compose::save_custom_compose_handler))
+        .route("/api/backups", get(backups::list_backups_handler))
+        .route("/api/backups/stats", get(backups::get_backup_stats_handler))
+        .route("/api/backups/create", post(backups::create_backup_handler))
+        .route("/api/backups/restore/{id}", post(backups::restore_backup_handler))
+        .route("/api/backups/{id}", delete(backups::delete_backup_handler))
+        .route("/api/backups/download/{id}", get(backups::download_backup_handler))
+        .route("/api/backups/upload", post(backups::upload_backup_handler))
+        .route("/api/backups/schedule", get(backups::get_schedule_handler).post(backups::save_schedule_handler))
         .route("/api/docker/images", get(list_images))
         .route("/api/docker/images/{id}", delete(delete_image))
         .route("/api/docker/images/prune", post(prune_images))

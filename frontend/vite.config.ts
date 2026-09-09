@@ -35,6 +35,9 @@ export default defineConfig({
             if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('/react/')) {
               return 'vendor-react';
             }
+            if (id.includes('@codemirror') || id.includes('@uiw/react-codemirror')) {
+              return 'vendor-editor';
+            }
             if (id.includes('i18next') || id.includes('react-i18next')) {
               return 'vendor-i18n';
             }

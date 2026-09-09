@@ -21,25 +21,32 @@ pub struct InstallTask {
     pub error: Option<String>, // mensagem de erro se falhou
 }
 
-#[derive(Deserialize)]
-#[allow(dead_code)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PortMapping {
     pub host: u16,
     pub container: u16,
     pub protocol: String,
 }
 
-#[derive(Deserialize)]
-#[allow(dead_code)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct VolumeMapping {
     pub host: String,
     pub container: String,
 }
 
-#[derive(Deserialize)]
-#[allow(dead_code)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct CustomInstallPayload {
     pub env: Option<HashMap<String, String>>,
     pub ports: Option<Vec<PortMapping>>,
     pub volumes: Option<Vec<VolumeMapping>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AppConfigInspection {
+    pub id: String,
+    pub name: String,
+    pub ports: Vec<PortMapping>,
+    pub volumes: Vec<VolumeMapping>,
+    pub env: HashMap<String, String>,
+    pub raw_compose: String,
 }

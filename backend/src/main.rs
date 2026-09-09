@@ -77,16 +77,24 @@ async fn main() {
         }
     });
 
+    // Start background backup scheduler
+    backend::docker::backups::start_backup_scheduler();
+
     let app = backend::app();
-    let listener = match tokio::net::TcpListener::bind("0.0.0.0:5172").await {
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or_else(backend::system::settings::get_configured_port);
+    let bind_addr = format!("0.0.0.0:{}", port);
+    let listener = match tokio::net::TcpListener::bind(&bind_addr).await {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("FATAL: Failed to bind TCP listener on 0.0.0.0:5172: {}", e);
-            tracing::error!("FATAL: Failed to bind TCP listener on 0.0.0.0:5172: {}", e);
+            eprintln!("FATAL: Failed to bind TCP listener on {}: {}", bind_addr, e);
+            tracing::error!("FATAL: Failed to bind TCP listener on {}: {}", bind_addr, e);
             std::process::exit(1);
         }
     };
-    tracing::info!("Listening on 0.0.0.0:5172");
+    tracing::info!("Listening on {}", bind_addr);
 
     // Attach the graceful shutdown signal AFTER the port is bound and listening.
     // This ensures SIGTERM from Docker --force-recreate during recreation does not

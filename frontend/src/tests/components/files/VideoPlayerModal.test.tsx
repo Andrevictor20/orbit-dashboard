@@ -45,4 +45,25 @@ describe('VideoPlayerModal Component', () => {
     fireEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders play button and progress slider', () => {
+    render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+
+    const playBtn = screen.getByTestId('video-play-btn');
+    expect(playBtn).toBeTruthy();
+
+    const progressSlider = screen.getByTestId('video-progress');
+    expect(progressSlider).toBeTruthy();
+  });
+
+  it('allows changing active subtitle track', async () => {
+    render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+
+    const subSelector = await screen.findByTestId('subtitle-selector') as HTMLSelectElement;
+    expect(subSelector).toBeTruthy();
+
+    fireEvent.change(subSelector, { target: { value: '/DATA/movies/movie.en.vtt' } });
+    expect(subSelector.value).toBe('/DATA/movies/movie.en.vtt');
+  });
 });
+

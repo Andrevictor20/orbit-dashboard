@@ -3,6 +3,7 @@ pub mod docker;
 pub mod files;
 pub mod homeassistant;
 pub mod links;
+pub mod pihole;
 pub mod logs;
 pub mod ssh;
 pub mod state;
@@ -70,6 +71,7 @@ pub fn app() -> Router {
         .merge(files::protected_router())
         .merge(system::router())
         .merge(homeassistant::router())
+        .merge(pihole::router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);

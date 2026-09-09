@@ -23,17 +23,20 @@ import {
   DiskAnalyzerModal,
   ShareModal,
   FileOperationsModal,
+  SambaModal,
 } from '../components/files';
+import { useUploadManager } from '../contexts/UploadManagerContext';
 import type { OperationType } from '../components/files/FileOperationsModal';
 import type { FileItem, MountItem, ShortcutPlace, TrashItem } from '../types/fileManager';
 export type { FileItem, MountItem, ShortcutPlace, TrashItem };
 export { IMAGE_EXTENSIONS, ARCHIVE_EXTENSIONS, CODE_EXTENSIONS } from '../types/fileManager';
 import { useTasks } from '../contexts/InstallContext';
-import { isPhysicalStorage, formatBytes } from '../utils/format';
+import { isPhysicalStorage } from '../utils/format';
 
 export function FileManager() {
   const { t } = useTranslation();
   const { startTask } = useTasks();
+  const { enqueueMultipleUploads } = useUploadManager();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPath = searchParams.get('path');
   const isTrashView = urlPath === '__trash__';
@@ -82,6 +85,8 @@ export function FileManager() {
   const [activePdfFile, setActivePdfFile] = useState<FileItem | null>(null);
   const [isDiskAnalyzerOpen, setIsDiskAnalyzerOpen] = useState<boolean>(false);
   const [shareFile, setShareFile] = useState<FileItem | null>(null);
+  const [sambaModalOpen, setSambaModalOpen] = useState<boolean>(false);
+  const [sambaTargetFolder, setSambaTargetFolder] = useState<FileItem | null>(null);
 
   // File Operations Modal (Rename, New File, New Folder, Delete)
   const [opModalType, setOpModalType] = useState<OperationType | null>(null);
@@ -216,43 +221,24 @@ export function FileManager() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [historyIndex, history, currentPath, selectedItems, files]);
 
-  // Upload handler via Task System
+  // Listen for upload completion events to refresh folder listing
+  useEffect(() => {
+    const handleFilesChanged = (e: any) => {
+      if (e?.detail?.path === currentPath || !e?.detail?.path) {
+        loadFiles(currentPath);
+      }
+    };
+    window.addEventListener('orbit:files_changed', handleFilesChanged);
+    return () => window.removeEventListener('orbit:files_changed', handleFilesChanged);
+  }, [currentPath, loadFiles]);
+
+  // Upload handler via Chunked Resumable Upload Manager
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
     const filesArray = Array.from(fileList);
-    const formData = new FormData();
-    filesArray.forEach((f) => formData.append('files', f));
-
-    startTask({
-      type: 'file_upload',
-      title: `Upload de ${filesArray.length} arquivo(s)`,
-      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
-      initialLogs: [
-        `[INFO] Iniciando upload de ${filesArray.length} arquivo(s) para ${currentPath}...`,
-        ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatBytes(f.size)})`)
-      ],
-      runner: async (helpers) => {
-        helpers.setProgress(30);
-        helpers.setStatus('running');
-        const token = localStorage.getItem('orbit_token');
-        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-        helpers.setProgress(85);
-        if (!res.ok) {
-          throw new Error('Falha no upload dos arquivos.');
-        }
-        filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
-        helpers.setDone(`Upload concluído com sucesso em ${currentPath}!`);
-        toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
-        loadFiles(currentPath);
-      }
-    });
-
+    await enqueueMultipleUploads(filesArray, currentPath);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -302,36 +288,7 @@ export function FileManager() {
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const filesArray = Array.from(e.dataTransfer.files);
-      const formData = new FormData();
-      filesArray.forEach((f) => formData.append('files', f));
-
-      startTask({
-        type: 'file_upload',
-        title: `Upload de ${filesArray.length} arquivo(s)`,
-        destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
-        initialLogs: [
-          `[INFO] Iniciando upload via arrastar e soltar para ${currentPath}...`,
-          ...filesArray.map(f => `[FILE] Preparando: ${f.name} (${formatBytes(f.size)})`)
-        ],
-        runner: async (helpers) => {
-          helpers.setProgress(30);
-          helpers.setStatus('running');
-          const token = localStorage.getItem('orbit_token');
-          const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: formData,
-          });
-          helpers.setProgress(85);
-          if (!res.ok) {
-            throw new Error('Falha no upload via arrastar e soltar.');
-          }
-          filesArray.forEach(f => helpers.addLog(`[SUCCESS] Enviado: ${f.name}`));
-          helpers.setDone(`Upload concluído com sucesso!`);
-          toast.success(`${filesArray.length} arquivo(s) enviado(s)!`);
-          loadFiles(currentPath);
-        }
-      });
+      await enqueueMultipleUploads(filesArray, currentPath);
     }
   };
 
@@ -774,6 +731,10 @@ export function FileManager() {
             handleCut={handleCut}
             handleMoveToTrash={handleMoveToTrash}
             setSelectedItems={setSelectedItems}
+            onOpenSamba={() => {
+              setSambaTargetFolder(null);
+              setSambaModalOpen(true);
+            }}
           />
 
           {/* Drag & Drop Overlay */}
@@ -839,6 +800,10 @@ export function FileManager() {
                 handleDownload={handleDownload}
                 setOpTargetItem={setOpTargetItem}
                 setOpModalType={setOpModalType}
+                onShareSamba={(folder) => {
+                  setSambaTargetFolder(folder);
+                  setSambaModalOpen(true);
+                }}
               />
             ) : (
               <FileTableView
@@ -854,6 +819,10 @@ export function FileManager() {
                 handleDownload={handleDownload}
                 setOpTargetItem={setOpTargetItem}
                 setOpModalType={setOpModalType}
+                onShareSamba={(folder) => {
+                  setSambaTargetFolder(folder);
+                  setSambaModalOpen(true);
+                }}
               />
             )}
           </div>
@@ -927,6 +896,17 @@ export function FileManager() {
           file={shareFile}
           isOpen={shareFile !== null}
           onClose={() => setShareFile(null)}
+        />
+      )}
+
+      {sambaModalOpen && (
+        <SambaModal
+          folder={sambaTargetFolder}
+          isOpen={sambaModalOpen}
+          onClose={() => {
+            setSambaModalOpen(false);
+            setSambaTargetFolder(null);
+          }}
         />
       )}
 

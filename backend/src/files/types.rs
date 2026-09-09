@@ -120,7 +120,7 @@ pub struct UpdateContentRequest {
     pub content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtitleItem {
     pub name: String,
     pub path: String,

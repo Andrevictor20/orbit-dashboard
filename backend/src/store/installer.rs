@@ -12,7 +12,7 @@ use std::sync::RwLock;
 use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
 use super::catalog::APPS_CACHE;
-use super::types::{CustomInstallPayload, InstallTask};
+use super::types::{CustomInstallPayload, InstallTask, PortMapping, VolumeMapping};
 
 pub static INSTALL_TASKS: Lazy<RwLock<HashMap<String, InstallTask>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
@@ -46,6 +46,10 @@ pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
 }
 
 pub fn spawn_compose_installation(id: String, raw_compose: String, task_id: String) {
+    spawn_compose_installation_with_env(id, raw_compose, None, task_id);
+}
+
+pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, custom_env: Option<String>, task_id: String) {
     let task_id_clone = task_id;
     tokio::spawn(async move {
         let safe_id = id.replace("..", "").replace('/', "-").replace('\\', "-");
@@ -95,8 +99,11 @@ pub fn spawn_compose_installation(id: String, raw_compose: String, task_id: Stri
             return;
         }
 
-        // Write .env file
-        let env_content = format!("AppID={}\nTZ=UTC\nPUID=1000\nPGID=1000\n", id);
+        // Write .env file (custom or default)
+        let env_content = match custom_env {
+            Some(ref env) => env.clone(),
+            None => format!("AppID={}\nTZ=UTC\nPUID=1000\nPGID=1000\n", id),
+        };
         let env_path = format!("{}/.env", app_dir);
         let _ = fs::write(&env_path, env_content);
 
@@ -347,13 +354,198 @@ pub async fn update_app(Path(id): Path<String>) -> impl IntoResponse {
     }
 }
 
-pub async fn install_custom_app(
-    Path(id): Path<String>, Json(_payload): Json<CustomInstallPayload>) -> impl IntoResponse {
-    let _app = {
+pub async fn inspect_app_config(Path(id): Path<String>) -> impl IntoResponse {
+    let app = {
         let cache = APPS_CACHE.read().unwrap();
         match cache.iter().find(|a| a.id == id) {
             Some(a) => a.clone(),
-            None => return (StatusCode::NOT_FOUND, "App not found").into_response(),
+            None => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "App not found"}))).into_response(),
+        }
+    };
+
+    let (ports, volumes, env) = extract_compose_config(&app.compose_file, &id);
+    let inspection = super::types::AppConfigInspection {
+        id: app.id,
+        name: app.name,
+        ports,
+        volumes,
+        env,
+        raw_compose: app.compose_file,
+    };
+
+    (StatusCode::OK, Json(inspection)).into_response()
+}
+
+pub fn extract_compose_config(raw_compose: &str, _app_id: &str) -> (Vec<PortMapping>, Vec<VolumeMapping>, HashMap<String, String>) {
+    let mut ports = Vec::new();
+    let mut volumes = Vec::new();
+    let mut env = HashMap::new();
+
+    env.insert("TZ".to_string(), "UTC".to_string());
+    env.insert("PUID".to_string(), "1000".to_string());
+    env.insert("PGID".to_string(), "1000".to_string());
+
+    if let Ok(parsed) = serde_yaml::from_str::<Value>(raw_compose) {
+        if let Some(services) = parsed.get("services").and_then(|s| s.as_mapping()) {
+            for (_, service) in services {
+                // Ports
+                if let Some(p_seq) = service.get("ports").and_then(|p| p.as_sequence()) {
+                    for p in p_seq {
+                        if let Some(p_str) = p.as_str() {
+                            let mut proto = "tcp".to_string();
+                            let clean_str = if let Some((head, pr)) = p_str.split_once('/') {
+                                proto = pr.to_lowercase();
+                                head
+                            } else {
+                                p_str
+                            };
+                            let parts: Vec<&str> = clean_str.split(':').collect();
+                            if parts.len() == 2 {
+                                if let (Ok(h), Ok(c)) = (parts[0].parse::<u16>(), parts[1].parse::<u16>()) {
+                                    if !ports.iter().any(|existing: &PortMapping| existing.host == h && existing.container == c) {
+                                        ports.push(PortMapping { host: h, container: c, protocol: proto });
+                                    }
+                                }
+                            } else if parts.len() == 1 {
+                                if let Ok(c) = parts[0].parse::<u16>() {
+                                    ports.push(PortMapping { host: c, container: c, protocol: proto });
+                                }
+                            }
+                        } else if let Some(p_num) = p.as_u64() {
+                            let c = p_num as u16;
+                            ports.push(PortMapping { host: c, container: c, protocol: "tcp".to_string() });
+                        }
+                    }
+                }
+
+                // Volumes
+                if let Some(v_seq) = service.get("volumes").and_then(|v| v.as_sequence()) {
+                    for v in v_seq {
+                        if let Some(v_str) = v.as_str() {
+                            let parts: Vec<&str> = v_str.split(':').collect();
+                            if parts.len() >= 2 {
+                                let h = parts[0].to_string();
+                                let c = parts[1].to_string();
+                                if !volumes.iter().any(|existing: &VolumeMapping| existing.container == c) {
+                                    volumes.push(VolumeMapping { host: h, container: c });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Environment
+                if let Some(e_val) = service.get("environment") {
+                    if let Some(e_seq) = e_val.as_sequence() {
+                        for item in e_seq {
+                            if let Some(item_str) = item.as_str() {
+                                if let Some((k, v)) = item_str.split_once('=') {
+                                    let clean_k = k.trim().to_string();
+                                    let clean_v = v.trim().to_string();
+                                    if !clean_k.is_empty() {
+                                        env.insert(clean_k, clean_v);
+                                    }
+                                }
+                            }
+                        }
+                    } else if let Some(e_map) = e_val.as_mapping() {
+                        for (k, v) in e_map {
+                            if let Some(k_str) = k.as_str() {
+                                let v_str = match v {
+                                    Value::String(s) => s.clone(),
+                                    Value::Number(n) => n.to_string(),
+                                    Value::Bool(b) => b.to_string(),
+                                    _ => "".to_string(),
+                                };
+                                env.insert(k_str.to_string(), v_str);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    (ports, volumes, env)
+}
+
+pub fn apply_custom_config(
+    raw_compose: &str,
+    payload: &CustomInstallPayload,
+    app_id: &str,
+) -> (String, String) {
+    let mut compose = raw_compose.to_string();
+
+    // 1. Port overrides
+    if let Some(ref ports) = payload.ports {
+        for p in ports {
+            let pattern = format!(r#"(?m)(^\s*-\s*["']?)\d+:({})(?:/([a-z]+))?(["']?\s*$)"#, p.container);
+            if let Ok(re) = regex::Regex::new(&pattern) {
+                compose = re.replace_all(&compose, |caps: &regex::Captures| {
+                    let prefix = caps.get(1).map_or("", |m| m.as_str());
+                    let proto = caps.get(3).map_or("", |m| m.as_str());
+                    let suffix = caps.get(4).map_or("", |m| m.as_str());
+                    if proto.is_empty() {
+                        format!("{}{}:{}{}", prefix, p.host, p.container, suffix)
+                    } else {
+                        format!("{}{}:{}/{}{}", prefix, p.host, p.container, proto, suffix)
+                    }
+                }).to_string();
+            }
+        }
+    }
+
+    // 2. Volume overrides
+    if let Some(ref vols) = payload.volumes {
+        for v in vols {
+            let pattern = format!(r#"(?m)(^\s*-\s*["']?)(?:[^:\s"']+):({})(?::([a-zA-Z0-9_-]+))?(["']?\s*$)"#, regex::escape(&v.container));
+            if let Ok(re) = regex::Regex::new(&pattern) {
+                compose = re.replace_all(&compose, |caps: &regex::Captures| {
+                    let prefix = caps.get(1).map_or("", |m| m.as_str());
+                    let mode = caps.get(3).map_or("", |m| m.as_str());
+                    let suffix = caps.get(4).map_or("", |m| m.as_str());
+                    if mode.is_empty() {
+                        format!("{}{}:{}{}", prefix, v.host, v.container, suffix)
+                    } else {
+                        format!("{}{}:{}:{}{}", prefix, v.host, v.container, mode, suffix)
+                    }
+                }).to_string();
+            }
+        }
+    }
+
+    // 3. Environment to .env
+    let mut env_map = HashMap::new();
+    env_map.insert("AppID".to_string(), app_id.to_string());
+    env_map.insert("TZ".to_string(), "UTC".to_string());
+    env_map.insert("PUID".to_string(), "1000".to_string());
+    env_map.insert("PGID".to_string(), "1000".to_string());
+
+    if let Some(ref user_env) = payload.env {
+        for (k, v) in user_env {
+            env_map.insert(k.clone(), v.clone());
+        }
+    }
+
+    let mut env_lines = Vec::new();
+    for (k, v) in env_map {
+        env_lines.push(format!("{}={}", k, v));
+    }
+    env_lines.sort();
+    let env_content = env_lines.join("\n") + "\n";
+
+    (compose, env_content)
+}
+
+pub async fn install_custom_app(
+    Path(id): Path<String>,
+    Json(payload): Json<CustomInstallPayload>,
+) -> impl IntoResponse {
+    let app = {
+        let cache = APPS_CACHE.read().unwrap();
+        match cache.iter().find(|a| a.id == id) {
+            Some(a) => a.clone(),
+            None => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "App not found"}))).into_response(),
         }
     };
 
@@ -364,45 +556,14 @@ pub async fn install_custom_app(
             id: task_id.clone(),
             status: "starting".to_string(),
             progress: 0,
-            logs: vec![],
+            logs: vec![format!("[INFO] Iniciando instalação personalizada de {}", app.name)],
             error: None,
         });
     }
 
+    let (custom_compose, custom_env) = apply_custom_config(&app.compose_file, &payload, &id);
     let task_id_clone = task_id.clone();
-    
-    // Spawn task
-    tokio::spawn(async move {
-        // Update status to pulling
-        {
-            let mut tasks = INSTALL_TASKS.write().unwrap();
-            if let Some(task) = tasks.get_mut(&task_id_clone) {
-                task.status = "pulling".to_string();
-                task.progress = 33;
-            }
-        }
-        
-        // Simulating the actual async custom installation...
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-        {
-            let mut tasks = INSTALL_TASKS.write().unwrap();
-            if let Some(task) = tasks.get_mut(&task_id_clone) {
-                task.status = "installing".to_string();
-                task.progress = 66;
-            }
-        }
-
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-        {
-            let mut tasks = INSTALL_TASKS.write().unwrap();
-            if let Some(task) = tasks.get_mut(&task_id_clone) {
-                task.status = "done".to_string();
-                task.progress = 100;
-            }
-        }
-    });
+    spawn_compose_installation_with_env(id, custom_compose, Some(custom_env), task_id_clone);
 
     (StatusCode::ACCEPTED, Json(serde_json::json!({ "task_id": task_id }))).into_response()
 }

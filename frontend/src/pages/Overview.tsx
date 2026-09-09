@@ -27,6 +27,8 @@ import { AppGroupModal } from '../components/docker/AppGroupModal';
 import { OrbitLogo } from '../components/ui/OrbitLogo';
 import { ContainerIcon } from '../components/ui/ContainerIcon';
 import { MiniSparkline } from '../components/metrics/MiniSparkline';
+import { WeatherCard } from '../components/dashboard/WeatherCard';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface OverviewContainer {
   id: string;
@@ -152,6 +154,7 @@ export function Overview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { stats, history = [], isConnected } = useStats();
+  const { settings } = useSettings();
 
   const [containers, setContainers] = useState<OverviewContainer[]>([]);
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
@@ -361,7 +364,7 @@ export function Overview() {
       </div>
 
       {/* 2. COMPACT & REFINED TELEMETRY SUMMARY ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-stretch">
         {/* CPU & Temp Card */}
         <Link 
           to="/metrics" 
@@ -638,6 +641,9 @@ export function Overview() {
             </span>
           </div>
         </Link>
+
+        {/* Weather Forecast Card */}
+        {settings.show_weather_card && <WeatherCard />}
       </div>
 
       {/* 3. MODERN SPOTLIGHT: INSTALLED APPS & STACKS BENTO LAUNCHER */}
