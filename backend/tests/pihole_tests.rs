@@ -174,3 +174,52 @@ async fn test_pihole_stats_and_blocking_when_unconfigured() {
 
     assert_eq!(domains_res.status(), StatusCode::BAD_REQUEST);
 }
+
+#[test]
+fn test_clean_pihole_url_sanitization() {
+    use backend::pihole::clean_pihole_url;
+
+    // Standard valid URLs
+    assert_eq!(
+        clean_pihole_url("http://pi.hole").unwrap(),
+        "http://pi.hole"
+    );
+    assert_eq!(
+        clean_pihole_url("http://192.168.1.100:8080/").unwrap(),
+        "http://192.168.1.100:8080"
+    );
+    assert_eq!(
+        clean_pihole_url("https://pihole.local/").unwrap(),
+        "https://pihole.local"
+    );
+
+    // v5 admin path trimming
+    assert_eq!(
+        clean_pihole_url("http://pi.hole/admin").unwrap(),
+        "http://pi.hole"
+    );
+    assert_eq!(
+        clean_pihole_url("http://pi.hole/admin/").unwrap(),
+        "http://pi.hole"
+    );
+    assert_eq!(
+        clean_pihole_url("http://pi.hole/admin/api.php").unwrap(),
+        "http://pi.hole"
+    );
+
+    // v6 api path trimming
+    assert_eq!(
+        clean_pihole_url("http://pi.hole/api").unwrap(),
+        "http://pi.hole"
+    );
+    assert_eq!(
+        clean_pihole_url("http://pi.hole/api/").unwrap(),
+        "http://pi.hole"
+    );
+
+    // Invalid protocol
+    assert!(clean_pihole_url("ftp://pi.hole").is_err());
+    assert!(clean_pihole_url("pi.hole").is_err());
+    assert!(clean_pihole_url("").is_err());
+}
+

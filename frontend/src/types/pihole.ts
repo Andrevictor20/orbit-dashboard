@@ -3,6 +3,7 @@ export interface PiHoleConfig {
   connected: boolean;
   url: string;
   status?: 'enabled' | 'disabled' | string | null;
+  version?: 'v6' | 'v5' | string | null;
   error?: string | null;
 }
 
