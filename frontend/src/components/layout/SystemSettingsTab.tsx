@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Loader2,
   Info,
+  MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -25,6 +26,7 @@ export function SystemSettingsTab() {
   const [defaultPage, setDefaultPage] = useState(settings.default_page);
   const [refreshRate, setRefreshRate] = useState(settings.metrics_refresh_rate);
   const [showWeatherCard, setShowWeatherCard] = useState(settings.show_weather_card);
+  const [weatherCity, setWeatherCity] = useState(settings.weather_city || '');
   const [confirmDangerousActions, setConfirmDangerousActions] = useState(settings.confirm_dangerous_actions);
 
   const [checkingPort, setCheckingPort] = useState(false);
@@ -70,6 +72,7 @@ export function SystemSettingsTab() {
         default_page: defaultPage,
         metrics_refresh_rate: refreshRate,
         show_weather_card: showWeatherCard,
+        weather_city: weatherCity.trim(),
         confirm_dangerous_actions: confirmDangerousActions,
       });
 
@@ -252,6 +255,41 @@ export function SystemSettingsTab() {
             />
           </button>
         </div>
+
+        {/* Localização da Previsão do Tempo */}
+        {showWeatherCard && (
+          <div className="rounded-xl border border-border/60 p-3 bg-surface/30 dark:bg-zinc-800/20 space-y-1.5 ml-2 border-l-2 border-l-orbit-500">
+            <div className="flex items-center justify-between">
+              <label htmlFor="weather-city-input" className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-orbit-500" />
+                {t('settings.weather_city_label', 'Localização do Clima (Cidade / Região)')}
+              </label>
+              {weatherCity && (
+                <button
+                  type="button"
+                  onClick={() => setWeatherCity('')}
+                  className="text-[10px] text-secondary hover:text-orbit-500 transition-colors"
+                >
+                  {t('settings.weather_city_auto', 'Usar detecção automática')}
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                id="weather-city-input"
+                data-testid="weather-city-input"
+                type="text"
+                placeholder={t('settings.weather_city_placeholder', 'Ex: São Paulo, Rio de Janeiro, Lisboa (ou vazio para automático)')}
+                value={weatherCity}
+                onChange={(e) => setWeatherCity(e.target.value)}
+                className="w-full bg-surface dark:bg-zinc-900 border border-border text-primary rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-orbit-500 placeholder:text-muted"
+              />
+            </div>
+            <p className="text-[11px] text-secondary">
+              {t('settings.weather_city_desc', 'Defina a cidade padrão para exibir temperatura e previsões. Deixe vazio para geolocalização automática por IP.')}
+            </p>
+          </div>
+        )}
 
         {/* Confirmações Perigosas */}
         <div className="flex items-center justify-between rounded-xl border border-border/60 p-3 bg-surface/50 dark:bg-zinc-800/30">

@@ -42,6 +42,8 @@ pub struct SystemSettings {
     pub metrics_refresh_rate: u64,
     #[serde(default = "default_true")]
     pub show_weather_card: bool,
+    #[serde(default)]
+    pub weather_city: String,
     #[serde(default = "default_true")]
     pub confirm_dangerous_actions: bool,
     #[serde(default)]
@@ -75,6 +77,7 @@ impl Default for SystemSettings {
             default_page: default_page(),
             metrics_refresh_rate: default_refresh_rate(),
             show_weather_card: true,
+            weather_city: String::new(),
             confirm_dangerous_actions: true,
             integrations: IntegrationsSettings::default(),
         }

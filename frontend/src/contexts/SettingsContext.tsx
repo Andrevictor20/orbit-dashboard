@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   default_page: '/',
   metrics_refresh_rate: 5,
   show_weather_card: true,
+  weather_city: '',
   confirm_dangerous_actions: true,
   integrations: {
     homeassistant: true,

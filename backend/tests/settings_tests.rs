@@ -87,7 +87,8 @@ async fn test_get_and_update_settings() {
                     "port": 5172,
                     "default_page": "/containers",
                     "metrics_refresh_rate": 2,
-                    "show_weather_card": false,
+                    "show_weather_card": true,
+                    "weather_city": "São Paulo, SP",
                     "confirm_dangerous_actions": true,
                     "integrations": {
                         "homeassistant": true,
@@ -103,6 +104,7 @@ async fn test_get_and_update_settings() {
     let update_body = update_res.into_body().collect().await.unwrap().to_bytes();
     let updated: serde_json::Value = serde_json::from_slice(&update_body).unwrap();
     assert_eq!(updated.get("server_name").and_then(|v| v.as_str()), Some("Test HomeLab"));
+    assert_eq!(updated.get("weather_city").and_then(|v| v.as_str()), Some("São Paulo, SP"));
     assert_eq!(
         updated.get("integrations").and_then(|i| i.get("pihole")).and_then(|v| v.as_bool()),
         Some(false)

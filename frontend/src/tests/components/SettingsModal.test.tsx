@@ -160,4 +160,56 @@ describe('ProfileModal and Settings Tabs', () => {
       expect(screen.getByText(/Porta livre e pronta para uso!/i)).toBeTruthy();
     });
   });
+
+  it('displays weather city input in Servidor & Porta tab and updates location', async () => {
+    let savedPayload: any = null;
+    globalThis.fetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+      if (url.includes('/api/system/settings')) {
+        if (opts?.method === 'POST') {
+          savedPayload = JSON.parse(opts.body);
+          return Promise.resolve({ ok: true, json: async () => savedPayload });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            server_name: 'Orbit Test',
+            port: 5172,
+            default_page: '/',
+            metrics_refresh_rate: 5,
+            show_weather_card: true,
+            weather_city: 'São Paulo',
+            confirm_dangerous_actions: true,
+            integrations: { homeassistant: true, pihole: true },
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <MemoryRouter>
+        <SettingsProvider>
+          <ProfileModal isOpen={true} onClose={vi.fn()} />
+        </SettingsProvider>
+      </MemoryRouter>
+    );
+
+    const systemTabBtn = await screen.findByRole('button', { name: /Servidor & Porta/i });
+    fireEvent.click(systemTabBtn);
+
+    const weatherInput = await screen.findByTestId('weather-city-input') as HTMLInputElement;
+    expect(weatherInput).toBeTruthy();
+    expect(weatherInput.value).toBe('São Paulo');
+
+    fireEvent.change(weatherInput, { target: { value: 'Rio de Janeiro' } });
+    expect(weatherInput.value).toBe('Rio de Janeiro');
+
+    const saveBtn = screen.getByRole('button', { name: /Salvar Configurações/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(savedPayload).toBeTruthy();
+      expect(savedPayload.weather_city).toBe('Rio de Janeiro');
+    });
+  });
 });

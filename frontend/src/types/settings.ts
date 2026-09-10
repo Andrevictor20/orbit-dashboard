@@ -9,6 +9,7 @@ export interface SystemSettings {
   default_page: string;
   metrics_refresh_rate: number;
   show_weather_card: boolean;
+  weather_city: string;
   confirm_dangerous_actions: boolean;
   integrations: IntegrationsSettings;
 }

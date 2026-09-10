@@ -15,6 +15,7 @@ import {
   X, 
   Check 
 } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 import toast from 'react-hot-toast';
 
 interface WeatherData {
@@ -30,16 +31,19 @@ interface WeatherData {
 }
 
 export function WeatherCard() {
+  const { settings, updateSettings } = useSettings();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditingCity, setIsEditingCity] = useState(false);
   const [cityInput, setCityInput] = useState('');
-  const [savedCity, setSavedCity] = useState(() => localStorage.getItem('orbit_weather_city') || '');
+  const [savedCity, setSavedCity] = useState(() => settings.weather_city || localStorage.getItem('orbit_weather_city') || '');
+
+  const effectiveCity = settings.weather_city || savedCity;
 
   const loadWeather = useCallback(async (customCity?: string) => {
     try {
       setLoading(true);
-      const queryCity = customCity !== undefined ? customCity : savedCity;
+      const queryCity = customCity !== undefined ? customCity : effectiveCity;
       let url = '/api/system/weather';
 
       if (queryCity.trim()) {
@@ -56,7 +60,7 @@ export function WeatherCard() {
     } finally {
       setLoading(false);
     }
-  }, [savedCity]);
+  }, [effectiveCity]);
 
   useEffect(() => {
     loadWeather();
@@ -64,6 +68,12 @@ export function WeatherCard() {
     const interval = setInterval(() => loadWeather(), 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadWeather]);
+
+  useEffect(() => {
+    if (settings.weather_city !== undefined) {
+      setSavedCity(settings.weather_city);
+    }
+  }, [settings.weather_city]);
 
   const handleSaveCity = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +86,7 @@ export function WeatherCard() {
       localStorage.removeItem('orbit_weather_city');
       toast.success('Localização automática ativada');
     }
+    updateSettings({ weather_city: clean }).catch(() => {});
     setIsEditingCity(false);
     loadWeather(clean);
   };
@@ -159,7 +170,7 @@ export function WeatherCard() {
             </button>
           </form>
         ) : (
-          <div className="flex items-center gap-1.5 group cursor-pointer" onClick={() => { setCityInput(savedCity); setIsEditingCity(true); }}>
+          <div className="flex items-center gap-1.5 group cursor-pointer" onClick={() => { setCityInput(effectiveCity); setIsEditingCity(true); }}>
             <MapPin className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
             <span className="text-xs font-semibold text-primary group-hover:text-orbit-500 transition-colors truncate max-w-[140px]">
               {weather?.location_name || 'Homelab Local'}
