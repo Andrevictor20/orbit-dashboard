@@ -201,6 +201,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [location.search]);
 
+  // Reset window scroll position on route navigation to prevent header cutoff
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [location.pathname]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -214,8 +219,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <img
             src={wallpaperUrl}
             alt=""
-            className="w-full h-full object-cover transition-all duration-500 ease-out"
-            style={{ filter: `blur(${wallpaperBlur}px)` }}
+            className="w-full h-full object-cover transition-all duration-500 ease-out will-change-transform"
+            style={{
+              filter: wallpaperBlur > 0 ? `blur(${wallpaperBlur}px)` : 'none',
+              transform: wallpaperBlur > 0 ? 'scale(1.03)' : 'scale(1)',
+            }}
           />
           <div
             className="absolute inset-0 bg-background transition-colors duration-300"
@@ -224,8 +232,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Ambient Lighting & Glow Orbs (Provides specular highlights through frosted glass) */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {/* Ambient Lighting & Glow Orbs (Subtle when wallpaper is active to preserve true colors) */}
+      <div className={`fixed inset-0 pointer-events-none overflow-hidden z-0 transition-opacity duration-500 ${wallpaperUrl ? 'opacity-20' : 'opacity-80'}`}>
         <div className="absolute -top-36 -right-32 w-[650px] h-[650px] rounded-full bg-gradient-to-br from-orbit-500/20 via-purple-600/12 to-transparent blur-[140px] opacity-80 animate-float-slow" />
         <div className="absolute top-1/4 -left-48 w-[720px] h-[720px] rounded-full bg-gradient-to-tr from-orbit-600/16 via-cyan-500/10 to-transparent blur-[150px] opacity-75 animate-float-reverse" />
         <div className="absolute -bottom-40 right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-indigo-500/16 via-pink-500/10 to-transparent blur-[140px] opacity-70 animate-pulse-glow" />

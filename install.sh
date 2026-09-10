@@ -164,7 +164,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - orbit_data:/app/data
-      - /:/host:ro
+      - /:/host:rslave
+      - /mnt:/mnt:rslave
+      - /media:/media:rslave
     logging:
       driver: "json-file"
       options:
@@ -173,6 +175,7 @@ services:
 
 volumes:
   orbit_data:
+    name: orbit_data
 EOF
 log_success "docker-compose.yml configurado com sucesso."
 

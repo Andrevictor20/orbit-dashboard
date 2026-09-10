@@ -41,4 +41,5 @@ services:
 
 volumes:
   orbit_data:
+    name: orbit_data
 

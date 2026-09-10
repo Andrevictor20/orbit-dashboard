@@ -25,7 +25,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-card/95 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-250"
+        className="bg-card/95 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-250"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -46,11 +46,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 px-4 sm:px-6 pt-3 border-b border-border/60 overflow-x-auto no-scrollbar shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 pt-3 border-b border-border/60 overflow-x-auto scrollbar-none no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('account')}
-            className={`pb-3 px-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'account'
                 ? 'border-orbit-500 text-orbit-500'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -63,7 +63,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('integrations')}
-            className={`pb-3 px-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'integrations'
                 ? 'border-orbit-500 text-orbit-500'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -76,7 +76,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('system')}
-            className={`pb-3 px-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'system'
                 ? 'border-orbit-500 text-orbit-500'
                 : 'border-transparent text-secondary hover:text-primary'
@@ -89,7 +89,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <button
             type="button"
             onClick={() => setActiveTab('customization')}
-            className={`pb-3 px-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'customization'
                 ? 'border-orbit-500 text-orbit-500'
                 : 'border-transparent text-secondary hover:text-primary'

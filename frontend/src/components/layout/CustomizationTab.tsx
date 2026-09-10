@@ -79,7 +79,7 @@ export function CustomizationTab() {
     reader.readAsDataURL(file);
   };
 
-  // Compress and set wallpaper image to 1920x1080 max
+  // Process and set high-definition wallpaper (up to 2560px crisp QHD / Retina resolution)
   const handleWallpaperFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -91,7 +91,7 @@ export function CustomizationTab() {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const maxDim = 1920;
+        const maxDim = 2560;
         if (width > maxDim || height > maxDim) {
           if (width > height) {
             height = Math.round((height * maxDim) / width);
@@ -105,8 +105,10 @@ export function CustomizationTab() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          const dataUrl = canvas.toDataURL('image/webp', 0.92);
           setWallpaperUrl(dataUrl);
           toast.success(t('customization.wallpaper_updated', 'Plano de fundo atualizado com sucesso!'));
         }
@@ -346,7 +348,7 @@ export function CustomizationTab() {
                 </div>
                 <input
                   type="range"
-                  min="0.2"
+                  min="0.0"
                   max="0.95"
                   step="0.05"
                   value={wallpaperOpacity}

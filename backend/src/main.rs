@@ -70,6 +70,9 @@ async fn main() {
 
     tracing::info!("Orbit Dashboard Backend Starting...");
 
+    // Auto-heal and restore persistent configuration files from legacy/previous volumes if needed
+    backend::system::data_migrator::auto_heal_persistent_data();
+
     // Load App Store cache from disk or sync in background
     tokio::spawn(async {
         if !backend::store::catalog::load_cached_apps_from_disk() {

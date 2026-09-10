@@ -1,4 +1,5 @@
 pub mod alerts;
+pub mod data_migrator;
 pub mod network;
 pub mod processes;
 pub mod settings;

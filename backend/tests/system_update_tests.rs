@@ -111,15 +111,17 @@ fn test_fallback_docker_run_uses_correct_container_name() {
     let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
     let host_dir_val = String::new(); // empty = no compose dir found
     let compose_file_name = "docker-compose.yml";
+    let project_flag = String::new();
+    let detected_data_mount = "orbit_orbit_data"; // Preserved volume from running container
 
     let helper_script = format!(
         r#"sleep 1 && (
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
-  cd "/host{host_dir}" && docker compose -f "{compose_file}" pull && docker compose -f "{compose_file}" up -d --force-recreate
+  cd "/host{host_dir}" && docker compose {project_flag} -f "{compose_file}" pull && docker compose {project_flag} -f "{compose_file}" up -d --force-recreate
 elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose pull && docker compose up -d --force-recreate
+  cd "/host/DATA/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
+  cd "/host/root/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
 else
   docker stop orbit-dashboard orbit 2>/dev/null || true
   docker rm orbit-dashboard orbit 2>/dev/null || true
@@ -130,7 +132,7 @@ else
     -p 5172:5172 \
     -p 5173:5172 \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v orbit_data:/app/data \
+    -v "{data_mount}:/app/data" \
     -v /:/host:rslave \
     -v /mnt:/mnt:rslave \
     -v /media:/media:rslave \
@@ -141,6 +143,8 @@ fi
 )"#,
         host_dir = host_dir_val,
         compose_file = compose_file_name,
+        project_flag = project_flag,
+        data_mount = detected_data_mount,
         image_name = image_name
     );
 
@@ -152,6 +156,12 @@ fi
     assert!(
         !helper_script.contains("--name orbit "),
         "Fallback docker run must NOT use --name orbit (that is the service name, not the container_name)"
+    );
+
+    // MUST preserve the detected data mount (volume or bind-mount)
+    assert!(
+        helper_script.contains("-v \"orbit_orbit_data:/app/data\""),
+        "Fallback docker run must preserve the existing volume/bind mount instead of hardcoding an empty volume"
     );
 
     // MUST use rslave propagation (not :ro which breaks FUSE/rclone mounts)

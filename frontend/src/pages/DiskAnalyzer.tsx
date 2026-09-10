@@ -471,7 +471,7 @@ export function DiskAnalyzer() {
       )}
 
       {/* DIRECT PATH INPUT & QUICK PRESET CHIPS */}
-      <div className="bg-card border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
+      <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-3 sm:p-4 space-y-3 shadow-sm">
         <form onSubmit={handleCustomPathSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div className="relative flex-1">
             <FolderSearch className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -585,7 +585,7 @@ export function DiskAnalyzer() {
           )}
 
           {/* NCDU DIRECTORY TREE BREAKDOWN */}
-          <div className="flex-1 flex flex-col bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xl min-h-[450px]">
+          <div className="flex-1 flex flex-col bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl overflow-hidden shadow-xl min-h-[450px]">
             {/* Breadcrumb Navigation & Controls Toolbar */}
             <div className="p-3 sm:p-4 border-b border-border/70 bg-card/40 flex flex-wrap items-center justify-between gap-3">
               {/* Left: Breadcrumbs & Up Button */}

@@ -50,9 +50,9 @@ const initialState: ThemeProviderState = {
   setCustomAvatar: () => null,
   wallpaperUrl: null,
   setWallpaperUrl: () => null,
-  wallpaperOpacity: 0.7,
+  wallpaperOpacity: 0.5,
   setWallpaperOpacity: () => null,
-  wallpaperBlur: 4,
+  wallpaperBlur: 0,
   setWallpaperBlur: () => null,
 };
 
@@ -88,12 +88,12 @@ export function ThemeProvider({
 
   const [wallpaperOpacity, setWallpaperOpacity] = useState<number>(() => {
     const saved = localStorage.getItem(wallpaperOpacityKey);
-    return saved !== null ? parseFloat(saved) : 0.7;
+    return saved !== null ? parseFloat(saved) : 0.5;
   });
 
   const [wallpaperBlur, setWallpaperBlur] = useState<number>(() => {
     const saved = localStorage.getItem(wallpaperBlurKey);
-    return saved !== null ? parseFloat(saved) : 4;
+    return saved !== null ? parseFloat(saved) : 0;
   });
 
   useEffect(() => {

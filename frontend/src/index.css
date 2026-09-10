@@ -587,6 +587,7 @@
   .glass-panel,
   .glass-card {
     background-color: var(--card);
+    border: 1px solid var(--border);
     backdrop-filter: blur(28px) saturate(190%) contrast(105%);
     -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(105%);
     box-shadow: var(--glass-shadow);
@@ -752,12 +753,14 @@
 
 /* Scrollbar Utilities */
 .scrollbar-hide::-webkit-scrollbar,
-.scrollbar-none::-webkit-scrollbar {
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
 .scrollbar-hide,
-.scrollbar-none {
+.scrollbar-none,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

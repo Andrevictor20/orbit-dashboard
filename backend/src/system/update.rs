@@ -443,11 +443,13 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
 
         append_task_log("✅ [SUCCESS] Imagem multi-arch baixada e verificada com sucesso!", Some(85), Some("Preparando reinicialização sem downtime..."));
 
-        // 2. Discover host compose directory and compose file name
+        // 2. Discover host compose directory, compose project and active data mount
         let mut host_compose_dir = None;
         let mut compose_file_name = "docker-compose.yml".to_string();
+        let mut compose_project_name = None;
+        let mut detected_data_mount = "orbit_data".to_string();
 
-        // 2.1 First attempt: inspect container 'orbit-dashboard' via Docker API to read Docker Compose labels
+        // 2.1 First attempt: inspect container 'orbit-dashboard' via Docker API to read Docker Compose labels and mounts
         let container_names = ["orbit-dashboard", "orbit"];
         let mut inspect_result = None;
         for cname in &container_names {
@@ -456,8 +458,13 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                 break;
             }
         }
-        if let Some(inspect) = inspect_result {
-            if let Some(labels) = inspect.config.and_then(|c| c.labels) {
+        if let Some(ref inspect) = inspect_result {
+            if let Some(labels) = inspect.config.as_ref().and_then(|c| c.labels.as_ref()) {
+                if let Some(proj) = labels.get("com.docker.compose.project") {
+                    if !proj.trim().is_empty() {
+                        compose_project_name = Some(proj.clone());
+                    }
+                }
                 if let Some(work_dir) = labels.get("com.docker.compose.project.working_dir") {
                     if !work_dir.trim().is_empty() {
                         host_compose_dir = Some(work_dir.clone());
@@ -468,6 +475,28 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                         let p = std::path::Path::new(first_file.trim());
                         if let Some(fname) = p.file_name() {
                             compose_file_name = fname.to_string_lossy().to_string();
+                        }
+                    }
+                }
+            }
+
+            // Detect active /app/data mount (named volume or host bind-mount)
+            if let Some(mounts) = &inspect.mounts {
+                for m in mounts {
+                    if m.destination.as_deref() == Some("/app/data") {
+                        if let Some(ref name) = m.name {
+                            if !name.trim().is_empty() {
+                                detected_data_mount = name.clone();
+                                tracing::info!("Preservando volume de dados detectado: {}", detected_data_mount);
+                                break;
+                            }
+                        }
+                        if let Some(ref src) = m.source {
+                            if !src.trim().is_empty() && m.typ.as_ref().map(|t| t.to_string()) == Some("bind".to_string()) {
+                                detected_data_mount = src.clone();
+                                tracing::info!("Preservando bind-mount de dados detectado: {}", detected_data_mount);
+                                break;
+                            }
                         }
                     }
                 }
@@ -509,7 +538,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         if let Some(ref d) = host_compose_dir {
             append_task_log(format!("📁 [CONFIG] Diretório Compose detectado: {} (arquivo: {})", d, compose_file_name), Some(90), None);
         } else {
-            append_task_log("📁 [CONFIG] Nenhum compose detectado, fallback para recriação direta via Docker Engine.", Some(90), None);
+            append_task_log(format!("📁 [CONFIG] Fallback Docker Engine ativado (volume: {}).", detected_data_mount), Some(90), None);
         }
 
         // 3. Mark state as recreating
@@ -535,15 +564,19 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         tokio::time::sleep(Duration::from_millis(1500)).await;
 
         let host_dir_val = host_compose_dir.unwrap_or_default();
+        let project_flag = compose_project_name
+            .as_ref()
+            .map(|p| format!("-p \"{}\"", p))
+            .unwrap_or_default();
 
         let helper_script = format!(
             r#"sleep 1 && (
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
-  cd "/host{host_dir}" && docker compose -f "{compose_file}" pull && docker compose -f "{compose_file}" up -d --force-recreate
+  cd "/host{host_dir}" && docker compose {project_flag} -f "{compose_file}" pull && docker compose {project_flag} -f "{compose_file}" up -d --force-recreate
 elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose pull && docker compose up -d --force-recreate
+  cd "/host/DATA/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose pull && docker compose up -d --force-recreate
+  cd "/host/root/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
 else
   docker stop orbit-dashboard orbit 2>/dev/null || true
   docker rm orbit-dashboard orbit 2>/dev/null || true
@@ -554,7 +587,7 @@ else
     -p 5172:5172 \
     -p 5173:5172 \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v orbit_data:/app/data \
+    -v "{data_mount}:/app/data" \
     -v /:/host:rslave \
     -v /mnt:/mnt:rslave \
     -v /media:/media:rslave \
@@ -568,6 +601,8 @@ docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dash
 )"#,
             host_dir = host_dir_val,
             compose_file = compose_file_name,
+            project_flag = project_flag,
+            data_mount = detected_data_mount,
             image_name = image_name
         );
 
@@ -577,8 +612,9 @@ docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dash
                 "run",
                 "--rm",
                 "-d",
+                "--privileged",
                 "-v", "/var/run/docker.sock:/var/run/docker.sock",
-                "-v", "/:/host",
+                "-v", "/:/host:rslave",
                 &image_name,
                 "sh", "-c",
                 &helper_script,

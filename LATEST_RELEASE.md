@@ -1,32 +1,39 @@
-# Orbit Dashboard v3.0.0
+# Orbit Dashboard v3.1.0
 
-### Novidades e Recursos Principais (v3.0.0)
+### Novidades e Recursos Principais (v3.1.0)
 
-- **Integração Nativa com Pi-hole (DNS & Bloqueio de Anúncios):**
-  - **Telemetria de Rede em Tempo Real:** Monitoramento completo de consultas DNS, total de domínios bloqueados pelo Gravity, taxa percentual de bloqueio e clientes ativos na rede.
-  - **Controle de Bloqueio Instantâneo:** Ativação e desativação direta do bloqueio pelo Orbit, com opções de pausa programada (10 segundos, 30 segundos, 5 minutos ou indeterminado).
-  - **Gestão de Domínios:** Adicione e remova domínios da Lista Branca (Allowlist) e Lista Negra (Blocklist) com validação visual e persistência imediata.
-  - **Rankings de Domínios:** Gráficos e tabelas dos domínios mais requisitados e domínios mais bloqueados em toda a sua infraestrutura.
+- **Blindagem de Persistência e Auto-Healing de Volumes em Atualizações:**
+  - **Zero Perda de Dados:** Preservação estrita e determinística de senhas de acesso (`orbit_auth.json`), links customizados de containers (`custom_links.json`), configurações de rede, integrações e compartilhamentos SMB em qualquer atualização in-place.
+  - **Módulo de Auto-Recuperação no Boot:** Varredura automática em volumes Docker e caminhos do host (`data_migrator.rs`) que recupera credenciais e configurações caso o volume tenha sido desconectado em atualizações anteriores.
+  - **Inspeção Dinâmica de Montagens:** O atualizador agora identifica com precisão o volume nomeado ou bind-mount ativo do container antes de realizar o deploy da nova versão.
 
-- **Central de Configurações & Perfil Unificada ("Minha Conta"):**
-  - **Gestão Reativa de Integrações:** Ativação/desativação sob demanda para Home Assistant e Pi-hole, ocultando ou exibindo os itens na barra lateral instantaneamente com indicadores de status de conexão em tempo real.
-  - **Configurações do Servidor & Porta Web:** Customização da porta de rede do contêiner do Orbit com validação de socket em tempo real no host, nome personalizado do servidor homelab, definição de página inicial padrão após login, ajuste na taxa de atualização da telemetria e confirmação para ações críticas.
-  - **Personalização Visual e Novos Temas:** Upload de avatar de perfil customizado, planos de fundo personalizados (wallpaper) com controles de opacidade e desfoque, além de novos temas elegantes para homelab (Gruvbox Dark/Light, Catppuccin Mocha/Latte, Tokyo Night, Dracula, Nord e Cyberpunk).
+- **Suporte Híbrido ao Pi-hole v6 (REST API FTL) & v5 (PHP API Legada):**
+  - **Compatibilidade Nativa Pi-hole v6:** Suporte total à nova API REST FTL do Pi-hole v6.0+ via Session ID (`X-FTL-SID`) e App Passwords.
+  - **Detecção e Fallback Transparentes:** Alternância automática entre as APIs v6 e v5 dependendo da versão do servidor de destino, sem requerer reconfiguração manual.
 
-- **App Store & Docker Stacks Avançados:**
-  - **Customização Pré-Deploy na App Store:** Inspecione e personalize portas conflitantes, diretórios montados e variáveis de ambiente (PUID, PGID, senhas) antes de instalar qualquer aplicativo.
-  - **Editor de Docker Compose YAML:** Crie e edite stacks completas através de um editor integrado com Monaco/CodeMirror, validação de sintaxe, biblioteca de templates e deploy 1-clique.
-  - **Mecanismo de Backup & Restauração 1-Clique:** Crie backups compactados (.tar.gz) dos volumes e dados das aplicações com suporte a agendamento automático, histórico e restauração 1-clique.
+- **Fidelidade Visual e Qualidade Ultra-HD para Wallpapers:**
+  - **Upload em Alta Resolução (QHD):** Processamento de imagens de plano de fundo em até 2560px com suavização de alta fidelidade e codificação WebP a 92% de qualidade fotográfica.
+  - **Preservação de Cores e Atmosfera:** Ajuste dinâmico das luzes ambientais para evitar halos coloridos sobre o papel de parede e compensação de bordas em caso de desfoque.
+  - **Desfoque Padrão Nítido:** Papéis de parede agora são exibidos 100% nítidos por padrão (blur 0px), com controle total do dimmer de opacidade de 0% a 95%.
 
-- **Gerenciador de Arquivos & Multimídia:**
-  - **Compartilhamento Samba (SMB):** Gerenciamento e compartilhamento de diretórios do host na rede local configurável diretamente pela interface.
-  - **Upload Resiliente em Chunks:** Envio de arquivos grandes com particionamento inteligente, permitindo pausar e continuar transferências mesmo após recarregar o navegador.
-  - **Player de Vídeo Otimizado:** Streaming de mídia de alta performance com suporte a legendas externas (.srt e .vtt) e compatibilidade com hardware modesto.
-  - **Widget Meteorológico:** Card de previsão do tempo na Home com informações geolocalizadas em tempo real.
+- **Ergonomia de Layout, Scroll e Acessibilidade:**
+  - **Scroll-To-Top em Transições de Página:** Resolução do bug de herança de rolagem no React Router, garantindo que títulos, ferramentas e barras de ação sempre apareçam visíveis no topo ao abrir qualquer tela.
+  - **Aba de Configurações Sem Barra de Scroll:** Eliminação da barra de rolagem horizontal nativa nas abas do modal de configurações com expansão para `max-w-2xl` e utilitários de rolagem invisível.
+  - **Localização Customizada do Clima:** Definição manual da cidade no Card de Previsão do Tempo (Open-Meteo) com opção de restauração automática por geolocalização IP em 1 clique.
 
 ---
 
 ### Versões Anteriores
+
+<details>
+<summary>v3.0.0 — Pi-hole DNS Guard, Central "Minha Conta", Compose YAML & Backups</summary>
+
+- **Integração Nativa com Pi-hole:** Monitoramento de telemetria de consultas DNS, controle de bloqueio temporizado e gestão completa de Allowlist/Blocklist.
+- **Central de Configurações & Perfil Unificada:** Gestão reativa de integrações, customização da porta web com verificação de socket no host, temas e avatares personalizados.
+- **App Store & Docker Compose:** Customização pré-deploy na App Store, editor integrado de Docker Compose YAML com sintaxe destacada e backups 1-clique compactados (.tar.gz).
+- **Gerenciador de Arquivos & Multimídia:** Compartilhamento Samba (SMB), uploads particionados em chunks resilientes e player de vídeo acelerado por GPU com legendas externas.
+
+</details>
 
 <details>
 <summary>v2.7.5 — Estabilidade, Transição Segura & Watchdog de Containers</summary>

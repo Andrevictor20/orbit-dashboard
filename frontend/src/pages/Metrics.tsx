@@ -213,7 +213,7 @@ export function Metrics() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* CPU Panel */}
-          <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col">
+          <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col shadow-sm">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
                 <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
@@ -254,7 +254,7 @@ export function Metrics() {
           </div>
 
           {/* Memory Panel */}
-          <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col">
+          <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] flex flex-col shadow-sm">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
                 <HardDrive className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
@@ -296,7 +296,7 @@ export function Metrics() {
 
           {/* Network Panel (Only for System and Containers) */}
           {activeTab !== 'orbit' && (
-            <div className="glass-panel rounded-xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] lg:col-span-2 flex flex-col animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] lg:col-span-2 flex flex-col shadow-sm animate-in fade-in zoom-in-95 duration-300">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">

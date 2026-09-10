@@ -187,7 +187,7 @@ export default function ComposeEditor() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -240,7 +240,7 @@ export default function ComposeEditor() {
       </div>
 
       {/* Top Configuration & Template Bar */}
-      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-4 sm:p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Stack Name */}
         <div>
           <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
@@ -335,7 +335,7 @@ export default function ComposeEditor() {
       </div>
 
       {/* Editor Main Container */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card/90 backdrop-blur-2xl border border-border/80 rounded-2xl overflow-hidden shadow-md">
         {/* Editor Tabs */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-accent/40 border-b border-border">
           <div className="flex items-center gap-1">
