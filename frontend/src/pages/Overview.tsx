@@ -17,7 +17,8 @@ import {
   CreditCard,
   Usb,
   Wifi,
-  Cable
+  Cable,
+  Cloud
 } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
 import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatStorage, formatNetworkSpeed } from '../utils/format';
@@ -112,7 +113,12 @@ const AppCardItem = memo(function AppCardItem({
       title={`${c.name} (${c.state})`}
     >
       {/* Status indicator dot */}
-      <div className="absolute top-2.5 right-2.5 flex items-center">
+      <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+        {webLink?.startsWith('https://') && (
+          <span title="Túnel Cloudflare / HTTPS Seguro">
+            <Cloud className="w-3 h-3 text-amber-500/90" />
+          </span>
+        )}
         <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-secondary/40'}`} />
       </div>
 
@@ -137,6 +143,7 @@ const AppCardItem = memo(function AppCardItem({
         {isRunning ? (
           webLink ? (
             <span className="text-orbit-600 dark:text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
+              {webLink.startsWith('https://') && <Cloud className="w-2.5 h-2.5 text-amber-500 shrink-0 inline" />}
               {t('common.open', 'Abrir')} <ExternalLink className="w-2.5 h-2.5 inline" />
             </span>
           ) : (

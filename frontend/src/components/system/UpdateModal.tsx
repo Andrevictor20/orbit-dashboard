@@ -128,7 +128,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             if (isTargetReached || sawDownOrNewVersion || elapsed > 10000) {
               clearInterval(healthInterval);
               if (isSubscribed) {
-                const finalVersion = returnedVersion || targetVersion || currentVersion || '3.1.0';
+                const finalVersion = returnedVersion || targetVersion || currentVersion || '3.1.1';
                 localStorage.setItem('orbit_last_updated_version', finalVersion);
 
                 setTaskState(prev => ({

@@ -199,12 +199,13 @@ dependencies = [
 
 [[package]]
 name = "backend"
-version = "3.1.0"
+version = "3.1.1"
 dependencies = [
  "argon2",
  "axum",
  "axum-extra",
  "axum-test",
+ "base64",
  "bollard",
  "dotenvy",
  "futures",

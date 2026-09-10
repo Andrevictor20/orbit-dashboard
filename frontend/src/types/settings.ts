@@ -1,6 +1,7 @@
 export interface IntegrationsSettings {
   homeassistant: boolean;
   pihole: boolean;
+  cloudflare?: boolean;
 }
 
 export interface SystemSettings {

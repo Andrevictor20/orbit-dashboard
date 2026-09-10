@@ -359,14 +359,69 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
     tokio::spawn(async move {
         let platform = get_host_platform();
         let mut image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest".to_string();
-        for cname in &["orbit-dashboard", "orbit"] {
-            if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
-                if let Some(config) = ins.config {
-                    if let Some(img) = config.image {
-                        if img.contains("victorandre280/orbit-dashboard") {
-                            image_name = "victorandre280/orbit-dashboard:latest".to_string();
-                            break;
+        let mut current_container_id: Option<String> = None;
+        let mut current_container_name: Option<String> = None;
+        let mut inspect_result: Option<bollard::models::ContainerInspectResponse> = None;
+
+        // 1. Identify active container dynamically
+        // 1.1 First attempt: inspect container using HOSTNAME environment variable (standard Docker container ID)
+        if let Ok(hostname) = std::env::var("HOSTNAME") {
+            let clean_host = hostname.trim();
+            if !clean_host.is_empty() {
+                if let Ok(ins) = docker.inspect_container(clean_host, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                    current_container_id = ins.id.clone();
+                    current_container_name = ins.name.clone().map(|n| n.trim_start_matches('/').to_string());
+                    inspect_result = Some(ins);
+                }
+            }
+        }
+
+        // 1.2 Second attempt: inspect well-known candidate names (case-insensitive fallback)
+        if inspect_result.is_none() {
+            for cname in &["orbit-dashboard", "orbit", "Orbit", "orbit_dashboard", "orbit-app"] {
+                if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                    current_container_id = ins.id.clone();
+                    current_container_name = ins.name.clone().map(|n| n.trim_start_matches('/').to_string());
+                    inspect_result = Some(ins);
+                    break;
+                }
+            }
+        }
+
+        // 1.3 Third attempt: query list of containers and find one whose image or name matches Orbit
+        if inspect_result.is_none() {
+            let list_opts = bollard::query_parameters::ListContainersOptions {
+                all: false,
+                ..Default::default()
+            };
+            if let Ok(containers) = docker.list_containers(Some(list_opts)).await {
+                for c in containers {
+                    let image_match = c.image.as_ref().map(|img| img.contains("orbit-dashboard")).unwrap_or(false);
+                    let name_match = c.names.as_ref().map(|names| names.iter().any(|n| {
+                        let clean = n.trim_start_matches('/').to_lowercase();
+                        clean == "orbit" || clean.contains("orbit-dashboard") || clean.starts_with("orbit")
+                    })).unwrap_or(false);
+
+                    if image_match || name_match {
+                        if let Some(id) = c.id {
+                            if let Ok(ins) = docker.inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                                current_container_id = ins.id.clone();
+                                current_container_name = ins.name.clone().map(|n| n.trim_start_matches('/').to_string());
+                                inspect_result = Some(ins);
+                                break;
+                            }
                         }
+                    }
+                }
+            }
+        }
+
+        // Detect if Docker Hub image was used originally
+        if let Some(ref ins) = inspect_result {
+            if let Some(ref config) = ins.config {
+                if let Some(ref img) = config.image {
+                    if img.contains("victorandre280/orbit-dashboard") {
+                        image_name = "victorandre280/orbit-dashboard:latest".to_string();
                     }
                 }
             }
@@ -449,15 +504,6 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         let mut compose_project_name = None;
         let mut detected_data_mount = "orbit_data".to_string();
 
-        // 2.1 First attempt: inspect container 'orbit-dashboard' via Docker API to read Docker Compose labels and mounts
-        let container_names = ["orbit-dashboard", "orbit"];
-        let mut inspect_result = None;
-        for cname in &container_names {
-            if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
-                inspect_result = Some(ins);
-                break;
-            }
-        }
         if let Some(ref inspect) = inspect_result {
             if let Some(labels) = inspect.config.as_ref().and_then(|c| c.labels.as_ref()) {
                 if let Some(proj) = labels.get("com.docker.compose.project") {
@@ -569,18 +615,64 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             .map(|p| format!("-p \"{}\"", p))
             .unwrap_or_default();
 
+        let new_container_name = match current_container_name.as_deref() {
+            Some(name) if name.eq_ignore_ascii_case("orbit") || name == "orbit-dashboard" => name.to_string(),
+            Some(name) if !name.is_empty() && !name.contains('_') && !name.ends_with("-1") => name.to_string(),
+            _ => "orbit-dashboard".to_string(),
+        };
+        let current_id_val = current_container_id.unwrap_or_default();
+        let current_name_val = current_container_name.unwrap_or_default();
+
         let helper_script = format!(
             r#"sleep 1 && (
+recreated=0
+
+# 1. Tenta recriar via Docker Compose se projeto/diretório detectado
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
-  cd "/host{host_dir}" && docker compose {project_flag} -f "{compose_file}" pull && docker compose {project_flag} -f "{compose_file}" up -d --force-recreate
+  cd "/host{host_dir}"
+  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "{compose_file}" 2>/dev/null || true
+  docker compose {project_flag} -f "{compose_file}" pull 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" pull 2>/dev/null || true
+  if docker compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null; then
+    recreated=1
+  fi
 elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
+  cd "/host/DATA/orbit"
+  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
+  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
+  if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
+    recreated=1
+  fi
 elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
-else
-  docker stop orbit-dashboard orbit 2>/dev/null || true
-  docker rm orbit-dashboard orbit 2>/dev/null || true
-  docker run -d --name orbit-dashboard --restart unless-stopped \
+  cd "/host/root/orbit"
+  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
+  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
+  if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
+    recreated=1
+  fi
+fi
+
+# 2. Fallback direto e ultra-resiliente via Docker Engine (garante liberação de portas e eliminação de duplicatas)
+if [ "$recreated" -eq 0 ]; then
+  # Libera portas 5172 e 5173 para evitar erro de porta ocupada
+  docker ps -q --filter "publish=5172" | xargs -r docker stop 2>/dev/null || true
+  docker ps -q --filter "publish=5172" | xargs -r docker rm -f 2>/dev/null || true
+  docker ps -q --filter "publish=5173" | xargs -r docker stop 2>/dev/null || true
+  docker ps -q --filter "publish=5173" | xargs -r docker rm -f 2>/dev/null || true
+
+  # Para e remove especificamente a instância anterior e nomes padrão
+  for target in "{current_id}" "{current_name}" orbit-dashboard orbit Orbit; do
+    if [ -n "$target" ]; then
+      docker stop "$target" 2>/dev/null || true
+      docker rm -f "$target" 2>/dev/null || true
+    fi
+  done
+
+  # Remove contêineres órfãos inativos para eliminar estado '1/2 ativos'
+  docker ps -a -q --filter "name=orbit" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=orbit" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=orbit" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
+
+  docker run -d --name "{new_container_name}" --restart unless-stopped \
     --privileged \
     --pid host \
     --add-host host.docker.internal:host-gateway \
@@ -595,6 +687,7 @@ else
     -e SSH_HOST=host.docker.internal \
     "{image_name}"
 fi
+
 sleep 5
 docker image prune -f 2>/dev/null || true
 docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dashboard" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
@@ -603,7 +696,10 @@ docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dash
             compose_file = compose_file_name,
             project_flag = project_flag,
             data_mount = detected_data_mount,
-            image_name = image_name
+            image_name = image_name,
+            current_id = current_id_val,
+            current_name = current_name_val,
+            new_container_name = new_container_name
         );
 
         // Spawn a detached transient updater container using the newly pulled image (already present locally!)
@@ -642,8 +738,8 @@ pub async fn cleanup_old_orbit_images(docker: Arc<bollard::Docker>) -> (usize, i
         for c in containers {
             let names = c.names.unwrap_or_default();
             let is_orbit = names.iter().any(|n| {
-                let clean = n.trim_start_matches('/');
-                clean == "orbit" || clean == "orbit-dashboard"
+                let clean = n.trim_start_matches('/').to_lowercase();
+                clean == "orbit" || clean.contains("orbit-dashboard") || clean.starts_with("orbit")
             });
             let state = c.state.map(|s| s.to_string()).unwrap_or_default().to_lowercase();
             if is_orbit && (state == "created" || state == "exited" || state == "dead") {
@@ -672,11 +768,21 @@ pub async fn cleanup_old_orbit_images(docker: Arc<bollard::Docker>) -> (usize, i
 
     // 2. Identifica o ID da imagem atualmente em execução pelo Orbit
     let mut current_orbit_image_id = None;
-    for cname in &["orbit-dashboard", "orbit"] {
-        if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
-            if let Some(img_id) = ins.image {
-                current_orbit_image_id = Some(img_id);
-                break;
+    if let Ok(hostname) = std::env::var("HOSTNAME") {
+        let clean_host = hostname.trim();
+        if !clean_host.is_empty() {
+            if let Ok(ins) = docker.inspect_container(clean_host, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                current_orbit_image_id = ins.image;
+            }
+        }
+    }
+    if current_orbit_image_id.is_none() {
+        for cname in &["orbit-dashboard", "orbit", "Orbit", "orbit_dashboard"] {
+            if let Ok(ins) = docker.inspect_container(cname, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                if let Some(img_id) = ins.image {
+                    current_orbit_image_id = Some(img_id);
+                    break;
+                }
             }
         }
     }

@@ -1,6 +1,26 @@
-# Orbit Dashboard v3.1.0
+# Orbit Dashboard v3.1.1
 
-### Novidades e Recursos Principais (v3.1.0)
+### Novidades e Recursos Principais (v3.1.1)
+
+- **Integração Nativa e Direta com Cloudflare Tunnels:**
+  - **Auto-Descoberta de Instâncias:** Detecção automática de contêineres `cloudflared` em execução no Docker host e auto-carregamento de tokens e credenciais.
+  - **Mapeamento de Rotas e Túneis:** Leitura transparente da API do Cloudflare Zero Trust (`api.cloudflare.com/client/v4/accounts/.../cfd_tunnel`) listando túneis ativos, status de conexão (`healthy`/`degraded`/`down`) e rotas públicas configuradas (CNAMEs / Hostnames).
+  - **Preenchimento Automático em 1 Clique:** Sugestão e aplicação instantânea de domínios públicos HTTPS seguros aos aplicativos e contêineres detectados no Dashboard.
+  - **Aba Dedicada de Gerenciamento:** Nova seção Cloudflare no menu lateral com visão completa de túneis, métricas de conectividade e atalhos de reconexão.
+
+- **Blindagem do Atualizador Automático & Correção de Transição de Versão:**
+  - **Auto-Identificação de Contêiner via HOSTNAME:** O motor de atualização agora detecta o ID e nome exato do contêiner Orbit ativo, independentemente de diferenças de nomenclatura (`Orbit`, `orbit`, `orbit-dashboard`, `orbit-orbit-1` ou CasaOS).
+  - **Resolução Definitiva de Conflito de Portas (5172/5173):** Liberação forçada do socket e finalização garantida da instância anterior antes da inicialização do novo contêiner, eliminando falhas de deploy onde a versão anterior permanecia ativa.
+  - **Eliminação de Contêineres Órfãos (Fim do "1/2 ativos"):** Limpeza automática no startup e durante o ciclo de atualização de contêineres em estados `created`, `exited` ou `dead`.
+  - **Fallback Bidirecional com Docker Compose & Engine:** Atualização dinâmica de tags em arquivos Compose existentes e fallback automático com preservação estrita do volume de dados (`orbit_data`).
+  - **Suporte Total a Plugins Compose:** Disponibilização de symlinks e binários para `docker compose` e `docker-compose` dentro do contêiner temporário de deploy.
+
+---
+
+### Versões Anteriores
+
+<details>
+<summary>v3.1.0 — Auto-Healing de Volumes, QHD Wallpapers, Scroll Fixes & Pi-hole v6</summary>
 
 - **Blindagem de Persistência e Auto-Healing de Volumes em Atualizações:**
   - **Zero Perda de Dados:** Preservação estrita e determinística de senhas de acesso (`orbit_auth.json`), links customizados de containers (`custom_links.json`), configurações de rede, integrações e compartilhamentos SMB em qualquer atualização in-place.
@@ -21,9 +41,7 @@
   - **Aba de Configurações Sem Barra de Scroll:** Eliminação da barra de rolagem horizontal nativa nas abas do modal de configurações com expansão para `max-w-2xl` e utilitários de rolagem invisível.
   - **Localização Customizada do Clima:** Definição manual da cidade no Card de Previsão do Tempo (Open-Meteo) com opção de restauração automática por geolocalização IP em 1 clique.
 
----
-
-### Versões Anteriores
+</details>
 
 <details>
 <summary>v3.0.0 — Pi-hole DNS Guard, Central "Minha Conta", Compose YAML & Backups</summary>

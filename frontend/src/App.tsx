@@ -29,6 +29,7 @@ const FileManager = lazy(() => import('./pages/FileManager').then(m => ({ defaul
 const DiskAnalyzer = lazy(() => import('./pages/DiskAnalyzer').then(m => ({ default: m.DiskAnalyzer })));
 const HomeAssistant = lazy(() => import('./pages/HomeAssistant').then(m => ({ default: m.HomeAssistant })));
 const PiHole = lazy(() => import('./pages/PiHole').then(m => ({ default: m.PiHole })));
+const Cloudflare = lazy(() => import('./pages/Cloudflare').then(m => ({ default: m.Cloudflare })));
 const Backups = lazy(() => import('./pages/Backups'));
 const ComposeEditor = lazy(() => import('./pages/ComposeEditor'));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -86,6 +87,7 @@ function App() {
                                     <Route path="/logs" element={<Logs />} />
                                     <Route path="/homeassistant" element={<HomeAssistant />} />
                                     <Route path="/pihole" element={<PiHole />} />
+                                    <Route path="/cloudflare" element={<Cloudflare />} />
                                     <Route path="*" element={<Navigate to="/" replace />} />
                                   </Routes>
                                 </Suspense>

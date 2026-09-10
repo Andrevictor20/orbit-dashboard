@@ -15,6 +15,8 @@ pub struct IntegrationsSettings {
     pub homeassistant: bool,
     #[serde(default = "default_true")]
     pub pihole: bool,
+    #[serde(default = "default_true")]
+    pub cloudflare: bool,
 }
 
 impl Default for IntegrationsSettings {
@@ -22,6 +24,7 @@ impl Default for IntegrationsSettings {
         Self {
             homeassistant: true,
             pihole: true,
+            cloudflare: true,
         }
     }
 }

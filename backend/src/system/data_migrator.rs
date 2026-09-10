@@ -7,6 +7,7 @@ pub const CONFIG_FILES: &[&str] = &[
     "custom_links.json",
     "settings.json",
     "pihole.json",
+    "cloudflare.json",
     "jwt.secret",
     "config/samba.json",
 ];

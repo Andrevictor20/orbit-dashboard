@@ -78,3 +78,21 @@ pub async fn set_link(
     save_links_to_disk(&LINKS_CACHE);
     (StatusCode::OK, Json(serde_json::json!({ "message": "Link updated" }))).into_response()
 }
+
+pub fn update_links_batch(new_links: &HashMap<String, String>) -> usize {
+    let mut updated_count = 0;
+    {
+        let mut guard = LINKS_CACHE.lock().unwrap();
+        for (id, url) in new_links {
+            if url.starts_with("http://") || url.starts_with("https://") {
+                guard.insert(id.clone(), url.clone());
+                updated_count += 1;
+            }
+        }
+    }
+    if updated_count > 0 {
+        save_links_to_disk(&LINKS_CACHE);
+    }
+    updated_count
+}
+

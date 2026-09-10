@@ -1,12 +1,13 @@
 [package]
 name = "backend"
-version = "3.1.0"
+version = "3.1.1"
 edition = "2021"
 
 [dependencies]
 argon2 = "0.5.3"
 axum = { version = "0.8.9", features = ["ws", "multipart"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
+base64 = "0.22"
 bollard = "0.21.1"
 dotenvy = "0.15.7"
 futures = "0.3.34"

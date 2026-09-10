@@ -29,7 +29,8 @@ import {
   ChevronDown,
   FileCode,
   Archive,
-  ShieldCheck
+  ShieldCheck,
+  Cloud
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInstall } from '../../contexts/InstallContext';
@@ -302,13 +303,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarItem icon={Archive} label={t('sidebar.backups')} to="/backups" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
           </SidebarSection>
 
-          {(settings.integrations.homeassistant || settings.integrations.pihole) && (
+          {(settings.integrations.homeassistant || settings.integrations.pihole || (settings.integrations.cloudflare ?? true)) && (
             <SidebarSection title={t('sidebar.integrations')} isCollapsed={!isSidebarOpen && !isMobileMenuOpen}>
               {settings.integrations.homeassistant && (
                 <SidebarItem icon={Home} label={t('sidebar.home_assistant')} to="/homeassistant" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
               )}
               {settings.integrations.pihole && (
                 <SidebarItem icon={ShieldCheck} label={t('sidebar.pihole')} to="/pihole" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
+              )}
+              {(settings.integrations.cloudflare ?? true) && (
+                <SidebarItem icon={Cloud} label={t('sidebar.cloudflare', 'Cloudflare')} to="/cloudflare" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
               )}
             </SidebarSection>
           )}

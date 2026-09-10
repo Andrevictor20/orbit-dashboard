@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod cloudflare;
 pub mod docker;
 pub mod files;
 pub mod homeassistant;
@@ -72,6 +73,7 @@ pub fn app() -> Router {
         .merge(system::router())
         .merge(homeassistant::router())
         .merge(pihole::router())
+        .merge(cloudflare::router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Home, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { Home, ShieldCheck, ExternalLink, Loader2, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -18,6 +18,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
 
   const [haStatus, setHaStatus] = useState<IntegrationStatus | null>(null);
   const [piholeStatus, setPiholeStatus] = useState<IntegrationStatus | null>(null);
+  const [cloudflareStatus, setCloudflareStatus] = useState<IntegrationStatus | null>(null);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [updatingIntegration, setUpdatingIntegration] = useState<string | null>(null);
 
@@ -25,9 +26,10 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
     let isMounted = true;
     const checkStatuses = async () => {
       try {
-        const [haRes, piholeRes] = await Promise.allSettled([
+        const [haRes, piholeRes, cfRes] = await Promise.allSettled([
           fetch('/api/homeassistant/config').then((r) => (r.ok ? r.json() : null)),
           fetch('/api/pihole/config').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/cloudflare/config').then((r) => (r.ok ? r.json() : null)),
         ]);
 
         if (!isMounted) return;
@@ -47,6 +49,14 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
             url: piholeRes.value.url,
           });
         }
+
+        if (cfRes.status === 'fulfilled' && cfRes.value) {
+          setCloudflareStatus({
+            configured: cfRes.value.configured,
+            connected: cfRes.value.configured,
+            url: cfRes.value.tunnel_id ? `Tunnel: ${cfRes.value.tunnel_id.substring(0, 8)}...` : undefined,
+          });
+        }
       } finally {
         if (isMounted) setLoadingStatuses(false);
       }
@@ -58,7 +68,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
     };
   }, []);
 
-  const handleToggle = async (key: 'homeassistant' | 'pihole', currentValue: boolean) => {
+  const handleToggle = async (key: 'homeassistant' | 'pihole' | 'cloudflare', currentValue: boolean) => {
     try {
       setUpdatingIntegration(key);
       const nextValue = !currentValue;
@@ -252,6 +262,85 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
               className="text-xs text-orbit-500 hover:text-orbit-400 font-semibold flex items-center gap-1.5 transition-colors"
             >
               <span>{t('settings.open_integration_dashboard', 'Abrir Pi-hole')}</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Cloudflare Tunnels Card */}
+      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-orbit-500/30">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+              <Cloud className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-primary">Cloudflare Tunnels</h4>
+                {loadingStatuses ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-secondary" />
+                ) : cloudflareStatus?.configured ? (
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                      cloudflareStatus.connected
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                    }`}
+                  >
+                    {cloudflareStatus.connected
+                      ? t('common.connected', 'Conectado')
+                      : t('common.disconnected', 'Desconectado')}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-200 dark:bg-zinc-700/60 text-secondary">
+                    {t('settings.not_configured', 'Não configurado')}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-secondary mt-0.5">
+                {t(
+                  'settings.cloudflare_desc',
+                  'Túneis Cloudflare Zero Trust seguros com detecção automática e preenchimento de links públicos.'
+                )}
+              </p>
+              {cloudflareStatus?.url && (
+                <span className="text-[11px] text-secondary font-mono block mt-1 truncate max-w-xs">
+                  {cloudflareStatus.url}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Switch Toggle */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.integrations.cloudflare ?? true}
+              disabled={updatingIntegration === 'cloudflare'}
+              onClick={() => handleToggle('cloudflare', settings.integrations.cloudflare ?? true)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 ${
+                (settings.integrations.cloudflare ?? true) ? 'bg-orbit-500' : 'bg-zinc-300 dark:bg-zinc-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  (settings.integrations.cloudflare ?? true) ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {(settings.integrations.cloudflare ?? true) && (
+          <div className="mt-3 pt-3 border-t border-border/40 flex justify-end">
+            <button
+              type="button"
+              onClick={() => navigateTo('/cloudflare')}
+              className="text-xs text-orbit-500 hover:text-orbit-400 font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <span>{t('settings.open_cloudflare_dashboard', 'Abrir Cloudflare')}</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>
