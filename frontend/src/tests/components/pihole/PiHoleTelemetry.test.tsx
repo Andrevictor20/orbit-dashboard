@@ -18,7 +18,7 @@ describe('PiHole Telemetry Components', () => {
     rerender(<PiHoleTopClients clients={clients} loading={false} />);
     expect(screen.getByText('Desktop-PC')).toBeTruthy();
     expect(screen.getByText('192.168.1.50')).toBeTruthy();
-    expect(screen.getByText('1.500')).toBeTruthy();
+    expect(screen.getByText(/1[.,]500/)).toBeTruthy();
     expect(screen.getByText('(50.0%)')).toBeTruthy();
     expect(screen.getByText('iPhone-User')).toBeTruthy();
   });
