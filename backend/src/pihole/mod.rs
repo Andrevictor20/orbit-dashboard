@@ -1,5 +1,6 @@
 pub mod client;
 pub mod models;
+pub mod parsers;
 pub mod v5;
 pub mod v6;
 
@@ -22,6 +23,7 @@ use self::models::*;
 pub use self::models::{
     PiHoleConfig, PiHoleConfigResponse, SavePiHoleConfigRequest,
     ToggleBlockingRequest, DomainActionRequest, PiHoleDomainItem,
+    PiHoleClientItem, PiHoleUpstreamItem, PiHoleRecentQueryItem,
 };
 
 static PIHOLE_CONFIG_CACHE: Lazy<Arc<RwLock<Option<PiHoleConfig>>>> = Lazy::new(|| {
@@ -45,10 +47,7 @@ pub fn invalidate_pihole_stats_cache() {
 }
 
 pub fn get_config_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    path.push("data");
-    path.push("pihole.json");
-    path
+    crate::system::data_migrator::get_active_data_dir().join("pihole.json")
 }
 
 fn save_config_to_disk(config: &Option<PiHoleConfig>) {

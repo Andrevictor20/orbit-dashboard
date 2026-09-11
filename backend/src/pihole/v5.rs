@@ -6,16 +6,33 @@ pub struct V5Client;
 
 impl V5Client {
     pub async fn get_summary(client: &Client, base_url: &str, token: Option<&str>) -> Result<Value, String> {
-        let mut summary_url = format!("{}/admin/api.php?summaryRaw", base_url);
-        let mut top_url = format!("{}/admin/api.php?topItems=10", base_url);
-        if let Some(tok) = token.filter(|t| !t.is_empty()) {
-            summary_url.push_str(&format!("&auth={}", tok));
-            top_url.push_str(&format!("&auth={}", tok));
-        }
+        let auth_query = if let Some(tok) = token.filter(|t| !t.is_empty()) {
+            format!("&auth={}", tok)
+        } else {
+            String::new()
+        };
 
-        let (summary_res, top_res) = tokio::join!(
+        let summary_url = format!("{}/admin/api.php?summaryRaw{}", base_url, auth_query);
+        let top_url = format!("{}/admin/api.php?topItems=10{}", base_url, auth_query);
+        let clients_url = format!("{}/admin/api.php?topClients=10{}", base_url, auth_query);
+        let upstreams_url = format!("{}/admin/api.php?getForwardDestinations{}", base_url, auth_query);
+        let qtypes_url = format!("{}/admin/api.php?getQueryTypes{}", base_url, auth_query);
+        let queries_url = format!("{}/admin/api.php?getAllQueries=10{}", base_url, auth_query);
+
+        let (
+            summary_res,
+            top_res,
+            clients_res,
+            upstreams_res,
+            qtypes_res,
+            queries_res,
+        ) = tokio::join!(
             client.get(&summary_url).send(),
-            client.get(&top_url).send()
+            client.get(&top_url).send(),
+            client.get(&clients_url).send(),
+            client.get(&upstreams_url).send(),
+            client.get(&qtypes_url).send(),
+            client.get(&queries_url).send(),
         );
 
         let mut stats: Value = match summary_res {
@@ -24,19 +41,82 @@ impl V5Client {
             Err(e) => return Err(format!("Could not reach Pi-hole v5: {}", e)),
         };
 
+        let total = stats.get("dns_queries_today").and_then(|v| v.as_u64()).unwrap_or(0);
+        let cached = stats.get("queries_cached").and_then(|v| v.as_u64()).unwrap_or(0);
+        let cache_percentage = if total > 0 {
+            ((cached as f64 / total as f64) * 100.0 * 10.0).round() / 10.0
+        } else {
+            0.0
+        };
+
+        let mut top_queries = serde_json::json!({});
+        let mut top_ads = serde_json::json!({});
+
         if let Ok(r) = top_res {
             if r.status().is_success() {
                 if let Ok(top_data) = r.json::<Value>().await {
-                    if let Some(obj) = stats.as_object_mut() {
-                        if let Some(tq) = top_data.get("top_queries") {
-                            obj.insert("top_queries".to_string(), tq.clone());
-                        }
-                        if let Some(ta) = top_data.get("top_ads") {
-                            obj.insert("top_ads".to_string(), ta.clone());
-                        }
+                    if let Some(tq) = top_data.get("top_queries") {
+                        top_queries = tq.clone();
+                    }
+                    if let Some(ta) = top_data.get("top_ads") {
+                        top_ads = ta.clone();
                     }
                 }
             }
+        }
+
+        let top_clients = if let Ok(r) = clients_res {
+            if r.status().is_success() {
+                let val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_clients_list(&val, total)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        let upstreams = if let Ok(r) = upstreams_res {
+            if r.status().is_success() {
+                let val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_upstreams(&val)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        let query_types = if let Ok(r) = qtypes_res {
+            if r.status().is_success() {
+                let val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_query_types(&val)
+            } else {
+                std::collections::HashMap::new()
+            }
+        } else {
+            std::collections::HashMap::new()
+        };
+
+        let recent_queries = if let Ok(r) = queries_res {
+            if r.status().is_success() {
+                let val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_recent_queries(&val)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        if let Some(obj) = stats.as_object_mut() {
+            obj.insert("top_queries".to_string(), top_queries);
+            obj.insert("top_ads".to_string(), top_ads);
+            obj.insert("top_clients".to_string(), serde_json::to_value(top_clients).unwrap_or_default());
+            obj.insert("upstreams".to_string(), serde_json::to_value(upstreams).unwrap_or_default());
+            obj.insert("query_types".to_string(), serde_json::to_value(query_types).unwrap_or_default());
+            obj.insert("recent_queries".to_string(), serde_json::to_value(recent_queries).unwrap_or_default());
+            obj.insert("cache_percentage".to_string(), serde_json::to_value(cache_percentage).unwrap_or_default());
         }
 
         Ok(stats)

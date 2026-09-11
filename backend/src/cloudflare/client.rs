@@ -26,10 +26,7 @@ static CLOUDFLARE_CONFIG_CACHE: Lazy<Arc<RwLock<Option<CloudflareConfig>>>> = La
 });
 
 pub fn get_config_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    path.push("data");
-    path.push("cloudflare.json");
-    path
+    crate::system::data_migrator::get_active_data_dir().join("cloudflare.json")
 }
 
 pub fn get_config() -> Option<CloudflareConfig> {
@@ -124,14 +121,10 @@ struct CfTunnelInnerConfig {
     ingress: Vec<RawIngressRule>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
-pub struct RawIngressRule {
-    #[serde(default)]
-    pub hostname: Option<String>,
-    pub service: String,
-    #[serde(default)]
-    pub path: Option<String>,
-}
+pub use super::ingress::{
+    insert_or_update_ingress_rule, remove_ingress_rule, try_create_dns_cname,
+    update_remote_ingress_config, OriginRequestConfig, RawIngressRule,
+};
 
 #[derive(Deserialize)]
 struct LocalYamlConfig {
@@ -214,7 +207,18 @@ impl CloudflareClient {
         if !resp.status().is_success() {
             let status = resp.status();
             let err_text = resp.text().await.unwrap_or_default();
-            return Err(format!("Cloudflare API returned error status {}: {}", status, err_text));
+            if let Ok(err_body) = serde_json::from_str::<CfApiResponse<serde_json::Value>>(&err_text) {
+                if !err_body.errors.is_empty() {
+                    let msg = err_body
+                        .errors
+                        .into_iter()
+                        .map(|e| e.message)
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    return Err(format!("Cloudflare API: {}", msg));
+                }
+            }
+            return Err(format!("Cloudflare API status {}: {}", status, err_text));
         }
 
         let body: CfApiResponse<CfTunnelConfigResult> = resp
@@ -250,6 +254,35 @@ impl CloudflareClient {
             .map_err(|e| format!("Failed to parse YAML file '{}': {}", file_path, e))?;
 
         Ok((parsed.tunnel, parsed.ingress))
+    }
+
+    /// Adds or updates an ingress rule on the remote Cloudflare Tunnel
+    pub async fn add_route(
+        &self,
+        account_id: &str,
+        tunnel_id: &str,
+        api_token: &str,
+        new_rule: RawIngressRule,
+    ) -> Result<RawIngressRule, String> {
+        let (_, existing_rules) = self.fetch_remote_config(account_id, tunnel_id, api_token).await?;
+        let updated_rules = insert_or_update_ingress_rule(existing_rules, new_rule.clone());
+        update_remote_ingress_config(&self.http, account_id, tunnel_id, api_token, updated_rules).await?;
+        Ok(new_rule)
+    }
+
+    /// Deletes an ingress rule from the remote Cloudflare Tunnel
+    pub async fn delete_route(
+        &self,
+        account_id: &str,
+        tunnel_id: &str,
+        api_token: &str,
+        hostname: &str,
+        path: Option<&str>,
+    ) -> Result<(), String> {
+        let (_, existing_rules) = self.fetch_remote_config(account_id, tunnel_id, api_token).await?;
+        let updated_rules = remove_ingress_rule(existing_rules, hostname, path);
+        update_remote_ingress_config(&self.http, account_id, tunnel_id, api_token, updated_rules).await?;
+        Ok(())
     }
 }
 

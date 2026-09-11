@@ -86,10 +86,21 @@ export function HomeAssistant() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
   const fetchConfig = async () => {
     try {
       setLoadingConfig(true);
-      const res = await fetch('/api/homeassistant/config');
+      const res = await fetch('/api/homeassistant/config', {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
       if (res.ok) {
         const data: HAConfig = await res.json();
         setConfig(data);
@@ -119,7 +130,10 @@ export function HomeAssistant() {
     try {
       setLoadingEntities(true);
       setEntitiesError(null);
-      const res = await fetch('/api/homeassistant/entities');
+      const res = await fetch('/api/homeassistant/entities', {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
       if (res.ok) {
         const data: HAEntity[] = await res.json();
         clientEntitiesCacheRef.current = { data, timestamp: Date.now() };
@@ -158,7 +172,8 @@ export function HomeAssistant() {
     try {
       const res = await fetch('/api/homeassistant/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           url: urlInput.trim(),
           token: tokenInput.trim(),
@@ -185,7 +200,11 @@ export function HomeAssistant() {
     if (!window.confirm(t('homeassistant.disconnect_confirm'))) return;
 
     try {
-      const res = await fetch('/api/homeassistant/config', { method: 'DELETE' });
+      const res = await fetch('/api/homeassistant/config', {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
       if (res.ok) {
         toast.success(t('homeassistant.disconnect') + ': ' + t('common.success'));
         clientEntitiesCacheRef.current = null;
@@ -209,7 +228,8 @@ export function HomeAssistant() {
     try {
       const res = await fetch(`/api/homeassistant/services/${domain}/${service}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

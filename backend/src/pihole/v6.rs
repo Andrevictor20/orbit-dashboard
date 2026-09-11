@@ -59,33 +59,55 @@ impl V6Client {
     pub async fn get_summary(client: &Client, base_url: &str, sid: &str) -> Result<Value, String> {
         let summary_url = format!("{}/api/stats/summary", base_url);
         let blocking_url = format!("{}/api/dns/blocking", base_url);
+        let top_domains_url = format!("{}/api/stats/top_domains?count=10", base_url);
+        let top_clients_url = format!("{}/api/stats/top_clients?count=10", base_url);
+        let upstreams_url = format!("{}/api/stats/upstreams", base_url);
+        let queries_url = format!("{}/api/queries?length=10", base_url);
+        let query_types_url = format!("{}/api/stats/query_types", base_url);
 
-        let mut req = client.get(&summary_url);
-        if !sid.is_empty() {
-            req = req.header("sid", sid).header("X-FTL-SID", sid);
-        }
+        let make_req = |url: &str| {
+            let mut r = client.get(url);
+            if !sid.is_empty() {
+                r = r.header("sid", sid).header("X-FTL-SID", sid);
+            }
+            r
+        };
 
-        let resp = match req.send().await {
+        let (
+            summary_res,
+            blocking_res,
+            top_domains_res,
+            top_clients_res,
+            upstreams_res,
+            queries_res,
+            query_types_res,
+        ) = tokio::join!(
+            make_req(&summary_url).send(),
+            make_req(&blocking_url).send(),
+            make_req(&top_domains_url).send(),
+            make_req(&top_clients_url).send(),
+            make_req(&upstreams_url).send(),
+            make_req(&queries_url).send(),
+            make_req(&query_types_url).send(),
+        );
+
+        let summary_resp = match summary_res {
             Ok(r) => r,
             Err(e) => return Err(format!("Could not reach Pi-hole stats: {}", e)),
         };
 
-        if resp.status().as_u16() == 401 {
+        if summary_resp.status().as_u16() == 401 {
             return Err("UNAUTHORIZED".to_string());
         }
 
-        if !resp.status().is_success() {
-            return Err(format!("Pi-hole stats returned status {}", resp.status()));
+        if !summary_resp.status().is_success() {
+            return Err(format!("Pi-hole stats returned status {}", summary_resp.status()));
         }
 
-        let val: Value = resp.json().await.unwrap_or_default();
+        let val: Value = summary_resp.json().await.unwrap_or_default();
 
-        // Check blocking status
-        let mut blocking_req = client.get(&blocking_url);
-        if !sid.is_empty() {
-            blocking_req = blocking_req.header("sid", sid).header("X-FTL-SID", sid);
-        }
-        let blocking_status = match blocking_req.send().await {
+        // Blocking status
+        let blocking_status = match blocking_res {
             Ok(r) if r.status().is_success() => {
                 let b_val: Value = r.json().await.unwrap_or_default();
                 if let Some(s) = b_val.get("blocking").and_then(|v| v.as_str()) {
@@ -108,6 +130,103 @@ impl V6Client {
         let percent = queries.get("percent_blocked").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let domains_blocked = gravity.get("domains_being_blocked").and_then(|v| v.as_u64()).unwrap_or(0);
         let active_clients = clients.get("active").and_then(|v| v.as_u64()).unwrap_or(0);
+        let forwarded = queries.get("forwarded").and_then(|v| v.as_u64()).unwrap_or(0);
+        let cached = queries.get("cached").and_then(|v| v.as_u64()).unwrap_or(0);
+        let cache_percentage = if total > 0 {
+            ((cached as f64 / total as f64) * 100.0 * 10.0).round() / 10.0
+        } else {
+            0.0
+        };
+
+        // Parse top domains
+        let mut top_queries = std::collections::HashMap::new();
+        let mut top_ads = std::collections::HashMap::new();
+
+        if let Ok(r) = top_domains_res {
+            if r.status().is_success() {
+                let top_val: Value = r.json().await.unwrap_or_default();
+                let (tq, ta) = super::parsers::extract_top_domains_from_v6(&top_val);
+                top_queries.extend(tq);
+                top_ads.extend(ta);
+            }
+        }
+
+        // Fallback for top_ads if not returned in top_domains: try ?blocked=true
+        if top_ads.is_empty() {
+            let blocked_url = format!("{}/api/stats/top_domains?count=10&blocked=true", base_url);
+            if let Ok(r) = make_req(&blocked_url).send().await {
+                if r.status().is_success() {
+                    let top_blocked_val: Value = r.json().await.unwrap_or_default();
+                    top_ads.extend(super::parsers::parse_domain_map(&top_blocked_val));
+                }
+            }
+        }
+
+        // Fallback for top_queries if still empty: try ?blocked=false
+        if top_queries.is_empty() {
+            let allowed_url = format!("{}/api/stats/top_domains?count=10&blocked=false", base_url);
+            if let Ok(r) = make_req(&allowed_url).send().await {
+                if r.status().is_success() {
+                    let top_allowed_val: Value = r.json().await.unwrap_or_default();
+                    top_queries.extend(super::parsers::parse_domain_map(&top_allowed_val));
+                }
+            }
+        }
+
+        // Parse top clients
+        let top_clients = if let Ok(r) = top_clients_res {
+            if r.status().is_success() {
+                let clients_val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_clients_list(&clients_val, total)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        // Parse upstreams
+        let upstreams = if let Ok(r) = upstreams_res {
+            if r.status().is_success() {
+                let upstreams_val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_upstreams(&upstreams_val)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        // Parse query types
+        let mut query_types = if let Ok(r) = query_types_res {
+            if r.status().is_success() {
+                let qtypes_val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_query_types(&qtypes_val)
+            } else {
+                std::collections::HashMap::new()
+            }
+        } else {
+            std::collections::HashMap::new()
+        };
+
+        // If query_types wasn't returned by endpoint, check queries.types in summary
+        if query_types.is_empty() {
+            if let Some(types_val) = queries.get("types") {
+                query_types = super::parsers::parse_query_types(types_val);
+            }
+        }
+
+        // Parse recent queries
+        let recent_queries = if let Ok(r) = queries_res {
+            if r.status().is_success() {
+                let queries_val: Value = r.json().await.unwrap_or_default();
+                super::parsers::parse_recent_queries(&queries_val)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
 
         Ok(json!({
             "dns_queries_today": total,
@@ -117,11 +236,16 @@ impl V6Client {
             "unique_clients": active_clients,
             "clients_ever_seen": clients.get("total").and_then(|v| v.as_u64()).unwrap_or(active_clients),
             "unique_domains": queries.get("unique_domains").and_then(|v| v.as_u64()).unwrap_or(0),
-            "queries_forwarded": queries.get("forwarded").and_then(|v| v.as_u64()).unwrap_or(0),
-            "queries_cached": queries.get("cached").and_then(|v| v.as_u64()).unwrap_or(0),
+            "queries_forwarded": forwarded,
+            "queries_cached": cached,
+            "cache_percentage": cache_percentage,
             "status": blocking_status,
-            "top_queries": json!({}),
-            "top_ads": json!({})
+            "top_queries": top_queries,
+            "top_ads": top_ads,
+            "top_clients": top_clients,
+            "upstreams": upstreams,
+            "query_types": query_types,
+            "recent_queries": recent_queries
         }))
     }
 

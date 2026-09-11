@@ -45,7 +45,36 @@ pub struct PiHoleDomainItem {
     pub enabled: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PiHoleClientItem {
+    pub ip: String,
+    pub name: String,
+    pub count: u64,
+    pub percentage: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PiHoleUpstreamItem {
+    pub destination: String,
+    pub name: String,
+    pub count: u64,
+    pub percentage: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PiHoleRecentQueryItem {
+    pub timestamp: u64,
+    pub time: String,
+    pub query_type: String,
+    pub domain: String,
+    pub client: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply: Option<String>,
+}
+
 pub struct CachedStats {
     pub data: serde_json::Value,
     pub timestamp: Instant,
 }
+

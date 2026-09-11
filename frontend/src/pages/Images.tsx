@@ -280,7 +280,7 @@ export function Images() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-card/60 p-3 sm:p-4 rounded-xl border border-border">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-3 sm:p-4 shadow-sm">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />

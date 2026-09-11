@@ -1,28 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  X, Plus, Terminal, AlertTriangle, 
-  Layers, HardDrive, ShieldCheck, RefreshCw, Key 
+  X, Terminal, Layers, HardDrive, ShieldCheck, RefreshCw, Key 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface PortMappingItem {
-  host: string;
-  container: string;
-  protocol: string;
-  in_use?: boolean;
-  suggested_port?: number;
-}
-
-interface VolumeMappingItem {
-  host: string;
-  container: string;
-}
-
-interface EnvVarItem {
-  key: string;
-  value: string;
-}
+import { FolderPickerModal } from '../files/FolderPickerModal';
+import { CustomInstallPortsTab, type PortMappingItem } from './custom-install/CustomInstallPortsTab';
+import { CustomInstallVolumesTab, type VolumeMappingItem } from './custom-install/CustomInstallVolumesTab';
+import { CustomInstallEnvTab, type EnvVarItem } from './custom-install/CustomInstallEnvTab';
 
 interface CustomInstallModalProps {
   appId: string;
@@ -39,6 +24,8 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
   const [volumes, setVolumes] = useState<VolumeMappingItem[]>([]);
   const [envVars, setEnvVars] = useState<EnvVarItem[]>([]);
   const [checkingPorts, setCheckingPorts] = useState(false);
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
+  const [pickerVolumeIndex, setPickerVolumeIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,7 +56,6 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             value: String(value),
           }));
 
-          // Ensure standard homelab env vars are present if missing
           if (!initialEnv.some(e => e.key === 'PUID')) initialEnv.unshift({ key: 'PUID', value: '1000' });
           if (!initialEnv.some(e => e.key === 'PGID')) initialEnv.unshift({ key: 'PGID', value: '1000' });
           if (!initialEnv.some(e => e.key === 'TZ')) initialEnv.unshift({ key: 'TZ', value: 'UTC' });
@@ -78,7 +64,6 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
           setVolumes(initialVolumes.length > 0 ? initialVolumes : [{ host: `/app/data/apps/${appId}/config`, container: '/config' }]);
           setEnvVars(initialEnv);
 
-          // Check port conflicts
           if (initialPorts.length > 0) {
             checkPortConflicts(initialPorts);
           }
@@ -270,257 +255,33 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             </div>
           ) : (
             <>
-              {/* PORTS TAB */}
               {activeTab === 'ports' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary">{t('custom_install.ports_heading', 'Mapeamento de Portas')}</h3>
-                      <p className="text-xs text-secondary mt-0.5">{t('custom_install.ports_sub', 'Redirecione as portas do contêiner para o host evitando conflitos.')}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => checkPortConflicts(ports)}
-                        disabled={checkingPorts}
-                        className="text-xs flex items-center gap-1.5 bg-accent/60 hover:bg-accent text-secondary hover:text-primary border border-border px-2.5 py-1.5 rounded-xl transition-colors"
-                        title="Verificar conflitos de portas com o host"
-                      >
-                        <RefreshCw className={`w-3 h-3 text-orbit-500 ${checkingPorts ? 'animate-spin' : ''}`} />
-                        <span>{checkingPorts ? 'Checando...' : 'Checar Conflitos'}</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setPorts([...ports, { host: '', container: '', protocol: 'tcp' }])}
-                        className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {ports.map((port, idx) => (
-                      <div key={idx} className="bg-background/80 border border-border p-3 rounded-xl space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider block mb-1">
-                              {t('custom_install.host_port', 'Porta do Host')}
-                            </label>
-                            <input
-                              type="number"
-                              placeholder="Host"
-                              value={port.host}
-                              onChange={(e) => {
-                                const newPorts = [...ports];
-                                newPorts[idx].host = e.target.value;
-                                setPorts(newPorts);
-                              }}
-                              onBlur={() => checkPortConflicts(ports)}
-                              className={`w-full bg-card border rounded-xl px-3 py-1.5 text-sm text-primary font-mono transition-all ${
-                                port.in_use ? 'border-rose-500 bg-rose-500/10' : 'border-border focus:border-orbit-500'
-                              }`}
-                            />
-                          </div>
-
-                          <span className="text-secondary font-bold font-mono pt-4">:</span>
-
-                          <div className="flex-1">
-                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider block mb-1">
-                              {t('custom_install.container_port', 'Porta Container')}
-                            </label>
-                            <input
-                              type="number"
-                              placeholder="Container"
-                              value={port.container}
-                              onChange={(e) => {
-                                const newPorts = [...ports];
-                                newPorts[idx].container = e.target.value;
-                                setPorts(newPorts);
-                              }}
-                              className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-sm text-primary font-mono"
-                            />
-                          </div>
-
-                          <div className="w-24">
-                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider block mb-1">
-                              {t('custom_install.protocol', 'Protocolo')}
-                            </label>
-                            <select
-                              value={port.protocol}
-                              onChange={(e) => {
-                                const newPorts = [...ports];
-                                newPorts[idx].protocol = e.target.value;
-                                setPorts(newPorts);
-                              }}
-                              className="w-full bg-card border border-border rounded-xl px-2 py-1.5 text-xs text-primary font-mono"
-                            >
-                              <option value="tcp">TCP</option>
-                              <option value="udp">UDP</option>
-                            </select>
-                          </div>
-
-                          <div className="pt-4">
-                            <button 
-                              type="button" 
-                              onClick={() => setPorts(ports.filter((_, i) => i !== idx))}
-                              className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                              title="Remover"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Port Conflict Alert */}
-                        {port.in_use && (
-                          <div className="flex items-center justify-between p-2 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <AlertTriangle className="w-4 h-4 shrink-0" />
-                              <span>{t('custom_install.port_conflict_alert', 'Porta {{port}} já está em uso no host!', { port: port.host })}</span>
-                            </div>
-                            {port.suggested_port && (
-                              <button
-                                type="button"
-                                onClick={() => applySuggestedPort(idx, port.suggested_port!)}
-                                className="px-2 py-0.5 bg-rose-500 text-white rounded font-bold text-[10px] hover:bg-rose-600 transition-colors"
-                              >
-                                {t('custom_install.use_suggested', 'Usar {{port}}', { port: port.suggested_port })}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CustomInstallPortsTab
+                  ports={ports}
+                  setPorts={setPorts}
+                  checkingPorts={checkingPorts}
+                  onCheckConflicts={checkPortConflicts}
+                  onApplySuggestedPort={applySuggestedPort}
+                />
               )}
 
-              {/* VOLUMES TAB */}
               {activeTab === 'volumes' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary">{t('custom_install.volumes_heading', 'Mapeamento de Pastas')}</h3>
-                      <p className="text-xs text-secondary mt-0.5">{t('custom_install.volumes_sub', 'Defina os caminhos no host onde os dados persistentes serão gravados.')}</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setVolumes([...volumes, { host: `/app/data/apps/${appId}`, container: '/data' }])}
-                      className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {volumes.map((vol, idx) => (
-                      <div key={idx} className="bg-background/80 border border-border p-3 rounded-xl space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider block mb-1">
-                              {t('custom_install.host_path', 'Caminho no Host')}
-                            </label>
-                            <input
-                              placeholder="/app/data/apps/..."
-                              value={vol.host}
-                              onChange={(e) => {
-                                const newVols = [...volumes];
-                                newVols[idx].host = e.target.value;
-                                setVolumes(newVols);
-                              }}
-                              className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary font-mono focus:border-orbit-500"
-                            />
-                          </div>
-
-                          <span className="text-secondary font-bold font-mono pt-4">:</span>
-
-                          <div className="w-1/3">
-                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider block mb-1">
-                              {t('custom_install.container_path', 'Ponto no Container')}
-                            </label>
-                            <input
-                              placeholder="/config"
-                              value={vol.container}
-                              onChange={(e) => {
-                                const newVols = [...volumes];
-                                newVols[idx].container = e.target.value;
-                                setVolumes(newVols);
-                              }}
-                              className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary font-mono"
-                            />
-                          </div>
-
-                          <div className="pt-4">
-                            <button 
-                              type="button" 
-                              onClick={() => setVolumes(volumes.filter((_, i) => i !== idx))}
-                              className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                              title="Remover"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CustomInstallVolumesTab
+                  volumes={volumes}
+                  setVolumes={setVolumes}
+                  appId={appId}
+                  onOpenFolderPicker={(idx) => {
+                    setPickerVolumeIndex(idx);
+                    setIsFolderPickerOpen(true);
+                  }}
+                />
               )}
 
-              {/* ENV VARS TAB */}
               {activeTab === 'env' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary">{t('custom_install.env_heading', 'Variáveis de Ambiente')}</h3>
-                      <p className="text-xs text-secondary mt-0.5">{t('custom_install.env_sub', 'Ajuste credenciais, PUID/PGID, fuso horário e parâmetros de inicialização.')}</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setEnvVars([...envVars, { key: '', value: '' }])}
-                      className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
-                    >
-                      <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
-                    {envVars.map((env, idx) => (
-                      <div key={idx} className="flex gap-2 items-center">
-                        <input
-                          placeholder="CHAVE"
-                          value={env.key}
-                          onChange={(e) => {
-                            const newEnv = [...envVars];
-                            newEnv[idx].key = e.target.value;
-                            setEnvVars(newEnv);
-                          }}
-                          className="w-1/3 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono font-bold focus:border-orbit-500"
-                        />
-                        <span className="text-secondary font-bold font-mono">=</span>
-                        <input
-                          placeholder="VALOR"
-                          value={env.value}
-                          onChange={(e) => {
-                            const newEnv = [...envVars];
-                            newEnv[idx].value = e.target.value;
-                            setEnvVars(newEnv);
-                          }}
-                          className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono focus:border-orbit-500"
-                        />
-                        <button 
-                          type="button" 
-                          onClick={() => setEnvVars(envVars.filter((_, i) => i !== idx))}
-                          className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                          title="Remover"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CustomInstallEnvTab
+                  envVars={envVars}
+                  setEnvVars={setEnvVars}
+                />
               )}
             </>
           )}
@@ -547,6 +308,23 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             </button>
           </div>
         </div>
+
+        {/* Mini Folder Picker Modal */}
+        <FolderPickerModal
+          isOpen={isFolderPickerOpen}
+          initialPath={pickerVolumeIndex !== null && volumes[pickerVolumeIndex]?.host ? volumes[pickerVolumeIndex].host : `/app/data/apps/${appId}`}
+          onClose={() => {
+            setIsFolderPickerOpen(false);
+            setPickerVolumeIndex(null);
+          }}
+          onSelect={(selectedPath) => {
+            if (pickerVolumeIndex !== null) {
+              const updated = [...volumes];
+              updated[pickerVolumeIndex].host = selectedPath;
+              setVolumes(updated);
+            }
+          }}
+        />
       </div>
     </div>
   );

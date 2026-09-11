@@ -57,3 +57,28 @@ export interface SyncLinksResponse {
   synced_count: number;
   synced_links: Record<string, string>;
 }
+
+export interface CreateRouteRequest {
+  hostname: string;
+  service: string;
+  path?: string;
+  no_tls_verify?: boolean;
+}
+
+export interface DeleteRouteRequest {
+  hostname: string;
+  path?: string;
+}
+
+export interface CreateRouteResponse {
+  success: boolean;
+  message: string;
+  dns_created: boolean;
+  dns_message?: string | null;
+  route: IngressRule;
+}
+
+export interface DeleteRouteResponse {
+  success: boolean;
+  message: string;
+}

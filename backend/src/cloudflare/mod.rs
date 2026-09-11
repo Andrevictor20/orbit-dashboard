@@ -1,9 +1,11 @@
 pub mod client;
 pub mod detector;
+pub mod ingress;
 pub mod models;
 
 pub use client::{get_config, save_config, update_config, CloudflareClient};
 pub use detector::detect_cloudflared;
+pub use ingress::*;
 pub use models::*;
 
 use axum::{
@@ -24,7 +26,45 @@ pub fn router() -> Router<AppState> {
         .route("/api/cloudflare/detect", get(detect_handler))
         .route("/api/cloudflare/tunnels", get(get_tunnels_handler))
         .route("/api/cloudflare/sync-links", post(sync_links_handler))
+        .route("/api/cloudflare/test", post(test_connection_handler))
+        .route("/api/cloudflare/routes", post(create_route_handler).delete(delete_route_handler))
 }
+
+#[derive(serde::Deserialize)]
+pub struct TestCloudflareRequest {
+    pub account_id: String,
+    pub tunnel_id: String,
+    pub api_token: String,
+}
+
+pub async fn test_connection_handler(
+    Json(payload): Json<TestCloudflareRequest>,
+) -> impl IntoResponse {
+    let client = CloudflareClient::new();
+    let res = client
+        .fetch_remote_config(&payload.account_id, &payload.tunnel_id, &payload.api_token)
+        .await;
+
+    match res {
+        Ok((name, rules)) => (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "tunnel_name": name,
+                "routes_count": rules.len(),
+                "message": "Conexão com a Cloudflare estabelecida com sucesso!"
+            })),
+        ),
+        Err(err) => (
+            StatusCode::OK,
+            Json(json!({
+                "success": false,
+                "error": err
+            })),
+        ),
+    }
+}
+
 
 pub async fn get_config_handler(
     State(state): State<AppState>,
@@ -176,7 +216,7 @@ pub async fn get_tunnels_handler(
         client::sync_ingress_rules_to_links(&rules_result);
     }
 
-    let connected = !rules_result.is_empty();
+    let connected = mode == "remote" || mode == "local" || !rules_result.is_empty();
 
     let status = CloudflareStatusResponse {
         configured: account_id.is_some() && tunnel_id.is_some(),
@@ -250,4 +290,182 @@ pub async fn sync_links_handler(
     let sync_res = client::sync_ingress_rules_to_links(&matched);
 
     (StatusCode::OK, Json(sync_res)).into_response()
+}
+
+pub async fn create_route_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateRouteRequest>,
+) -> impl IntoResponse {
+    let hostname = payload.hostname.trim().to_string();
+    let service = payload.service.trim().to_string();
+
+    if hostname.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": "Hostname é obrigatório." })),
+        ).into_response();
+    }
+
+    if service.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": "Serviço interno (URL/Porta) é obrigatório." })),
+        ).into_response();
+    }
+
+    let config = get_config().unwrap_or_default();
+    let detected = detector::detect_cloudflared(&state.docker).await;
+
+    let account_id = if !config.account_id.is_empty() {
+        config.account_id.clone()
+    } else if let Some(ref d) = detected {
+        d.account_id.clone().unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    let tunnel_id = if !config.tunnel_id.is_empty() {
+        config.tunnel_id.clone()
+    } else if let Some(ref d) = detected {
+        d.tunnel_id.clone().unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    if account_id.is_empty() || tunnel_id.is_empty() || config.api_token.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "success": false,
+                "error": "Túnel Cloudflare não configurado com Token de API remoto para gerenciamento de rotas."
+            })),
+        ).into_response();
+    }
+
+    let client = CloudflareClient::new();
+    let raw_rule = client::RawIngressRule {
+        hostname: Some(hostname.clone()),
+        service: service.clone(),
+        path: payload.path.filter(|p| !p.trim().is_empty()),
+        origin_request: payload.no_tls_verify.map(|nv| client::OriginRequestConfig {
+            no_tls_verify: Some(nv),
+        }),
+    };
+
+    // 1. Add route to Cloudflare Tunnel
+    let add_res = client
+        .add_route(&account_id, &tunnel_id, &config.api_token, raw_rule)
+        .await;
+
+    let rule = match add_res {
+        Ok(r) => r,
+        Err(err) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": err })),
+            ).into_response();
+        }
+    };
+
+    // 2. Try creating DNS CNAME record if zone permissions exist
+    let (dns_created, dns_msg) = client::try_create_dns_cname(
+        &reqwest::Client::new(),
+        &tunnel_id,
+        &config.api_token,
+        &hostname,
+    ).await.unwrap_or((false, None));
+
+    // 3. Match with local docker containers for UI feedback and auto-sync
+    let containers = client::fetch_docker_containers_for_matching(&state.docker).await;
+    let matched = client::match_ingress_with_containers(vec![rule], &containers);
+    let matched_rule = matched.into_iter().next().unwrap_or_else(|| IngressRule {
+        hostname: hostname.clone(),
+        service: service.clone(),
+        path: None,
+        public_url: format!("https://{}", hostname),
+        matched_container_id: None,
+        matched_container_name: None,
+    });
+
+    if config.enabled && config.auto_sync_links {
+        client::sync_ingress_rules_to_links(&[matched_rule.clone()]);
+    }
+
+    (
+        StatusCode::OK,
+        Json(CreateRouteResponse {
+            success: true,
+            message: format!("Rota '{}' criada com sucesso no túnel Cloudflare.", hostname),
+            dns_created,
+            dns_message: dns_msg,
+            route: matched_rule,
+        }),
+    ).into_response()
+}
+
+pub async fn delete_route_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<DeleteRouteRequest>,
+) -> impl IntoResponse {
+    let hostname = payload.hostname.trim().to_string();
+    if hostname.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": "Hostname é obrigatório." })),
+        ).into_response();
+    }
+
+    let config = get_config().unwrap_or_default();
+    let detected = detector::detect_cloudflared(&state.docker).await;
+
+    let account_id = if !config.account_id.is_empty() {
+        config.account_id.clone()
+    } else if let Some(ref d) = detected {
+        d.account_id.clone().unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    let tunnel_id = if !config.tunnel_id.is_empty() {
+        config.tunnel_id.clone()
+    } else if let Some(ref d) = detected {
+        d.tunnel_id.clone().unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    if account_id.is_empty() || tunnel_id.is_empty() || config.api_token.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "success": false,
+                "error": "Túnel Cloudflare não configurado com Token de API remoto."
+            })),
+        ).into_response();
+    }
+
+    let client = CloudflareClient::new();
+    let res = client
+        .delete_route(
+            &account_id,
+            &tunnel_id,
+            &config.api_token,
+            &hostname,
+            payload.path.as_deref(),
+        )
+        .await;
+
+    match res {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(DeleteRouteResponse {
+                success: true,
+                message: format!("Rota '{}' removida com sucesso do túnel Cloudflare.", hostname),
+            }),
+        ).into_response(),
+        Err(err) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "success": false, "error": err })),
+        ).into_response(),
+    }
 }

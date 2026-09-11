@@ -52,21 +52,25 @@ fn test_match_ingress_with_containers() {
             hostname: Some("jellyfin.homelab.org".to_string()),
             service: "http://jellyfin:8096".to_string(),
             path: None,
+            origin_request: None,
         },
         RawIngressRule {
             hostname: Some("grafana.homelab.org".to_string()),
             service: "http://127.0.0.1:3000".to_string(),
             path: None,
+            origin_request: None,
         },
         RawIngressRule {
             hostname: Some("plex.homelab.org".to_string()),
             service: "http://unknown-host:32400".to_string(),
             path: None,
+            origin_request: None,
         },
         RawIngressRule {
             hostname: None,
             service: "http_status:404".to_string(),
             path: None,
+            origin_request: None,
         },
     ];
 
@@ -253,3 +257,145 @@ ingress:
 
     let _ = std::fs::remove_file(yaml_file);
 }
+
+#[test]
+fn test_decode_tunnel_token_with_cmd_args_and_quotes() {
+    let payload = r#"{"a":"cf_acc_12345","t":"cf_tun_67890","s":"secret_xyz"}"#;
+    let b64 = STANDARD.encode(payload.as_bytes());
+
+    // Test with quotes
+    let quoted = format!("\"{}\"", b64);
+    let decoded = decode_tunnel_token(&quoted);
+    assert!(decoded.is_some());
+    assert_eq!(decoded.unwrap(), ("cf_acc_12345".to_string(), "cf_tun_67890".to_string()));
+
+    // Test with --token prefix
+    let with_flag = format!("--token {}", b64);
+    let decoded_flag = decode_tunnel_token(&with_flag);
+    assert!(decoded_flag.is_some());
+    assert_eq!(decoded_flag.unwrap(), ("cf_acc_12345".to_string(), "cf_tun_67890".to_string()));
+
+    // Test with full docker command string
+    let full_cmd = format!("docker run cloudflare/cloudflared:latest tunnel run --token {}", b64);
+    let decoded_cmd = decode_tunnel_token(&full_cmd);
+    assert!(decoded_cmd.is_some());
+    assert_eq!(decoded_cmd.unwrap(), ("cf_acc_12345".to_string(), "cf_tun_67890".to_string()));
+}
+
+#[tokio::test]
+async fn test_cloudflare_test_connection_handler() {
+    let app = backend::app();
+    let auth_token = get_valid_token();
+
+    let test_payload = serde_json::json!({
+        "account_id": "test_account",
+        "tunnel_id": "test_tunnel",
+        "api_token": "test_token"
+    });
+
+    let res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/cloudflare/test")
+                .header("Authorization", format!("Bearer {}", auth_token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(test_payload.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    let body_bytes = res.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    // Since test_token is dummy, it should return success: false with an error message, not crash or 500
+    assert_eq!(json["success"], false);
+    assert!(json["error"].as_str().is_some());
+}
+
+#[test]
+fn test_ingress_rules_pure_manipulation() {
+    use backend::cloudflare::client::{insert_or_update_ingress_rule, remove_ingress_rule};
+
+    let initial = vec![
+        RawIngressRule {
+            hostname: Some("grafana.example.com".to_string()),
+            service: "http://127.0.0.1:3000".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        RawIngressRule {
+            hostname: None,
+            service: "http_status:404".to_string(),
+            path: None,
+            origin_request: None,
+        },
+    ];
+
+    // 1. Insert new rule: should be placed before catch-all 404
+    let new_rule = RawIngressRule {
+        hostname: Some("jellyfin.example.com".to_string()),
+        service: "http://jellyfin:8096".to_string(),
+        path: None,
+        origin_request: None,
+    };
+    let updated = insert_or_update_ingress_rule(initial.clone(), new_rule);
+    assert_eq!(updated.len(), 3);
+    assert_eq!(updated[0].hostname.as_deref(), Some("grafana.example.com"));
+    assert_eq!(updated[1].hostname.as_deref(), Some("jellyfin.example.com"));
+    assert_eq!(updated[2].hostname, None);
+    assert_eq!(updated[2].service, "http_status:404");
+
+    // 2. Update existing rule: should overwrite without duplicating
+    let updated_jellyfin = RawIngressRule {
+        hostname: Some("jellyfin.example.com".to_string()),
+        service: "http://jellyfin:8920".to_string(), // new port
+        path: None,
+        origin_request: None,
+    };
+    let re_updated = insert_or_update_ingress_rule(updated, updated_jellyfin);
+    assert_eq!(re_updated.len(), 3);
+    assert_eq!(re_updated[1].hostname.as_deref(), Some("jellyfin.example.com"));
+    assert_eq!(re_updated[1].service, "http://jellyfin:8920");
+
+    // 3. Remove rule by hostname
+    let removed = remove_ingress_rule(re_updated, "grafana.example.com", None);
+    assert_eq!(removed.len(), 2);
+    assert_eq!(removed[0].hostname.as_deref(), Some("jellyfin.example.com"));
+    assert_eq!(removed[1].hostname, None); // 404 catch-all preserved
+}
+
+#[tokio::test]
+async fn test_cloudflare_routes_endpoints_unauthenticated() {
+    let app = backend::app();
+
+    let endpoints = vec![
+        ("POST", "/api/cloudflare/routes"),
+        ("DELETE", "/api/cloudflare/routes"),
+    ];
+
+    for (method, uri) in endpoints {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(r#"{"hostname":"test.example.com","service":"http://localhost:80"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            StatusCode::UNAUTHORIZED,
+            "Expected 401 for unauthenticated request to {} {}",
+            method,
+            uri
+        );
+    }
+}
+

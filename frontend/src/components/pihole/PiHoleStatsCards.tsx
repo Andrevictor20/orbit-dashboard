@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Activity, ShieldCheck, Percent, Database, Users } from 'lucide-react';
+import { Activity, ShieldCheck, Percent, Database, Users, Zap } from 'lucide-react';
 import type { PiHoleStats } from '../../types/pihole';
 
 interface PiHoleStatsCardsProps {
@@ -15,6 +15,9 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
   const adsPercentage = stats?.ads_percentage_today ?? 0;
   const domainsBlocked = stats?.domains_being_blocked ?? 0;
   const uniqueClients = stats?.unique_clients ?? stats?.clients_ever_seen ?? 0;
+  const cachedQueries = stats?.queries_cached ?? 0;
+  const cachePct = stats?.cache_percentage ?? (totalQueries > 0 ? (cachedQueries / totalQueries) * 100 : 0);
+  const uniqueDomains = stats?.unique_domains ?? 0;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -33,11 +36,19 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
             {loading ? '...' : totalQueries.toLocaleString()}
           </span>
         </div>
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-secondary">
-          <Users className="w-3.5 h-3.5 text-blue-400" />
-          <span>
-            {loading ? '...' : `${uniqueClients} ${t('pihole.stats_active_clients')}`}
-          </span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
+          <div className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5 text-blue-400" />
+            <span>
+              {loading ? '...' : `${uniqueClients} ${t('pihole.stats_active_clients')}`}
+            </span>
+          </div>
+          {cachedQueries > 0 && (
+            <div className="flex items-center gap-1 text-[11px] text-cyan-500 dark:text-cyan-400 font-medium">
+              <Zap className="w-3 h-3" />
+              <span>{cachePct.toFixed(1)}% cache</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -99,8 +110,13 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
             {loading ? '...' : domainsBlocked.toLocaleString()}
           </span>
         </div>
-        <div className="mt-3 text-xs text-secondary">
+        <div className="mt-3 flex items-center justify-between text-xs text-secondary">
           <span>{t('pihole.stats_gravity_list')}</span>
+          {uniqueDomains > 0 && (
+            <span className="text-[11px] font-medium text-emerald-500 dark:text-emerald-400">
+              {uniqueDomains.toLocaleString()} {t('pihole.unique_domains')}
+            </span>
+          )}
         </div>
       </div>
     </div>

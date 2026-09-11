@@ -313,7 +313,7 @@ export function Overview() {
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-150">
       {/* 1. HERO HEADER: CLEAN TITLE & QUICK ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/85 backdrop-blur-2xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <OrbitLogo size={28} className="rounded-xl shrink-0" />

@@ -31,7 +31,6 @@ const HomeAssistant = lazy(() => import('./pages/HomeAssistant').then(m => ({ de
 const PiHole = lazy(() => import('./pages/PiHole').then(m => ({ default: m.PiHole })));
 const Cloudflare = lazy(() => import('./pages/Cloudflare').then(m => ({ default: m.Cloudflare })));
 const Backups = lazy(() => import('./pages/Backups'));
-const ComposeEditor = lazy(() => import('./pages/ComposeEditor'));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup })));
 
@@ -76,7 +75,7 @@ function App() {
                                     <Route path="/containers/:id" element={<ContainerDetail />} />
                                     <Route path="/store" element={<AppStore />} />
                                     <Route path="/store/app/:id" element={<AppDetail />} />
-                                    <Route path="/compose" element={<ComposeEditor />} />
+                                    <Route path="/compose" element={<Navigate to="/store?custom=true" replace />} />
                                     <Route path="/images" element={<Images />} />
                                     <Route path="/networks" element={<Networks />} />
                                     <Route path="/volumes" element={<Volumes />} />

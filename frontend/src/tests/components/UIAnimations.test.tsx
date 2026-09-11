@@ -47,6 +47,32 @@ describe('DashboardLayout UI/UX', () => {
     expect(mainContent?.className).toContain('p-3.5');
   });
 
+  it('ensures main content and page wrapper have stacking context relative z-10 above wallpaper layer', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <ThemeProvider defaultTheme="dark" defaultColor="zinc">
+          <AuthProvider>
+            <InstallProvider>
+              <DashboardLayout>
+                <div data-testid="page-content">Test Content</div>
+              </DashboardLayout>
+            </InstallProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+
+    const mainEl = container.querySelector('main');
+    expect(mainEl).not.toBeNull();
+    expect(mainEl?.className).toContain('relative');
+    expect(mainEl?.className).toContain('z-10');
+
+    const contentWrapper = container.querySelector('main > div.animate-fade-in');
+    expect(contentWrapper).not.toBeNull();
+    expect(contentWrapper?.className).toContain('relative');
+    expect(contentWrapper?.className).toContain('z-10');
+  });
+
   it('renders mobile-optimized top bar controls with touch targets and preferences menu', async () => {
     const { container } = render(
       <BrowserRouter>
@@ -82,5 +108,27 @@ describe('DashboardLayout UI/UX', () => {
     expect(container.textContent).toContain('Idioma');
     expect(container.textContent).toContain('Zinc');
     expect(container.textContent).toContain('Tokyo Night');
+  });
+
+  it('ensures dedicated compose page link is removed from sidebar navigation', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <ThemeProvider defaultTheme="dark" defaultColor="zinc">
+          <AuthProvider>
+            <InstallProvider>
+              <DashboardLayout>
+                <div>Content</div>
+              </DashboardLayout>
+            </InstallProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+
+    const composeLink = container.querySelector('a[href="/compose"]');
+    expect(composeLink).toBeNull();
+
+    const storeLink = container.querySelector('a[href="/store"]');
+    expect(storeLink).not.toBeNull();
   });
 });

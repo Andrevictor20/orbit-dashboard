@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { OrbitLogo } from '../components/ui/OrbitLogo';
 
 export function Login() {
@@ -15,6 +15,12 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // 2FA state
+  const [step, setStep] = useState<'credentials' | '2fa'>('credentials');
+  const [tempToken, setTempToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+
   const { login, needsSetup } = useAuth();
   const navigate = useNavigate();
 
@@ -50,13 +56,62 @@ export function Login() {
         }
       }
 
-      await response.json();
+      const data = await response.json();
       
+      // If 2FA is required, transition to 2FA verification step
+      if (data.requires_2fa && data.temp_token) {
+        setTempToken(data.temp_token);
+        setStep('2fa');
+        setTwoFactorCode('');
+        setError('');
+        return;
+      }
+
       login('logged_in_token');
-      
       navigate('/');
     } catch (err: any) {
       setError(err.message || t('auth.login_error', 'Erro ao realizar login.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanCode = twoFactorCode.trim();
+    if (!cleanCode) {
+      setError(t('two_factor.enter_code', 'Por favor, digite o código de autenticação ou recuperação.'));
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/2fa/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          temp_token: tempToken,
+          code: cleanCode,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error(t('two_factor.invalid_code', 'Código de autenticação ou recuperação inválido.'));
+        } else if (response.status === 429) {
+          throw new Error(t('auth.too_many_attempts', 'Muitas tentativas. Aguarde 5 minutos.'));
+        } else {
+          throw new Error(t('auth.server_error', 'Erro ao conectar com o servidor.'));
+        }
+      }
+
+      login('logged_in_token');
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || t('two_factor.invalid_code', 'Código inválido.'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +141,7 @@ export function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
         <div className="bg-card py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
-          {isUpdated && (
+          {isUpdated && step === 'credentials' && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-left animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500 shrink-0 mt-0.5">
                 <Sparkles className="w-5 h-5" />
@@ -107,86 +162,152 @@ export function Login() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            
-            {error && (
-              <div className="bg-rose-500/10 border border-rose-500/50 rounded-lg p-3 flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-rose-500 font-medium">{error}</p>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-primary">
-                {t('auth.username', 'Usuário')}
-              </label>
-              <div className="mt-2 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-secondary" />
-                </div>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
-                  placeholder={t('auth.username', 'Seu usuário')}
-                />
-              </div>
+          {error && (
+            <div className="mb-6 bg-rose-500/10 border border-rose-500/50 rounded-lg p-3 flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-rose-500 font-medium">{error}</p>
             </div>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-primary">
-                {t('auth.password', 'Senha')}
-              </label>
-              <div className="mt-2 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-secondary" />
+          {step === 'credentials' ? (
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-primary">
+                  {t('auth.username', 'Usuário')}
+                </label>
+                <div className="mt-2 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-secondary" />
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                    placeholder={t('auth.username', 'Seu usuário')}
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
-                  placeholder="••••••••"
-                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-primary">
+                  {t('auth.password', 'Senha')}
+                </label>
+                <div className="mt-2 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-secondary" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {loading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>{t('auth.signing_in', 'Entrando...')}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <KeyRound className="w-4 h-4" />
+                      <span>{t('auth.sign_in', 'Entrar no Dashboard')}</span>
+                    </div>
+                  )}
                 </button>
               </div>
-            </div>
+            </form>
+          ) : (
+            /* 2FA Verification View */
+            <form className="space-y-6 animate-fade-in" onSubmit={handleTwoFactorSubmit}>
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-orbit-500/10 text-orbit-500 flex items-center justify-center mx-auto border border-orbit-500/20">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-primary">
+                  {t('two_factor.verification_title', 'Verificação em Duas Etapas')}
+                </h3>
+                <p className="text-xs text-secondary leading-relaxed max-w-xs mx-auto">
+                  {t(
+                    'two_factor.login_instruction',
+                    'Digite o código de 6 dígitos gerado pelo seu app autenticador ou utilize um código de recuperação.'
+                  )}
+                </p>
+              </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
-              >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>{t('auth.signing_in', 'Entrando...')}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <KeyRound className="w-4 h-4" />
-                    <span>{t('auth.sign_in', 'Entrar no Dashboard')}</span>
-                  </div>
-                )}
-              </button>
-            </div>
-          </form>
+              <div>
+                <label htmlFor="2fa-code" className="block text-xs font-semibold text-primary mb-2 text-center">
+                  {t('two_factor.code_label', 'Código de Autenticação / Recuperação')}
+                </label>
+                <input
+                  id="2fa-code"
+                  type="text"
+                  autoFocus
+                  autoComplete="one-time-code"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
+                  placeholder="000000"
+                  className="block w-full text-center py-3 bg-background border border-border rounded-xl text-primary font-mono text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all shadow-sm"
+                  required
+                />
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  disabled={loading || !twoFactorCode.trim()}
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
+                >
+                  {loading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>{t('two_factor.verifying', 'Verificando...')}</span>
+                    </div>
+                  ) : (
+                    <span>{t('two_factor.verify_and_enter', 'Verificar e Entrar')}</span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('credentials');
+                    setError('');
+                    setTwoFactorCode('');
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-secondary hover:text-primary transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>{t('two_factor.back_to_login', 'Voltar para usuário e senha')}</span>
+                </button>
+              </div>
+            </form>
+          )}
 
           <div className="mt-6">
             <div className="relative">

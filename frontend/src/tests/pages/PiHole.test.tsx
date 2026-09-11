@@ -58,6 +58,27 @@ describe('PiHole Page Component', () => {
         'telemetry.app.com': 90,
         'ads.doubleclick.net': 75,
       },
+      top_clients: [
+        { ip: '192.168.1.50', name: 'MacBook-Pro', count: 1200, percentage: 45.0 },
+        { ip: '192.168.1.100', name: 'iPhone', count: 800, percentage: 30.0 },
+      ],
+      upstreams: [
+        { destination: '1.1.1.1', name: 'Cloudflare DNS', count: 2000, percentage: 80.0 },
+      ],
+      query_types: {
+        A: 1500,
+        AAAA: 600,
+      },
+      recent_queries: [
+        {
+          timestamp: 1726000000,
+          time: '18:34:10',
+          query_type: 'A',
+          domain: 'api.github.com',
+          client: '192.168.1.50',
+          status: 'forwarded',
+        },
+      ],
     };
 
     const mockDomains = [
@@ -113,6 +134,18 @@ describe('PiHole Page Component', () => {
     // Top Domains
     expect(screen.getByText('github.com')).toBeTruthy();
     expect(screen.getByText('telemetry.app.com')).toBeTruthy();
+
+    // Top Clients
+    expect(screen.getByText('MacBook-Pro')).toBeTruthy();
+    expect(screen.getByText('192.168.1.100')).toBeTruthy();
+
+    // Network Analytics (Upstreams & Query Types)
+    expect(screen.getByText('Cloudflare DNS')).toBeTruthy();
+    expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('AAAA')).toBeTruthy();
+
+    // Recent Queries
+    expect(screen.getByText('api.github.com')).toBeTruthy();
   });
 
   it('handles toggle blocking action', async () => {

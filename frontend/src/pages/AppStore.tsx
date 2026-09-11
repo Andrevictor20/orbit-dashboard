@@ -25,9 +25,9 @@ import {
   SlidersHorizontal,
   CheckCircle2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
-import { DockerInstallModal } from '../components/docker/DockerInstallModal';
+import { ComposeInstallModal } from '../components/docker/ComposeInstallModal';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import toast from 'react-hot-toast';
 
@@ -88,6 +88,7 @@ const HERO_GRADIENTS = [
 export function AppStore() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [apps, setApps] = useState<AppStoreItem[]>(() => globalAppsCache);
   const [installedContainers, setInstalledContainers] = useState<DockerContainerLite[]>([]);
   const [loading, setLoading] = useState<boolean>(() => globalAppsCache.length === 0);
@@ -101,6 +102,13 @@ export function AppStore() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [customModalApp, setCustomModalApp] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('custom') === 'true') {
+      setIsDockerInstallOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const fetchInstalledContainers = async () => {
     try {
@@ -366,7 +374,7 @@ export function AppStore() {
         </div>
       </div>
 
-      <DockerInstallModal isOpen={isDockerInstallOpen} onClose={() => setIsDockerInstallOpen(false)} />
+      <ComposeInstallModal isOpen={isDockerInstallOpen} onClose={() => setIsDockerInstallOpen(false)} />
 
       {/* Main Grid: Left Category Sidebar + Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6 items-start">

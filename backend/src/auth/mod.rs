@@ -1,8 +1,12 @@
 pub mod jwt;
 pub mod rate_limit;
+pub mod totp;
+pub mod two_factor;
 
 pub use jwt::{get_jwt_secret, Claims};
 pub use rate_limit::{check_rate_limit, clear_attempts, record_failed_attempt};
+pub use totp::*;
+pub use two_factor::*;
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -26,10 +30,16 @@ pub fn get_auth_file_path() -> String {
     std::env::var("ORBIT_AUTH_FILE").unwrap_or_else(|_| "data/orbit_auth.json".to_string())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthData {
     pub username: String,
     pub hash: String,
+    #[serde(default)]
+    pub totp_secret: Option<String>,
+    #[serde(default)]
+    pub totp_enabled: bool,
+    #[serde(default)]
+    pub recovery_codes: Vec<String>,
 }
 
 pub fn get_auth_data() -> Option<AuthData> {
@@ -38,6 +48,16 @@ pub fn get_auth_data() -> Option<AuthData> {
     } else {
         None
     }
+}
+
+pub fn save_auth_data(auth_data: &AuthData) -> Result<(), StatusCode> {
+    let auth_file = get_auth_file_path();
+    if let Some(parent) = Path::new(&auth_file).parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let json = serde_json::to_string(auth_data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    fs::write(&auth_file, json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(())
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,16 +99,12 @@ pub async fn setup(
     let auth_data = AuthData {
         username: payload.username.clone(),
         hash,
+        totp_secret: None,
+        totp_enabled: false,
+        recovery_codes: Vec::new(),
     };
 
-    if let Some(parent) = Path::new(&auth_file).parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-
-    let json = serde_json::to_string(&auth_data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    if let Err(_) = fs::write(&auth_file, json) {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
+    save_auth_data(&auth_data)?;
 
     let expiration = SystemTime::now()
         .checked_add(Duration::from_secs(2 * 3600))
@@ -166,6 +182,34 @@ pub async fn login(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
+    if auth_data.totp_enabled {
+        let expiration = SystemTime::now()
+            .checked_add(Duration::from_secs(300))
+            .unwrap()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as usize;
+
+        let claims = Claims {
+            sub: format!("2fa_temp:{}", auth_data.username),
+            exp: expiration,
+        };
+
+        let temp_token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(get_jwt_secret()),
+        ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        return Ok((
+            jar,
+            Json(serde_json::json!({
+                "requires_2fa": true,
+                "temp_token": temp_token
+            })),
+        ));
+    }
+
     clear_attempts(&client_ip);
 
     let expiration = SystemTime::now()
@@ -176,7 +220,7 @@ pub async fn login(
         .as_secs() as usize;
 
     let claims = Claims {
-        sub: "admin".to_owned(),
+        sub: auth_data.username.clone(),
         exp: expiration,
     };
 
@@ -195,7 +239,7 @@ pub async fn login(
 
     Ok((
         jar.add(cookie),
-        Json(serde_json::json!({ "message": "success" })),
+        Json(serde_json::json!({ "message": "success", "requires_2fa": false })),
     ))
 }
 
@@ -231,12 +275,7 @@ pub async fn change_password(
         .to_string();
 
     auth_data.hash = new_hash;
-
-    // Save
-    let json = serde_json::to_string(&auth_data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    if let Err(_) = fs::write(get_auth_file_path(), json) {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
+    save_auth_data(&auth_data)?;
 
     Ok(Json(serde_json::json!({ "message": "password updated" })))
 }
@@ -271,6 +310,11 @@ pub async fn require_auth(
         &Validation::default(),
     ).map_err(|_| StatusCode::UNAUTHORIZED)?;
 
+    // Reject temporary 2FA token from accessing regular protected resources
+    if token_data.claims.sub.starts_with("2fa_temp:") {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
     req.extensions_mut().insert(token_data.claims);
     Ok(next.run(req).await)
 }
@@ -281,17 +325,23 @@ pub async fn me(jar: CookieJar) -> Result<Json<serde_json::Value>, StatusCode> {
         .map(|cookie| cookie.value())
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    decode::<Claims>(
+    let token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(get_jwt_secret()),
         &Validation::default(),
-    ).map(|_| Json(serde_json::json!({ "authenticated": true })))
-     .map_err(|_| StatusCode::UNAUTHORIZED)
+    ).map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    if token_data.claims.sub.starts_with("2fa_temp:") {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Ok(Json(serde_json::json!({ "authenticated": true, "username": token_data.claims.sub })))
 }
 
 pub fn public_router() -> Router {
     Router::new()
         .route("/api/auth/login", post(login))
+        .route("/api/auth/2fa/login", post(two_factor_login))
         .route("/api/auth/status", get(status))
         .route("/api/auth/setup", post(setup))
         .route("/api/auth/password", put(change_password))

@@ -7,6 +7,30 @@ export interface PiHoleConfig {
   error?: string | null;
 }
 
+export interface PiHoleClientItem {
+  ip: string;
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface PiHoleUpstreamItem {
+  destination: string;
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface PiHoleRecentQueryItem {
+  timestamp: number;
+  time: string;
+  query_type: string;
+  domain: string;
+  client: string;
+  status: 'blocked' | 'forwarded' | 'cached' | string;
+  reply?: string;
+}
+
 export interface PiHoleStats {
   domains_being_blocked?: number;
   dns_queries_today?: number;
@@ -15,6 +39,7 @@ export interface PiHoleStats {
   unique_domains?: number;
   queries_forwarded?: number;
   queries_cached?: number;
+  cache_percentage?: number;
   clients_ever_seen?: number;
   unique_clients?: number;
   dns_queries_all_types?: number;
@@ -30,6 +55,10 @@ export interface PiHoleStats {
   };
   top_queries?: Record<string, number>;
   top_ads?: Record<string, number>;
+  top_clients?: PiHoleClientItem[];
+  upstreams?: PiHoleUpstreamItem[];
+  query_types?: Record<string, number>;
+  recent_queries?: PiHoleRecentQueryItem[];
 }
 
 export interface PiHoleDomainItem {
@@ -39,3 +68,4 @@ export interface PiHoleDomainItem {
 }
 
 export type PiHoleTab = 'overview' | 'domains';
+

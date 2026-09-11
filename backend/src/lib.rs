@@ -74,6 +74,7 @@ pub fn app() -> Router {
         .merge(homeassistant::router())
         .merge(pihole::router())
         .merge(cloudflare::router())
+        .merge(auth::two_factor_protected_router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);

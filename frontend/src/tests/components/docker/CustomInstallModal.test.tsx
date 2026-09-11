@@ -105,6 +105,24 @@ describe('CustomInstallModal Component', () => {
     );
   });
 
+  it('opens folder picker when folder browse button is clicked in volumes tab', async () => {
+    render(<CustomInstallModal appId="test-app" onClose={mockOnClose} onInstall={mockOnInstall} />);
+
+    await screen.findByPlaceholderText('Host');
+
+    // Switch to volumes tab
+    const volumesTabBtn = screen.getByRole('button', { name: /volumes & pastas/i });
+    fireEvent.click(volumesTabBtn);
+
+    // Verify folder browse button is rendered
+    const browseBtn = screen.getByLabelText(/selecionar pasta no servidor/i);
+    expect(browseBtn).toBeInTheDocument();
+
+    // Clicking should open FolderPickerModal dialog
+    fireEvent.click(browseBtn);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   it('calls onClose when cancel is clicked', async () => {
     render(<CustomInstallModal appId="test-app" onClose={mockOnClose} onInstall={mockOnInstall} />);
 

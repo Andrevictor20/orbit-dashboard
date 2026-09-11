@@ -1,14 +1,43 @@
-import { useState, type FormEvent } from 'react';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { KeyRound, Loader2, ShieldCheck, ShieldAlert, Shield, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { UserAvatar } from '../ui/UserAvatar';
+import { TwoFactorSetupModal } from '../auth/TwoFactorSetupModal';
+import { TwoFactorDisableModal } from '../auth/TwoFactorDisableModal';
 
 export function AccountTab() {
   const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // 2FA state
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean | null>(null);
+  const [recoveryCodesCount, setRecoveryCodesCount] = useState<number>(0);
+  const [loading2FA, setLoading2FA] = useState(true);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
+
+  const fetch2FAStatus = async () => {
+    try {
+      setLoading2FA(true);
+      const res = await fetch('/api/auth/2fa/status');
+      if (res.ok) {
+        const data = await res.json();
+        setTwoFactorEnabled(data.enabled);
+        setRecoveryCodesCount(data.recovery_codes_count);
+      }
+    } catch {
+      // Ignored if unconfigured
+    } finally {
+      setLoading2FA(false);
+    }
+  };
+
+  useEffect(() => {
+    fetch2FAStatus();
+  }, []);
 
   const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();
@@ -47,6 +76,81 @@ export function AccountTab() {
         </div>
       </div>
 
+      {/* Two-Factor Authentication (2FA) Section */}
+      <div className="p-4 rounded-2xl bg-card border border-border space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={`p-2.5 rounded-xl shrink-0 ${
+              twoFactorEnabled 
+                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                : 'bg-orbit-500/10 text-orbit-500 border border-orbit-500/20'
+            }`}>
+              {twoFactorEnabled ? <ShieldCheck className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-primary">
+                  {t('two_factor.title', 'Autenticação de 2 Fatores (2FA)')}
+                </h4>
+                {loading2FA ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-secondary" />
+                ) : twoFactorEnabled ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+                    {t('two_factor.status_active', 'Ativado')}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary/15 text-secondary border border-border">
+                    {t('two_factor.status_inactive', 'Desativado')}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-secondary mt-1 leading-relaxed">
+                {twoFactorEnabled
+                  ? t(
+                      'two_factor.active_desc',
+                      'Sua conta está protegida com verificação em duas etapas via aplicativo autenticador.'
+                    )
+                  : t(
+                      'two_factor.inactive_desc',
+                      'Adicione uma camada extra de segurança à sua conta exigindo um código do seu celular ao fazer login.'
+                    )}
+              </p>
+              {twoFactorEnabled && (
+                <p className="text-[11px] text-secondary mt-2 flex items-center gap-1.5 font-medium">
+                  <span>{t('two_factor.remaining_codes', 'Códigos de recuperação disponíveis:')}</span>
+                  <span className="px-1.5 py-0.2 rounded bg-background border border-border font-mono text-primary font-bold">
+                    {recoveryCodesCount}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 flex items-center justify-end gap-3 border-t border-border">
+          {twoFactorEnabled ? (
+            <button
+              type="button"
+              onClick={() => setIsDisableModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 border border-rose-500/30 transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>{t('two_factor.disable_button', 'Desativar 2FA')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsSetupModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm shadow-orbit-500/20 transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <span>{t('two_factor.enable_action', 'Configurar 2FA')}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Change Password Form */}
       <form onSubmit={handleChangePassword} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-primary">
@@ -90,6 +194,18 @@ export function AccountTab() {
           <span>{t('profile.change_password', 'Alterar Senha')}</span>
         </button>
       </form>
+
+      {/* Modals */}
+      <TwoFactorSetupModal
+        isOpen={isSetupModalOpen}
+        onClose={() => setIsSetupModalOpen(false)}
+        onSuccess={fetch2FAStatus}
+      />
+      <TwoFactorDisableModal
+        isOpen={isDisableModalOpen}
+        onClose={() => setIsDisableModalOpen(false)}
+        onSuccess={fetch2FAStatus}
+      />
     </div>
   );
 }

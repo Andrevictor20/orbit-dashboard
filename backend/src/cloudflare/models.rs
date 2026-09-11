@@ -68,3 +68,35 @@ pub struct SyncLinksResponse {
     pub synced_count: usize,
     pub synced_links: HashMap<String, String>, // container_id -> public_url
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CreateRouteRequest {
+    pub hostname: String,
+    pub service: String,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub no_tls_verify: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DeleteRouteRequest {
+    pub hostname: String,
+    #[serde(default)]
+    pub path: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CreateRouteResponse {
+    pub success: bool,
+    pub message: String,
+    pub dns_created: bool,
+    pub dns_message: Option<String>,
+    pub route: IngressRule,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DeleteRouteResponse {
+    pub success: bool,
+    pub message: String,
+}

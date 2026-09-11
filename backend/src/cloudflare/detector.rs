@@ -19,7 +19,22 @@ struct RawTunnelTokenPayload {
 /// Attempts to decode a Cloudflare TUNNEL_TOKEN base64 string into (account_id, tunnel_id).
 /// Cloudflare encodes tunnel credentials as base64 JSON: {"a":"...","t":"...","s":"..."}
 pub fn decode_tunnel_token(token: &str) -> Option<(String, String)> {
-    let clean_token = token.trim();
+    let mut clean_token = token.trim();
+    if clean_token.is_empty() {
+        return None;
+    }
+
+    // Strip quotes if any
+    clean_token = clean_token.trim_matches('"').trim_matches('\'').trim();
+
+    // If string contains `--token`, extract the token argument
+    if let Some(idx) = clean_token.find("--token") {
+        let rest = clean_token[idx + 7..].trim();
+        let rest = rest.strip_prefix('=').unwrap_or(rest).trim();
+        let token_part = rest.split_whitespace().next().unwrap_or(rest);
+        clean_token = token_part.trim_matches('"').trim_matches('\'');
+    }
+
     if clean_token.is_empty() {
         return None;
     }
@@ -84,9 +99,9 @@ pub async fn detect_cloudflared(docker: &Docker) -> Option<DetectedCloudflared> 
             status,
         };
 
-        // Inspect container for environment variables and volume mounts
+        // Inspect container for environment variables, command arguments and volume mounts
         if let Ok(inspect) = docker.inspect_container(&container_id, None).await {
-            // Check Environment variables
+            // Check Environment variables and Command
             if let Some(config) = inspect.config {
                 if let Some(env_list) = config.env {
                     for env in env_list {
@@ -114,6 +129,37 @@ pub async fn detect_cloudflared(docker: &Docker) -> Option<DetectedCloudflared> 
                                     }
                                 }
                                 _ => {}
+                            }
+                        }
+                    }
+                }
+
+                // Check Command arguments (e.g. `tunnel --no-autoupdate run --token eyJh...`)
+                if let Some(cmd_list) = config.cmd {
+                    let mut prev_token_flag = false;
+                    for arg in cmd_list {
+                        if prev_token_flag {
+                            detected.has_token = true;
+                            if let Some((acc, tun)) = decode_tunnel_token(&arg) {
+                                if detected.account_id.is_none() {
+                                    detected.account_id = Some(acc);
+                                }
+                                if detected.tunnel_id.is_none() {
+                                    detected.tunnel_id = Some(tun);
+                                }
+                            }
+                            prev_token_flag = false;
+                        } else if arg == "--token" {
+                            prev_token_flag = true;
+                        } else if let Some(stripped) = arg.strip_prefix("--token=") {
+                            detected.has_token = true;
+                            if let Some((acc, tun)) = decode_tunnel_token(stripped) {
+                                if detected.account_id.is_none() {
+                                    detected.account_id = Some(acc);
+                                }
+                                if detected.tunnel_id.is_none() {
+                                    detected.tunnel_id = Some(tun);
+                                }
                             }
                         }
                     }

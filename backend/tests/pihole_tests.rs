@@ -223,3 +223,138 @@ fn test_clean_pihole_url_sanitization() {
     assert!(clean_pihole_url("").is_err());
 }
 
+#[test]
+fn test_pihole_parsers_domain_maps() {
+    use backend::pihole::parsers::{parse_domain_map, extract_top_domains_from_v6};
+    use serde_json::json;
+
+    // 1. Object format
+    let obj = json!({
+        "google.com": 120,
+        "github.com": 85
+    });
+    let parsed_obj = parse_domain_map(&obj);
+    assert_eq!(parsed_obj.get("google.com"), Some(&120));
+    assert_eq!(parsed_obj.get("github.com"), Some(&85));
+
+    // 2. Array format with objects
+    let arr = json!([
+        { "domain": "apple.com", "count": 200 },
+        { "name": "amazon.com", "hits": 150 }
+    ]);
+    let parsed_arr = parse_domain_map(&arr);
+    assert_eq!(parsed_arr.get("apple.com"), Some(&200));
+    assert_eq!(parsed_arr.get("amazon.com"), Some(&150));
+
+    // 3. Combined v6 top_domains format
+    let combined_v6 = json!({
+        "top_queries": {
+            "google.com": 500,
+            "orbit.home": 300
+        },
+        "top_ads": {
+            "telemetry.ms.com": 90,
+            "adservice.google.com": 60
+        }
+    });
+    let (queries, ads) = extract_top_domains_from_v6(&combined_v6);
+    assert_eq!(queries.get("google.com"), Some(&500));
+    assert_eq!(ads.get("telemetry.ms.com"), Some(&90));
+
+    // 4. v6 array format under "domains" with blocked flag
+    let array_v6 = json!({
+        "domains": [
+            { "domain": "clean.com", "count": 40, "blocked": false },
+            { "domain": "malicious.ad", "count": 70, "blocked": true }
+        ]
+    });
+    let (queries2, ads2) = extract_top_domains_from_v6(&array_v6);
+    assert_eq!(queries2.get("clean.com"), Some(&40));
+    assert_eq!(ads2.get("malicious.ad"), Some(&70));
+}
+
+#[test]
+fn test_pihole_parsers_clients_and_upstreams() {
+    use backend::pihole::parsers::{parse_clients_list, parse_upstreams, parse_query_types, parse_recent_queries};
+    use serde_json::json;
+
+    // 1. Top clients parsing
+    let clients_raw = json!({
+        "top_sources": {
+            "192.168.1.50|MacBook-Pro": 1000,
+            "192.168.1.100": 500
+        }
+    });
+    let clients = parse_clients_list(&clients_raw, 2000);
+    assert_eq!(clients.len(), 2);
+    assert_eq!(clients[0].ip, "192.168.1.50");
+    assert_eq!(clients[0].name, "MacBook-Pro");
+    assert_eq!(clients[0].count, 1000);
+    assert_eq!(clients[0].percentage, 50.0);
+
+    // 2. Upstreams parsing (v5 forward_destinations object)
+    let upstreams_v5 = json!({
+        "forward_destinations": {
+            "1.1.1.1#53|one.one.one.one": 80.0,
+            "8.8.8.8#53": 20.0
+        }
+    });
+    let upstreams = parse_upstreams(&upstreams_v5);
+    assert_eq!(upstreams.len(), 2);
+    assert_eq!(upstreams[0].destination, "1.1.1.1");
+    assert_eq!(upstreams[0].percentage, 80.0);
+
+    // 3. Upstreams parsing (v6 upstreams array)
+    let upstreams_v6 = json!({
+        "upstreams": [
+            { "ip": "1.1.1.1", "name": "Cloudflare", "count": 800, "percentage": 75.0 },
+            { "ip": "9.9.9.9", "name": "Quad9", "count": 200, "percentage": 25.0 }
+        ]
+    });
+    let upstreams_list = parse_upstreams(&upstreams_v6);
+    assert_eq!(upstreams_list.len(), 2);
+    assert_eq!(upstreams_list[0].destination, "1.1.1.1");
+    assert_eq!(upstreams_list[0].count, 800);
+
+    // 4. Query types parsing
+    let qtypes_data = json!({
+        "querytypes": {
+            "A (IPv4)": 1500,
+            "AAAA (IPv6)": 500,
+            "HTTPS": 250
+        }
+    });
+    let qtypes = parse_query_types(&qtypes_data);
+    assert_eq!(qtypes.get("A"), Some(&1500));
+    assert_eq!(qtypes.get("AAAA"), Some(&500));
+    assert_eq!(qtypes.get("HTTPS"), Some(&250));
+
+    // 5. Recent queries parsing
+    let queries_v6 = json!({
+        "queries": [
+            {
+                "time": 1726000000,
+                "type": "A",
+                "domain": "google.com",
+                "client": "192.168.1.50",
+                "status": "FORWARDED",
+                "reply": "142.250.190.46"
+            },
+            {
+                "time": 1726000005,
+                "type": "AAAA",
+                "domain": "tracker.ad",
+                "client": "192.168.1.100",
+                "status": "BLOCKED"
+            }
+        ]
+    });
+    let recent = parse_recent_queries(&queries_v6);
+    assert_eq!(recent.len(), 2);
+    assert_eq!(recent[0].domain, "google.com");
+    assert_eq!(recent[0].status, "forwarded");
+    assert_eq!(recent[1].domain, "tracker.ad");
+    assert_eq!(recent[1].status, "blocked");
+}
+
+

@@ -27,7 +27,6 @@ import {
   Sparkles,
   Globe,
   ChevronDown,
-  FileCode,
   Archive,
   ShieldCheck,
   Cloud
@@ -54,14 +53,10 @@ interface SidebarSectionProps {
 }
 
 function SidebarSection({ title, children, isCollapsed }: SidebarSectionProps) {
-  if (isCollapsed) {
-    return <div className="mb-6 space-y-1">{children}</div>;
-  }
+  if (isCollapsed) return <div className="mb-6 space-y-1">{children}</div>;
   return (
     <div className="mb-6">
-      <h3 className="px-4 text-xs font-semibold text-secondary tracking-wider uppercase mb-2">
-        {title}
-      </h3>
+      <h3 className="px-4 text-xs font-semibold text-secondary tracking-wider uppercase mb-2">{title}</h3>
       <div className="space-y-1">{children}</div>
     </div>
   );
@@ -101,11 +96,9 @@ function CustomDropdown({ icon: Icon, value, options, onChange, label }: { icon:
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -216,7 +209,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex bg-background relative overflow-x-hidden">
       {/* Custom Wallpaper Layer with Frosted Glass Contrast Veil */}
       {wallpaperUrl && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none" aria-hidden="true">
           <img
             src={wallpaperUrl}
             alt=""
@@ -294,7 +287,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <SidebarSection title={t('sidebar.docker')} isCollapsed={!isSidebarOpen && !isMobileMenuOpen}>
             <SidebarItem icon={Package} label={t('sidebar.store')} to="/store" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
-            <SidebarItem icon={FileCode} label={t('sidebar.compose')} to="/compose" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={Box} label={t('sidebar.containers')} to="/containers" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
             <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={!isSidebarOpen && !isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(false)} />
@@ -363,7 +355,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full min-w-0 ${
+      <main className={`relative z-10 flex-1 flex flex-col min-h-screen transition-all duration-300 w-full min-w-0 ${
         isSidebarOpen ? 'md:ml-64' : 'md:ml-16'
       }`}>
         {/* Topbar with Frosted Glass */}
@@ -484,7 +476,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content with fluid responsive padding */}
-        <div className={`flex-1 overflow-x-hidden animate-fade-in w-full min-w-0 ${
+        <div className={`relative z-10 flex-1 overflow-x-hidden animate-fade-in w-full min-w-0 ${
           location.pathname === '/files' ? 'p-2 sm:p-3.5 lg:p-4 flex flex-col' : 'p-3.5 sm:p-6 lg:p-8'
         }`}>
           {children}
@@ -504,5 +496,4 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
 
