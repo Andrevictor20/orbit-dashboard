@@ -29,6 +29,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInstall } from '../contexts/InstallContext';
 import { ComposeInstallModal } from '../components/docker/ComposeInstallModal';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
+import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
 import toast from 'react-hot-toast';
 
 interface AppStoreItem {
@@ -102,6 +103,13 @@ export function AppStore() {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [customModalApp, setCustomModalApp] = useState<{ id: string; name: string } | null>(null);
+  const [portConflictData, setPortConflictData] = useState<{
+    isOpen: boolean;
+    appId: string;
+    appName: string;
+    conflicts: PortConflictItem[];
+    rawInspection: any;
+  } | null>(null);
 
   useEffect(() => {
     if (searchParams.get('custom') === 'true') {
@@ -189,8 +197,53 @@ export function AppStore() {
   const handleInstall = async (id: string, appName: string) => {
     try {
       setInstalling(id);
-      
       const token = localStorage.getItem('orbit_token');
+
+      // 1. Inspeciona a configuração de portas antes de iniciar o download
+      try {
+        const configRes = await fetch(`/api/store/apps/${id}/config`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          const hostPorts = (configData.ports || [])
+            .map((p: any) => p.host)
+            .filter((p: any) => typeof p === 'number' && p > 0);
+
+          if (hostPorts.length > 0) {
+            const checkRes = await fetch('/api/docker/ports/check', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({ ports: hostPorts })
+            });
+
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              const conflicts: PortConflictItem[] = checkData.conflicts || [];
+              const hasInUse = conflicts.some(c => c.in_use);
+
+              if (hasInUse) {
+                setPortConflictData({
+                  isOpen: true,
+                  appId: id,
+                  appName,
+                  conflicts,
+                  rawInspection: configData,
+                });
+                setInstalling(null);
+                return;
+              }
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Pre-install port check skipped:', checkErr);
+      }
+
+      // 2. Sem conflito de portas -> prossegue com a instalação direta
       const res = await fetch(`/api/store/install/${id}`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -207,14 +260,16 @@ export function AppStore() {
       }
     } catch (err: any) {
       console.error('Install error:', err);
+      toast.error(err.message || 'Erro ao iniciar instalação');
     } finally {
       setInstalling(null);
     }
   };
 
-  const handleCustomInstall = async (payload: any) => {
-    if (!customModalApp) return;
-    const { id, name } = customModalApp;
+  const handleCustomInstall = async (payload: any, overrideApp?: { id: string; name: string }) => {
+    const target = overrideApp || customModalApp;
+    if (!target) return;
+    const { id, name } = target;
     try {
       setInstalling(id);
       setCustomModalApp(null);
@@ -243,6 +298,40 @@ export function AppStore() {
     } finally {
       setInstalling(null);
     }
+  };
+
+  const handleAcceptSuggestedPorts = async () => {
+    if (!portConflictData) return;
+    const { appId, appName, conflicts, rawInspection } = portConflictData;
+    setPortConflictData(null);
+
+    const conflictMap = new Map<number, number>();
+    conflicts.forEach(c => {
+      if (c.in_use) {
+        conflictMap.set(c.host_port, c.suggested_port);
+      }
+    });
+
+    const adjustedPorts = (rawInspection?.ports || []).map((p: any) => ({
+      host: conflictMap.get(p.host) ?? p.host,
+      container: p.container,
+      protocol: p.protocol || 'tcp',
+    }));
+
+    const payload = {
+      ports: adjustedPorts,
+      volumes: rawInspection?.volumes,
+      env: rawInspection?.env,
+    };
+
+    await handleCustomInstall(payload, { id: appId, name: appName });
+  };
+
+  const handleOpenCustomFromConflict = () => {
+    if (!portConflictData) return;
+    const { appId, appName } = portConflictData;
+    setPortConflictData(null);
+    setCustomModalApp({ id: appId, name: appName });
   };
 
   const dynamicCategories = useMemo(() => {
@@ -796,6 +885,18 @@ export function AppStore() {
           appName={customModalApp.name}
           onClose={() => setCustomModalApp(null)}
           onInstall={handleCustomInstall}
+        />
+      )}
+
+      {portConflictData && (
+        <PortConflictDialog
+          isOpen={portConflictData.isOpen}
+          onClose={() => setPortConflictData(null)}
+          appName={portConflictData.appName}
+          conflicts={portConflictData.conflicts}
+          onAcceptSuggested={handleAcceptSuggestedPorts}
+          onOpenCustom={handleOpenCustomFromConflict}
+          installing={installing === portConflictData.appId}
         />
       )}
     </div>

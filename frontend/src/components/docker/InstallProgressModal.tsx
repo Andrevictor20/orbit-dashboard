@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CheckCircle2, AlertCircle, Copy, Check, ExternalLink, Loader2, Minimize2 } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, Copy, Check, ExternalLink, Loader2, Minimize2, Ban } from 'lucide-react';
 import { useInstall } from '../../contexts/InstallContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ const STATUS_LABELS: Record<string, string> = {
   running: 'Processando...',
   done: 'Instalação concluída!',
   error: 'Falha na instalação',
+  cancelled: 'Instalação cancelada',
 };
 
 const getStatusLabel = (status: string, type?: string) => {
@@ -29,11 +30,13 @@ const STATUS_COLORS: Record<string, string> = {
   running: 'text-orbit-600 dark:text-orbit-400',
   done: 'text-emerald-600 dark:text-emerald-400',
   error: 'text-rose-600 dark:text-rose-400',
+  cancelled: 'text-amber-600 dark:text-amber-400',
 };
 
 export function InstallProgressModal() {
-  const { taskId, appName, isModalOpen, task, minimize, clear } = useInstall();
+  const { taskId, appName, isModalOpen, task, minimize, clear, cancelInstall } = useInstall();
   const [copied, setCopied] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -61,13 +64,16 @@ export function InstallProgressModal() {
 
   const progressBarColor = task?.status === 'error'
     ? 'bg-rose-500'
+    : task?.status === 'cancelled'
+    ? 'bg-amber-500'
     : task?.status === 'done'
     ? 'bg-emerald-500'
     : 'bg-orbit-500';
 
   const isDone = task?.status === 'done';
   const isError = task?.status === 'error';
-  const isInProgress = !isDone && !isError;
+  const isCancelled = task?.status === 'cancelled';
+  const isInProgress = !isDone && !isError && !isCancelled;
 
   const modalTitle = task?.title || (appName ? (appName.startsWith('Instalando') || appName.startsWith('Instalação') ? appName : `Instalando ${appName}`) : 'Tarefa em Segundo Plano');
 
@@ -82,6 +88,7 @@ export function InstallProgressModal() {
           <div className="flex items-center gap-3 min-w-0">
             {isDone && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />}
             {isError && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />}
+            {isCancelled && <Ban className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />}
             {isInProgress && <Loader2 className="w-5 h-5 text-orbit-600 dark:text-orbit-400 animate-spin flex-shrink-0" />}
             <div className="min-w-0">
               <h3 className="font-semibold text-primary text-sm sm:text-base truncate">{modalTitle}</h3>
@@ -101,7 +108,7 @@ export function InstallProgressModal() {
                 <Minimize2 className="w-5 h-5" />
               </button>
             )}
-            {(isDone || isError) && (
+            {(isDone || isError || isCancelled) && (
               <button 
                 onClick={() => clear()} 
                 className="p-2 text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors"
@@ -195,15 +202,33 @@ export function InstallProgressModal() {
         {/* Footer */}
         <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex flex-wrap justify-end gap-2 sm:gap-3 items-center border-t border-border/50 pt-3 shrink-0">
           {isInProgress && (
-            <button
-              onClick={minimize}
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors mr-auto"
-            >
-              Continuar em segundo plano
-            </button>
+            <>
+              <button
+                onClick={minimize}
+                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors mr-auto"
+              >
+                Continuar em segundo plano
+              </button>
+              <button
+                onClick={async () => {
+                  setIsCancelling(true);
+                  await cancelInstall(taskId);
+                  setIsCancelling(false);
+                }}
+                disabled={isCancelling}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-colors flex items-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                {isCancelling ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Ban className="w-4 h-4" />
+                )}
+                <span>{isCancelling ? 'Cancelando...' : 'Cancelar Download'}</span>
+              </button>
+            </>
           )}
           
-          {isError && (
+          {(isError || isCancelled) && (
             <button
               onClick={() => clear()}
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors"

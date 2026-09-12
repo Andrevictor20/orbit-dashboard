@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, ArrowLeft, Settings, ChevronDown, Package } from 'lucide-react';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
+import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
 import { useInstall } from '../contexts/InstallContext';
 
 interface AppStoreItem {
@@ -23,6 +24,11 @@ export function AppDetail() {
   const [error, setError] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [portConflictData, setPortConflictData] = useState<{
+    isOpen: boolean;
+    conflicts: PortConflictItem[];
+    rawInspection: any;
+  } | null>(null);
   const { startInstall } = useInstall();
 
   useEffect(() => {
@@ -56,13 +62,60 @@ export function AppDetail() {
     try {
       setInstalling(true);
       setError(null);
+      const token = localStorage.getItem('orbit_token');
+
+      // Intercept port conflicts before 1-click install
+      if (!custom) {
+        try {
+          const configRes = await fetch(`/api/store/apps/${app?.id}/config`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
+          if (configRes.ok) {
+            const configData = await configRes.json();
+            const hostPorts = (configData.ports || [])
+              .map((p: any) => p.host)
+              .filter((p: any) => typeof p === 'number' && p > 0);
+
+            if (hostPorts.length > 0) {
+              const checkRes = await fetch('/api/docker/ports/check', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ ports: hostPorts })
+              });
+
+              if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                const conflicts: PortConflictItem[] = checkData.conflicts || [];
+                if (conflicts.some(c => c.in_use)) {
+                  setPortConflictData({
+                    isOpen: true,
+                    conflicts,
+                    rawInspection: configData,
+                  });
+                  setInstalling(false);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (checkErr) {
+          console.warn('Pre-install port check skipped:', checkErr);
+        }
+      }
       
       const endpoint = custom ? `/api/store/install/custom/${app?.id}` : `/api/store/install/${app?.id}`;
-      const options = custom ? {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (custom) headers['Content-Type'] = 'application/json';
+
+      const options: RequestInit = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      } : { method: 'POST' };
+        headers,
+        ...(custom && payload ? { body: JSON.stringify(payload) } : {}),
+      };
 
       const res = await fetch(endpoint, options);
       
@@ -81,6 +134,38 @@ export function AppDetail() {
     } finally {
       setInstalling(false);
     }
+  };
+
+  const handleAcceptSuggestedPorts = async () => {
+    if (!portConflictData || !app) return;
+    const { conflicts, rawInspection } = portConflictData;
+    setPortConflictData(null);
+
+    const conflictMap = new Map<number, number>();
+    conflicts.forEach(c => {
+      if (c.in_use) {
+        conflictMap.set(c.host_port, c.suggested_port);
+      }
+    });
+
+    const adjustedPorts = (rawInspection?.ports || []).map((p: any) => ({
+      host: conflictMap.get(p.host) ?? p.host,
+      container: p.container,
+      protocol: p.protocol || 'tcp',
+    }));
+
+    const payload = {
+      ports: adjustedPorts,
+      volumes: rawInspection?.volumes,
+      env: rawInspection?.env,
+    };
+
+    await handleInstall(true, payload);
+  };
+
+  const handleOpenCustomFromConflict = () => {
+    setPortConflictData(null);
+    setShowCustomModal(true);
   };
 
   if (loading) {
@@ -187,6 +272,18 @@ export function AppDetail() {
             setShowCustomModal(false);
             handleInstall(true, payload);
           }}
+        />
+      )}
+
+      {portConflictData && app && (
+        <PortConflictDialog
+          isOpen={portConflictData.isOpen}
+          onClose={() => setPortConflictData(null)}
+          appName={app.name}
+          conflicts={portConflictData.conflicts}
+          onAcceptSuggested={handleAcceptSuggestedPorts}
+          onOpenCustom={handleOpenCustomFromConflict}
+          installing={installing}
         />
       )}
     </div>

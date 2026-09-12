@@ -1,4 +1,4 @@
-# Orbit Dashboard v3.3.0
+# Orbit Dashboard v3.4.0
 
 ### Novidades e Correções (v3.2.3)
 

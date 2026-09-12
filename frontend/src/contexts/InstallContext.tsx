@@ -18,7 +18,8 @@ export type TaskStatus =
   | 'installing' 
   | 'running' 
   | 'done' 
-  | 'error';
+  | 'error'
+  | 'cancelled';
 
 export interface InstallTask {
   id: string;
@@ -56,6 +57,7 @@ interface TaskContextType {
   task: InstallTask | null;
   tasks: InstallTask[];
   startInstall: (taskId: string, appName: string) => void;
+  cancelInstall: (id?: string) => Promise<void>;
   startTask: (options: StartTaskOptions) => string;
   updateTask: (id: string, updates: Partial<InstallTask>) => void;
   addLog: (id: string, line: string) => void;
@@ -116,7 +118,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 
   // Auto-Resume no mount: detecta se havia tarefa ativa ou consulta backend
   useEffect(() => {
-    const hasActiveTask = tasks.some(t => t.status !== 'done' && t.status !== 'error');
+    const hasActiveTask = tasks.some(t => t.status !== 'done' && t.status !== 'error' && t.status !== 'cancelled');
     if (hasActiveTask) {
       toast('Recuperando download/instalação de container em andamento...', {
         icon: '📦',
@@ -141,7 +143,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
               destinationUrl: '/containers',
             });
           });
-          const lastActive = activeList.find(t => t.status !== 'done' && t.status !== 'error');
+          const lastActive = activeList.find(t => t.status !== 'done' && t.status !== 'error' && t.status !== 'cancelled');
           if (lastActive) {
             setCurrentTaskId(lastActive.id);
             setIsModalOpen(true);
@@ -195,6 +197,33 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     addOrUpdateTask(newTask);
     setCurrentTaskId(id);
     setIsModalOpen(true);
+  };
+
+  const cancelInstall = async (id?: string) => {
+    const targetId = id || currentTaskId;
+    if (!targetId) return;
+
+    try {
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch(`/api/store/install/${targetId}/cancel`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (res.ok) {
+        updateTask(targetId, {
+          status: 'cancelled',
+        });
+        addLog(targetId, '[INFO] Instalação cancelada pelo usuário.');
+        toast.success('Download/instalação cancelada');
+      } else {
+        const err = await res.json().catch(() => null);
+        toast.error(err?.error || 'Erro ao cancelar instalação');
+      }
+    } catch (err: any) {
+      console.error('Failed to cancel install:', err);
+      toast.error('Erro de conexão ao cancelar instalação');
+    }
   };
 
   const startTask = ({
@@ -280,7 +309,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 
   // Stable key representing active app install tasks (e.g. "task1,task2")
   // Only changes when tasks start, finish, or error - never re-triggers on log or progress updates!
-  const activeAppTasks = tasks.filter(t => t.type === 'app_install' && t.status !== 'done' && t.status !== 'error');
+  const activeAppTasks = tasks.filter(t => t.type === 'app_install' && t.status !== 'done' && t.status !== 'error' && t.status !== 'cancelled');
   const activeAppTaskIdsKey = activeAppTasks.map(t => t.id).sort().join(',');
 
   const tasksRef = useRef(tasks);
@@ -318,11 +347,11 @@ export function InstallProvider({ children }: { children: ReactNode }) {
                 (data.logs && data.logs.length > 0 && existing.logs[existing.logs.length - 1] !== data.logs[data.logs.length - 1]);
 
               if (
-                !existing ||
-                existing.status !== data.status ||
-                existing.progress !== data.progress ||
-                existing.error !== data.error ||
-                logsChanged
+                 !existing ||
+                 existing.status !== data.status ||
+                 existing.progress !== data.progress ||
+                 existing.error !== data.error ||
+                 logsChanged
               ) {
                 updateTask(id, {
                   status: data.status,
@@ -369,6 +398,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
         task: currentTask,
         tasks,
         startInstall,
+        cancelInstall,
         startTask,
         updateTask,
         addLog,
@@ -389,6 +419,7 @@ const defaultTaskContext: TaskContextType = {
   task: null,
   tasks: [],
   startInstall: () => {},
+  cancelInstall: async () => {},
   startTask: (opts) => {
     if (opts.runner) {
       opts.runner({

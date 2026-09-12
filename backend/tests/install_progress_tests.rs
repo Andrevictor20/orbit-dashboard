@@ -109,3 +109,54 @@ async fn test_install_status_not_found() {
         "Unknown task_id must return 404"
     );
 }
+
+#[tokio::test]
+async fn test_cancel_install_task() {
+    let server = make_server();
+    let auth_cookie = get_test_cookie();
+    let task_id = uuid::Uuid::new_v4().to_string();
+
+    {
+        let mut tasks = backend::store::INSTALL_TASKS.write().unwrap();
+        tasks.insert(task_id.clone(), backend::store::InstallTask {
+            id: task_id.clone(),
+            status: "pulling".to_string(),
+            progress: 25,
+            logs: vec!["Pulling image...".to_string()],
+            error: None,
+        });
+    }
+
+    let cancel_res = server
+        .post(&format!("/api/store/install/{}/cancel", task_id))
+        .add_cookie(auth_cookie.clone())
+        .await;
+
+    assert_eq!(cancel_res.status_code(), 200);
+    let cancel_body: Value = cancel_res.json();
+    assert_eq!(cancel_body["status"], "cancelled");
+
+    // Verify task status via GET status endpoint
+    let status_res = server
+        .get(&format!("/api/store/install/status/{}", task_id))
+        .add_cookie(auth_cookie)
+        .await;
+
+    assert_eq!(status_res.status_code(), 200);
+    let status_body: Value = status_res.json();
+    assert_eq!(status_body["status"], "cancelled");
+}
+
+#[tokio::test]
+async fn test_cancel_install_task_not_found() {
+    let server = make_server();
+    let auth_cookie = get_test_cookie();
+
+    let response = server
+        .post("/api/store/install/nonexistent-task-abc/cancel")
+        .add_cookie(auth_cookie)
+        .await;
+
+    assert_eq!(response.status_code(), 404);
+}
+

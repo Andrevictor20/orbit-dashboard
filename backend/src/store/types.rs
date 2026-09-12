@@ -15,7 +15,7 @@ pub struct AppStoreItem {
 #[derive(Serialize, Clone)]
 pub struct InstallTask {
     pub id: String,
-    pub status: String,       // "starting" | "pulling" | "installing" | "done" | "error"
+    pub status: String,       // "starting" | "pulling" | "installing" | "done" | "error" | "cancelled"
     pub progress: u8,         // 0-100
     pub logs: Vec<String>,    // linhas de output do docker compose
     pub error: Option<String>, // mensagem de erro se falhou

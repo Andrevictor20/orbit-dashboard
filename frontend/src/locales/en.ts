@@ -213,7 +213,19 @@ export const en = {
     no_apps_found: "No applications found matching your criteria.",
     install_success: "Application '{{name}}' installed successfully!",
     uninstall_confirm: "Are you sure you want to uninstall '{{name}}'?",
-    delete_app_data: "Also delete application data"
+    delete_app_data: "Also delete application data",
+    portConflictTitle: "Port Conflict Detected",
+    portConflictDesc: "Ports requested by {{appName}} are already in use on the host.",
+    portConflictSuggestionIntro: "We detected that the following port(s) are occupied. We found the closest available port(s) to prevent installation failure:",
+    portOccupied: "Occupied",
+    portInUseGeneral: "In use on host",
+    portSuggestedBadge: "Closest available",
+    portAvailable: "Available",
+    portConflictAutoTip: "Clicking \"Install with Suggested Port\" automatically remaps the services to available ports without having to redownload images.",
+    customizeInstall: "Customize",
+    installWithSuggested: "Install with Suggested Port",
+    cancelDownload: "Cancel Download",
+    downloadCancelled: "Download/installation cancelled"
   },
   metrics: {
     title: "System Metrics",

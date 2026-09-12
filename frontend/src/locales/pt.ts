@@ -213,7 +213,19 @@ export const pt = {
     no_apps_found: "Nenhum aplicativo encontrado para os critérios de busca.",
     install_success: "Aplicativo '{{name}}' instalado com sucesso!",
     uninstall_confirm: "Tem certeza que deseja desinstalar '{{name}}'?",
-    delete_app_data: "Excluir também os dados do aplicativo"
+    delete_app_data: "Excluir também os dados do aplicativo",
+    portConflictTitle: "Conflito de Portas Detectado",
+    portConflictDesc: "Portas solicitadas por {{appName}} já estão em uso no sistema.",
+    portConflictSuggestionIntro: "Detectamos que a(s) seguinte(s) porta(s) estão ocupadas. Calculamos a porta livre mais próxima para evitar falha na instalação:",
+    portOccupied: "Ocupada",
+    portInUseGeneral: "Em uso no host",
+    portSuggestedBadge: "Livre mais próxima",
+    portAvailable: "Disponível",
+    portConflictAutoTip: "Ao clicar em \"Instalar com Porta Sugerida\", o Orbit remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.",
+    customizeInstall: "Personalizar",
+    installWithSuggested: "Instalar com Porta Sugerida",
+    cancelDownload: "Cancelar Download",
+    downloadCancelled: "Download/instalação cancelada"
   },
   metrics: {
     title: "Métricas do Sistema",

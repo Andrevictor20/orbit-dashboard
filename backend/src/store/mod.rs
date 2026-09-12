@@ -22,6 +22,8 @@ pub fn router() -> Router<AppState> {
         .route("/api/store/install/{id}", post(install_app))
         .route("/api/store/install/custom/{id}", post(install_custom_app))
         .route("/api/store/install/status/{task_id}", get(install_status))
+        .route("/api/store/install/{task_id}/cancel", post(cancel_install_task))
+        .route("/api/store/install/cancel/{task_id}", post(cancel_install_task))
         .route("/api/store/install/active", get(active_install_tasks))
         .route("/api/store/uninstall/{id}", post(uninstall_app))
         .route("/api/store/update/{id}", post(update_app))

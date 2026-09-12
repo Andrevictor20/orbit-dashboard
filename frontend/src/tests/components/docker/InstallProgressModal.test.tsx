@@ -118,4 +118,54 @@ describe('InstallProgressModal Component', () => {
     expect(mockClear).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/containers');
   });
+
+  it('renders cancel button and triggers cancelInstall when in progress', () => {
+    const mockCancelInstall = vi.fn().mockResolvedValue(undefined);
+    (useInstall as any).mockReturnValue({
+      taskId: '123',
+      appName: 'TestApp',
+      isModalOpen: true,
+      task: {
+        status: 'pulling',
+        progress: 30,
+        logs: ['[INFO] starting...', '[PULL] downloading layer...']
+      },
+      minimize: mockMinimize,
+      clear: mockClear,
+      cancelInstall: mockCancelInstall
+    });
+
+    render(<InstallProgressModal />);
+
+    const cancelBtn = screen.getByText('Cancelar Download');
+    expect(cancelBtn).toBeTruthy();
+
+    fireEvent.click(cancelBtn);
+    expect(mockCancelInstall).toHaveBeenCalledWith('123');
+  });
+
+  it('renders cancelled state correctly', () => {
+    (useInstall as any).mockReturnValue({
+      taskId: '123',
+      appName: 'TestApp',
+      isModalOpen: true,
+      task: {
+        status: 'cancelled',
+        progress: 30,
+        logs: ['[INFO] Instalação cancelada pelo usuário.']
+      },
+      minimize: mockMinimize,
+      clear: mockClear,
+      cancelInstall: vi.fn()
+    });
+
+    render(<InstallProgressModal />);
+
+    expect(screen.getByText('Instalação cancelada')).toBeTruthy();
+    expect(screen.getByText('[INFO] Instalação cancelada pelo usuário.')).toBeTruthy();
+
+    const closeBtn = screen.getByText('Fechar');
+    fireEvent.click(closeBtn);
+    expect(mockClear).toHaveBeenCalled();
+  });
 });

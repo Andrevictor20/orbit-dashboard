@@ -6,7 +6,7 @@ use axum::{
 };
 use once_cell::sync::Lazy;
 use serde_yaml::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::sync::RwLock;
 use tokio::io::AsyncBufReadExt;
@@ -15,6 +15,8 @@ use super::catalog::APPS_CACHE;
 use super::types::{CustomInstallPayload, InstallTask, PortMapping, VolumeMapping};
 
 pub static INSTALL_TASKS: Lazy<RwLock<HashMap<String, InstallTask>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+pub static CANCELLED_TASKS: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| RwLock::new(HashSet::new()));
+pub static TASK_PIDS: Lazy<RwLock<HashMap<String, u32>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 /// Sets permissions recursively on a directory using native Rust fs calls.
 /// Replaces the previous `docker run alpine chmod -R 777` which required
@@ -75,6 +77,34 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
     tokio::spawn(async move {
         let safe_id = id.replace("..", "").replace('/', "-").replace('\\', "-");
         let app_dir = format!("data/apps/{}", safe_id);
+
+        let is_cancelled = || -> bool {
+            CANCELLED_TASKS.read().map(|c| c.contains(&task_id_clone)).unwrap_or(false)
+        };
+
+        let cleanup_cancelled = |dir: &str| {
+            let _ = std::process::Command::new("docker")
+                .args(["compose", "down", "-v"])
+                .current_dir(dir)
+                .output();
+            let _ = fs::remove_dir_all(dir);
+            let mut tasks = INSTALL_TASKS.write().unwrap();
+            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                task.status = "cancelled".to_string();
+                task.logs.push("[INFO] Instalação cancelada e recursos limpos.".to_string());
+            }
+            if let Ok(mut pids) = TASK_PIDS.write() {
+                pids.remove(&task_id_clone);
+            }
+            if let Ok(mut cancelled) = CANCELLED_TASKS.write() {
+                cancelled.remove(&task_id_clone);
+            }
+        };
+
+        if is_cancelled() {
+            cleanup_cancelled(&app_dir);
+            return;
+        }
 
         // Phase 1: Prepare files (0%)
         {
@@ -160,6 +190,11 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
         // Fix permissions using native Rust fs calls (O(1) — no docker run needed)
         set_permissions_recursive(std::path::Path::new(&app_dir));
 
+        if is_cancelled() {
+            cleanup_cancelled(&app_dir);
+            return;
+        }
+
         // Phase 2: Pull images with parallel layer downloads (10% -> 60%)
         {
             let mut tasks = INSTALL_TASKS.write().unwrap();
@@ -180,11 +215,21 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
             .ok();
 
         if let Some(ref mut child) = pull_cmd {
+            if let Some(pid) = child.id() {
+                if let Ok(mut pids) = TASK_PIDS.write() {
+                    pids.insert(task_id_clone.clone(), pid);
+                }
+            }
+
             // Read stderr line by line (docker pull writes to stderr)
             if let Some(stderr) = child.stderr.take() {
                 let mut reader = tokio::io::BufReader::new(stderr).lines();
                 let mut pull_progress: u8 = 10;
                 while let Ok(Some(line)) = reader.next_line().await {
+                    if is_cancelled() {
+                        let _ = child.kill().await;
+                        break;
+                    }
                     if !line.trim().is_empty() {
                         if line.contains("Pull complete") || line.contains("Already exists") {
                             pull_progress = (pull_progress + 3).min(58);
@@ -212,8 +257,21 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                 }
             }
             let pull_status = child.wait().await;
+            if let Ok(mut pids) = TASK_PIDS.write() {
+                pids.remove(&task_id_clone);
+            }
+
+            if is_cancelled() {
+                cleanup_cancelled(&app_dir);
+                return;
+            }
+
             match pull_status {
                 Ok(status) if !status.success() => {
+                    if is_cancelled() {
+                        cleanup_cancelled(&app_dir);
+                        return;
+                    }
                     let mut tasks = INSTALL_TASKS.write().unwrap();
                     if let Some(task) = tasks.get_mut(&task_id_clone) {
                         task.status = "error".to_string();
@@ -223,6 +281,10 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                     return;
                 }
                 Err(e) => {
+                    if is_cancelled() {
+                        cleanup_cancelled(&app_dir);
+                        return;
+                    }
                     let mut tasks = INSTALL_TASKS.write().unwrap();
                     if let Some(task) = tasks.get_mut(&task_id_clone) {
                         task.status = "error".to_string();
@@ -233,6 +295,11 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                 }
                 _ => {}
             }
+        }
+
+        if is_cancelled() {
+            cleanup_cancelled(&app_dir);
+            return;
         }
 
         // Phase 3: docker compose up -d (60% -> 95%)
@@ -256,12 +323,21 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
 
         match up_cmd {
             Ok(ref mut child) => {
+                if let Some(pid) = child.id() {
+                    if let Ok(mut pids) = TASK_PIDS.write() {
+                        pids.insert(task_id_clone.clone(), pid);
+                    }
+                }
                 let mut all_output: Vec<String> = vec![];
 
                 if let Some(stderr) = child.stderr.take() {
                     let mut reader = tokio::io::BufReader::new(stderr).lines();
                     let mut up_progress: u8 = 60;
                     while let Ok(Some(line)) = reader.next_line().await {
+                        if is_cancelled() {
+                            let _ = child.kill().await;
+                            break;
+                        }
                         if !line.trim().is_empty() {
                             if line.contains("Started") || line.contains("Created") || line.contains("Running") {
                                 up_progress = (up_progress + 5).min(95);
@@ -277,7 +353,17 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                     }
                 }
 
-                match child.wait().await {
+                let wait_res = child.wait().await;
+                if let Ok(mut pids) = TASK_PIDS.write() {
+                    pids.remove(&task_id_clone);
+                }
+
+                if is_cancelled() {
+                    cleanup_cancelled(&app_dir);
+                    return;
+                }
+
+                match wait_res {
                     Ok(status) if status.success() => {
                         let mut tasks = INSTALL_TASKS.write().unwrap();
                         if let Some(task) = tasks.get_mut(&task_id_clone) {
@@ -287,6 +373,10 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                         }
                     }
                     Ok(status) => {
+                        if is_cancelled() {
+                            cleanup_cancelled(&app_dir);
+                            return;
+                        }
                         let error_msg = format!("docker compose up exited with status: {}", status);
                         let mut tasks = INSTALL_TASKS.write().unwrap();
                         if let Some(task) = tasks.get_mut(&task_id_clone) {
@@ -296,6 +386,10 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                         }
                     }
                     Err(e) => {
+                        if is_cancelled() {
+                            cleanup_cancelled(&app_dir);
+                            return;
+                        }
                         let mut tasks = INSTALL_TASKS.write().unwrap();
                         if let Some(task) = tasks.get_mut(&task_id_clone) {
                             task.status = "error".to_string();
@@ -306,6 +400,13 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                 }
             }
             Err(e) => {
+                if let Ok(mut pids) = TASK_PIDS.write() {
+                    pids.remove(&task_id_clone);
+                }
+                if is_cancelled() {
+                    cleanup_cancelled(&app_dir);
+                    return;
+                }
                 let mut tasks = INSTALL_TASKS.write().unwrap();
                 if let Some(task) = tasks.get_mut(&task_id_clone) {
                     task.status = "error".to_string();
@@ -313,6 +414,12 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                     task.logs.push(format!("[ERROR] Failed to spawn docker compose: {}", e));
                 }
             }
+        }
+        if let Ok(mut pids) = TASK_PIDS.write() {
+            pids.remove(&task_id_clone);
+        }
+        if let Ok(mut cancelled) = CANCELLED_TASKS.write() {
+            cancelled.remove(&task_id_clone);
         }
     });
 }
@@ -743,6 +850,45 @@ pub async fn active_install_tasks() -> impl IntoResponse {
     let tasks = INSTALL_TASKS.read().unwrap();
     let list: Vec<InstallTask> = tasks.values().cloned().collect();
     (StatusCode::OK, Json(list)).into_response()
+}
+
+pub async fn cancel_install_task(Path(task_id): Path<String>) -> impl IntoResponse {
+    let mut tasks = INSTALL_TASKS.write().unwrap();
+    let task = match tasks.get_mut(&task_id) {
+        Some(t) => t,
+        None => return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Task not found"}))).into_response(),
+    };
+
+    if task.status == "done" || task.status == "cancelled" {
+        return (StatusCode::OK, Json(serde_json::json!({"task_id": task_id, "status": task.status}))).into_response();
+    }
+
+    task.status = "cancelled".to_string();
+    task.logs.push("[INFO] Instalação cancelada pelo usuário.".to_string());
+
+    if let Ok(mut cancelled) = CANCELLED_TASKS.write() {
+        cancelled.insert(task_id.clone());
+    }
+
+    if let Some(&pid) = TASK_PIDS.read().unwrap().get(&task_id) {
+        #[cfg(unix)]
+        unsafe {
+            libc::kill(pid as i32, libc::SIGTERM);
+            libc::kill(pid as i32, libc::SIGKILL);
+        }
+        #[cfg(windows)]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .output();
+        }
+    }
+
+    (StatusCode::OK, Json(serde_json::json!({
+        "task_id": task_id,
+        "status": "cancelled",
+        "message": "Task cancelled successfully"
+    }))).into_response()
 }
 
 pub fn ensure_safe_logging_config(compose_str: &str) -> String {

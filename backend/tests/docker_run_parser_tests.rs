@@ -1,7 +1,7 @@
 use axum_test::TestServer;
 use backend::app;
 use backend::auth::{Claims, get_jwt_secret};
-use backend::docker::{parse_docker_command_or_compose, check_port_availability};
+use backend::docker::{parse_docker_command_or_compose, check_port_availability, find_closest_available_port};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use axum::http::StatusCode;
 
@@ -151,3 +151,28 @@ async fn test_check_ports_api_endpoint() {
     let conflicts = json.get("conflicts").and_then(|v| v.as_array()).unwrap();
     assert_eq!(conflicts.len(), 2);
 }
+
+#[test]
+fn test_find_closest_available_port_bidirectional() {
+    let target = 5172;
+    // 1. If +1 (5173) is free, it should suggest 5173
+    let mut occupied: Vec<(u16, String)> = vec![];
+    let res = find_closest_available_port(target, "tcp", &occupied);
+    assert_eq!(res, 5173, "When +1 is free, it should suggest 5173");
+
+    // 2. If +1 (5173) is occupied, it should check -1 (5171)
+    occupied.push((5173, "app_1".to_string()));
+    let res2 = find_closest_available_port(target, "tcp", &occupied);
+    assert_eq!(res2, 5171, "When +1 (5173) is occupied, it should suggest closest lower port 5171 (-1)");
+
+    // 3. If both 5173 and 5171 are occupied, it should check +2 (5174)
+    occupied.push((5171, "app_2".to_string()));
+    let res3 = find_closest_available_port(target, "tcp", &occupied);
+    assert_eq!(res3, 5174, "When 5173 and 5171 are occupied, next closest is 5174 (+2)");
+
+    // 4. If 5174 is also occupied, it should check -2 (5170)
+    occupied.push((5174, "app_3".to_string()));
+    let res4 = find_closest_available_port(target, "tcp", &occupied);
+    assert_eq!(res4, 5170, "When 5174 is occupied, next closest is 5170 (-2)");
+}
+

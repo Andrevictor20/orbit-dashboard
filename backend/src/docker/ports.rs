@@ -28,22 +28,40 @@ pub fn is_socket_port_in_use(port: u16, protocol: &str) -> bool {
     }
 }
 
-/// Finds the next available port starting from `start_port`
-pub fn find_next_available_port(start_port: u16, protocol: &str, occupied_docker_ports: &[(u16, String)]) -> u16 {
-    let mut candidate = start_port;
-    for _ in 0..500 {
-        if candidate == 0 || candidate >= 65535 {
-            break;
+/// Finds the closest available port (checking +1, -1, +2, -2, etc.) to minimize divergence
+pub fn find_closest_available_port(target_port: u16, protocol: &str, occupied_docker_ports: &[(u16, String)]) -> u16 {
+    for offset in 1..=1000u32 {
+        // 1. Check positive candidate (+offset)
+        let cand_up = target_port as u32 + offset;
+        if cand_up <= 65535 {
+            let port_up = cand_up as u16;
+            let in_docker = occupied_docker_ports.iter().any(|(p, _)| *p == port_up);
+            let in_socket = is_socket_port_in_use(port_up, protocol);
+            if !in_docker && !in_socket {
+                return port_up;
+            }
         }
-        let in_docker = occupied_docker_ports.iter().any(|(p, _)| *p == candidate);
-        let in_socket = is_socket_port_in_use(candidate, protocol);
 
-        if !in_docker && !in_socket {
-            return candidate;
+        // 2. Check negative candidate (-offset)
+        if target_port as u32 >= offset {
+            let cand_down = target_port as u32 - offset;
+            let min_port = if target_port < 1024 { 1 } else { 1024 };
+            if cand_down >= min_port && cand_down <= 65535 {
+                let port_down = cand_down as u16;
+                let in_docker = occupied_docker_ports.iter().any(|(p, _)| *p == port_down);
+                let in_socket = is_socket_port_in_use(port_down, protocol);
+                if !in_docker && !in_socket {
+                    return port_down;
+                }
+            }
         }
-        candidate += 1;
     }
-    start_port + 1
+    target_port.saturating_add(1)
+}
+
+/// Finds the next available port (delegating to find_closest_available_port for optimal proximity)
+pub fn find_next_available_port(start_port: u16, protocol: &str, occupied_docker_ports: &[(u16, String)]) -> u16 {
+    find_closest_available_port(start_port, protocol, occupied_docker_ports)
 }
 
 /// Synchronously checks port availability with fallback
@@ -56,7 +74,7 @@ pub fn check_port_availability(port: u16, protocol: &str) -> PortConflictInfo {
     };
 
     let suggested_port = if in_use {
-        find_next_available_port(port + 1, protocol, &[])
+        find_closest_available_port(port, protocol, &[])
     } else {
         port
     };
@@ -120,7 +138,7 @@ pub async fn check_ports_with_docker(
         };
 
         let suggested_port = if in_use {
-            find_next_available_port(host_p + 1, proto, &docker_ports)
+            find_closest_available_port(host_p, proto, &docker_ports)
         } else {
             host_p
         };
