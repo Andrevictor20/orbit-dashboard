@@ -278,10 +278,17 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Stable key representing active app install tasks (e.g. "task1,task2")
+  // Only changes when tasks start, finish, or error - never re-triggers on log or progress updates!
+  const activeAppTasks = tasks.filter(t => t.type === 'app_install' && t.status !== 'done' && t.status !== 'error');
+  const activeAppTaskIdsKey = activeAppTasks.map(t => t.id).sort().join(',');
+
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+
   // Poll for app store install tasks
   useEffect(() => {
-    const appInstallTasks = tasks.filter(t => t.type === 'app_install' && t.status !== 'done' && t.status !== 'error');
-    if (appInstallTasks.length === 0) {
+    if (!activeAppTaskIdsKey) {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -289,30 +296,61 @@ export function InstallProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const taskIds = activeAppTaskIdsKey.split(',').filter(Boolean);
+    let isPolling = false;
+
     const poll = async () => {
+      if (isPolling) return;
+      isPolling = true;
       try {
         const token = localStorage.getItem('orbit_token');
-        for (const it of appInstallTasks) {
-          const res = await fetch(`/api/store/install/status/${it.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data: InstallTask = await res.json();
-            updateTask(it.id, {
-              status: data.status,
-              progress: data.progress,
-              logs: data.logs || [],
-              error: data.error,
+        for (const id of taskIds) {
+          try {
+            const res = await fetch(`/api/store/install/status/${id}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
+            if (res.ok) {
+              const data: InstallTask = await res.json();
+              const existing = tasksRef.current.find(t => t.id === id);
+              // Only update state if something meaningful actually changed
+              const logsChanged = !existing ||
+                existing.logs.length !== (data.logs?.length || 0) ||
+                (data.logs && data.logs.length > 0 && existing.logs[existing.logs.length - 1] !== data.logs[data.logs.length - 1]);
+
+              if (
+                !existing ||
+                existing.status !== data.status ||
+                existing.progress !== data.progress ||
+                existing.error !== data.error ||
+                logsChanged
+              ) {
+                updateTask(id, {
+                  status: data.status,
+                  progress: data.progress,
+                  logs: data.logs || [],
+                  error: data.error,
+                });
+              }
+            } else if (res.status === 404) {
+              // Task does not exist on server (lost due to restart, crash or purged)
+              const existing = tasksRef.current.find(t => t.id === id);
+              updateTask(id, {
+                status: 'error',
+                error: 'Tarefa não encontrada ou finalizada no servidor',
+                logs: [...(existing?.logs || []), '[ERROR] Tarefa não encontrada ou expirada no servidor.'],
+              });
+            }
+          } catch (e) {
+            console.error(`Poll error for task ${id}:`, e);
           }
         }
-      } catch (e) {
-        console.error('Poll error:', e);
+      } finally {
+        isPolling = false;
       }
     };
 
     poll();
-    pollingRef.current = setInterval(poll, 500);
+    pollingRef.current = setInterval(poll, 1000);
 
     return () => {
       if (pollingRef.current) {
@@ -320,7 +358,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
         pollingRef.current = null;
       }
     };
-  }, [tasks]);
+  }, [activeAppTaskIdsKey]);
 
   return (
     <TaskContext.Provider

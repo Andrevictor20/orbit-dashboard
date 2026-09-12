@@ -170,13 +170,11 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
             }
         }
 
-        // --parallel downloads all service images concurrently instead of sequentially
         let mut pull_cmd = Command::new("docker")
             .arg("compose")
             .arg("pull")
-            .arg("--parallel")
             .current_dir(&app_dir)
-            .stdout(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped())
             .spawn()
             .ok();
@@ -189,21 +187,52 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
                 while let Ok(Some(line)) = reader.next_line().await {
                     if !line.trim().is_empty() {
                         if line.contains("Pull complete") || line.contains("Already exists") {
-                            pull_progress = (pull_progress + 3).min(55);
-                        } else if line.contains("Pulling") || line.contains("Downloading") {
+                            pull_progress = (pull_progress + 3).min(58);
+                        } else if line.contains("Extracting") {
                             pull_progress = (pull_progress + 1).min(55);
+                        } else if line.contains("Pulling") || line.contains("Downloading") {
+                            pull_progress = (pull_progress + 1).min(45);
                         }
+                        let formatted = format!("[PULL] {}", line);
                         let mut tasks = INSTALL_TASKS.write().unwrap();
                         if let Some(task) = tasks.get_mut(&task_id_clone) {
                             task.progress = pull_progress;
-                            task.logs.push(format!("[PULL] {}", line));
-                            // Keep last 200 lines
-                            if task.logs.len() > 200 { task.logs.remove(0); }
+                            let is_progress = line.contains("Extracting") || line.contains("Downloading") || line.contains('%') || line.contains("MB/");
+                            let should_replace = is_progress && task.logs.last().map(|l| l.starts_with("[PULL]") && (l.contains("Extracting") || l.contains("Downloading"))).unwrap_or(false);
+                            if should_replace {
+                                if let Some(last) = task.logs.last_mut() {
+                                    *last = formatted;
+                                }
+                            } else {
+                                task.logs.push(formatted);
+                                if task.logs.len() > 200 { task.logs.remove(0); }
+                            }
                         }
                     }
                 }
             }
-            let _ = child.wait().await;
+            let pull_status = child.wait().await;
+            match pull_status {
+                Ok(status) if !status.success() => {
+                    let mut tasks = INSTALL_TASKS.write().unwrap();
+                    if let Some(task) = tasks.get_mut(&task_id_clone) {
+                        task.status = "error".to_string();
+                        task.error = Some(format!("docker compose pull exited with error code: {}", status));
+                        task.logs.push(format!("[ERROR] Falha ao baixar imagens Docker (código: {})", status));
+                    }
+                    return;
+                }
+                Err(e) => {
+                    let mut tasks = INSTALL_TASKS.write().unwrap();
+                    if let Some(task) = tasks.get_mut(&task_id_clone) {
+                        task.status = "error".to_string();
+                        task.error = Some(format!("Failed to wait for pull: {}", e));
+                        task.logs.push(format!("[ERROR] Erro no processo de download: {}", e));
+                    }
+                    return;
+                }
+                _ => {}
+            }
         }
 
         // Phase 3: docker compose up -d (60% -> 95%)
@@ -221,7 +250,7 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
             .arg("up")
             .arg("-d")
             .current_dir(&app_dir)
-            .stdout(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped())
             .spawn();
 
@@ -354,9 +383,8 @@ pub async fn update_app(Path(id): Path<String>) -> impl IntoResponse {
         let pull_spawn = Command::new("docker")
             .arg("compose")
             .arg("pull")
-            .arg("--parallel")
             .current_dir(&app_dir)
-            .stdout(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped())
             .spawn();
 
@@ -368,15 +396,26 @@ pub async fn update_app(Path(id): Path<String>) -> impl IntoResponse {
                     while let Ok(Some(line)) = reader.next_line().await {
                         if !line.trim().is_empty() {
                             if line.contains("Pull complete") || line.contains("Already exists") {
-                                pull_progress = (pull_progress + 4).min(55);
-                            } else if line.contains("Pulling") || line.contains("Downloading") {
+                                pull_progress = (pull_progress + 3).min(58);
+                            } else if line.contains("Extracting") {
                                 pull_progress = (pull_progress + 1).min(55);
+                            } else if line.contains("Pulling") || line.contains("Downloading") {
+                                pull_progress = (pull_progress + 1).min(45);
                             }
+                            let formatted = format!("[PULL] {}", line);
                             let mut tasks = INSTALL_TASKS.write().unwrap();
                             if let Some(task) = tasks.get_mut(&task_id_clone) {
                                 task.progress = pull_progress;
-                                task.logs.push(format!("[PULL] {}", line));
-                                if task.logs.len() > 200 { task.logs.remove(0); }
+                                let is_progress = line.contains("Extracting") || line.contains("Downloading") || line.contains('%') || line.contains("MB/");
+                                let should_replace = is_progress && task.logs.last().map(|l| l.starts_with("[PULL]") && (l.contains("Extracting") || l.contains("Downloading"))).unwrap_or(false);
+                                if should_replace {
+                                    if let Some(last) = task.logs.last_mut() {
+                                        *last = formatted;
+                                    }
+                                } else {
+                                    task.logs.push(formatted);
+                                    if task.logs.len() > 200 { task.logs.remove(0); }
+                                }
                             }
                         }
                     }
@@ -417,7 +456,7 @@ pub async fn update_app(Path(id): Path<String>) -> impl IntoResponse {
             .arg("up")
             .arg("-d")
             .current_dir(&app_dir)
-            .stdout(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped())
             .spawn();
 
