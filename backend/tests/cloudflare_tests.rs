@@ -547,8 +547,114 @@ fn test_sync_ingress_rules_populates_short_id_and_container_name() {
     assert!(sync_res.synced_links.contains_key(&full_id));
     assert!(sync_res.synced_links.contains_key(&short_id), "Short ID (12 chars) must be synced");
     assert!(sync_res.synced_links.contains_key("stirling-pdf"), "Container name must be synced");
+    assert!(sync_res.synced_links.contains_key("pdf"), "Token 'pdf' must be synced to custom links");
     assert_eq!(sync_res.synced_links.get(&short_id).unwrap(), &public_url);
     assert_eq!(sync_res.synced_links.get("stirling-pdf").unwrap(), &public_url);
+}
+
+#[test]
+fn test_real_world_container_matching() {
+    use backend::cloudflare::client::{match_ingress_with_containers, ContainerSummaryInfo};
+    use backend::cloudflare::ingress::RawIngressRule;
+
+    let raw_rules = vec![
+        // 1. stirling-pdf matched via token "pdf" from hostname
+        RawIngressRule {
+            hostname: Some("pdf.rasppi.cloud".to_string()),
+            service: "http://localhost:8082".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 2. stirling-pdf matched via LAN IP with port
+        RawIngressRule {
+            hostname: Some("pdf-lan.rasppi.cloud".to_string()),
+            service: "http://192.168.1.50:8082".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 3. linuxserver-kavita-app-1 matched via clean app name "kavita"
+        RawIngressRule {
+            hostname: Some("kavita.rasppi.cloud".to_string()),
+            service: "http://kavita:5000".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 4. big-bear-pihole matched via clean app name "pihole"
+        RawIngressRule {
+            hostname: Some("pihole.rasppi.cloud".to_string()),
+            service: "http://pihole:8080".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 5. orbit-dashboard matched via clean app name "orbit"
+        RawIngressRule {
+            hostname: Some("orbit.rasppi.cloud".to_string()),
+            service: "http://orbit:5172".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 6. site-alvimar matched via clean app name "alvimar"
+        RawIngressRule {
+            hostname: Some("alvimar.rasppi.cloud".to_string()),
+            service: "http://site-alvimar:86".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 7. Compose project stack ar-saude
+        RawIngressRule {
+            hostname: Some("saude.rasppi.cloud".to_string()),
+            service: "http://saude:3002".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 8. False positive test: cloud.rasppi.cloud must NOT match nextcloud or cloudflared
+        RawIngressRule {
+            hostname: Some("cloud.rasppi.cloud".to_string()),
+            service: "http://localhost:8080".to_string(),
+            path: None,
+            origin_request: None,
+        },
+    ];
+
+    let containers = vec![
+        ContainerSummaryInfo::new("cont_stirling", "stirling-pdf", vec![8082]),
+        ContainerSummaryInfo::new("cont_kavita", "linuxserver-kavita-app-1", vec![5000]),
+        ContainerSummaryInfo::new("cont_pihole", "big-bear-pihole", vec![8080, 443]),
+        ContainerSummaryInfo::new("cont_orbit", "orbit-dashboard", vec![5172, 5173]),
+        ContainerSummaryInfo::new("cont_alvimar", "site-alvimar", vec![86, 448]),
+        ContainerSummaryInfo::new("cont_saude", "ar-saude-frontend-1", vec![3002])
+            .with_project_name(Some("ar-saude".to_string()))
+            .with_service_name(Some("frontend".to_string())),
+        ContainerSummaryInfo::new("cont_nextcloud", "nextcloud", vec![8080]),
+        ContainerSummaryInfo::new("cont_cloudflared", "cloudflared", vec![14333]),
+    ];
+
+    let matched = match_ingress_with_containers(raw_rules, &containers);
+    assert_eq!(matched.len(), 8);
+
+    // 1. pdf.rasppi.cloud -> cont_stirling
+    assert_eq!(matched[0].matched_container_id.as_deref(), Some("cont_stirling"));
+
+    // 2. pdf-lan.rasppi.cloud (192.168.1.50:8082) -> cont_stirling
+    assert_eq!(matched[1].matched_container_id.as_deref(), Some("cont_stirling"));
+
+    // 3. kavita.rasppi.cloud -> cont_kavita
+    assert_eq!(matched[2].matched_container_id.as_deref(), Some("cont_kavita"));
+
+    // 4. pihole.rasppi.cloud -> cont_pihole
+    assert_eq!(matched[3].matched_container_id.as_deref(), Some("cont_pihole"));
+
+    // 5. orbit.rasppi.cloud -> cont_orbit
+    assert_eq!(matched[4].matched_container_id.as_deref(), Some("cont_orbit"));
+
+    // 6. alvimar.rasppi.cloud -> cont_alvimar
+    assert_eq!(matched[5].matched_container_id.as_deref(), Some("cont_alvimar"));
+
+    // 7. saude.rasppi.cloud -> cont_saude
+    assert_eq!(matched[6].matched_container_id.as_deref(), Some("cont_saude"));
+
+    // 8. cloud.rasppi.cloud -> None (generic subdomain, avoided false positive with nextcloud/cloudflared)
+    assert_eq!(matched[7].matched_container_id, None);
 }
 
 

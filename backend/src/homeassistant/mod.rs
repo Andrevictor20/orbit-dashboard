@@ -1,3 +1,9 @@
+pub mod client;
+pub mod models;
+
+pub use client::*;
+pub use models::*;
+
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -5,126 +11,31 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
+
 use crate::state::AppState;
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct HomeAssistantConfig {
-    pub url: String,
-    pub token: String,
-    pub enabled: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ConfigResponse {
-    pub configured: bool,
-    pub connected: bool,
-    pub url: String,
-    pub version: Option<String>,
-    pub location_name: Option<String>,
-    pub error: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SaveConfigRequest {
-    pub url: String,
-    pub token: String,
-}
-
-static HA_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(8))
-        .build()
-        .unwrap_or_else(|_| reqwest::Client::new())
-});
-
-static HA_CONFIG_CACHE: Lazy<Arc<RwLock<Option<HomeAssistantConfig>>>> = Lazy::new(|| {
-    let path = get_config_path();
-    if let Ok(data) = fs::read_to_string(&path) {
-        if let Ok(config) = serde_json::from_str::<HomeAssistantConfig>(&data) {
-            return Arc::new(RwLock::new(Some(config)));
-        }
-    }
-    Arc::new(RwLock::new(None))
-});
-
-// Cache 1: Entidades enriquecidas prontas para envio (TTL curto: 4s)
-// Elimina requisições redundantes de abas concorrentes ou navegações rápidas
-struct CachedEntities {
-    data: serde_json::Value,
-    timestamp: Instant,
-}
-
-static HA_ENTITIES_CACHE: Lazy<Arc<RwLock<Option<CachedEntities>>>> = Lazy::new(|| {
-    Arc::new(RwLock::new(None))
-});
-
-// Cache 2: Mapeamento de metadados de áreas e dispositivos resolvidos (TTL longo: 180s / 3 minutos)
-// Elimina a execução contínua e repetitiva de templates Jinja2 caros no daemon do Home Assistant
-struct CachedMeta {
-    mapping: HashMap<String, (String, String)>,
-    timestamp: Instant,
-}
-
-static HA_META_CACHE: Lazy<Arc<RwLock<Option<CachedMeta>>>> = Lazy::new(|| {
-    Arc::new(RwLock::new(None))
-});
-
-pub fn invalidate_ha_caches() {
-    if let Ok(mut guard) = HA_ENTITIES_CACHE.write() {
-        *guard = None;
-    }
-    if let Ok(mut guard) = HA_META_CACHE.write() {
-        *guard = None;
-    }
-}
-
-pub fn invalidate_ha_entities_cache() {
-    if let Ok(mut guard) = HA_ENTITIES_CACHE.write() {
-        *guard = None;
-    }
-}
-
-pub fn get_config_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    path.push("data");
-    path.push("homeassistant.json");
-    path
-}
-
-fn save_config_to_disk(config: &Option<HomeAssistantConfig>) {
-    let path = get_config_path();
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-    if let Some(cfg) = config {
-        if let Ok(json) = serde_json::to_string_pretty(cfg) {
-            let _ = fs::write(&path, json);
-        }
-    } else if path.exists() {
-        let _ = fs::remove_file(&path);
-    }
-}
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/api/homeassistant/config", get(get_config).post(save_config).delete(delete_config))
+        .route(
+            "/api/homeassistant/config",
+            get(get_config).post(save_config).delete(delete_config),
+        )
         .route("/api/homeassistant/entities", get(get_entities))
-        .route("/api/homeassistant/services/{domain}/{service}", post(call_service))
-        .route("/api/homeassistant/camera_proxy/{entity_id}", get(camera_proxy))
+        .route(
+            "/api/homeassistant/services/{domain}/{service}",
+            post(call_service),
+        )
+        .route(
+            "/api/homeassistant/camera_proxy/{entity_id}",
+            get(camera_proxy),
+        )
 }
 
 pub async fn get_config() -> impl IntoResponse {
-    let current = {
-        let guard = HA_CONFIG_CACHE.read().unwrap();
-        guard.clone()
-    };
+    let current = get_current_config();
 
     match current {
         None => (
@@ -137,7 +48,8 @@ pub async fn get_config() -> impl IntoResponse {
                 location_name: None,
                 error: None,
             }),
-        ).into_response(),
+        )
+            .into_response(),
         Some(cfg) => {
             let clean_url = cfg.url.trim_end_matches('/');
             let check_url = format!("{}/api/config", clean_url);
@@ -150,8 +62,14 @@ pub async fn get_config() -> impl IntoResponse {
             {
                 Ok(resp) if resp.status().is_success() => {
                     let info: serde_json::Value = resp.json().await.unwrap_or_default();
-                    let version = info.get("version").and_then(|v| v.as_str()).map(|s| s.to_string());
-                    let location_name = info.get("location_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                    let version = info
+                        .get("version")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+                    let location_name = info
+                        .get("location_name")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
 
                     (
                         StatusCode::OK,
@@ -163,7 +81,8 @@ pub async fn get_config() -> impl IntoResponse {
                             location_name,
                             error: None,
                         }),
-                    ).into_response()
+                    )
+                        .into_response()
                 }
                 Ok(resp) => {
                     let err_msg = format!("Home Assistant returned status {}", resp.status());
@@ -177,7 +96,8 @@ pub async fn get_config() -> impl IntoResponse {
                             location_name: None,
                             error: Some(err_msg),
                         }),
-                    ).into_response()
+                    )
+                        .into_response()
                 }
                 Err(e) => {
                     let err_msg = format!("Could not reach Home Assistant: {}", e);
@@ -191,7 +111,8 @@ pub async fn get_config() -> impl IntoResponse {
                             location_name: None,
                             error: Some(err_msg),
                         }),
-                    ).into_response()
+                    )
+                        .into_response()
                 }
             }
         }
@@ -206,14 +127,16 @@ pub async fn save_config(Json(payload): Json<SaveConfigRequest>) -> impl IntoRes
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "URL must start with http:// or https://" })),
-        ).into_response();
+        )
+            .into_response();
     }
 
     if trimmed_token.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "Token cannot be empty" })),
-        ).into_response();
+        )
+            .into_response();
     }
 
     let clean_url = trimmed_url.trim_end_matches('/').to_string();
@@ -233,7 +156,8 @@ pub async fn save_config(Json(payload): Json<SaveConfigRequest>) -> impl IntoRes
                 Json(serde_json::json!({
                     "error": format!("Failed to connect to Home Assistant at {}: {}", clean_url, e)
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
@@ -243,17 +167,29 @@ pub async fn save_config(Json(payload): Json<SaveConfigRequest>) -> impl IntoRes
             Json(serde_json::json!({
                 "error": format!("Authentication failed: Home Assistant responded with status {}", resp.status())
             })),
-        ).into_response();
+        )
+            .into_response();
     }
 
     // Try fetching extra details (version, location)
     let mut version: Option<String> = None;
     let mut location_name: Option<String> = None;
     let config_url = format!("{}/api/config", clean_url);
-    if let Ok(config_resp) = HA_CLIENT.get(&config_url).bearer_auth(trimmed_token).send().await {
+    if let Ok(config_resp) = HA_CLIENT
+        .get(&config_url)
+        .bearer_auth(trimmed_token)
+        .send()
+        .await
+    {
         if let Ok(val) = config_resp.json::<serde_json::Value>().await {
-            version = val.get("version").and_then(|v| v.as_str()).map(|s| s.to_string());
-            location_name = val.get("location_name").and_then(|v| v.as_str()).map(|s| s.to_string());
+            version = val
+                .get("version")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            location_name = val
+                .get("location_name")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
         }
     }
 
@@ -279,7 +215,8 @@ pub async fn save_config(Json(payload): Json<SaveConfigRequest>) -> impl IntoRes
             "version": version,
             "location_name": location_name
         })),
-    ).into_response()
+    )
+        .into_response()
 }
 
 pub async fn delete_config() -> impl IntoResponse {
@@ -293,7 +230,8 @@ pub async fn delete_config() -> impl IntoResponse {
     (
         StatusCode::OK,
         Json(serde_json::json!({ "status": "ok", "message": "Home Assistant disconnected" })),
-    ).into_response()
+    )
+        .into_response()
 }
 
 pub async fn get_entities() -> impl IntoResponse {
@@ -306,10 +244,7 @@ pub async fn get_entities() -> impl IntoResponse {
         }
     }
 
-    let cfg = {
-        let guard = HA_CONFIG_CACHE.read().unwrap();
-        guard.clone()
-    };
+    let cfg = get_current_config();
 
     let cfg = match cfg {
         Some(c) if c.enabled => c,
@@ -317,7 +252,8 @@ pub async fn get_entities() -> impl IntoResponse {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": "Home Assistant is not configured or enabled" })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
@@ -333,7 +269,6 @@ pub async fn get_entities() -> impl IntoResponse {
             match resp.json::<serde_json::Value>().await {
                 Ok(mut data) => {
                     // 2. Resolução Eficiente de Metadados (Áreas e Dispositivos) com Cache de 180s (3 minutos)
-                    // Evita processamento Jinja2 repetido em cada request no daemon do Home Assistant
                     let mut meta_map: Option<HashMap<String, (String, String)>> = None;
 
                     if let Ok(guard) = HA_META_CACHE.read() {
@@ -366,10 +301,18 @@ pub async fn get_entities() -> impl IntoResponse {
                                         a: Option<String>,
                                         d: Option<String>,
                                     }
-                                    if let Ok(meta_list) = serde_json::from_str::<Vec<EntityMeta>>(&raw_json) {
+                                    if let Ok(meta_list) =
+                                        serde_json::from_str::<Vec<EntityMeta>>(&raw_json)
+                                    {
                                         let mut new_map = HashMap::new();
                                         for m in meta_list {
-                                            new_map.insert(m.e, (m.a.unwrap_or_default(), m.d.unwrap_or_default()));
+                                            new_map.insert(
+                                                m.e,
+                                                (
+                                                    m.a.unwrap_or_default(),
+                                                    m.d.unwrap_or_default(),
+                                                ),
+                                            );
                                         }
                                         if let Ok(mut guard) = HA_META_CACHE.write() {
                                             *guard = Some(CachedMeta {
@@ -387,13 +330,17 @@ pub async fn get_entities() -> impl IntoResponse {
                     if let Some(map) = meta_map {
                         if let Some(arr) = data.as_array_mut() {
                             for ent in arr.iter_mut() {
-                                if let Some(eid) = ent.get("entity_id").and_then(|v| v.as_str()) {
+                                if let Some(eid) =
+                                    ent.get("entity_id").and_then(|v| v.as_str())
+                                {
                                     if let Some((area, device)) = map.get(eid) {
                                         if !area.is_empty() {
-                                            ent["area"] = serde_json::Value::String(area.clone());
+                                            ent["area"] =
+                                                serde_json::Value::String(area.clone());
                                         }
                                         if !device.is_empty() {
-                                            ent["device_name"] = serde_json::Value::String(device.clone());
+                                            ent["device_name"] =
+                                                serde_json::Value::String(device.clone());
                                         }
                                     }
                                 }
@@ -414,17 +361,20 @@ pub async fn get_entities() -> impl IntoResponse {
                 Err(e) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({ "error": format!("Failed to parse entities: {}", e) })),
-                ).into_response(),
+                )
+                    .into_response(),
             }
         }
         Ok(resp) => (
             StatusCode::BAD_GATEWAY,
             Json(serde_json::json!({ "error": format!("Home Assistant returned status {}", resp.status()) })),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::BAD_GATEWAY,
             Json(serde_json::json!({ "error": format!("Failed to reach Home Assistant: {}", e) })),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -432,10 +382,7 @@ pub async fn call_service(
     Path((domain, service)): Path<(String, String)>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let cfg = {
-        let guard = HA_CONFIG_CACHE.read().unwrap();
-        guard.clone()
-    };
+    let cfg = get_current_config();
 
     let cfg = match cfg {
         Some(c) if c.enabled => c,
@@ -443,11 +390,17 @@ pub async fn call_service(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": "Home Assistant is not configured or enabled" })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
-    let service_url = format!("{}/api/services/{}/{}", cfg.url.trim_end_matches('/'), domain, service);
+    let service_url = format!(
+        "{}/api/services/{}/{}",
+        cfg.url.trim_end_matches('/'),
+        domain,
+        service
+    );
     match HA_CLIENT
         .post(&service_url)
         .bearer_auth(&cfg.token)
@@ -457,7 +410,8 @@ pub async fn call_service(
     {
         Ok(resp) if resp.status().is_success() => {
             invalidate_ha_entities_cache();
-            let data: serde_json::Value = resp.json().await.unwrap_or(serde_json::json!({"status": "ok"}));
+            let data: serde_json::Value =
+                resp.json().await.unwrap_or(serde_json::json!({"status": "ok"}));
             (StatusCode::OK, Json(data)).into_response()
         }
         Ok(resp) => {
@@ -465,20 +419,19 @@ pub async fn call_service(
             (
                 StatusCode::BAD_GATEWAY,
                 Json(serde_json::json!({ "error": format!("Service call failed: {}", error_text) })),
-            ).into_response()
+            )
+                .into_response()
         }
         Err(e) => (
             StatusCode::BAD_GATEWAY,
             Json(serde_json::json!({ "error": format!("Failed to reach Home Assistant: {}", e) })),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
 pub async fn camera_proxy(Path(entity_id): Path<String>) -> impl IntoResponse {
-    let cfg = {
-        let guard = HA_CONFIG_CACHE.read().unwrap();
-        guard.clone()
-    };
+    let cfg = get_current_config();
 
     let cfg = match cfg {
         Some(c) if c.enabled => c,
@@ -486,7 +439,8 @@ pub async fn camera_proxy(Path(entity_id): Path<String>) -> impl IntoResponse {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(serde_json::json!({ "error": "Home Assistant is not configured or enabled" })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
@@ -509,16 +463,18 @@ pub async fn camera_proxy(Path(entity_id): Path<String>) -> impl IntoResponse {
                 StatusCode::OK,
                 [(axum::http::header::CONTENT_TYPE, content_type)],
                 bytes,
-            ).into_response()
+            )
+                .into_response()
         }
         Ok(resp) => (
             StatusCode::BAD_GATEWAY,
             Json(serde_json::json!({ "error": format!("Camera proxy returned status {}", resp.status()) })),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => (
             StatusCode::BAD_GATEWAY,
             Json(serde_json::json!({ "error": format!("Failed to reach camera: {}", e) })),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
-

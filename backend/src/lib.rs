@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod cloudflare;
 pub mod docker;
+pub mod errors;
 pub mod files;
 pub mod homeassistant;
 pub mod links;

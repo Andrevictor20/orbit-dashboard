@@ -1,18 +1,15 @@
-use bollard::query_parameters::ListContainersOptions;
-use bollard::Docker;
 use once_cell::sync::Lazy;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use tracing::{info, warn};
+use tracing::warn;
 
 use super::models::{
-    CloudflareConfig, IngressRule, SaveCloudflareConfigRequest, SyncLinksResponse,
+    CloudflareConfig, SaveCloudflareConfigRequest,
 };
 
 static CLOUDFLARE_CONFIG_CACHE: Lazy<Arc<RwLock<Option<CloudflareConfig>>>> = Lazy::new(|| {
@@ -217,8 +214,15 @@ impl CloudflareClient {
                         .map(|e| e.message)
                         .collect::<Vec<_>>()
                         .join(", ");
+                    let lower = msg.to_lowercase();
+                    if lower.contains("not authorized") || status.as_u16() == 403 || status.as_u16() == 401 {
+                        return Err("Cloudflare API: Não autorizado (Not authorized). O seu API Token não possui permissão para ler ou modificar as configurações do túnel. Adicione a permissão 'Account > Cloudflare Tunnel > Edit' (e opcionalmente 'Zone > DNS > Edit') no painel da Cloudflare (dash.cloudflare.com/profile/api-tokens).".to_string());
+                    }
                     return Err(format!("Cloudflare API: {}", msg));
                 }
+            }
+            if status.as_u16() == 403 || status.as_u16() == 401 || err_text.to_lowercase().contains("not authorized") {
+                return Err("Cloudflare API: Não autorizado (Not authorized). O seu API Token não possui permissão para ler ou modificar as configurações do túnel. Adicione a permissão 'Account > Cloudflare Tunnel > Edit' no painel da Cloudflare (dash.cloudflare.com/profile/api-tokens).".to_string());
             }
             return Err(format!("Cloudflare API status {}: {}", status, err_text));
         }
@@ -317,262 +321,7 @@ impl CloudflareClient {
 }
 
 // -----------------------------------------------------------------------------
-// Ingress Rule Container Matching Engine
+// Ingress Rule Container Matching Engine (Extracted to matching.rs)
 // -----------------------------------------------------------------------------
 
-#[derive(Clone, Debug)]
-pub struct ContainerSummaryInfo {
-    pub id: String,
-    pub name: String,
-    pub ports: Vec<u16>,
-    pub service_name: Option<String>,
-}
-
-impl ContainerSummaryInfo {
-    pub fn new(id: impl Into<String>, name: impl Into<String>, ports: Vec<u16>) -> Self {
-        Self {
-            id: id.into(),
-            name: name.into(),
-            ports,
-            service_name: None,
-        }
-    }
-
-    pub fn with_service_name(mut self, service_name: Option<String>) -> Self {
-        self.service_name = service_name;
-        self
-    }
-}
-
-fn is_ip_address(host: &str) -> bool {
-    host.parse::<std::net::IpAddr>().is_ok()
-}
-
-fn is_loopback_or_host(host: &str) -> bool {
-    host.eq_ignore_ascii_case("localhost")
-        || host == "127.0.0.1"
-        || host == "::1"
-        || host.eq_ignore_ascii_case("host.docker.internal")
-        || host == "0.0.0.0"
-}
-
-pub fn match_ingress_with_containers(
-    raw_rules: Vec<RawIngressRule>,
-    containers: &[ContainerSummaryInfo],
-) -> Vec<IngressRule> {
-    let mut results = Vec::new();
-
-    for raw in raw_rules {
-        let hostname = match raw.hostname {
-            Some(ref h) if !h.trim().is_empty() => h.trim().to_string(),
-            _ => continue, // Ignore catch-all rules without hostname (e.g. http_status:404)
-        };
-
-        let service = raw.service.trim().to_string();
-        let public_url = format!("https://{}", hostname);
-
-        // Parse service target host and port (e.g. "http://jellyfin:8096" -> host="jellyfin", port=8096)
-        let (service_host, service_port) = parse_service_target(&service);
-
-        // Extract subdomain from hostname (e.g. "jellyfin.example.com" -> "jellyfin")
-        let subdomain = hostname.split('.').next().unwrap_or("").to_lowercase();
-
-        let mut matched_id = None;
-        let mut matched_name = None;
-
-        let is_ip = service_host.as_deref().map(is_ip_address).unwrap_or(false);
-        let is_loopback = service_host.as_deref().map(is_loopback_or_host).unwrap_or(false);
-
-        // Matching Pass 1: Exact container name, exact container ID, or exact Compose service name
-        if let Some(ref sh) = service_host {
-            let sh_lower = sh.to_lowercase();
-            if !is_ip && !is_loopback {
-                if let Some(c) = containers.iter().find(|c| {
-                    let cn = c.name.to_lowercase();
-                    cn == sh_lower 
-                        || c.id == *sh 
-                        || (sh.len() >= 12 && c.id.starts_with(sh))
-                        || c.service_name.as_ref().map(|s| s.to_lowercase() == sh_lower).unwrap_or(false)
-                }) {
-                    matched_id = Some(c.id.clone());
-                    matched_name = Some(c.name.clone());
-                }
-            }
-        }
-
-        // Matching Pass 2: Exact container name without Docker Compose replica suffix (e.g. "stirling-pdf-1" -> "stirling-pdf")
-        if matched_id.is_none() && !is_ip && !is_loopback {
-            if let Some(ref sh) = service_host {
-                let sh_lower = sh.to_lowercase();
-                if sh_lower.len() >= 3 {
-                    if let Some(c) = containers.iter().find(|c| {
-                        let cn = c.name.to_lowercase();
-                        let stripped = cn
-                            .strip_suffix("-1")
-                            .or_else(|| cn.strip_suffix("_1"))
-                            .or_else(|| cn.strip_suffix("-app-1"))
-                            .unwrap_or(&cn);
-                        stripped == sh_lower
-                    }) {
-                        matched_id = Some(c.id.clone());
-                        matched_name = Some(c.name.clone());
-                    }
-                }
-            }
-        }
-
-        // Matching Pass 3: Port matching ONLY when service points to localhost / internal loopback
-        // AND ONLY when exactly ONE container on the host exposes this port (prevent ambiguous binding)
-        if matched_id.is_none() && is_loopback {
-            if let Some(port) = service_port {
-                let candidate_containers: Vec<_> = containers
-                    .iter()
-                    .filter(|c| c.ports.contains(&port))
-                    .collect();
-
-                if candidate_containers.len() == 1 {
-                    let c = candidate_containers[0];
-                    matched_id = Some(c.id.clone());
-                    matched_name = Some(c.name.clone());
-                } else if candidate_containers.len() > 1 {
-                    // Try to break tie using subdomain if one of candidates matches subdomain exactly
-                    if let Some(c) = candidate_containers.iter().find(|c| {
-                        c.name.eq_ignore_ascii_case(&subdomain)
-                            || c.service_name.as_ref().map(|s| s.eq_ignore_ascii_case(&subdomain)).unwrap_or(false)
-                    }) {
-                        matched_id = Some(c.id.clone());
-                        matched_name = Some(c.name.clone());
-                    }
-                }
-            }
-        }
-
-        // Matching Pass 4: Subdomain of hostname matches container name or compose service EXACTLY
-        // (Never partial substring contains, which caused e.g. "cloud" to match "nextcloud" or "pdf" to match all pdf tools)
-        if matched_id.is_none() && !subdomain.is_empty() && subdomain.len() >= 3 {
-            let norm_sub = subdomain.replace(['-', '_'], "");
-            if let Some(c) = containers.iter().find(|c| {
-                let cn = c.name.to_lowercase();
-                let norm_cn = cn.replace(['-', '_'], "");
-                cn == subdomain 
-                    || norm_cn == norm_sub 
-                    || c.service_name.as_ref().map(|s| {
-                        let sn = s.to_lowercase();
-                        sn == subdomain || sn.replace(['-', '_'], "") == norm_sub
-                    }).unwrap_or(false)
-            }) {
-                matched_id = Some(c.id.clone());
-                matched_name = Some(c.name.clone());
-            }
-        }
-
-        results.push(IngressRule {
-            hostname,
-            service,
-            path: raw.path,
-            public_url,
-            matched_container_id: matched_id,
-            matched_container_name: matched_name,
-        });
-    }
-
-    results
-}
-
-/// Parses target host and port from service URI string
-fn parse_service_target(service: &str) -> (Option<String>, Option<u16>) {
-    let clean = service
-        .strip_prefix("http://")
-        .or_else(|| service.strip_prefix("https://"))
-        .or_else(|| service.strip_prefix("tcp://"))
-        .unwrap_or(service);
-
-    let host_and_port = clean.split('/').next().unwrap_or("");
-    if let Some((host, port_str)) = host_and_port.split_once(':') {
-        let port = port_str.parse::<u16>().ok();
-        (Some(host.trim().to_string()), port)
-    } else if !host_and_port.trim().is_empty() {
-        (Some(host_and_port.trim().to_string()), None)
-    } else {
-        (None, None)
-    }
-}
-
-/// Gathers container summary info (id, clean name, ports) from Docker daemon
-pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<ContainerSummaryInfo> {
-    let mut options = ListContainersOptions::default();
-    options.all = true;
-
-    let containers = docker.list_containers(Some(options)).await.unwrap_or_default();
-    let mut results = Vec::new();
-
-    for c in containers {
-        let id = c.id.unwrap_or_default();
-        if id.is_empty() {
-            continue;
-        }
-
-        let name = c
-            .names
-            .and_then(|names| names.into_iter().next())
-            .map(|n| n.trim_start_matches('/').to_string())
-            .unwrap_or_else(|| id[..12.min(id.len())].to_string());
-
-        let mut ports = Vec::new();
-        if let Some(port_list) = c.ports {
-            for p in port_list {
-                ports.push(p.private_port);
-                if let Some(pub_port) = p.public_port {
-                    ports.push(pub_port);
-                }
-            }
-        }
-
-        let service_name = c
-            .labels
-            .as_ref()
-            .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.casaos.app.name")))
-            .cloned();
-
-        results.push(ContainerSummaryInfo {
-            id,
-            name,
-            ports,
-            service_name,
-        });
-    }
-
-    results
-}
-
-/// Syncs matched ingress rules into Orbit's custom links
-pub fn sync_ingress_rules_to_links(rules: &[IngressRule]) -> SyncLinksResponse {
-    let mut links_to_update = HashMap::new();
-
-    for rule in rules {
-        if let Some(ref container_id) = rule.matched_container_id {
-            links_to_update.insert(container_id.clone(), rule.public_url.clone());
-            if container_id.len() >= 12 {
-                links_to_update.insert(container_id[..12].to_string(), rule.public_url.clone());
-            }
-        }
-        if let Some(ref name) = rule.matched_container_name {
-            let clean = name.trim_start_matches('/');
-            if !clean.is_empty() {
-                links_to_update.insert(clean.to_string(), rule.public_url.clone());
-                links_to_update.insert(clean.to_lowercase(), rule.public_url.clone());
-            }
-        }
-    }
-
-    let synced_count = crate::links::update_links_batch(&links_to_update);
-    info!(
-        "Synced {} Cloudflare tunnel links to container custom_links.json",
-        synced_count
-    );
-
-    SyncLinksResponse {
-        synced_count,
-        synced_links: links_to_update,
-    }
-}
+pub use super::matching::*;

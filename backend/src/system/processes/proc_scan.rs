@@ -1,0 +1,318 @@
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::Instant;
+
+use super::models::ProcessInfo;
+
+pub static PROCESS_CPU_HISTORY: Lazy<Mutex<HashMap<u32, (u64, Instant)>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+pub fn get_system_uptime_seconds(proc_root: &str) -> f32 {
+    let uptime_path = format!("{}/uptime", proc_root);
+    if let Ok(content) = std::fs::read_to_string(&uptime_path) {
+        if let Some(first) = content.split_whitespace().next() {
+            if let Ok(val) = first.parse::<f32>() {
+                return val;
+            }
+        }
+    }
+    if let Ok(content) = std::fs::read_to_string("/proc/uptime") {
+        if let Some(first) = content.split_whitespace().next() {
+            if let Ok(val) = first.parse::<f32>() {
+                return val;
+            }
+        }
+    }
+    0.0
+}
+
+pub fn calculate_process_cpu(
+    pid: u32,
+    utime: u64,
+    stime: u64,
+    start_time_ticks: u64,
+    system_uptime: f32,
+    num_cores: f32,
+    now: Instant,
+    history: &mut HashMap<u32, (u64, Instant)>,
+) -> f32 {
+    let total_ticks = utime.saturating_add(stime);
+    let clk_tck = 100.0f32; // Standard Linux USER_HZ / CLK_TCK (100 Hz on Linux)
+
+    let raw_cpu = if let Some(&(prev_ticks, prev_time)) = history.get(&pid) {
+        let dt = now.duration_since(prev_time).as_secs_f32();
+        if dt >= 0.15 && dt <= 120.0 {
+            let delta_ticks = total_ticks.saturating_sub(prev_ticks) as f32;
+            // Instantaneous CPU % over elapsed delta time across cores (matching htop)
+            (delta_ticks / (dt * clk_tck * num_cores)) * 100.0
+        } else {
+            // Lifetime average CPU %
+            let proc_age_secs = (system_uptime - (start_time_ticks as f32 / clk_tck)).max(1.0);
+            (total_ticks as f32 / (proc_age_secs * clk_tck * num_cores)) * 100.0
+        }
+    } else {
+        // First sample for this PID: calculate lifetime average CPU %
+        let proc_age_secs = (system_uptime - (start_time_ticks as f32 / clk_tck)).max(1.0);
+        (total_ticks as f32 / (proc_age_secs * clk_tck * num_cores)) * 100.0
+    };
+
+    history.insert(pid, (total_ticks, now));
+
+    // Clamp between 0.0% and 100.0% and round to 1 decimal place
+    ((raw_cpu.max(0.0).min(100.0) * 10.0).round()) / 10.0
+}
+
+pub fn get_process_container_id_from_root(proc_root: &str, pid: u32) -> Option<String> {
+    let cgroup_path = format!("{}/{}/cgroup", proc_root, pid);
+    if let Ok(content) = std::fs::read_to_string(&cgroup_path) {
+        for line in content.lines() {
+            if line.contains("docker") || line.contains("containerd") || line.contains("libpod") {
+                let parts = line.split(|c: char| c == '/' || c == '-' || c == '.' || c == ':');
+                for part in parts {
+                    let trimmed = part.trim();
+                    if trimmed.len() >= 12 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+                        return Some(trimmed.to_lowercase());
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+pub fn load_uid_to_username_map() -> HashMap<u32, String> {
+    let mut map = HashMap::new();
+    let passwd_paths = ["/host/etc/passwd", "/etc/passwd"];
+
+    for path in &passwd_paths {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            for line in content.lines() {
+                let parts: Vec<&str> = line.split(':').collect();
+                if parts.len() >= 3 {
+                    let user = parts[0].to_string();
+                    if let Ok(uid) = parts[2].parse::<u32>() {
+                        map.entry(uid).or_insert(user);
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
+pub fn scan_proc_directory(
+    proc_root: &str,
+    total_memory: u64,
+    num_cores: f32,
+    container_id_to_name: &HashMap<String, String>,
+    uid_to_user: &HashMap<u32, String>,
+) -> Option<Vec<ProcessInfo>> {
+    let entries = std::fs::read_dir(proc_root).ok()?;
+    let mut processes = Vec::new();
+    let system_uptime = get_system_uptime_seconds(proc_root);
+    let now = Instant::now();
+    let mut cpu_history = PROCESS_CPU_HISTORY.lock().unwrap_or_else(|e| e.into_inner());
+
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let name_str = file_name.to_string_lossy();
+        let Ok(pid) = name_str.parse::<u32>() else {
+            continue;
+        };
+
+        let proc_dir = entry.path();
+        let stat_path = proc_dir.join("stat");
+        let status_path = proc_dir.join("status");
+        let cmdline_path = proc_dir.join("cmdline");
+        let io_path = proc_dir.join("io");
+
+        let stat_content = std::fs::read_to_string(&stat_path).unwrap_or_default();
+        if stat_content.is_empty() {
+            continue;
+        }
+
+        // Parse /proc/[pid]/stat: "pid (comm) state ppid ..."
+        let first_paren = stat_content.find('(');
+        let last_paren = stat_content.rfind(')');
+
+        let (raw_name, after_paren) = if let (Some(start), Some(end)) = (first_paren, last_paren) {
+            let name = &stat_content[start + 1..end];
+            let rest = &stat_content[end + 1..];
+            (name.to_string(), rest)
+        } else {
+            (name_str.to_string(), stat_content.as_str())
+        };
+
+        let fields: Vec<&str> = after_paren.split_whitespace().collect();
+        let state_char = fields.first().copied().unwrap_or("S");
+        let ppid = fields.get(1).and_then(|s| s.parse::<u32>().ok());
+        let utime = fields.get(11).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let stime = fields.get(12).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let start_time = fields.get(19).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let vsize = fields.get(20).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let rss_pages = fields
+            .get(21)
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0)
+            .max(0) as u64;
+        let mut memory_rss = rss_pages * 4096;
+        let mut memory_vms = vsize;
+
+        let status_content = std::fs::read_to_string(&status_path).unwrap_or_default();
+        let mut uid = None;
+        let mut detailed_name = raw_name.clone();
+
+        for line in status_content.lines() {
+            if let Some(rest) = line.strip_prefix("Name:\t") {
+                if !rest.trim().is_empty() {
+                    detailed_name = rest.trim().to_string();
+                }
+            } else if let Some(rest) = line.strip_prefix("Uid:\t") {
+                let first_uid = rest.split_whitespace().next();
+                if let Some(u_str) = first_uid {
+                    uid = u_str.parse::<u32>().ok();
+                }
+            } else if let Some(rest) = line.strip_prefix("VmRSS:\t") {
+                if let Some(val_kb) =
+                    rest.split_whitespace().next().and_then(|s| s.parse::<u64>().ok())
+                {
+                    memory_rss = val_kb * 1024;
+                }
+            } else if let Some(rest) = line.strip_prefix("VmSize:\t") {
+                if let Some(val_kb) =
+                    rest.split_whitespace().next().and_then(|s| s.parse::<u64>().ok())
+                {
+                    memory_vms = val_kb * 1024;
+                }
+            }
+        }
+
+        // Cmdline
+        let cmd = if let Ok(cmd_bytes) = std::fs::read(&cmdline_path) {
+            cmd_bytes
+                .split(|&b| b == 0)
+                .filter(|slice| !slice.is_empty())
+                .map(|slice| String::from_utf8_lossy(slice).into_owned())
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        // Fallback display name: use first arg of cmd if descriptive, else detailed_name
+        let display_name = if !cmd.is_empty() && !cmd[0].trim().is_empty() {
+            let p = std::path::Path::new(&cmd[0]);
+            p.file_name()
+                .map(|f| f.to_string_lossy().into_owned())
+                .unwrap_or(detailed_name)
+        } else {
+            detailed_name
+        };
+
+        let user = uid.and_then(|u| uid_to_user.get(&u).cloned());
+
+        let status_str = match state_char {
+            "R" => "Running",
+            "S" | "D" => "Sleeping",
+            "Z" => "Zombie",
+            "T" | "t" => "Stopped",
+            "I" => "Idle",
+            _ => "Sleeping",
+        }
+        .to_string();
+
+        let memory_percent = if total_memory > 0 {
+            (memory_rss as f64 / total_memory as f64 * 100.0) as f32
+        } else {
+            0.0
+        };
+
+        // IO
+        let mut disk_read_bytes = 0u64;
+        let mut disk_written_bytes = 0u64;
+        if let Ok(io_content) = std::fs::read_to_string(&io_path) {
+            for line in io_content.lines() {
+                if let Some(rest) = line.strip_prefix("read_bytes: ") {
+                    disk_read_bytes = rest.trim().parse::<u64>().unwrap_or(0);
+                } else if let Some(rest) = line.strip_prefix("write_bytes: ") {
+                    disk_written_bytes = rest.trim().parse::<u64>().unwrap_or(0);
+                }
+            }
+        }
+
+        // Kernel thread classification (ppid == 2 or empty cmd with 0 RSS/VMS)
+        let is_kernel_thread = ppid == Some(2)
+            || (pid != 1 && cmd.is_empty() && memory_rss == 0 && memory_vms == 0);
+
+        // Precise CPU calculation (Delta sampling & lifetime average)
+        let cpu_usage = calculate_process_cpu(
+            pid,
+            utime,
+            stime,
+            start_time,
+            system_uptime,
+            num_cores,
+            now,
+            &mut cpu_history,
+        );
+
+        // Container mapping
+        let mut container_id = None;
+        let mut container_name = None;
+        if let Some(extracted_id) = get_process_container_id_from_root(proc_root, pid) {
+            let prefix = if extracted_id.len() >= 12 {
+                &extracted_id[..12]
+            } else {
+                &extracted_id
+            };
+            if let Some(cname) = container_id_to_name
+                .get(&extracted_id)
+                .or_else(|| container_id_to_name.get(prefix))
+            {
+                container_id = Some(prefix.to_string());
+                container_name = Some(cname.clone());
+            } else {
+                for (k, v) in container_id_to_name {
+                    if extracted_id.starts_with(k) || k.starts_with(&extracted_id) {
+                        container_id = Some(k[..12.min(k.len())].to_string());
+                        container_name = Some(v.clone());
+                        break;
+                    }
+                }
+            }
+        }
+
+        processes.push(ProcessInfo {
+            pid,
+            ppid,
+            name: display_name,
+            cmd,
+            exe: None,
+            user,
+            cpu_usage,
+            memory_rss,
+            memory_vms,
+            memory_percent,
+            status: status_str,
+            is_kernel_thread,
+            container_id,
+            container_name,
+            start_time,
+            disk_read_bytes,
+            disk_written_bytes,
+        });
+    }
+
+    // Prune dead PIDs to eliminate memory leak in PROCESS_CPU_HISTORY
+    let active_pids: std::collections::HashSet<u32> =
+        processes.iter().map(|p| p.pid).collect();
+    cpu_history.retain(|pid, (_, last_seen)| {
+        active_pids.contains(pid) && now.duration_since(*last_seen).as_secs() < 300
+    });
+
+    if processes.is_empty() {
+        None
+    } else {
+        Some(processes)
+    }
+}

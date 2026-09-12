@@ -147,8 +147,15 @@ pub async fn update_remote_ingress_config(
                     .map(|e| e.message)
                     .collect::<Vec<_>>()
                     .join(", ");
+                let lower = msg.to_lowercase();
+                if lower.contains("not authorized") || status.as_u16() == 403 || status.as_u16() == 401 {
+                    return Err("Cloudflare API: Não autorizado (Not authorized). O seu API Token não possui permissão para modificar as configurações do túnel. Adicione a permissão 'Account > Cloudflare Tunnel > Edit' (e opcionalmente 'Zone > DNS > Edit') no painel da Cloudflare (dash.cloudflare.com/profile/api-tokens).".to_string());
+                }
                 return Err(format!("Cloudflare API: {}", msg));
             }
+        }
+        if status.as_u16() == 403 || status.as_u16() == 401 || err_text.to_lowercase().contains("not authorized") {
+            return Err("Cloudflare API: Não autorizado (Not authorized). O seu API Token não possui permissão para modificar as configurações do túnel. Adicione a permissão 'Account > Cloudflare Tunnel > Edit' no painel da Cloudflare (dash.cloudflare.com/profile/api-tokens).".to_string());
         }
         return Err(format!("Cloudflare API status {}: {}", status, err_text));
     }

@@ -1,122 +1,15 @@
-use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Query, State},
-    response::IntoResponse,
-};
-use sysinfo::{System, Disks, Networks, Components};
-use std::collections::VecDeque;
-use std::time::Duration;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::RwLock;
-use serde::{Serialize, Deserialize};
-use tokio::time;
-use tokio::sync::broadcast;
-use once_cell::sync::Lazy;
+use std::time::Duration;
 use bollard::Docker;
-use crate::docker::AppState;
-use crate::system::alerts::{push_alert_if_needed, SystemAlert, get_current_timestamp};
 use futures::StreamExt;
+use sysinfo::{Components, Disks, Networks, System};
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct DiskStat {
-    pub name: String,
-    pub mount_point: String,
-    pub used: u64,
-    pub total: u64,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct SystemStats {
-    #[serde(default)]
-    pub timestamp: u64,
-    pub cpu_usage: f32,
-    pub memory_used: u64,
-    pub memory_total: u64,
-    pub disks: Vec<DiskStat>,
-    pub network_tx: u64,
-    pub network_rx: u64,
-    pub temperature: f32,
-    pub docker_cpu: f32,
-    pub docker_memory: u64,
-    pub docker_tx: u64,
-    pub docker_rx: u64,
-    pub orbit_cpu: f32,
-    pub orbit_memory: u64,
-    #[serde(default)]
-    pub network_interface: Option<String>,
-    #[serde(default)]
-    pub network_interface_type: Option<String>,
-}
-
-#[derive(Deserialize, Default)]
-pub struct StatsHistoryQuery {
-    pub limit: Option<usize>,
-}
-
-// Global Broadcaster, Ring Buffer History and Cache for O(1) CPU/RAM scaling across all clients/tabs
-static STATS_TX: Lazy<broadcast::Sender<Arc<String>>> = Lazy::new(|| {
-    let (tx, _) = broadcast::channel(32);
-    tx
-});
-static LATEST_STATS: Lazy<RwLock<Option<Arc<String>>>> = Lazy::new(|| RwLock::new(None));
-static STATS_HISTORY: Lazy<RwLock<VecDeque<SystemStats>>> = Lazy::new(|| RwLock::new(VecDeque::with_capacity(1800)));
-static COLLECTOR_INITIALIZED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-
-pub fn ensure_stats_collector(docker: Arc<Docker>) {
-    if COLLECTOR_INITIALIZED.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
-        tokio::spawn(async move {
-            run_singleton_stats_collector(docker).await;
-        });
-    }
-}
-
-pub async fn stats_handler(State(state): State<AppState>, ws: WebSocketUpgrade) -> impl IntoResponse {
-    ensure_stats_collector(state.docker.clone());
-    ws.on_upgrade(move |socket| handle_socket(socket))
-}
-
-pub async fn get_stats_history_handler(
-    State(state): State<AppState>,
-    Query(params): Query<StatsHistoryQuery>,
-) -> impl IntoResponse {
-    ensure_stats_collector(state.docker.clone());
-    let limit = params.limit.unwrap_or(300).clamp(1, 1800);
-    let history: Vec<SystemStats> = if let Ok(guard) = STATS_HISTORY.read() {
-        let count = guard.len();
-        if count <= limit {
-            guard.iter().cloned().collect()
-        } else {
-            guard.iter().skip(count - limit).cloned().collect()
-        }
-    } else {
-        Vec::new()
-    };
-
-    (axum::http::StatusCode::OK, axum::Json(history))
-}
-
-async fn handle_socket(mut socket: WebSocket) {
-    let mut rx = STATS_TX.subscribe();
-
-    // 1. Send immediate cached snapshot so UI renders instantly without waiting for next tick
-    let initial_msg = LATEST_STATS.read().ok().and_then(|g| g.clone());
-    if let Some(cached) = initial_msg {
-        if socket.send(Message::Text(cached.as_str().into())).await.is_err() {
-            return;
-        }
-    }
-
-    // 2. Stream broadcasts with zero CPU overhead per connection
-    while let Ok(msg) = rx.recv().await {
-        if socket.send(Message::Text(msg.as_str().into())).await.is_err() {
-            tracing::debug!("Client disconnected from stats WebSocket");
-            break;
-        }
-    }
-}
+use super::alerts::evaluate_and_push_alerts;
+use super::models::{DiskStat, SystemStats};
+use super::{LATEST_STATS, STATS_HISTORY, STATS_TX};
 
 /// Returns private memory (RSS equivalent) for a PID via statm or VmRSS (bytes).
-fn read_private_memory(pid: u32) -> u64 {
+pub fn read_private_memory(pid: u32) -> u64 {
     // 1. Try /proc/{pid}/statm: 2nd column is resident pages (fastest O(1) in Linux kernel, no PTE walk)
     if let Ok(statm) = std::fs::read_to_string(format!("/proc/{}/statm", pid)) {
         if let Some(pages_str) = statm.split_whitespace().nth(1) {
@@ -143,7 +36,7 @@ fn read_private_memory(pid: u32) -> u64 {
 }
 
 /// Scans /proc to discover all PIDs associated with Orbit (Rust Backend, child worker processes, and Frontend dev/node/vite processes).
-fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
+pub fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
     let mut pids = vec![backend_pid];
     let Ok(proc_entries) = std::fs::read_dir("/proc") else {
         return pids;
@@ -179,8 +72,11 @@ fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
             let cmd_lower = cmd_bytes.to_ascii_lowercase();
             let is_frontend = cmd_lower.windows(4).any(|w| w == b"vite")
                 || cmd_lower.windows(14).any(|w| w == b"orbit-dashboard")
-                || (cmd_lower.windows(8).any(|w| w == b"frontend") && (cmd_lower.windows(4).any(|w| w == b"node") || cmd_lower.windows(3).any(|w| w == b"dev")))
-                || (cmd_lower.windows(7).any(|w| w == b"esbuild") && cmd_lower.windows(5).any(|w| w == b"orbit"));
+                || (cmd_lower.windows(8).any(|w| w == b"frontend")
+                    && (cmd_lower.windows(4).any(|w| w == b"node")
+                        || cmd_lower.windows(3).any(|w| w == b"dev")))
+                || (cmd_lower.windows(7).any(|w| w == b"esbuild")
+                    && cmd_lower.windows(5).any(|w| w == b"orbit"));
 
             if is_frontend {
                 pids.push(pid_num);
@@ -192,10 +88,7 @@ fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
     pids
 }
 
-pub use crate::system::network::*;
-
-
-async fn run_singleton_stats_collector(docker: Arc<Docker>) {
+pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut sys = System::new_with_specifics(
         sysinfo::RefreshKind::nothing()
             .with_cpu(sysinfo::CpuRefreshKind::everything())
@@ -227,8 +120,12 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     loop {
         // Adaptive sleep: 2s if active subscribers, 6s if idle (power/CPU conservation)
         let has_subscribers = STATS_TX.receiver_count() > 0;
-        let sleep_duration = if has_subscribers { Duration::from_secs(2) } else { Duration::from_secs(6) };
-        time::sleep(sleep_duration).await;
+        let sleep_duration = if has_subscribers {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_secs(6)
+        };
+        tokio::time::sleep(sleep_duration).await;
 
         let now = std::time::Instant::now();
         let elapsed_secs = now.duration_since(last_tick_instant).as_secs_f64().max(0.1);
@@ -250,7 +147,10 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         let num_cores = sys.cpus().len() as f32;
 
         orbit_pids_ticks += 1;
-        let pids_alive = !orbit_pids.is_empty() && orbit_pids.iter().all(|&p| std::path::Path::new(&format!("/proc/{}", p)).exists());
+        let pids_alive = !orbit_pids.is_empty()
+            && orbit_pids
+                .iter()
+                .all(|&p| std::path::Path::new(&format!("/proc/{}", p)).exists());
         if orbit_pids_ticks >= 30 || !pids_alive || first_tick {
             orbit_pids = find_orbit_pids(backend_pid);
             orbit_pids_ticks = 0;
@@ -259,29 +159,35 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         }
 
         // Targeted process refresh only for Orbit PIDs instead of all 350+ host processes
-        let orbit_pids_sysinfo: Vec<sysinfo::Pid> = orbit_pids.iter().map(|&p| sysinfo::Pid::from_u32(p)).collect();
+        let orbit_pids_sysinfo: Vec<sysinfo::Pid> =
+            orbit_pids.iter().map(|&p| sysinfo::Pid::from_u32(p)).collect();
         sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&orbit_pids_sysinfo), true);
 
-        let orbit_cpu: f32 = orbit_pids.iter()
+        let orbit_cpu: f32 = orbit_pids
+            .iter()
             .filter_map(|&p| sys.process(sysinfo::Pid::from_u32(p)))
             .map(|proc| proc.cpu_usage() / num_cores)
             .sum();
 
-        let orbit_memory: u64 = orbit_pids.iter()
-            .map(|&p| read_private_memory(p))
-            .sum();
+        let orbit_memory: u64 = orbit_pids.iter().map(|&p| read_private_memory(p)).sum();
 
-        let (current_iface_info, mut host_raw_rx, mut host_raw_tx) = read_host_network_bytes(None);
+        let (current_iface_info, mut host_raw_rx, mut host_raw_tx) =
+            crate::system::network::read_host_network_bytes(None);
         if host_raw_rx == 0 && host_raw_tx == 0 {
             for (iface, data) in &networks {
-                if iface != "lo" && !iface.starts_with("docker") && !iface.starts_with("veth") && !iface.starts_with("br-") {
+                if iface != "lo"
+                    && !iface.starts_with("docker")
+                    && !iface.starts_with("veth")
+                    && !iface.starts_with("br-")
+                {
                     host_raw_rx += data.total_received();
                     host_raw_tx += data.total_transmitted();
                 }
             }
         }
 
-        let iface_changed = current_iface_info.as_ref().map(|i| &i.name) != prev_iface_name.as_ref();
+        let iface_changed =
+            current_iface_info.as_ref().map(|i| &i.name) != prev_iface_name.as_ref();
         prev_iface_name = current_iface_info.as_ref().map(|i| i.name.clone());
 
         let host_rate_rx = if first_tick || iface_changed || host_raw_rx < prev_host_rx {
@@ -327,7 +233,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
                             };
                             let mut stream = d.stats(&id_str, Some(stats_options));
                             if let Some(Ok(s)) = stream.next().await {
-                                let (mem_used, _) = crate::docker::resolve_container_memory(&d, &id_str, &s).await;
+                                let (mem_used, _) =
+                                    crate::docker::resolve_container_memory(&d, &id_str, &s).await;
                                 Some((id_str, s, mem_used))
                             } else {
                                 None
@@ -344,8 +251,16 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
                         &current_cpu,
                         prev_cpu_stats.get(&id).or(res.precpu_stats.as_ref()),
                     ) {
-                        let cpu_delta = cpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64
-                            - precpu.cpu_usage.as_ref().and_then(|u| u.total_usage).unwrap_or(0) as f64;
+                        let cpu_delta = cpu
+                            .cpu_usage
+                            .as_ref()
+                            .and_then(|u| u.total_usage)
+                            .unwrap_or(0) as f64
+                            - precpu
+                                .cpu_usage
+                                .as_ref()
+                                .and_then(|u| u.total_usage)
+                                .unwrap_or(0) as f64;
                         let sys_delta = cpu.system_cpu_usage.unwrap_or(0) as f64
                             - precpu.system_cpu_usage.unwrap_or(0) as f64;
                         if sys_delta > 0.0 && cpu_delta > 0.0 {
@@ -370,7 +285,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
                 }
 
                 // Prune prev_cpu_stats to prevent unbounded memory growth over long runtimes
-                let active_ids: std::collections::HashSet<&String> = containers.iter().filter_map(|c| c.id.as_ref()).collect();
+                let active_ids: std::collections::HashSet<&String> =
+                    containers.iter().filter_map(|c| c.id.as_ref()).collect();
                 prev_cpu_stats.retain(|id, _| active_ids.contains(id));
 
                 cached_docker_cpu = total_cpu as f32;
@@ -396,7 +312,8 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         first_tick = false;
 
         // Disks
-        let mut disk_stats_map: std::collections::HashMap<String, DiskStat> = std::collections::HashMap::new();
+        let mut disk_stats_map: std::collections::HashMap<String, DiskStat> =
+            std::collections::HashMap::new();
         for disk in &disks {
             let name = disk.name().to_string_lossy().into_owned();
             let raw_mount = disk.mount_point().to_string_lossy().into_owned();
@@ -506,161 +423,3 @@ async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         }
     }
 }
-
-pub fn evaluate_and_push_alerts(stats: &SystemStats) {
-    if stats.cpu_usage > 90.0 {
-        push_alert_if_needed(SystemAlert {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: get_current_timestamp(),
-            level: "critical".to_string(),
-            title: "Alto Consumo de CPU".to_string(),
-            message: format!("O consumo de CPU do host atingiu {:.1}%.", stats.cpu_usage),
-            source: "metrics".to_string(),
-        });
-    }
-
-    let memory_percent = (stats.memory_used as f64 / stats.memory_total.max(1) as f64) * 100.0;
-    if memory_percent > 90.0 {
-        push_alert_if_needed(SystemAlert {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: get_current_timestamp(),
-            level: "critical".to_string(),
-            title: "Alto Consumo de RAM".to_string(),
-            message: format!("O uso de memória RAM está em {:.1}%.", memory_percent),
-            source: "metrics".to_string(),
-        });
-    }
-
-    if stats.temperature > 80.0 {
-        push_alert_if_needed(SystemAlert {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: get_current_timestamp(),
-            level: "warning".to_string(),
-            title: "Alta Temperatura".to_string(),
-            message: format!("A temperatura do host atingiu {:.1}°C.", stats.temperature),
-            source: "metrics".to_string(),
-        });
-    }
-
-    for disk in &stats.disks {
-        let disk_percent = (disk.used as f64 / disk.total.max(1) as f64) * 100.0;
-        if disk_percent > 90.0 {
-            push_alert_if_needed(SystemAlert {
-                id: uuid::Uuid::new_v4().to_string(),
-                timestamp: get_current_timestamp(),
-                level: "warning".to_string(),
-                title: "Disco Quase Cheio".to_string(),
-                message: format!("O disco {} ({}) está com {:.1}% de uso.", disk.name, disk.mount_point, disk_percent),
-                source: "metrics".to_string(),
-            });
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::system::alerts::{ALERTS_HISTORY, ALERTS_COOLDOWN, TEST_ALERT_LOCK};
-
-    #[test]
-    fn test_evaluate_and_push_alerts_critical_cpu() {
-        let _guard = TEST_ALERT_LOCK.lock().unwrap();
-
-        {
-            let mut hist = ALERTS_HISTORY.write().unwrap();
-            hist.clear();
-        }
-        {
-            let mut cd = ALERTS_COOLDOWN.write().unwrap();
-            cd.clear();
-        }
-
-        let mut stats = SystemStats {
-            timestamp: 0,
-            cpu_usage: 95.0, // Should trigger
-            memory_used: 1000,
-            memory_total: 2000,
-            disks: vec![],
-            network_tx: 0,
-            network_rx: 0,
-            network_interface: None,
-            network_interface_type: None,
-            temperature: 50.0,
-            docker_cpu: 0.0,
-            docker_memory: 0,
-            docker_rx: 0,
-            docker_tx: 0,
-            orbit_cpu: 0.0,
-            orbit_memory: 0,
-        };
-
-        evaluate_and_push_alerts(&stats);
-
-        {
-            let history = ALERTS_HISTORY.read().unwrap();
-            assert_eq!(history.len(), 1);
-            assert_eq!(history[0].title, "Alto Consumo de CPU");
-            assert_eq!(history[0].level, "critical");
-        }
-
-        // Verify it doesn't trigger if below 90%
-        {
-            let mut hist = ALERTS_HISTORY.write().unwrap();
-            hist.clear();
-        }
-        {
-            let mut cd = ALERTS_COOLDOWN.write().unwrap();
-            cd.clear();
-        }
-        stats.cpu_usage = 89.0;
-        evaluate_and_push_alerts(&stats);
-        {
-            let history2 = ALERTS_HISTORY.read().unwrap();
-            assert_eq!(history2.len(), 0);
-        }
-    }
-
-    #[test]
-    fn test_evaluate_and_push_alerts_ram_and_temp() {
-        let _guard = TEST_ALERT_LOCK.lock().unwrap();
-
-        {
-            let mut hist = ALERTS_HISTORY.write().unwrap();
-            hist.clear();
-        }
-        {
-            let mut cd = ALERTS_COOLDOWN.write().unwrap();
-            cd.clear();
-        }
-
-        let stats = SystemStats {
-            timestamp: 0,
-            cpu_usage: 50.0, 
-            memory_used: 9500, // 95%
-            memory_total: 10000,
-            disks: vec![],
-            network_tx: 0,
-            network_rx: 0,
-            network_interface: None,
-            network_interface_type: None,
-            temperature: 85.0, // Should trigger
-            docker_cpu: 0.0,
-            docker_memory: 0,
-            docker_rx: 0,
-            docker_tx: 0,
-            orbit_cpu: 0.0,
-            orbit_memory: 0,
-        };
-
-        evaluate_and_push_alerts(&stats);
-
-        {
-            let history = ALERTS_HISTORY.read().unwrap();
-            assert_eq!(history.len(), 2);
-            let titles: Vec<String> = history.iter().map(|a| a.title.clone()).collect();
-            assert!(titles.contains(&"Alto Consumo de RAM".to_string()));
-            assert!(titles.contains(&"Alta Temperatura".to_string()));
-        }
-    }
-}
-
