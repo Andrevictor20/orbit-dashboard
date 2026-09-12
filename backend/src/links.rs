@@ -31,10 +31,7 @@ static LINKS_CACHE: Lazy<LinksDb> = Lazy::new(|| {
 });
 
 pub fn get_links_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    path.push("data");
-    path.push("custom_links.json");
-    path
+    crate::system::data_migrator::get_active_data_dir().join("custom_links.json")
 }
 
 fn save_links_to_disk(db: &LinksDb) {

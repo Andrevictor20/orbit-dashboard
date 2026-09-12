@@ -163,9 +163,10 @@ struct CfZoneItem {
 }
 
 /// Attempts to automatically create a DNS CNAME record if the token has Zone DNS Edit permissions.
-/// If permissions are lacking or zone is not found, returns Ok(None) or Ok(Some(msg)).
+/// If permissions are lacking or zone is not found, returns Ok((false, None)) without throwing unnecessary errors.
 pub async fn try_create_dns_cname(
     http: &Client,
+    account_id: Option<&str>,
     tunnel_id: &str,
     api_token: &str,
     hostname: &str,
@@ -178,14 +179,32 @@ pub async fn try_create_dns_cname(
             .map_err(|e| format!("Invalid API token header: {}", e))?,
     );
 
-    // 1. List zones
-    let zones_url = "https://api.cloudflare.com/client/v4/zones";
-    let Ok(resp) = http.get(zones_url).headers(headers.clone()).send().await else {
-        return Ok((false, Some("Não foi possível verificar zonas DNS da Cloudflare.".into())));
+    // 1. List zones with account.id scope if available
+    let zones_url = match account_id {
+        Some(acc) if !acc.trim().is_empty() => {
+            format!("https://api.cloudflare.com/client/v4/zones?account.id={}&per_page=50", acc.trim())
+        }
+        _ => "https://api.cloudflare.com/client/v4/zones?per_page=50".to_string(),
+    };
+
+    let Ok(resp) = http.get(&zones_url).headers(headers.clone()).send().await else {
+        return Ok((false, None));
     };
 
     if !resp.status().is_success() {
-        // Token doesn't have Zone Read permission - graceful fallback
+        // Fallback: try querying without account.id in case the token is restricted by zone only
+        if account_id.is_some() {
+            let fallback_url = "https://api.cloudflare.com/client/v4/zones?per_page=50";
+            if let Ok(fallback_resp) = http.get(fallback_url).headers(headers.clone()).send().await {
+                if fallback_resp.status().is_success() {
+                    if let Ok(body) = fallback_resp.json::<CfApiResponse<Vec<CfZoneItem>>>().await {
+                        if let Some(zones) = body.result {
+                            return create_cname_in_matching_zone(http, &headers, tunnel_id, hostname, zones).await;
+                        }
+                    }
+                }
+            }
+        }
         return Ok((false, None));
     }
 
@@ -197,13 +216,25 @@ pub async fn try_create_dns_cname(
         return Ok((false, None));
     };
 
-    // Find zone whose name matches end of hostname (e.g. hostname "app.meudominio.com" matches zone "meudominio.com")
+    create_cname_in_matching_zone(http, &headers, tunnel_id, hostname, zones).await
+}
+
+async fn create_cname_in_matching_zone(
+    http: &Client,
+    headers: &HeaderMap,
+    tunnel_id: &str,
+    hostname: &str,
+    zones: Vec<CfZoneItem>,
+) -> Result<(bool, Option<String>), String> {
+    // Find zone whose name matches end of hostname (e.g. hostname "pdf.rasppi.cloud" matches zone "rasppi.cloud")
     let matching_zone = zones.into_iter().find(|z| {
         hostname == z.name || hostname.ends_with(&format!(".{}", z.name))
     });
 
     let Some(zone) = matching_zone else {
-        return Ok((false, Some(format!("Nenhuma Zona DNS correspondente a '{}' foi encontrada na sua conta.", hostname))));
+        // Token doesn't have access to this zone or user uses Wildcard DNS (*.domain.com).
+        // Return Ok without alert to avoid confusing the user.
+        return Ok((false, None));
     };
 
     // 2. Create CNAME DNS record
@@ -217,7 +248,7 @@ pub async fn try_create_dns_cname(
         "ttl": 1
     });
 
-    let create_resp = match http.post(&dns_url).headers(headers).json(&record_payload).send().await {
+    let create_resp = match http.post(&dns_url).headers(headers.clone()).json(&record_payload).send().await {
         Ok(r) => r,
         Err(e) => return Ok((false, Some(format!("Erro ao criar registro DNS: {}", e)))),
     };
@@ -227,7 +258,11 @@ pub async fn try_create_dns_cname(
         Ok((true, Some(format!("Apontamento CNAME criado com sucesso na zona '{}'.", zone.name))))
     } else {
         let err_text = create_resp.text().await.unwrap_or_default();
-        warn!("Could not create DNS CNAME record (may already exist or need Zone DNS permissions): {}", err_text);
-        Ok((false, Some("Rota criada no túnel. Verifique se o apontamento CNAME ou Wildcard DNS já está configurado.".into())))
+        if err_text.contains("already exists") || err_text.contains("81057") {
+            Ok((true, Some(format!("Apontamento DNS para '{}' já configurado na Cloudflare.", hostname))))
+        } else {
+            warn!("Could not create DNS CNAME record (may already exist or need Zone DNS permissions): {}", err_text);
+            Ok((false, None))
+        }
     }
 }

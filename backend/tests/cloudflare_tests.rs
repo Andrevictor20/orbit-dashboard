@@ -110,6 +110,87 @@ fn test_match_ingress_with_containers() {
     assert_eq!(matched[2].matched_container_id.as_deref(), Some("cont_id_3"));
 }
 
+#[test]
+fn test_strict_matching_prevents_false_positives() {
+    let raw_rules = vec![
+        // 1. External IP target: must NOT match container with port 80
+        RawIngressRule {
+            hostname: Some("router.rasppi.cloud".to_string()),
+            service: "http://192.168.1.1:80".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 2. Substring in subdomain: "cloud" must NOT match nextcloud or cloudflared
+        RawIngressRule {
+            hostname: Some("cloud.rasppi.cloud".to_string()),
+            service: "http://10.0.0.9:8080".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 3. Localhost with ambiguous port (both nginx and apache have port 80)
+        RawIngressRule {
+            hostname: Some("web.rasppi.cloud".to_string()),
+            service: "http://localhost:80".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // 4. Stirling-PDF exact match
+        RawIngressRule {
+            hostname: Some("pdf.rasppi.cloud".to_string()),
+            service: "http://stirling-pdf:8082".to_string(),
+            path: None,
+            origin_request: None,
+        },
+    ];
+
+    let containers = vec![
+        backend::cloudflare::client::ContainerSummaryInfo::new(
+            "cont_nginx",
+            "nginx-proxy",
+            vec![80],
+        ),
+        backend::cloudflare::client::ContainerSummaryInfo::new(
+            "cont_apache",
+            "apache-server",
+            vec![80],
+        ),
+        backend::cloudflare::client::ContainerSummaryInfo::new(
+            "cont_nextcloud",
+            "nextcloud-app",
+            vec![8080],
+        ),
+        backend::cloudflare::client::ContainerSummaryInfo::new(
+            "cont_pdf_editor",
+            "pdf-editor-extra",
+            vec![9000],
+        ),
+        backend::cloudflare::client::ContainerSummaryInfo::new(
+            "cont_stirling",
+            "stirling-pdf",
+            vec![8082],
+        ),
+    ];
+
+    let matched = match_ingress_with_containers(raw_rules, &containers);
+    assert_eq!(matched.len(), 4);
+
+    // 1. router.rasppi.cloud -> points to external IP 192.168.1.1, must NOT match nginx-proxy or apache!
+    assert_eq!(matched[0].hostname, "router.rasppi.cloud");
+    assert_eq!(matched[0].matched_container_id, None, "External IP with port 80 must NOT match local container");
+
+    // 2. cloud.rasppi.cloud -> subdomain "cloud" must NOT match "nextcloud-app" via partial contains!
+    assert_eq!(matched[1].hostname, "cloud.rasppi.cloud");
+    assert_eq!(matched[1].matched_container_id, None, "Subdomain 'cloud' must not match 'nextcloud-app' by substring");
+
+    // 3. web.rasppi.cloud -> localhost:80 with multiple containers exposing port 80 must be considered ambiguous and NOT randomly bind
+    assert_eq!(matched[2].hostname, "web.rasppi.cloud");
+    assert_eq!(matched[2].matched_container_id, None, "Ambiguous port 80 must not match arbitrarily");
+
+    // 4. pdf.rasppi.cloud -> exact container name "stirling-pdf"
+    assert_eq!(matched[3].hostname, "pdf.rasppi.cloud");
+    assert_eq!(matched[3].matched_container_id.as_deref(), Some("cont_stirling"));
+}
+
 #[tokio::test]
 async fn test_cloudflare_unauthenticated_rejected() {
     let app = backend::app();
@@ -254,6 +335,49 @@ ingress:
     assert_eq!(rules.len(), 3);
     assert_eq!(rules[0].hostname.as_deref(), Some("app1.example.com"));
     assert_eq!(rules[0].service, "http://app1:8080");
+
+    let _ = std::fs::remove_file(&yaml_file);
+}
+
+#[test]
+fn test_local_yaml_add_and_delete_route() {
+    let temp_dir = std::env::temp_dir();
+    let yaml_file = temp_dir.join("test_local_ingress_mutate.yml");
+
+    let yaml_content = r#"
+tunnel: 6ff42887-865e-4658-b612-309543effe13
+ingress:
+  - hostname: existing.rasppi.cloud
+    service: http://existing:80
+  - service: http_status:404
+"#;
+
+    std::fs::write(&yaml_file, yaml_content).unwrap();
+
+    let client = CloudflareClient::new();
+    let file_path_str = yaml_file.to_str().unwrap();
+
+    // 1. Add route locally
+    let new_rule = RawIngressRule {
+        hostname: Some("pdf.rasppi.cloud".to_string()),
+        service: "http://stirling-pdf:8082".to_string(),
+        path: None,
+        origin_request: None,
+    };
+    let added = client.add_route_local(file_path_str, new_rule).unwrap();
+    assert_eq!(added.hostname.as_deref(), Some("pdf.rasppi.cloud"));
+
+    let (_, rules_after_add) = client.parse_local_yaml(file_path_str).unwrap();
+    assert_eq!(rules_after_add.len(), 3);
+    assert_eq!(rules_after_add[1].hostname.as_deref(), Some("pdf.rasppi.cloud"));
+    assert_eq!(rules_after_add[2].service, "http_status:404");
+
+    // 2. Delete route locally
+    client.delete_route_local(file_path_str, "existing.rasppi.cloud", None).unwrap();
+    let (_, rules_after_delete) = client.parse_local_yaml(file_path_str).unwrap();
+    assert_eq!(rules_after_delete.len(), 2);
+    assert_eq!(rules_after_delete[0].hostname.as_deref(), Some("pdf.rasppi.cloud"));
+    assert_eq!(rules_after_delete[1].service, "http_status:404");
 
     let _ = std::fs::remove_file(yaml_file);
 }

@@ -351,6 +351,7 @@ export function Cloudflare() {
         onClose={() => setShowAddRouteModal(false)}
         onRouteCreated={handleRouteCreated}
         tunnelId={status?.tunnel_id || config?.tunnel_id}
+        existingRules={rules}
       />
     </div>
   );

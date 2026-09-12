@@ -137,7 +137,7 @@ export function CustomLinkModal({
                 <input 
                   type="text" 
                   className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
-                  placeholder="exemplo.com"
+                  placeholder="rasppi.cloud"
                   value={linkDomain}
                   onChange={(e) => setLinkDomain(e.target.value.toLowerCase())}
                 />

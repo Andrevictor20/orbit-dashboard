@@ -243,6 +243,9 @@ export function ContainerList() {
       savedDomain = matchedRoute.hostname.split('.').slice(1).join('.');
       localStorage.setItem('orbit_base_domain', savedDomain);
     }
+    if (!savedDomain) {
+      savedDomain = 'rasppi.cloud';
+    }
     setLinkDomain(savedDomain);
 
     if (targetLink && targetLink.startsWith('https://') && savedDomain && targetLink.endsWith(`.${savedDomain}`)) {

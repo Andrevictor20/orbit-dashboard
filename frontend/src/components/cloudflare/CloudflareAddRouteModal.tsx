@@ -21,11 +21,48 @@ interface ContainerOption {
   ports: number[];
 }
 
-interface CloudflareAddRouteModalProps {
+export interface CloudflareAddRouteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRouteCreated: (route: IngressRule) => void;
   tunnelId?: string | null;
+  existingRules?: IngressRule[];
+}
+
+export function detectBaseDomain(existingRules?: IngressRule[]): string {
+  // 1. From localStorage
+  if (typeof localStorage !== 'undefined') {
+    const saved = localStorage.getItem('orbit_base_domain');
+    if (saved && saved.trim()) return saved.trim().toLowerCase();
+  }
+
+  // 2. From existing rules in Cloudflare
+  if (existingRules && existingRules.length > 0) {
+    for (const r of existingRules) {
+      if (r.hostname && r.hostname.includes('.')) {
+        const parts = r.hostname.toLowerCase().split('.');
+        if (parts.length >= 2) {
+          const dom = parts.slice(1).join('.');
+          if (dom && !dom.includes(':') && dom !== 'local' && dom !== 'lan') {
+            return dom;
+          }
+        }
+      }
+    }
+  }
+
+  // 3. From window.location.hostname
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname.toLowerCase();
+    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(host) && host !== 'localhost' && host.includes('.')) {
+      const parts = host.split('.');
+      if (parts.length >= 2) {
+        return parts.slice(1).join('.');
+      }
+    }
+  }
+
+  return 'rasppi.cloud';
 }
 
 export function CloudflareAddRouteModal({
@@ -33,10 +70,15 @@ export function CloudflareAddRouteModal({
   onClose,
   onRouteCreated,
   tunnelId,
+  existingRules,
 }: CloudflareAddRouteModalProps) {
   const { t } = useTranslation();
 
-  const [hostname, setHostname] = useState('');
+  const [hostnameMode, setHostnameMode] = useState<'builder' | 'raw'>('builder');
+  const [subdomain, setSubdomain] = useState('');
+  const [baseDomain, setBaseDomain] = useState('rasppi.cloud');
+  const [rawHostname, setRawHostname] = useState('');
+
   const [serviceMode, setServiceMode] = useState<'container' | 'custom'>('container');
   const [selectedContainer, setSelectedContainer] = useState<string>('');
   const [selectedPort, setSelectedPort] = useState<string>('');
@@ -60,8 +102,13 @@ export function CloudflareAddRouteModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    // Detect active base domain
+    const activeDomain = detectBaseDomain(existingRules);
+    setBaseDomain(activeDomain);
+
     // Reset fields
-    setHostname('');
+    setSubdomain('');
+    setRawHostname('');
     setPath('');
     setNoTlsVerify(false);
     setSelectedContainer('');
@@ -96,9 +143,11 @@ export function CloudflareAddRouteModal({
           });
           setContainers(list);
           if (list.length > 0) {
-            setSelectedContainer(list[0].name);
-            if (list[0].ports.length > 0) {
-              setSelectedPort(list[0].ports[0].toString());
+            const first = list[0];
+            setSelectedContainer(first.name);
+            setSubdomain(first.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+            if (first.ports.length > 0) {
+              setSelectedPort(first.ports[0].toString());
             }
           }
         }
@@ -114,11 +163,26 @@ export function CloudflareAddRouteModal({
   const handleContainerChange = (containerName: string) => {
     setSelectedContainer(containerName);
     const cont = containers.find((c) => c.name === containerName);
-    if (cont && cont.ports.length > 0) {
-      setSelectedPort(cont.ports[0].toString());
+    if (cont) {
+      setSubdomain(cont.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+      if (cont.ports.length > 0) {
+        setSelectedPort(cont.ports[0].toString());
+      } else {
+        setSelectedPort('');
+      }
     } else {
       setSelectedPort('');
     }
+  };
+
+  const computeFinalHostname = (): string => {
+    if (hostnameMode === 'builder') {
+      const cleanSub = subdomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      const cleanBase = baseDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      if (cleanSub && cleanBase) return `${cleanSub}.${cleanBase}`;
+      return cleanSub || cleanBase;
+    }
+    return rawHostname.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
   };
 
   const computeFinalService = (): string => {
@@ -133,7 +197,7 @@ export function CloudflareAddRouteModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const cleanHostname = hostname.trim().toLowerCase().replace(/^https?:\/\//, '');
+    const cleanHostname = computeFinalHostname();
     const finalService = computeFinalService();
 
     if (!cleanHostname) {
@@ -144,6 +208,11 @@ export function CloudflareAddRouteModal({
     if (!finalService) {
       toast.error(t('cloudflare.error_service_required', 'Informe o serviço interno de destino.'));
       return;
+    }
+
+    // Persist domain for future convenience
+    if (baseDomain.trim() && typeof localStorage !== 'undefined') {
+      localStorage.setItem('orbit_base_domain', baseDomain.trim().toLowerCase());
     }
 
     setSubmitting(true);
@@ -208,24 +277,98 @@ export function CloudflareAddRouteModal({
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {/* Hostname */}
+          {/* Hostname Section */}
           <div>
-            <label className="block text-xs font-semibold text-primary mb-1.5">
-              {t('cloudflare.public_hostname', 'Hostname Público')} <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary/60 text-xs font-mono">
-                https://
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-primary">
+                {t('cloudflare.public_hostname', 'Hostname Público')} <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex bg-accent/40 border border-border/60 rounded-lg p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setHostnameMode('builder')}
+                  className={`px-2 py-0.5 rounded-md font-medium transition-all ${
+                    hostnameMode === 'builder'
+                      ? 'bg-card text-primary shadow-sm font-bold'
+                      : 'text-secondary hover:text-primary'
+                  }`}
+                >
+                  {t('cloudflare.hostname_mode_builder', 'Construtor')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHostnameMode('raw')}
+                  className={`px-2 py-0.5 rounded-md font-medium transition-all ${
+                    hostnameMode === 'raw'
+                      ? 'bg-card text-primary shadow-sm font-bold'
+                      : 'text-secondary hover:text-primary'
+                  }`}
+                >
+                  {t('cloudflare.hostname_mode_raw', 'Manual')}
+                </button>
               </div>
-              <input
-                type="text"
-                required
-                value={hostname}
-                onChange={(e) => setHostname(e.target.value)}
-                placeholder={t('cloudflare.hostname_placeholder', 'ex: jellyfin.meudominio.com')}
-                className="w-full pl-16 pr-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500"
-              />
             </div>
+
+            {hostnameMode === 'builder' ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <span className="block text-[11px] text-secondary mb-1 font-medium">
+                      {t('cloudflare.subdomain_label', 'Subdomínio')}
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={subdomain}
+                      onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      placeholder="stirling-pdf"
+                      className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="block text-[11px] text-secondary mb-1 font-medium">
+                      {t('cloudflare.base_domain_label', 'Domínio Base')}
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={baseDomain}
+                      onChange={(e) => {
+                        const val = e.target.value.toLowerCase();
+                        setBaseDomain(val);
+                        if (typeof localStorage !== 'undefined') {
+                          localStorage.setItem('orbit_base_domain', val.trim());
+                        }
+                      }}
+                      placeholder="rasppi.cloud"
+                      className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="px-3 py-2 rounded-xl bg-accent/20 border border-border/50 text-[11px] font-mono flex items-center justify-between">
+                  <span className="text-secondary/70">URL Pública Final:</span>
+                  <span className="font-bold text-emerald-500 dark:text-emerald-400">
+                    https://{computeFinalHostname() || '...'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex rounded-xl bg-accent/40 border border-border focus-within:border-orbit-500 overflow-hidden">
+                <span className="px-3 py-2 text-xs font-mono text-secondary/70 bg-accent/30 border-r border-border/60 flex items-center select-none shrink-0">
+                  https://
+                </span>
+                <input
+                  type="text"
+                  required
+                  value={rawHostname}
+                  onChange={(e) => setRawHostname(e.target.value)}
+                  placeholder={t('cloudflare.hostname_placeholder', 'ex: app.rasppi.cloud')}
+                  className="flex-1 px-3 py-2 bg-transparent text-xs text-primary font-mono focus:outline-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* Service Mode Tabs */}
@@ -366,7 +509,7 @@ export function CloudflareAddRouteModal({
             )}
           </div>
 
-          {/* DNS Notice */}
+          {/* DNS Notice with Dynamic Base Domain */}
           <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 text-xs text-secondary flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
@@ -375,7 +518,8 @@ export function CloudflareAddRouteModal({
               </span>
               {t(
                 'cloudflare.dns_tip_desc',
-                'Se você utiliza Wildcard DNS (*.seu-dominio.com), esta rota funcionará instantaneamente. Caso contrário, adicione um CNAME no DNS da Cloudflare apontando para seu túnel'
+                'Se você utiliza Wildcard DNS (*.{{domain}}), esta rota funcionará instantaneamente. Caso contrário, adicione um CNAME no DNS da Cloudflare apontando para seu túnel',
+                { domain: baseDomain || 'rasppi.cloud' }
               )}{' '}
               {tunnelId && <span className="font-mono text-primary font-bold">({tunnelId.substring(0, 8)}...cfargotunnel.com)</span>}.
             </div>

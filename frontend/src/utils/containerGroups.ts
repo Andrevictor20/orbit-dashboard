@@ -387,10 +387,10 @@ export function getContainerWebLink(c: ContainerLike, customLinks: Record<string
     return resolveWebUrl(custom);
   }
 
-  // Fallback prefix search for IDs and names
+  // Fallback prefix search for IDs and names (strict length >= 12)
   for (const [key, val] of Object.entries(customLinks)) {
     if (!val) continue;
-    if (c.id && (key.startsWith(c.id) || c.id.startsWith(key))) {
+    if (c.id && c.id.length >= 12 && key.length >= 12 && (key.startsWith(c.id) || c.id.startsWith(key))) {
       return resolveWebUrl(val);
     }
     if (cleanName && key.toLowerCase() === cleanName.toLowerCase()) {

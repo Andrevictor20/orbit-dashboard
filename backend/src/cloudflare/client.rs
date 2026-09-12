@@ -126,10 +126,12 @@ pub use super::ingress::{
     update_remote_ingress_config, OriginRequestConfig, RawIngressRule,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, serde::Serialize)]
 struct LocalYamlConfig {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     tunnel: Option<String>,
+    #[serde(default, rename = "credentials-file", skip_serializing_if = "Option::is_none")]
+    credentials_file: Option<String>,
     #[serde(default)]
     ingress: Vec<RawIngressRule>,
 }
@@ -284,6 +286,34 @@ impl CloudflareClient {
         update_remote_ingress_config(&self.http, account_id, tunnel_id, api_token, updated_rules).await?;
         Ok(())
     }
+
+    /// Adds or updates an ingress rule on a local config.yml file on disk
+    pub fn add_route_local(&self, file_path: &str, new_rule: RawIngressRule) -> Result<RawIngressRule, String> {
+        let content = fs::read_to_string(file_path)
+            .map_err(|e| format!("Could not read local config file '{}': {}", file_path, e))?;
+        let mut parsed: LocalYamlConfig = serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse YAML file '{}': {}", file_path, e))?;
+        parsed.ingress = insert_or_update_ingress_rule(parsed.ingress, new_rule.clone());
+        let updated_yaml = serde_yaml::to_string(&parsed)
+            .map_err(|e| format!("Failed to serialize updated YAML: {}", e))?;
+        fs::write(file_path, updated_yaml)
+            .map_err(|e| format!("Could not write to local config file '{}': {}", file_path, e))?;
+        Ok(new_rule)
+    }
+
+    /// Deletes an ingress rule from a local config.yml file on disk
+    pub fn delete_route_local(&self, file_path: &str, hostname: &str, path: Option<&str>) -> Result<(), String> {
+        let content = fs::read_to_string(file_path)
+            .map_err(|e| format!("Could not read local config file '{}': {}", file_path, e))?;
+        let mut parsed: LocalYamlConfig = serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse YAML file '{}': {}", file_path, e))?;
+        parsed.ingress = remove_ingress_rule(parsed.ingress, hostname, path);
+        let updated_yaml = serde_yaml::to_string(&parsed)
+            .map_err(|e| format!("Failed to serialize updated YAML: {}", e))?;
+        fs::write(file_path, updated_yaml)
+            .map_err(|e| format!("Could not write to local config file '{}': {}", file_path, e))?;
+        Ok(())
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -314,6 +344,18 @@ impl ContainerSummaryInfo {
     }
 }
 
+fn is_ip_address(host: &str) -> bool {
+    host.parse::<std::net::IpAddr>().is_ok()
+}
+
+fn is_loopback_or_host(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host.eq_ignore_ascii_case("host.docker.internal")
+        || host == "0.0.0.0"
+}
+
 pub fn match_ingress_with_containers(
     raw_rules: Vec<RawIngressRule>,
     containers: &[ContainerSummaryInfo],
@@ -338,23 +380,39 @@ pub fn match_ingress_with_containers(
         let mut matched_id = None;
         let mut matched_name = None;
 
-        // Matching Pass 1: Service host exactly matches container name
+        let is_ip = service_host.as_deref().map(is_ip_address).unwrap_or(false);
+        let is_loopback = service_host.as_deref().map(is_loopback_or_host).unwrap_or(false);
+
+        // Matching Pass 1: Exact container name, exact container ID, or exact Compose service name
         if let Some(ref sh) = service_host {
             let sh_lower = sh.to_lowercase();
-            if let Some(c) = containers.iter().find(|c| c.name.to_lowercase() == sh_lower) {
-                matched_id = Some(c.id.clone());
-                matched_name = Some(c.name.clone());
+            if !is_ip && !is_loopback {
+                if let Some(c) = containers.iter().find(|c| {
+                    let cn = c.name.to_lowercase();
+                    cn == sh_lower 
+                        || c.id == *sh 
+                        || (sh.len() >= 12 && c.id.starts_with(sh))
+                        || c.service_name.as_ref().map(|s| s.to_lowercase() == sh_lower).unwrap_or(false)
+                }) {
+                    matched_id = Some(c.id.clone());
+                    matched_name = Some(c.name.clone());
+                }
             }
         }
 
-        // Matching Pass 2: Service host contains container name or container name contains service host
-        if matched_id.is_none() {
+        // Matching Pass 2: Exact container name without Docker Compose replica suffix (e.g. "stirling-pdf-1" -> "stirling-pdf")
+        if matched_id.is_none() && !is_ip && !is_loopback {
             if let Some(ref sh) = service_host {
                 let sh_lower = sh.to_lowercase();
-                if sh_lower != "localhost" && sh_lower != "127.0.0.1" && sh_lower != "host.docker.internal" {
+                if sh_lower.len() >= 3 {
                     if let Some(c) = containers.iter().find(|c| {
                         let cn = c.name.to_lowercase();
-                        cn.contains(&sh_lower) || sh_lower.contains(&cn)
+                        let stripped = cn
+                            .strip_suffix("-1")
+                            .or_else(|| cn.strip_suffix("_1"))
+                            .or_else(|| cn.strip_suffix("-app-1"))
+                            .unwrap_or(&cn);
+                        stripped == sh_lower
                     }) {
                         matched_id = Some(c.id.clone());
                         matched_name = Some(c.name.clone());
@@ -363,26 +421,41 @@ pub fn match_ingress_with_containers(
             }
         }
 
-        // Matching Pass 3: Port matching when service points to localhost / internal host
-        if matched_id.is_none() {
+        // Matching Pass 3: Port matching ONLY when service points to localhost / internal loopback
+        // AND ONLY when exactly ONE container on the host exposes this port (prevent ambiguous binding)
+        if matched_id.is_none() && is_loopback {
             if let Some(port) = service_port {
-                if let Some(c) = containers.iter().find(|c| c.ports.contains(&port)) {
+                let candidate_containers: Vec<_> = containers
+                    .iter()
+                    .filter(|c| c.ports.contains(&port))
+                    .collect();
+
+                if candidate_containers.len() == 1 {
+                    let c = candidate_containers[0];
                     matched_id = Some(c.id.clone());
                     matched_name = Some(c.name.clone());
+                } else if candidate_containers.len() > 1 {
+                    // Try to break tie using subdomain if one of candidates matches subdomain exactly
+                    if let Some(c) = candidate_containers.iter().find(|c| {
+                        c.name.eq_ignore_ascii_case(&subdomain)
+                            || c.service_name.as_ref().map(|s| s.eq_ignore_ascii_case(&subdomain)).unwrap_or(false)
+                    }) {
+                        matched_id = Some(c.id.clone());
+                        matched_name = Some(c.name.clone());
+                    }
                 }
             }
         }
 
-        // Matching Pass 4: Subdomain of hostname matches container name or compose service
-        if matched_id.is_none() && !subdomain.is_empty() {
+        // Matching Pass 4: Subdomain of hostname matches container name or compose service EXACTLY
+        // (Never partial substring contains, which caused e.g. "cloud" to match "nextcloud" or "pdf" to match all pdf tools)
+        if matched_id.is_none() && !subdomain.is_empty() && subdomain.len() >= 3 {
             let norm_sub = subdomain.replace(['-', '_'], "");
             if let Some(c) = containers.iter().find(|c| {
                 let cn = c.name.to_lowercase();
                 let norm_cn = cn.replace(['-', '_'], "");
                 cn == subdomain 
                     || norm_cn == norm_sub 
-                    || cn.contains(&subdomain) 
-                    || subdomain.contains(&cn)
                     || c.service_name.as_ref().map(|s| {
                         let sn = s.to_lowercase();
                         sn == subdomain || sn.replace(['-', '_'], "") == norm_sub

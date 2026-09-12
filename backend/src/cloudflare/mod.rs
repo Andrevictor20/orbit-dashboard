@@ -334,16 +334,6 @@ pub async fn create_route_handler(
         String::new()
     };
 
-    if account_id.is_empty() || tunnel_id.is_empty() || config.api_token.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "success": false,
-                "error": "Túnel Cloudflare não configurado com Token de API remoto para gerenciamento de rotas."
-            })),
-        ).into_response();
-    }
-
     let client = CloudflareClient::new();
     let raw_rule = client::RawIngressRule {
         hostname: Some(hostname.clone()),
@@ -354,30 +344,64 @@ pub async fn create_route_handler(
         }),
     };
 
-    // 1. Add route to Cloudflare Tunnel
-    let add_res = client
-        .add_route(&account_id, &tunnel_id, &config.api_token, raw_rule)
-        .await;
+    let (rule, dns_created, dns_msg) = if !config.api_token.is_empty() && !account_id.is_empty() && !tunnel_id.is_empty() {
+        // Strategy 1: Remote Cloudflare Zero Trust API
+        let add_res = client
+            .add_route(&account_id, &tunnel_id, &config.api_token, raw_rule)
+            .await;
 
-    let rule = match add_res {
-        Ok(r) => r,
-        Err(err) => {
+        let r = match add_res {
+            Ok(r) => r,
+            Err(err) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "success": false, "error": err })),
+                ).into_response();
+            }
+        };
+
+        // Try creating DNS CNAME record if zone permissions exist
+        let (created, msg) = client::try_create_dns_cname(
+            &reqwest::Client::new(),
+            Some(&account_id),
+            &tunnel_id,
+            &config.api_token,
+            &hostname,
+        ).await.unwrap_or((false, None));
+
+        (r, created, msg)
+    } else if let Some(ref d) = detected {
+        if let Some(ref local_path) = d.local_config_path {
+            // Strategy 2: Local config.yml file on disk
+            match client.add_route_local(local_path, raw_rule) {
+                Ok(r) => (r, false, None),
+                Err(err) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({ "success": false, "error": err })),
+                    ).into_response();
+                }
+            }
+        } else {
             return (
                 StatusCode::BAD_REQUEST,
-                Json(json!({ "success": false, "error": err })),
+                Json(json!({
+                    "success": false,
+                    "error": "Túnel Cloudflare não configurado com Token de API para gerenciamento remoto. Adicione seu Token nas Configurações da Cloudflare."
+                })),
             ).into_response();
         }
+    } else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "success": false,
+                "error": "Túnel Cloudflare não configurado com Token de API para gerenciamento remoto nem arquivo local detectado."
+            })),
+        ).into_response();
     };
 
-    // 2. Try creating DNS CNAME record if zone permissions exist
-    let (dns_created, dns_msg) = client::try_create_dns_cname(
-        &reqwest::Client::new(),
-        &tunnel_id,
-        &config.api_token,
-        &hostname,
-    ).await.unwrap_or((false, None));
-
-    // 3. Match with local docker containers for UI feedback and auto-sync
+    // Match with local docker containers for UI feedback and auto-sync
     let containers = client::fetch_docker_containers_for_matching(&state.docker).await;
     let matched = client::match_ingress_with_containers(vec![rule], &containers);
     let matched_rule = matched.into_iter().next().unwrap_or_else(|| IngressRule {
@@ -436,38 +460,56 @@ pub async fn delete_route_handler(
         String::new()
     };
 
-    if account_id.is_empty() || tunnel_id.is_empty() || config.api_token.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({
-                "success": false,
-                "error": "Túnel Cloudflare não configurado com Token de API remoto."
-            })),
-        ).into_response();
-    }
-
     let client = CloudflareClient::new();
-    let res = client
-        .delete_route(
-            &account_id,
-            &tunnel_id,
-            &config.api_token,
-            &hostname,
-            payload.path.as_deref(),
-        )
-        .await;
+    if !config.api_token.is_empty() && !account_id.is_empty() && !tunnel_id.is_empty() {
+        let res = client
+            .delete_route(
+                &account_id,
+                &tunnel_id,
+                &config.api_token,
+                &hostname,
+                payload.path.as_deref(),
+            )
+            .await;
 
-    match res {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(DeleteRouteResponse {
-                success: true,
-                message: format!("Rota '{}' removida com sucesso do túnel Cloudflare.", hostname),
-            }),
-        ).into_response(),
-        Err(err) => (
+        match res {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(DeleteRouteResponse {
+                    success: true,
+                    message: format!("Rota '{}' removida com sucesso do túnel Cloudflare.", hostname),
+                }),
+            ).into_response(),
+            Err(err) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": err })),
+            ).into_response(),
+        }
+    } else if let Some(ref d) = detected {
+        if let Some(ref local_path) = d.local_config_path {
+            match client.delete_route_local(local_path, &hostname, payload.path.as_deref()) {
+                Ok(_) => (
+                    StatusCode::OK,
+                    Json(DeleteRouteResponse {
+                        success: true,
+                        message: format!("Rota '{}' removida com sucesso do arquivo local de configuração.", hostname),
+                    }),
+                ).into_response(),
+                Err(err) => (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "success": false, "error": err })),
+                ).into_response(),
+            }
+        } else {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "success": false, "error": "Túnel Cloudflare não configurado com Token de API remoto." })),
+            ).into_response()
+        }
+    } else {
+        (
             StatusCode::BAD_REQUEST,
-            Json(json!({ "success": false, "error": err })),
-        ).into_response(),
+            Json(json!({ "success": false, "error": "Túnel Cloudflare não configurado com Token de API remoto." })),
+        ).into_response()
     }
 }
