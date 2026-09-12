@@ -21,6 +21,7 @@ on:
       - '.gitignore'
       - 'install.sh'
       - 'scripts/**'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
