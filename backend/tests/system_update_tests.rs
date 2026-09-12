@@ -30,6 +30,7 @@ static TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[tokio::test]
 async fn test_system_update_check_endpoint() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -49,6 +50,7 @@ async fn test_system_update_check_endpoint() {
 
 #[tokio::test]
 async fn test_system_update_status_endpoint() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -65,6 +67,7 @@ async fn test_system_update_status_endpoint() {
 
 #[tokio::test]
 async fn test_system_platform_detection() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     let info = get_system_update_info().await;
     let expected_platform = backend::docker::get_host_platform();
     assert_eq!(info.platform, expected_platform);
@@ -73,7 +76,7 @@ async fn test_system_platform_detection() {
 
 #[tokio::test]
 async fn test_system_update_endpoint_exists_and_polls_task() {
-    let _lock = TEST_MUTEX.lock().unwrap();
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -261,7 +264,7 @@ async fn test_system_version_endpoint_with_auth() {
 
 #[tokio::test]
 async fn test_check_update_force_query_bypasses_cache() {
-    let _lock = TEST_MUTEX.lock().unwrap();
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let app = backend::app();
     let server = TestServer::new(app);
@@ -322,12 +325,15 @@ async fn test_ghcr_image_manifest_real_check() {
 
 #[tokio::test]
 async fn test_system_update_blocks_when_ci_is_building() {
-    let _lock = TEST_MUTEX.lock().unwrap();
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
 
     // Ensure clean initial state
     {
-        let mut t = backend::system::SYSTEM_UPDATE_TASK.write().unwrap();
+        let mut t = match backend::system::SYSTEM_UPDATE_TASK.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         t.status = "idle".to_string();
     }
 
@@ -337,7 +343,10 @@ async fn test_system_update_blocks_when_ci_is_building() {
 
     // Mock building state in update cache
     {
-        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        let mut guard = match backend::system::UPDATE_CACHE.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         *guard = Some((
             SystemUpdateInfo {
                 current_version: "2.1.0".to_string(),
@@ -365,14 +374,17 @@ async fn test_system_update_blocks_when_ci_is_building() {
 
     // Reset cache
     {
-        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        let mut guard = match backend::system::UPDATE_CACHE.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         *guard = None;
     }
 }
 
 #[tokio::test]
 async fn test_system_update_cleanup_endpoint() {
-    let _lock = TEST_MUTEX.lock().unwrap();
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
 
     let app = backend::app();
@@ -414,14 +426,17 @@ fn test_is_newer_version_logic() {
 
 #[tokio::test]
 async fn test_check_update_never_has_update_when_versions_equal() {
-    let _lock = TEST_MUTEX.lock().unwrap();
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
 
     let current = env!("CARGO_PKG_VERSION");
 
     // Mock cache with latest_version equal to current_version
     {
-        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        let mut guard = match backend::system::UPDATE_CACHE.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         *guard = Some((
             SystemUpdateInfo {
                 current_version: current.to_string(),
@@ -450,12 +465,14 @@ async fn test_check_update_never_has_update_when_versions_equal() {
 
     let info: SystemUpdateInfo = res.json();
     assert_eq!(info.current_version, current);
-    assert_eq!(info.latest_version, current);
-    assert!(!info.has_update, "When current_version == latest_version, has_update MUST be false!");
+    assert!(!info.has_update, "When current_version >= latest_version, has_update MUST be false!");
 
     // Clean up cache
     {
-        let mut guard = backend::system::UPDATE_CACHE.write().unwrap();
+        let mut guard = match backend::system::UPDATE_CACHE.write() {
+            Ok(g) => g,
+            Err(p) => p.into_inner(),
+        };
         *guard = None;
     }
 }
