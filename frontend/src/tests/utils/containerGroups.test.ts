@@ -236,5 +236,48 @@ describe('containerGroups utility', () => {
       );
       expect(customLink).toBe('https://custom.myhomelab.net');
     });
+
+    it('resolves custom links associated via Cloudflare by short ID, container name or compose service', () => {
+      const fullId = 'a1b2c3d4e5f67890123456789012345678901234567890123456789012345678';
+      const shortId = 'a1b2c3d4e5f6';
+
+      // 1. Matched by 12-char short ID when container has full ID
+      const linkFromShortId = getContainerWebLink(
+        {
+          id: fullId,
+          name: 'stirling-pdf',
+          image: 'froodle/s-pdf:latest',
+          ports: [{ private_port: 8080, public_port: 8080, typ: 'tcp' }],
+        },
+        { [shortId]: 'https://stirling-pdf.rasppi.cloud' }
+      );
+      expect(linkFromShortId).toBe('https://stirling-pdf.rasppi.cloud');
+
+      // 2. Matched by container name (with leading slash on container)
+      const linkFromName = getContainerWebLink(
+        {
+          id: 'c-diff-id',
+          name: '/stirling-pdf',
+          image: 'froodle/s-pdf:latest',
+          ports: [{ private_port: 8080, public_port: 8080, typ: 'tcp' }],
+        },
+        { 'stirling-pdf': 'https://stirling-pdf.rasppi.cloud' }
+      );
+      expect(linkFromName).toBe('https://stirling-pdf.rasppi.cloud');
+
+      // 3. Matched by com.docker.compose.service label
+      const linkFromCompose = getContainerWebLink(
+        {
+          id: 'c-compose-id',
+          name: 'mystack_web_1',
+          image: 'nginx:alpine',
+          ports: [{ private_port: 80, public_port: 80, typ: 'tcp' }],
+          labels: { 'com.docker.compose.service': 'web' },
+        },
+        { 'web': 'https://web.rasppi.cloud' }
+      );
+      expect(linkFromCompose).toBe('https://web.rasppi.cloud');
+    });
   });
 });
+

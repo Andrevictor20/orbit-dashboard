@@ -42,7 +42,19 @@ export function ContainerList() {
   const [updatesMap, setUpdatesMap] = useState<Record<string, { has_update: boolean }>>({});
   const { isModalOpen, openModal, closeModal } = useBatchUpdate();
   const [customLinks, setCustomLinks] = useState<Record<string, string>>({});
-  const [linkModal, setLinkModal] = useState<{ isOpen: boolean, containerId: string | null }>({ isOpen: false, containerId: null });
+  const [cloudflareRoutes, setCloudflareRoutes] = useState<Array<{
+    hostname: string;
+    service: string;
+    public_url: string;
+    matched_container_id?: string;
+    matched_container_name?: string;
+  }>>([]);
+  const [linkModal, setLinkModal] = useState<{ 
+    isOpen: boolean; 
+    containerId: string | null;
+    containerName?: string;
+    detectedCloudflareUrl?: string;
+  }>({ isOpen: false, containerId: null });
   const [linkInput, setLinkInput] = useState('');
   const [linkMode, setLinkMode] = useState<'builder' | 'raw'>('builder');
   const [linkSubdomain, setLinkSubdomain] = useState('');
@@ -145,28 +157,119 @@ export function ContainerList() {
     }
   };
 
+  const fetchCloudflareRoutes = async () => {
+    try {
+      const res = await fetch('/api/cloudflare/tunnels', {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const rules = data.rules || [];
+        setCloudflareRoutes(rules);
+
+        if (!localStorage.getItem('orbit_base_domain') && rules.length > 0) {
+          for (const r of rules) {
+            if (r.hostname && r.hostname.includes('.')) {
+              const parts = r.hostname.split('.');
+              if (parts.length >= 2) {
+                localStorage.setItem('orbit_base_domain', parts.slice(1).join('.'));
+                break;
+              }
+            }
+          }
+        }
+
+        if (rules.length > 0) {
+          setCustomLinks(prev => {
+            const next = { ...prev };
+            let changed = false;
+            for (const r of rules) {
+              const url = r.public_url || (r.hostname ? `https://${r.hostname}` : '');
+              if (!url) continue;
+              if (r.matched_container_id && !next[r.matched_container_id]) {
+                next[r.matched_container_id] = url;
+                changed = true;
+              }
+              if (r.matched_container_name && !next[r.matched_container_name]) {
+                next[r.matched_container_name] = url;
+                changed = true;
+              }
+              if (r.matched_container_name && !next[r.matched_container_name.toLowerCase()]) {
+                next[r.matched_container_name.toLowerCase()] = url;
+                changed = true;
+              }
+            }
+            return changed ? next : prev;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch cloudflare tunnels', err);
+    }
+  };
+
   const handleSetCustomLink = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const currentLink = customLinks[id] || '';
-    setLinkInput(currentLink);
+    const container = containers.find(c => c.id === id || c.id.startsWith(id) || id.startsWith(c.id));
+    const cleanName = container ? container.name.replace(/^\//, '') : '';
+    const composeService = container?.labels?.['com.docker.compose.service'] || container?.labels?.['io.casaos.app.name'] || '';
 
-    const savedDomain = localStorage.getItem('orbit_base_domain') || '';
+    const currentLink = customLinks[id] || 
+      (cleanName ? customLinks[cleanName] || customLinks[cleanName.toLowerCase()] : '') ||
+      (composeService ? customLinks[composeService] : '') ||
+      '';
+
+    let matchedRoute = cloudflareRoutes.find(r => 
+      (r.matched_container_id && (r.matched_container_id === id || id.startsWith(r.matched_container_id) || r.matched_container_id.startsWith(id))) ||
+      (r.matched_container_name && cleanName && (r.matched_container_name === cleanName || r.matched_container_name.toLowerCase() === cleanName.toLowerCase()))
+    );
+
+    if (!matchedRoute && (cleanName || composeService)) {
+      const normClean = cleanName.toLowerCase().replace(/[-_]/g, '');
+      const normService = composeService.toLowerCase().replace(/[-_]/g, '');
+      matchedRoute = cloudflareRoutes.find(r => {
+        const sub = (r.hostname || '').split('.')[0].toLowerCase().replace(/[-_]/g, '');
+        return (normClean && (sub === normClean || sub.includes(normClean) || normClean.includes(sub))) ||
+               (normService && (sub === normService || sub.includes(normService) || normService.includes(sub)));
+      });
+    }
+
+    const detectedCloudflareUrl = matchedRoute?.public_url || (matchedRoute?.hostname ? `https://${matchedRoute.hostname}` : undefined);
+    const targetLink = currentLink || detectedCloudflareUrl || '';
+    setLinkInput(targetLink);
+
+    let savedDomain = localStorage.getItem('orbit_base_domain') || '';
+    if (!savedDomain && matchedRoute?.hostname && matchedRoute.hostname.includes('.')) {
+      savedDomain = matchedRoute.hostname.split('.').slice(1).join('.');
+      localStorage.setItem('orbit_base_domain', savedDomain);
+    }
     setLinkDomain(savedDomain);
-    setLinkSubdomain('');
-    
-    if (currentLink && currentLink.startsWith('https://') && savedDomain && currentLink.endsWith(`.${savedDomain}`)) {
-      const sub = currentLink.replace('https://', '').replace(`.${savedDomain}`, '');
+
+    if (targetLink && targetLink.startsWith('https://') && savedDomain && targetLink.endsWith(`.${savedDomain}`)) {
+      const sub = targetLink.replace('https://', '').replace(`.${savedDomain}`, '');
       if (!sub.includes('/')) {
         setLinkSubdomain(sub);
         setLinkMode('builder');
       } else {
         setLinkMode('raw');
       }
+    } else if (matchedRoute?.hostname && matchedRoute.hostname.includes('.')) {
+      const parts = matchedRoute.hostname.split('.');
+      setLinkSubdomain(parts[0]);
+      setLinkDomain(parts.slice(1).join('.'));
+      setLinkMode('builder');
     } else {
-      setLinkMode(currentLink ? 'raw' : 'builder');
+      const suggestedSub = cleanName.toLowerCase().replace(/[^a-z0-9-]/g, '-') || composeService.toLowerCase() || '';
+      setLinkSubdomain(suggestedSub);
+      setLinkMode(targetLink ? 'raw' : 'builder');
     }
 
-    setLinkModal({ isOpen: true, containerId: id });
+    setLinkModal({
+      isOpen: true,
+      containerId: id,
+      containerName: cleanName || undefined,
+      detectedCloudflareUrl,
+    });
   };
 
   const handleSaveLink = async () => {
@@ -245,6 +348,7 @@ export function ContainerList() {
     const handleContainersUpdated = () => {
       fetchContainers(false);
       fetchUpdates();
+      fetchCloudflareRoutes();
     };
     window.addEventListener('orbit:containers-updated', handleContainersUpdated);
     return () => window.removeEventListener('orbit:containers-updated', handleContainersUpdated);
@@ -254,6 +358,7 @@ export function ContainerList() {
     fetchContainers();
     fetchLinks();
     fetchUpdates();
+    fetchCloudflareRoutes();
     const interval = setInterval(() => {
       if (!actionLoading) {
         fetchContainers(false);
@@ -577,6 +682,8 @@ export function ContainerList() {
         setLinkDomain={setLinkDomain}
         linkInput={linkInput}
         setLinkInput={setLinkInput}
+        detectedCloudflareUrl={linkModal.detectedCloudflareUrl}
+        containerName={linkModal.containerName}
         onSave={handleSaveLink}
         onClose={() => setLinkModal({ isOpen: false, containerId: null })}
       />

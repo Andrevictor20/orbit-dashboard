@@ -372,8 +372,30 @@ export function getSortedDeduplicatedPorts<P extends PortLike = PortLike>(
  * Computes default web link for a container based on custom links or public ports.
  */
 export function getContainerWebLink(c: ContainerLike, customLinks: Record<string, string> = {}): string {
-  if (customLinks[c.id]) {
-    return resolveWebUrl(customLinks[c.id]);
+  const cleanName = (c.name || '').replace(/^\//, '');
+  const idShort = c.id && c.id.length >= 12 ? c.id.substring(0, 12) : c.id;
+  const composeService = c.labels?.['com.docker.compose.service'];
+
+  const custom = 
+    customLinks[c.id] ||
+    (idShort && customLinks[idShort]) ||
+    (cleanName && customLinks[cleanName]) ||
+    (cleanName && customLinks[cleanName.toLowerCase()]) ||
+    (composeService && customLinks[composeService]);
+
+  if (custom) {
+    return resolveWebUrl(custom);
+  }
+
+  // Fallback prefix search for IDs and names
+  for (const [key, val] of Object.entries(customLinks)) {
+    if (!val) continue;
+    if (c.id && (key.startsWith(c.id) || c.id.startsWith(key))) {
+      return resolveWebUrl(val);
+    }
+    if (cleanName && key.toLowerCase() === cleanName.toLowerCase()) {
+      return resolveWebUrl(val);
+    }
   }
 
   const sortedPorts = getSortedDeduplicatedPorts(c.ports, c.image, c.name, c.labels);

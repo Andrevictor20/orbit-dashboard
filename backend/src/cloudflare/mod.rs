@@ -239,11 +239,9 @@ pub async fn get_tunnels_handler(
     )
 }
 
-pub async fn sync_links_handler(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn auto_sync_cloudflare_links(docker: &bollard::Docker) -> Option<SyncLinksResponse> {
     let config = get_config().unwrap_or_default();
-    let detected = detector::detect_cloudflared(&state.docker).await;
+    let detected = detector::detect_cloudflared(docker).await;
 
     let account_id = if !config.account_id.is_empty() {
         Some(config.account_id.clone())
@@ -278,18 +276,22 @@ pub async fn sync_links_handler(
         }
     }
 
-    let Some(raw_rules) = raw_rules_opt else {
-        return (
+    let raw_rules = raw_rules_opt?;
+    let containers = client::fetch_docker_containers_for_matching(docker).await;
+    let matched = client::match_ingress_with_containers(raw_rules, &containers);
+    Some(client::sync_ingress_rules_to_links(&matched))
+}
+
+pub async fn sync_links_handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    match auto_sync_cloudflare_links(&state.docker).await {
+        Some(sync_res) => (StatusCode::OK, Json(sync_res)).into_response(),
+        None => (
             StatusCode::BAD_REQUEST,
             Json(json!({ "error": "Could not retrieve Cloudflare tunnel ingress rules to sync" })),
-        ).into_response();
-    };
-
-    let containers = client::fetch_docker_containers_for_matching(&state.docker).await;
-    let matched = client::match_ingress_with_containers(raw_rules, &containers);
-    let sync_res = client::sync_ingress_rules_to_links(&matched);
-
-    (StatusCode::OK, Json(sync_res)).into_response()
+        ).into_response(),
+    }
 }
 
 pub async fn create_route_handler(

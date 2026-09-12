@@ -295,6 +295,7 @@ pub struct ContainerSummaryInfo {
     pub id: String,
     pub name: String,
     pub ports: Vec<u16>,
+    pub service_name: Option<String>,
 }
 
 impl ContainerSummaryInfo {
@@ -303,7 +304,13 @@ impl ContainerSummaryInfo {
             id: id.into(),
             name: name.into(),
             ports,
+            service_name: None,
         }
+    }
+
+    pub fn with_service_name(mut self, service_name: Option<String>) -> Self {
+        self.service_name = service_name;
+        self
     }
 }
 
@@ -366,11 +373,20 @@ pub fn match_ingress_with_containers(
             }
         }
 
-        // Matching Pass 4: Subdomain of hostname matches container name
+        // Matching Pass 4: Subdomain of hostname matches container name or compose service
         if matched_id.is_none() && !subdomain.is_empty() {
+            let norm_sub = subdomain.replace(['-', '_'], "");
             if let Some(c) = containers.iter().find(|c| {
                 let cn = c.name.to_lowercase();
-                cn == subdomain || cn.contains(&subdomain) || subdomain.contains(&cn)
+                let norm_cn = cn.replace(['-', '_'], "");
+                cn == subdomain 
+                    || norm_cn == norm_sub 
+                    || cn.contains(&subdomain) 
+                    || subdomain.contains(&cn)
+                    || c.service_name.as_ref().map(|s| {
+                        let sn = s.to_lowercase();
+                        sn == subdomain || sn.replace(['-', '_'], "") == norm_sub
+                    }).unwrap_or(false)
             }) {
                 matched_id = Some(c.id.clone());
                 matched_name = Some(c.name.clone());
@@ -439,7 +455,18 @@ pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<Contai
             }
         }
 
-        results.push(ContainerSummaryInfo { id, name, ports });
+        let service_name = c
+            .labels
+            .as_ref()
+            .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.casaos.app.name")))
+            .cloned();
+
+        results.push(ContainerSummaryInfo {
+            id,
+            name,
+            ports,
+            service_name,
+        });
     }
 
     results
@@ -452,6 +479,16 @@ pub fn sync_ingress_rules_to_links(rules: &[IngressRule]) -> SyncLinksResponse {
     for rule in rules {
         if let Some(ref container_id) = rule.matched_container_id {
             links_to_update.insert(container_id.clone(), rule.public_url.clone());
+            if container_id.len() >= 12 {
+                links_to_update.insert(container_id[..12].to_string(), rule.public_url.clone());
+            }
+        }
+        if let Some(ref name) = rule.matched_container_name {
+            let clean = name.trim_start_matches('/');
+            if !clean.is_empty() {
+                links_to_update.insert(clean.to_string(), rule.public_url.clone());
+                links_to_update.insert(clean.to_lowercase(), rule.public_url.clone());
+            }
         }
     }
 

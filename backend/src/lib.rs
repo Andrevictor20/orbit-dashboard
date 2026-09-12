@@ -57,6 +57,19 @@ pub fn app() -> Router {
         system::cleanup_old_orbit_images(docker_cleanup).await;
     });
 
+    // Background auto-sync of Cloudflare tunnel links to containers on startup and periodically
+    let docker_cf = state.docker.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        let _ = cloudflare::auto_sync_cloudflare_links(&docker_cf).await;
+
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        loop {
+            interval.tick().await;
+            let _ = cloudflare::auto_sync_cloudflare_links(&docker_cf).await;
+        }
+    });
+
     let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))

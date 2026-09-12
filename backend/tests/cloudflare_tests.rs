@@ -399,3 +399,32 @@ async fn test_cloudflare_routes_endpoints_unauthenticated() {
     }
 }
 
+#[test]
+fn test_sync_ingress_rules_populates_short_id_and_container_name() {
+    use backend::cloudflare::client::sync_ingress_rules_to_links;
+    use backend::cloudflare::models::IngressRule;
+
+    let full_id = "a1b2c3d4e5f67890123456789012345678901234567890123456789012345678".to_string();
+    let short_id = "a1b2c3d4e5f6".to_string();
+    let container_name = "/stirling-pdf".to_string();
+    let public_url = "https://stirling-pdf.rasppi.cloud".to_string();
+
+    let rule = IngressRule {
+        hostname: "stirling-pdf.rasppi.cloud".to_string(),
+        service: "http://stirling-pdf:8080".to_string(),
+        path: None,
+        public_url: public_url.clone(),
+        matched_container_id: Some(full_id.clone()),
+        matched_container_name: Some(container_name),
+    };
+
+    let sync_res = sync_ingress_rules_to_links(&[rule]);
+
+    assert!(sync_res.synced_links.contains_key(&full_id));
+    assert!(sync_res.synced_links.contains_key(&short_id), "Short ID (12 chars) must be synced");
+    assert!(sync_res.synced_links.contains_key("stirling-pdf"), "Container name must be synced");
+    assert_eq!(sync_res.synced_links.get(&short_id).unwrap(), &public_url);
+    assert_eq!(sync_res.synced_links.get("stirling-pdf").unwrap(), &public_url);
+}
+
+

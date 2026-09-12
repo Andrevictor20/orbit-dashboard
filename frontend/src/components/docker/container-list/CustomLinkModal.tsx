@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Globe, X } from 'lucide-react';
+import { Cloud, Globe, X } from 'lucide-react';
 
 export interface CustomLinkModalProps {
   isOpen: boolean;
@@ -11,6 +11,8 @@ export interface CustomLinkModalProps {
   setLinkDomain: (val: string) => void;
   linkInput: string;
   setLinkInput: (val: string) => void;
+  detectedCloudflareUrl?: string;
+  containerName?: string;
   onSave: () => void;
   onClose: () => void;
 }
@@ -25,6 +27,8 @@ export function CustomLinkModal({
   setLinkDomain,
   linkInput,
   setLinkInput,
+  detectedCloudflareUrl,
+  containerName,
   onSave,
   onClose,
 }: CustomLinkModalProps) {
@@ -47,6 +51,7 @@ export function CustomLinkModal({
             <div>
               <h3 className="text-base sm:text-lg font-bold text-primary">
                 Link Customizado do App
+                {containerName && <span className="ml-2 text-xs font-normal text-secondary font-mono">({containerName})</span>}
               </h3>
               <p className="text-xs text-slate-600 dark:text-secondary">Defina um domínio ou URL direta para acesso rápido</p>
             </div>
@@ -59,6 +64,36 @@ export function CustomLinkModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {detectedCloudflareUrl && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs mb-4">
+            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-medium">
+              <Cloud className="w-4 h-4 shrink-0 text-orange-500" />
+              <span>
+                Link Cloudflare Tunnel: <strong className="font-mono text-primary break-all">{detectedCloudflareUrl}</strong>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLinkInput(detectedCloudflareUrl);
+                const clean = detectedCloudflareUrl.replace(/^https?:\/\//, '');
+                const host = clean.split(/[:/]/)[0];
+                const parts = host.split('.');
+                if (parts.length >= 2) {
+                  setLinkSubdomain(parts[0]);
+                  setLinkDomain(parts.slice(1).join('.'));
+                  setLinkMode('builder');
+                } else {
+                  setLinkMode('raw');
+                }
+              }}
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-orange-500/20 text-orange-700 dark:text-orange-300 hover:bg-orange-500/30 transition-colors whitespace-nowrap self-end sm:self-auto"
+            >
+              Usar Este Link
+            </button>
+          </div>
+        )}
         
         <div className="flex bg-background/60 border border-border rounded-xl p-1 mb-4">
           <button 
