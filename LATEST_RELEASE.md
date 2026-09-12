@@ -1,4 +1,13 @@
-# Orbit Dashboard v3.2.0
+# Orbit Dashboard v3.2.3
+
+### Novidades e Correções (v3.2.3)
+
+- **Correção Definitiva de Download e Instalação de Imagens Docker:**
+  - **Eliminação de Deadlock no Pipe do Kernel Linux:** Remoção de pipe buffers bloqueantes em comandos de pull/up com redirecionamento para `Stdio::null()`, impedindo travamento de processos com mais de 64KB de saída.
+  - **Progresso de Extração Suave:** Reconhecimento das mensagens de descompressão (`Extracting`) permitindo que a barra de progresso avance continuamente até 58% em vez de estagnar em 55%.
+  - **Deduplicação de Logs de Alta Frequência:** Linhas contínuas de progresso e download atualizam o último registro no buffer de logs in-place, prevenindo estouramento do histórico.
+  - **Resolução de Loop Infinito de Polling no Frontend:** Estabilização da chave de dependência reativa do React (`activeAppTaskIdsKey`) e encerramento terminativo imediato ao detectar HTTP 404.
+  - **Isolamento Concorrente de Cache do Sistema:** Sincronização de testes em `system_update_tests.rs` via mutex resiliente prevenindo condições de corrida na validação de releases no CI.
 
 ### Novidades e Recursos Principais (v3.2.0)
 
