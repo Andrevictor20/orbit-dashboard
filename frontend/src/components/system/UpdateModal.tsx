@@ -1,23 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  X, 
-  Sparkles, 
-  Download, 
-  CheckCircle2, 
-  RefreshCw, 
-  Cpu, 
-  GitBranch, 
-  Clock, 
-  Zap, 
-  Wrench, 
-  Terminal, 
-  AlertTriangle, 
-  ExternalLink,
-  ShieldCheck
-} from 'lucide-react';
+import { X, RefreshCw, CheckCircle2, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { OrbitLogo } from '../ui/OrbitLogo';
 import { isNewerVersion } from '../../utils/version';
+import { parseReleaseNotes } from './releaseNotesParser';
+import { UpdateProgressView, type UpdateTaskState } from './UpdateProgressView';
+import { UpdateReleaseNotesView } from './UpdateReleaseNotesView';
 
 export interface SystemUpdateInfo {
   current_version: string;
@@ -37,22 +25,6 @@ interface UpdateModalProps {
   onClose: () => void;
   updateInfo: SystemUpdateInfo | null;
   onRefreshInfo: () => void;
-}
-
-interface ReleaseSection {
-  title: string;
-  badgeLabel: string;
-  badgeClass: string;
-  icon: any;
-  items: Array<{ title: string; desc: string }>;
-}
-
-interface UpdateTaskState {
-  status: 'idle' | 'pulling' | 'recreating' | 'done' | 'error';
-  progress: number;
-  current_step: string;
-  logs: string[];
-  error?: string | null;
 }
 
 export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: UpdateModalProps) {
@@ -98,112 +70,95 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
     let pollInterval: any = null;
     let healthInterval: any = null;
 
-    const startHealthPolling = () => {
-      let attempts = 0;
-      const targetVersion = updateInfo?.latest_version;
-      const currentVersion = updateInfo?.current_version;
-      let sawDownOrNewVersion = false;
-      const startTime = Date.now();
-
-      healthInterval = setInterval(async () => {
-        attempts++;
-        if (isSubscribed) setReconnectAttempts(attempts);
-
-        const elapsed = Date.now() - startTime;
-
-        try {
-          const health = await fetch(`/health?_t=${Date.now()}`);
-          if (health.ok) {
-            const data = await health.json().catch(() => null);
-            const returnedVersion = data?.version;
-
-            const isTargetReached = Boolean(targetVersion && returnedVersion && returnedVersion === targetVersion);
-            const isStillOld = Boolean(currentVersion && returnedVersion && returnedVersion === currentVersion && targetVersion !== currentVersion);
-
-            if (isStillOld && elapsed < 20000 && !sawDownOrNewVersion) {
-              // Old container is still terminating; keep waiting
-              return;
-            }
-
-            if (isTargetReached || sawDownOrNewVersion || elapsed > 10000) {
-              clearInterval(healthInterval);
-              if (isSubscribed) {
-                const finalVersion = returnedVersion || targetVersion || currentVersion || '3.2.3';
-                localStorage.setItem('orbit_last_updated_version', finalVersion);
-
-                setTaskState(prev => ({
-                  ...prev,
-                  status: 'done',
-                  progress: 100,
-                  current_step: 'Orbit atualizado com sucesso! Recarregando painel...',
-                  logs: [
-                    ...prev.logs, 
-                    `🎉 [SUCCESS] Novo container v${finalVersion} ativo e respondendo na porta 5172!`,
-                    '🧹 [CLEANUP] Imagens antigas e camadas não utilizadas do Orbit removidas automaticamente.',
-                    '🚀 [RELOAD] Recarregando interface atualizada...'
-                  ]
-                }));
-
-                toast.success(`Orbit v${finalVersion} atualizado com sucesso!`);
-                
-                setTimeout(() => {
-                  window.location.replace(`/?updated=true&version=${encodeURIComponent(finalVersion)}&_t=${Date.now()}`);
-                }, 1200);
-              }
-            }
-          } else {
-            sawDownOrNewVersion = true;
-          }
-        } catch {
-          // Expected while container restarts - marks that container went down!
-          sawDownOrNewVersion = true;
-        }
-
-        if (attempts > 60) {
-          clearInterval(healthInterval);
-          if (isSubscribed) {
-            setTaskState(prev => ({
-              ...prev,
-              status: 'error',
-              error: 'Tempo limite atingido. O container pode estar demorando para iniciar. Atualize a página manualmente.'
-            }));
-            setUpdating(false);
-          }
-        }
-      }, 1500);
-    };
-
-    const pollStatus = async () => {
+    const pollTaskStatus = async () => {
       try {
         const token = localStorage.getItem('orbit_token');
         const res = await fetch('/api/system/update/status', {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
 
-        if (res.ok) {
-          const data: UpdateTaskState = await res.json();
-          if (isSubscribed) {
-            setTaskState(data);
+        if (res.status === 404) {
+          // Task might not have started or backend restarted already
+          return;
+        }
 
-            if (data.status === 'recreating') {
-              clearInterval(pollInterval);
-              startHealthPolling();
-            } else if (data.status === 'error') {
-              clearInterval(pollInterval);
-              setUpdating(false);
-              toast.error(data.error || 'Erro durante a atualização.');
-            }
+        if (res.ok) {
+          const data = await res.json();
+          if (!isSubscribed) return;
+
+          setTaskState(prev => ({
+            ...prev,
+            status: data.status,
+            progress: data.progress,
+            current_step: data.current_step,
+            logs: data.logs || prev.logs,
+            error: data.error
+          }));
+
+          // When task enters 'recreating', container is restarting -> poll backend health
+          if (data.status === 'recreating') {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = null;
+            startHealthCheckLoop();
+          } else if (data.status === 'done') {
+            if (pollInterval) clearInterval(pollInterval);
+            toast.success('Orbit atualizado com sucesso!');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1800);
+          } else if (data.status === 'error') {
+            if (pollInterval) clearInterval(pollInterval);
+            toast.error(data.error || 'Falha ao atualizar o sistema.');
           }
         }
       } catch {
-        if (taskState.status === 'recreating' || taskState.progress >= 80) {
-          clearInterval(pollInterval);
-          startHealthPolling();
-        }
+        // Backend could be down while container recreates
       }
     };
 
-    pollInterval = setInterval(pollStatus, 800);
+    const startHealthCheckLoop = () => {
+      let attempts = 0;
+      healthInterval = setInterval(async () => {
+        attempts++;
+        if (!isSubscribed) return;
+        setReconnectAttempts(attempts);
+
+        try {
+          const res = await fetch('/api/health', { cache: 'no-store' });
+          if (res.ok) {
+            const healthData = await res.json().catch(() => null);
+            if (healthData?.version) {
+              clearInterval(healthInterval);
+              setTaskState(prev => ({
+                ...prev,
+                status: 'done',
+                progress: 100,
+                current_step: 'Atualização concluída com sucesso! Recarregando painel...',
+                logs: [...prev.logs, `✔ Painel reconectado na nova versão ${healthData.version}.`]
+              }));
+              toast.success(`Orbit v${healthData.version} online!`);
+              setTimeout(() => {
+                window.location.reload();
+              }, 1200);
+            }
+          }
+        } catch {
+          // Keep polling until online
+        }
+
+        if (attempts >= 45) {
+          clearInterval(healthInterval);
+          setTaskState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.'
+          }));
+        }
+      }, 2000);
+    };
+
+    pollInterval = setInterval(pollTaskStatus, 1000);
+    pollTaskStatus();
 
     return () => {
       isSubscribed = false;
@@ -213,87 +168,10 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   }, [updating, updateInfo]);
 
   // Clean Markdown & Bullet Parser for Release Notes
-  const parsedSections = useMemo<ReleaseSection[]>(() => {
-    const raw = updateInfo?.release_notes || '';
-    if (!raw.trim()) return [];
-
-    const sections: ReleaseSection[] = [];
-    const lines = raw.split('\n');
-
-    let currentSection: ReleaseSection = {
-      title: 'Melhorias da Versão',
-      badgeLabel: 'NOVIDADE',
-      badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      icon: Sparkles,
-      items: [],
-    };
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line || line.startsWith('# ')) continue;
-
-      if (line.startsWith('### ') || line.startsWith('## ')) {
-        if (currentSection.items.length > 0) {
-          sections.push(currentSection);
-        }
-
-        const heading = line.replace(/^#+\s*/, '').trim();
-        const lower = heading.toLowerCase();
-
-        if (lower.includes('desempenho') || lower.includes('performance') || lower.includes('fluidez')) {
-          currentSection = {
-            title: heading.replace(/^[^\w\s]+/, '').trim() || 'Desempenho & Fluidez',
-            badgeLabel: 'DESEMPENHO',
-            badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold',
-            icon: Zap,
-            items: [],
-          };
-        } else if (lower.includes('correç') || lower.includes('fix') || lower.includes('bug')) {
-          currentSection = {
-            title: heading.replace(/^[^\w\s]+/, '').trim() || 'Correções & Estabilidade',
-            badgeLabel: 'CORREÇÃO',
-            badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30 font-semibold',
-            icon: Wrench,
-            items: [],
-          };
-        } else {
-          currentSection = {
-            title: heading.replace(/^[^\w\s]+/, '').trim() || 'Novidades',
-            badgeLabel: 'NOVIDADE',
-            badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold',
-            icon: Sparkles,
-            items: [],
-          };
-        }
-        continue;
-      }
-
-      if (line.startsWith('- ') || line.startsWith('* ')) {
-        const text = line.replace(/^[-*]\s+/, '').trim();
-        // Check for **Title:** Desc or **Title** - Desc
-        const boldMatch = text.match(/^\*\*(.*?)\*\*[:\s-]*(.*)$/);
-        if (boldMatch) {
-          const cleanTitle = boldMatch[1].replace(/[:\s-]+$/, '').trim();
-          const cleanDesc = boldMatch[2].replace(/^[:\s-]+/, '').trim();
-          currentSection.items.push({
-            title: cleanTitle,
-            desc: cleanDesc,
-          });
-        } else {
-          currentSection.items.push({
-            title: '',
-            desc: text,
-          });
-        }
-      }
-    }
-
-    if (currentSection.items.length > 0) {
-      sections.push(currentSection);
-    }
-
-    return sections;
-  }, [updateInfo?.release_notes]);
+  const parsedSections = useMemo(
+    () => parseReleaseNotes(updateInfo?.release_notes || ''),
+    [updateInfo?.release_notes]
+  );
 
   const handleStartUpdate = async () => {
     if (updateInfo?.ci_status === 'building') {
@@ -301,34 +179,37 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
       return;
     }
 
-    try {
-      setUpdating(true);
-      setTaskState({
-        status: 'pulling',
-        progress: 10,
-        current_step: 'Iniciando download da nova imagem do Orbit...',
-        logs: [
-          '🚀 [START] Processo de atualização iniciado pelo usuário.',
-          '📦 [TARGET] Baixando imagem mais recente: ghcr.io/andrevictor20/orbit-dashboard:latest'
-        ],
-        error: null,
-      });
+    if (!window.confirm(`Deseja iniciar a atualização do Orbit para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`)) {
+      return;
+    }
 
+    setUpdating(true);
+    setTaskState({
+      status: 'pulling',
+      progress: 5,
+      current_step: 'Iniciando download da imagem mais recente...',
+      logs: ['[Orbit Update Agent] Inicializando atualização...', `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
+      error: null,
+    });
+
+    try {
       const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/system/update', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Falha ao acionar atualização.');
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Falha ao acionar processo de atualização');
       }
+
+      const data = await res.json();
+      setTaskState(prev => ({
+        ...prev,
+        logs: [...prev.logs, `[Task ID: ${data.task_id}] Processo iniciado com sucesso.`]
+      }));
     } catch (e: any) {
-      setUpdating(false);
       setTaskState(prev => ({
         ...prev,
         status: 'error',
@@ -394,227 +275,19 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         {/* Modal Body */}
         <div className="flex-1 overflow-hidden flex flex-col bg-background/40">
           {!updating ? (
-            <>
-              {/* Telemetry Strip & Versions Grid */}
-              <div className="p-5 pb-3 space-y-3">
-                {/* CI/CD Building Alert Banner */}
-                {updateInfo?.ci_status === 'building' && (
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 shadow-sm">
-                    <div className="flex items-start gap-2.5">
-                      <RefreshCw className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-primary flex items-center gap-1.5">
-                          <span>Compilação Multi-Arch em Andamento</span>
-                          <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono font-semibold">
-                            GitHub Actions
-                          </span>
-                        </p>
-                        <p className="text-[11.5px] text-slate-600 dark:text-secondary mt-0.5 leading-relaxed">
-                          A imagem da versão <strong className="text-primary font-mono">v{updateInfo.latest_version}</strong> está sendo compilada e empacotada no GitHub (~8 min). Esta tela atualizará automaticamente assim que estiver pronta.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={onRefreshInfo}
-                        className="px-2.5 py-1 rounded-xl bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary text-[11px] font-semibold border border-border/70 flex items-center gap-1 transition-colors"
-                        title="Verificar status no GitHub agora"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Verificar</span>
-                      </button>
-                      {updateInfo.ci_workflow_url && (
-                        <a
-                          href={updateInfo.ci_workflow_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
-                        >
-                          <span>Ver CI/CD</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Architecture & Date */}
-                <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-card border border-border/70 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-secondary">
-                    <Cpu className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-                    <span>Arquitetura:</span>
-                    <strong className="text-primary font-mono">
-                      {updateInfo ? formatPlatformName(updateInfo.platform, updateInfo.arch) : 'Detectando...'}
-                    </strong>
-                  </div>
-
-                  {updateInfo?.published_at && (
-                    <div className="flex items-center gap-1 text-slate-600 dark:text-secondary font-mono text-[11px]">
-                      <Clock className="w-3 h-3" />
-                      <span>{new Date(updateInfo.published_at).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2-Column Version Deck */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex flex-col justify-between shadow-sm">
-                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Versão Instalada</span>
-                    <span className="text-xl font-bold text-primary font-mono mt-1">
-                      v{updateInfo?.current_version || '1.9.9'}
-                    </span>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 mt-1 font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Instalação Ativa</span>
-                    </div>
-                  </div>
-
-                  <div className={`p-3.5 rounded-2xl border flex flex-col justify-between shadow-sm ${
-                    hasNewVersion 
-                      ? 'bg-orbit-500/10 border-orbit-500/40' 
-                      : 'bg-card border-border/80'
-                  }`}>
-                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Mais Recente</span>
-                    <span className={`text-xl font-bold font-mono mt-1 ${
-                      hasNewVersion ? 'text-orbit-600 dark:text-orbit-400' : 'text-primary'
-                    }`}>
-                      v{updateInfo?.latest_version || updateInfo?.current_version || '1.9.9'}
-                    </span>
-                    <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-secondary mt-1 font-mono">
-                      <GitBranch className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-                      <span>ghcr.io:latest</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Title & Refresh */}
-              <div className="px-5 pt-2 pb-1 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-                  <span>O que mudou nesta versão</span>
-                </div>
-
-                <button 
-                  onClick={onRefreshInfo}
-                  className="text-[11px] text-slate-700 dark:text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-card hover:bg-accent px-2.5 py-1 rounded-lg border border-border/70 active:scale-95 shadow-sm font-medium"
-                  title="Verificar atualizações"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Verificar</span>
-                </button>
-              </div>
-
-              {/* Release Notes List */}
-              <div className="p-5 pt-2 overflow-y-auto flex-1 space-y-3 scrollbar-thin">
-                {parsedSections.length > 0 ? (
-                  parsedSections.map((section, sIdx) => {
-                    const SectionIcon = section.icon;
-                    return (
-                      <div 
-                        key={sIdx}
-                        className="p-4 rounded-2xl bg-white dark:bg-card border border-border/80 space-y-2.5 shadow-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-lg border ${section.badgeClass}`}>
-                            <SectionIcon className="w-3 h-3" />
-                            <span>{section.badgeLabel}</span>
-                          </span>
-                          <h3 className="text-xs font-bold text-slate-950 dark:text-white">
-                            {section.title}
-                          </h3>
-                        </div>
-
-                        <ul className="space-y-1.5 pl-2">
-                          {section.items.map((item, iIdx) => (
-                            <li key={iIdx} className="text-xs leading-relaxed flex items-start gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400 shrink-0 mt-1.5" />
-                              <div className="text-slate-900 dark:text-zinc-100 font-normal">
-                                {item.title && (
-                                  <strong className="text-slate-950 dark:text-white font-bold mr-1">
-                                    {item.title}:
-                                  </strong>
-                                )}
-                                <span className="text-slate-800 dark:text-zinc-200">{item.desc}</span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-card border border-border/60 text-slate-600 dark:text-secondary text-center space-y-2">
-                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mb-1" />
-                    <p className="text-sm font-semibold text-primary">Orbit 100% Atualizado</p>
-                    <p className="text-xs text-slate-600 dark:text-secondary">
-                      Você está rodando a versão mais recente com todas as melhorias e correções aplicadas.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
+            <UpdateReleaseNotesView
+              updateInfo={updateInfo}
+              hasNewVersion={hasNewVersion}
+              onRefreshInfo={onRefreshInfo}
+              formatPlatformName={formatPlatformName}
+              parsedSections={parsedSections}
+            />
           ) : (
-            /* Live Progress Screen */
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
-              <div className="space-y-4 animate-in fade-in duration-150">
-                <div className="space-y-2.5 p-4 rounded-2xl bg-card border border-border/80">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-primary flex items-center gap-2">
-                      {taskState.status === 'recreating' ? (
-                        <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                      ) : (
-                        <Download className="w-4 h-4 text-orbit-500 animate-bounce" />
-                      )}
-                      {taskState.current_step || 'Executando atualização...'}
-                    </span>
-                    <span className="text-orbit-600 dark:text-orbit-400 font-mono text-xs tabular-nums font-bold">
-                      {taskState.progress}%
-                    </span>
-                  </div>
-
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border/50">
-                    <div 
-                      className="bg-orbit-500 h-full rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(taskState.progress, 5)}%` }}
-                    />
-                  </div>
-
-                  {taskState.status === 'recreating' && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-secondary pt-1">
-                      <span>Tentativa de reconexão:</span>
-                      <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">{reconnectAttempts}/45</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Console Log Terminal */}
-                <div className="rounded-2xl bg-neutral-950 border border-border/80 overflow-hidden font-mono text-xs shadow-inner">
-                  <div className="px-3.5 py-2 bg-neutral-900 border-b border-border/60 flex items-center justify-between text-[11px] text-secondary">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="w-3.5 h-3.5 text-orbit-400" />
-                      <span className="font-medium text-zinc-300">Terminal de Atualização</span>
-                    </div>
-                    <span className="text-zinc-500 font-mono text-[10px]">Docker Engine</span>
-                  </div>
-                  <div className="p-3.5 max-h-48 overflow-y-auto space-y-1 scrollbar-thin text-[11px]">
-                    {taskState.logs.map((line, idx) => (
-                      <div key={idx} className="text-zinc-300">
-                        {line}
-                      </div>
-                    ))}
-                    <div ref={terminalEndRef} />
-                  </div>
-                </div>
-
-                {taskState.error && (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 font-medium">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{taskState.error}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <UpdateProgressView
+              taskState={taskState}
+              reconnectAttempts={reconnectAttempts}
+              terminalEndRef={terminalEndRef}
+            />
           )}
         </div>
 

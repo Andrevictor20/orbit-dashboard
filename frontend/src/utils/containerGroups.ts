@@ -1,4 +1,5 @@
 import { resolveWebUrl } from './url';
+import { getContainerWebLink } from './containerLinkResolution';
 
 export interface PortInfo {
   ip?: string;
@@ -368,46 +369,7 @@ export function getSortedDeduplicatedPorts<P extends PortLike = PortLike>(
   });
 }
 
-/**
- * Computes default web link for a container based on custom links or public ports.
- */
-export function getContainerWebLink(c: ContainerLike, customLinks: Record<string, string> = {}): string {
-  const cleanName = (c.name || '').replace(/^\//, '');
-  const idShort = c.id && c.id.length >= 12 ? c.id.substring(0, 12) : c.id;
-  const composeService = c.labels?.['com.docker.compose.service'];
-
-  const custom = 
-    customLinks[c.id] ||
-    (idShort && customLinks[idShort]) ||
-    (cleanName && customLinks[cleanName]) ||
-    (cleanName && customLinks[cleanName.toLowerCase()]) ||
-    (composeService && customLinks[composeService]);
-
-  if (custom) {
-    return resolveWebUrl(custom);
-  }
-
-  // Fallback prefix search for IDs and names (strict length >= 12)
-  for (const [key, val] of Object.entries(customLinks)) {
-    if (!val) continue;
-    if (c.id && c.id.length >= 12 && key.length >= 12 && (key.startsWith(c.id) || c.id.startsWith(key))) {
-      return resolveWebUrl(val);
-    }
-    if (cleanName && key.toLowerCase() === cleanName.toLowerCase()) {
-      return resolveWebUrl(val);
-    }
-  }
-
-  const sortedPorts = getSortedDeduplicatedPorts(c.ports, c.image, c.name, c.labels);
-  if (sortedPorts.length > 0) {
-    const primaryPort = sortedPorts[0].public_port || sortedPorts[0].private_port;
-    if (primaryPort) {
-      return resolveWebUrl(primaryPort);
-    }
-  }
-
-  return '';
-}
+export { cleanAppName, getContainerWebLink } from './containerLinkResolution';
 
 /**
  * Calculates the total disk footprint of a container.
@@ -470,7 +432,19 @@ export function groupContainers<T extends ContainerLike>(
       const totalCount = bucket.length;
       const allRunning = runningCount === totalCount && totalCount > 0;
       const anyRunning = runningCount > 0;
-      const webLink = getContainerWebLink(primary, customLinks);
+      let webLink = getContainerWebLink(primary, customLinks);
+      if (!webLink && customLinks[groupKey]) {
+        webLink = resolveWebUrl(customLinks[groupKey]);
+      }
+      if (!webLink) {
+        for (const c of bucket) {
+          const l = getContainerWebLink(c, customLinks);
+          if (l) {
+            webLink = l;
+            break;
+          }
+        }
+      }
       const iconUrl = getIcon(primary.image, primary.name || groupKey);
 
       result.push({

@@ -11,6 +11,8 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import { Loader2 } from 'lucide-react';
 
 // Code Splitting & Dynamic Route Imports for Minimal Memory Footprint
@@ -36,10 +38,33 @@ const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup }
 
 function PageFallback() {
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[50vh] p-8">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-orbit-500" />
-        <span className="text-xs text-secondary font-medium tracking-wide">Carregando...</span>
+    <div className="flex-1 flex flex-col min-h-[60vh] p-3.5 sm:p-6 lg:p-8 animate-fade-in w-full max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-7 w-40 sm:w-56 rounded-xl bg-accent/40 animate-pulse" />
+          <div className="h-3.5 w-60 sm:w-80 rounded-lg bg-accent/25 animate-pulse" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-24 rounded-xl bg-accent/30 animate-pulse hidden sm:block" />
+          <div className="h-9 w-9 rounded-xl bg-accent/30 animate-pulse" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-28 rounded-2xl bg-card/50 border border-border/50 p-4 space-y-3 backdrop-blur-xl">
+            <div className="flex items-center justify-between">
+              <div className="h-3.5 w-20 rounded-md bg-accent/40 animate-pulse" />
+              <div className="h-8 w-8 rounded-xl bg-orbit-500/10 animate-pulse" />
+            </div>
+            <div className="h-6 w-16 rounded-md bg-accent/50 animate-pulse" />
+          </div>
+        ))}
+      </div>
+
+      <div className="h-64 rounded-3xl bg-card/40 border border-border/50 p-6 flex flex-col justify-center items-center gap-3 backdrop-blur-xl">
+        <Loader2 className="w-7 h-7 animate-spin text-orbit-500/70" />
+        <span className="text-xs text-secondary/70 font-medium tracking-wide">Carregando interface...</span>
       </div>
     </div>
   );
@@ -49,7 +74,8 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" defaultColor="zinc">
       <SettingsProvider>
-        <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
           <InstallProvider>
           <BrowserRouter>
             <Suspense fallback={<PageFallback />}>
@@ -119,6 +145,7 @@ function App() {
           }}
         />
         </AuthProvider>
+        </QueryClientProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

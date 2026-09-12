@@ -45,6 +45,7 @@ import { UploadProgressDrawer } from '../files/UploadProgressDrawer';
 import { OrbitLogo } from '../ui/OrbitLogo';
 import { UserAvatar } from '../ui/UserAvatar';
 import { MobilePreferencesDropdown, COLOR_THEMES_LIST } from './MobilePreferencesDropdown';
+import { preloadRoute } from '../../utils/navigation';
 
 interface SidebarSectionProps {
   title: string;
@@ -75,17 +76,19 @@ function SidebarItem({ icon: Icon, label, to, isCollapsed, onClick }: SidebarIte
     <NavLink
       to={to}
       onClick={onClick}
+      onMouseEnter={() => preloadRoute(to)}
+      onFocus={() => preloadRoute(to)}
       title={isCollapsed ? label : undefined}
       className={({ isActive }) =>
-        `w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3.5'} py-2.5 rounded-xl transition-all duration-250 text-sm font-medium active:scale-[0.98] ${
+        `w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3.5'} py-2.5 rounded-xl transition-[background-color,color,border-color,transform,box-shadow] duration-200 cubic-bezier(0.16,1,0.3,1) text-sm font-medium active:scale-[0.98] ${
           isActive
-            ? 'bg-orbit-500/15 text-orbit-500 dark:text-orbit-400 border border-orbit-500/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] font-semibold'
-            : 'text-secondary hover:text-primary hover:bg-accent/70'
+            ? 'bg-orbit-500/15 text-orbit-500 dark:text-orbit-400 border border-orbit-500/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] font-semibold translate-x-0.5'
+            : 'text-secondary hover:text-primary hover:bg-accent/70 hover:translate-x-0.5'
         }`
       }
     >
-      <Icon className="w-4 h-4 shrink-0" />
-      {!isCollapsed && <span>{label}</span>}
+      <Icon className="w-4 h-4 shrink-0 transition-transform duration-200" />
+      {!isCollapsed && <span className="truncate">{label}</span>}
     </NavLink>
   );
 }
@@ -476,9 +479,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content with fluid responsive padding */}
-        <div className={`relative z-10 flex-1 overflow-x-hidden animate-fade-in w-full min-w-0 ${
-          location.pathname === '/files' ? 'p-2 sm:p-3.5 lg:p-4 flex flex-col' : 'p-3.5 sm:p-6 lg:p-8'
-        }`}>
+        <div 
+          key={location.pathname}
+          className={`relative z-10 flex-1 overflow-x-hidden animate-fade-in w-full min-w-0 ${
+            location.pathname === '/files' ? 'p-2 sm:p-3.5 lg:p-4 flex flex-col' : 'p-3.5 sm:p-6 lg:p-8'
+          }`}
+        >
           {children}
         </div>
       </main>

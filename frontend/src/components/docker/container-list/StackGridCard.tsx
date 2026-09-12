@@ -37,7 +37,7 @@ export function StackGridCard({
   return (
     <div
       onClick={() => onOpenGroupModal(group)}
-      className="bg-card border-2 border-orbit-500/30 hover:border-orbit-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-all cursor-pointer shadow-md hover:shadow-xl hover:-translate-y-0.5 overflow-hidden"
+      className="bg-card border-2 border-orbit-500/30 hover:border-orbit-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-[transform,box-shadow,border-color] duration-220 ease-out hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 cursor-pointer shadow-md hover:shadow-xl overflow-hidden will-change-transform"
     >
       {/* Top Layer indicator background glow */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-orbit-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />

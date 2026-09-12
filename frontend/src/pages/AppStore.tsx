@@ -2,44 +2,22 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Package, 
-  Download, 
-  Search, 
   RefreshCw, 
   Terminal, 
-  Compass, 
-  LayoutGrid, 
-  Film, 
-  Briefcase, 
-  Home, 
-  Globe, 
-  Cpu, 
-  Coins, 
-  MessageSquare, 
   Sparkles, 
-  ChevronLeft, 
   ChevronRight, 
-  ExternalLink, 
-  Flame, 
-  Layers,
-  ArrowRight,
-  SlidersHorizontal,
-  CheckCircle2
+  Flame,
+  LayoutGrid, 
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useInstall } from '../contexts/InstallContext';
 import { ComposeInstallModal } from '../components/docker/ComposeInstallModal';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
-import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
+import { PortConflictDialog } from '../components/docker/PortConflictDialog';
 import toast from 'react-hot-toast';
 
-interface AppStoreItem {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: string;
-  store: string;
-}
+import { useStoreAppsQuery, STORE_APPS_QUERY_KEY, type AppStoreItem } from '../queries';
+import { AppStoreCard, AppStoreSidebar, AppStoreHeroCarousel, useAppStoreInstall } from '../components/appstore';
+import { queryClient } from '../lib/queryClient';
 
 interface DockerContainerLite {
   id: string;
@@ -49,67 +27,35 @@ interface DockerContainerLite {
   labels?: Record<string, string>;
 }
 
-// Global in-memory cache for instant navigation without loading states
-let globalAppsCache: AppStoreItem[] = [];
-try {
-  const cached = localStorage.getItem('orbit_store_apps_cache');
-  if (cached) {
-    const parsed = JSON.parse(cached);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      globalAppsCache = parsed;
-    }
-  }
-} catch {
-  // Ignore localStorage read errors
-}
-
-const getCategoryIcon = (category: string) => {
-  const c = category.toLowerCase();
-  if (c === 'all' || c === 'todas') return LayoutGrid;
-  if (c === 'discover' || c === 'descobrir') return Compass;
-  if (c.includes('media') || c.includes('multim') || c.includes('video') || c.includes('music') || c.includes('audio')) return Film;
-  if (c.includes('prod') || c.includes('office') || c.includes('document')) return Briefcase;
-  if (c.includes('home') || c.includes('casa') || c.includes('iot') || c.includes('automa')) return Home;
-  if (c.includes('net') || c.includes('rede') || c.includes('dns') || c.includes('vpn') || c.includes('proxy')) return Globe;
-  if (c.includes('ai') || c.includes('ia') || c.includes('llm') || c.includes('gpt') || c.includes('intel')) return Cpu;
-  if (c.includes('finan') || c.includes('money') || c.includes('crypto')) return Coins;
-  if (c.includes('social') || c.includes('chat') || c.includes('comun') || c.includes('mensag')) return MessageSquare;
-  if (c.includes('dev') || c.includes('code') || c.includes('prog') || c.includes('util') || c.includes('ferram')) return Terminal;
-  return Layers;
-};
-
-// Gradient palettes for hero showcase
-const HERO_GRADIENTS = [
-  'from-blue-600/35 via-indigo-900/40 to-neutral-950',
-  'from-purple-600/35 via-orbit-900/40 to-neutral-950',
-  'from-emerald-600/35 via-teal-950/40 to-neutral-950',
-  'from-rose-600/35 via-amber-950/40 to-neutral-950'
-];
-
 export function AppStore() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [apps, setApps] = useState<AppStoreItem[]>(() => globalAppsCache);
+  const { data: queryApps, isLoading: queryLoading } = useStoreAppsQuery();
+  const apps = useMemo(() => queryApps || [], [queryApps]);
   const [installedContainers, setInstalledContainers] = useState<DockerContainerLite[]>([]);
-  const [loading, setLoading] = useState<boolean>(() => globalAppsCache.length === 0);
+  const loading = queryLoading && apps.length === 0;
+
   const [syncing, setSyncing] = useState(false);
-  const [installing, setInstalling] = useState<string | null>(null);
-  const { startInstall } = useInstall();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Discover');
   const [selectedStore, setSelectedStore] = useState<string>('All');
-  const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [customModalApp, setCustomModalApp] = useState<{ id: string; name: string } | null>(null);
-  const [portConflictData, setPortConflictData] = useState<{
-    isOpen: boolean;
-    appId: string;
-    appName: string;
-    conflicts: PortConflictItem[];
-    rawInspection: any;
-  } | null>(null);
+
+  const {
+    installing,
+    customModalApp,
+    setCustomModalApp,
+    portConflictData,
+    setPortConflictData,
+    isDockerInstallOpen,
+    setIsDockerInstallOpen,
+    handleInstall,
+    handleCustomInstall,
+    handleAcceptSuggestedPorts,
+    handleOpenCustomFromConflict,
+  } = useAppStoreInstall();
 
   useEffect(() => {
     if (searchParams.get('custom') === 'true') {
@@ -135,38 +81,7 @@ export function AppStore() {
     }
   };
 
-  const fetchApps = async (retryCount = 0) => {
-    try {
-      if (globalAppsCache.length === 0) {
-        setLoading(true);
-      }
-      const token = localStorage.getItem('orbit_token');
-      const res = await fetch('/api/store/apps', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      if (!res.ok) throw new Error('Failed to fetch apps');
-      const data: AppStoreItem[] = await res.json();
-      
-      if (Array.isArray(data) && data.length > 0) {
-        setApps(data);
-        globalAppsCache = data;
-        try {
-          localStorage.setItem('orbit_store_apps_cache', JSON.stringify(data));
-        } catch {}
-        setLoading(false);
-      } else if (retryCount < 6) {
-        setTimeout(() => fetchApps(retryCount + 1), 3000);
-      } else {
-        setLoading(false);
-      }
-    } catch (err: any) {
-      console.error('Failed to fetch apps:', err);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchApps();
     fetchInstalledContainers();
   }, []);
 
@@ -182,7 +97,7 @@ export function AppStore() {
       if (res.ok) {
         const data = await res.json();
         toast.success(`Catálogo atualizado! (${data.total_apps || 0} apps)`, { id: loadingToast });
-        await fetchApps();
+        queryClient.invalidateQueries({ queryKey: STORE_APPS_QUERY_KEY });
       } else {
         toast.error('Erro ao sincronizar lojas.', { id: loadingToast });
       }
@@ -192,146 +107,6 @@ export function AppStore() {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const handleInstall = async (id: string, appName: string) => {
-    try {
-      setInstalling(id);
-      const token = localStorage.getItem('orbit_token');
-
-      // 1. Inspeciona a configuração de portas antes de iniciar o download
-      try {
-        const configRes = await fetch(`/api/store/apps/${id}/config`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
-        if (configRes.ok) {
-          const configData = await configRes.json();
-          const hostPorts = (configData.ports || [])
-            .map((p: any) => p.host)
-            .filter((p: any) => typeof p === 'number' && p > 0);
-
-          if (hostPorts.length > 0) {
-            const checkRes = await fetch('/api/docker/ports/check', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
-              },
-              body: JSON.stringify({ ports: hostPorts })
-            });
-
-            if (checkRes.ok) {
-              const checkData = await checkRes.json();
-              const conflicts: PortConflictItem[] = checkData.conflicts || [];
-              const hasInUse = conflicts.some(c => c.in_use);
-
-              if (hasInUse) {
-                setPortConflictData({
-                  isOpen: true,
-                  appId: id,
-                  appName,
-                  conflicts,
-                  rawInspection: configData,
-                });
-                setInstalling(null);
-                return;
-              }
-            }
-          }
-        }
-      } catch (checkErr) {
-        console.warn('Pre-install port check skipped:', checkErr);
-      }
-
-      // 2. Sem conflito de portas -> prossegue com a instalação direta
-      const res = await fetch(`/api/store/install/${id}`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Installation failed');
-      }
-
-      const data = await res.json();
-      if (data.task_id) {
-        startInstall(data.task_id, appName);
-      }
-    } catch (err: any) {
-      console.error('Install error:', err);
-      toast.error(err.message || 'Erro ao iniciar instalação');
-    } finally {
-      setInstalling(null);
-    }
-  };
-
-  const handleCustomInstall = async (payload: any, overrideApp?: { id: string; name: string }) => {
-    const target = overrideApp || customModalApp;
-    if (!target) return;
-    const { id, name } = target;
-    try {
-      setInstalling(id);
-      setCustomModalApp(null);
-      const token = localStorage.getItem('orbit_token');
-      const res = await fetch(`/api/store/install/custom/${id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Falha na instalação personalizada');
-      }
-
-      const data = await res.json();
-      if (data.task_id) {
-        startInstall(data.task_id, name);
-      }
-    } catch (err: any) {
-      console.error('Custom install error:', err);
-      toast.error(err.message || 'Erro ao instalar aplicativo');
-    } finally {
-      setInstalling(null);
-    }
-  };
-
-  const handleAcceptSuggestedPorts = async () => {
-    if (!portConflictData) return;
-    const { appId, appName, conflicts, rawInspection } = portConflictData;
-    setPortConflictData(null);
-
-    const conflictMap = new Map<number, number>();
-    conflicts.forEach(c => {
-      if (c.in_use) {
-        conflictMap.set(c.host_port, c.suggested_port);
-      }
-    });
-
-    const adjustedPorts = (rawInspection?.ports || []).map((p: any) => ({
-      host: conflictMap.get(p.host) ?? p.host,
-      container: p.container,
-      protocol: p.protocol || 'tcp',
-    }));
-
-    const payload = {
-      ports: adjustedPorts,
-      volumes: rawInspection?.volumes,
-      env: rawInspection?.env,
-    };
-
-    await handleCustomInstall(payload, { id: appId, name: appName });
-  };
-
-  const handleOpenCustomFromConflict = () => {
-    if (!portConflictData) return;
-    const { appId, appName } = portConflictData;
-    setPortConflictData(null);
-    setCustomModalApp({ id: appId, name: appName });
   };
 
   const dynamicCategories = useMemo(() => {
@@ -468,137 +243,21 @@ export function AppStore() {
       {/* Main Grid: Left Category Sidebar + Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6 items-start">
         {/* Left Navigation Sidebar */}
-        <aside className="bg-card border border-border/70 rounded-2xl p-4 space-y-4 shadow-sm">
-          {/* Instant Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/70" />
-            <input
-              type="text"
-              placeholder={t('store.search_placeholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
-            />
-          </div>
-
-          {/* Category Mobile / Small screen toggle button */}
-          <div className="lg:hidden">
-            <button
-              onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-accent/60 border border-border text-xs font-semibold text-primary transition-all hover:bg-accent"
-            >
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-orbit-500" />
-                <span>Categorias & Filtros ({selectedCategory === 'All' ? 'Todas' : selectedCategory})</span>
-              </div>
-              <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isCategoryMenuOpen ? 'rotate-90 text-primary' : 'text-secondary'}`} />
-            </button>
-          </div>
-
-          {/* Collapsible content wrapper for small screens, always visible on large screens */}
-          <div className={`space-y-4 ${isCategoryMenuOpen ? 'block' : 'hidden lg:block'}`}>
-            {/* Store Catalog Selector */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
-                  Origem do Catálogo
-                </label>
-                <SlidersHorizontal className="w-3 h-3 text-secondary/70" />
-              </div>
-              <select 
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full px-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
-              >
-                {stores.map(store => (
-                  <option key={store} value={store}>
-                    {store === 'All' ? t('store.all_stores') : store}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="h-px bg-border/50 my-1" />
-
-            {/* Navigation Category List */}
-            <div className="space-y-1">
-              <div className="text-[11px] font-semibold text-secondary uppercase tracking-wider px-2 mb-2">
-                Categorias
-              </div>
-
-              {/* Discover Button */}
-              <button
-                onClick={() => {
-                  setSelectedCategory('Discover');
-                  setSearch('');
-                  setIsCategoryMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  selectedCategory === 'Discover' && !search
-                    ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                    : 'text-secondary hover:text-primary hover:bg-accent'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Compass className="w-4 h-4" />
-                  <span>Descobrir</span>
-                </div>
-                <Sparkles className={`w-3 h-3 ${selectedCategory === 'Discover' && !search ? 'text-white' : 'text-orbit-400 opacity-60'}`} />
-              </button>
-
-              {/* All Apps Button */}
-              <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  setIsCategoryMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  selectedCategory === 'All'
-                    ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                    : 'text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent font-medium'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <LayoutGrid className="w-4 h-4" />
-                  <span>Todas</span>
-                </div>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-accent text-slate-700 dark:text-zinc-300 border border-border/60 font-semibold'}`}>
-                  {apps.length}
-                </span>
-              </button>
-
-              {/* Dynamic Categories */}
-              {dynamicCategories.map((category) => {
-                const Icon = getCategoryIcon(category);
-                const count = apps.filter(a => a.category === category).length;
-                const isSelected = selectedCategory === category;
-
-                return (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      setSelectedCategory(category);
-                      setIsCategoryMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                      isSelected
-                        ? 'bg-orbit-500 text-white shadow-md shadow-orbit-500/25 font-semibold'
-                        : 'text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate pr-2">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{category}</span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-accent text-slate-700 dark:text-zinc-300 border border-border/60 font-semibold'}`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
+        <AppStoreSidebar
+          stores={stores}
+          selectedStore={selectedStore}
+          onSelectStore={setSelectedStore}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          apps={apps}
+          dynamicCategories={dynamicCategories}
+          search={search}
+          onSearchChange={setSearch}
+          onClearSearch={() => setSearch('')}
+          isCategoryMenuOpen={isCategoryMenuOpen}
+          onToggleCategoryMenu={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+          onCloseCategoryMenu={() => setIsCategoryMenuOpen(false)}
+        />
 
         {/* Right Content Area */}
         <main className="space-y-7 min-w-0">
@@ -670,100 +329,14 @@ export function AppStore() {
             /* ===== DISCOVER / FEATURED VIEW ===== */
             <>
               {/* Hero Banner Carousel */}
-              {featuredApps.length > 0 && (
-                <div className="relative rounded-3xl overflow-hidden border border-border/80 bg-neutral-950 shadow-xl min-h-[250px] sm:min-h-[270px] flex flex-col justify-end p-6 sm:p-8">
-                  {/* Ambient Backdrop Glow */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${HERO_GRADIENTS[heroIndex % HERO_GRADIENTS.length]} transition-all duration-700`} />
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.08),transparent_70%)]" />
-                  <div className="absolute inset-0 backdrop-blur-[1px]" />
+              <AppStoreHeroCarousel
+                featuredApps={featuredApps}
+                heroIndex={heroIndex}
+                onSetHeroIndex={setHeroIndex}
+                isAppInstalled={isAppInstalled}
+                onExplore={(id) => navigate(`/store/app/${id}`)}
+              />
 
-                  {/* Carousel Content */}
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-start sm:items-center gap-4 max-w-xl">
-                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-black/60 border border-white/15 p-3 flex items-center justify-center shrink-0 shadow-2xl backdrop-blur-md">
-                        {featuredApps[heroIndex]?.icon ? (
-                          <img 
-                            src={featuredApps[heroIndex]?.icon} 
-                            alt={featuredApps[heroIndex]?.name} 
-                            className="w-full h-full object-contain drop-shadow-md"
-                          />
-                        ) : (
-                          <Package className="w-8 h-8 text-orbit-400" />
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-orbit-500/30 text-orbit-300 border border-orbit-400/30">
-                            Destaque
-                          </span>
-                          <span className="text-xs text-white/60 font-medium">
-                            {featuredApps[heroIndex]?.category}
-                          </span>
-                          {featuredApps[heroIndex] && isAppInstalled(featuredApps[heroIndex]) && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/25 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1 shadow-sm">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                              <span>Instalado</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <span className="text-2xl sm:text-3xl font-extrabold text-white block tracking-tight drop-shadow-sm">
-                          {featuredApps[heroIndex]?.name}
-                        </span>
-
-                        <p className="text-xs sm:text-sm text-white/80 line-clamp-2 leading-relaxed max-w-lg">
-                          {featuredApps[heroIndex]?.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Hero Actions */}
-                    <div className="flex items-center gap-3 self-start md:self-auto shrink-0">
-                      <button
-                        onClick={() => navigate(`/store/app/${featuredApps[heroIndex]?.id}`)}
-                        className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md transition-all active:scale-95 flex items-center gap-2"
-                      >
-                        <span>Explorar</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Carousel Indicators & Controls */}
-                  <div className="relative z-10 flex items-center justify-between mt-6 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-1.5">
-                      {featuredApps.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setHeroIndex(idx)}
-                          className={`h-1.5 rounded-full transition-all duration-300 ${
-                            idx === heroIndex ? 'w-6 bg-white' : 'w-2 bg-white/30 hover:bg-white/60'
-                          }`}
-                          aria-label={`Slide ${idx + 1}`}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setHeroIndex((prev) => (prev === 0 ? featuredApps.length - 1 : prev - 1))}
-                        className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                        aria-label="Previous featured app"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setHeroIndex((prev) => (prev + 1) % featuredApps.length)}
-                        className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                        aria-label="Next featured app"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Trending Now Section */}
               <div className="space-y-4">
@@ -783,52 +356,19 @@ export function AppStore() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-4">
-                  {apps.slice(0, 4).map((app, index) => {
-                    const isInstalled = isAppInstalled(app);
-                    return (
-                      <div
-                        key={`trending-${app.id}-${index}`}
-                        onClick={() => navigate(`/store/app/${app.id}`)}
-                        className="group bg-card/60 hover:bg-card border border-border/70 hover:border-orbit-500/50 rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                      >
-                        <div className="flex items-start gap-3.5">
-                          <div className="w-11 h-11 rounded-xl bg-accent/60 border border-border p-2 shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-                            {app.icon ? (
-                              <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
-                            ) : (
-                              <Package className="w-5 h-5 text-secondary" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="font-bold text-sm text-primary block truncate group-hover:text-orbit-500 transition-colors" title={app.name}>
-                              {app.name}
-                            </span>
-                            <p className="text-[11px] text-secondary line-clamp-2 mt-0.5 leading-relaxed">
-                              {app.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-medium text-secondary bg-accent px-2 py-0.5 rounded-md border border-border/50">
-                              {app.category}
-                            </span>
-                            {isInstalled && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-0.5">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
-                                <span>Instalado</span>
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs font-semibold text-orbit-500 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                            Explorar
-                            <ChevronRight className="w-3 h-3" />
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {apps.slice(0, 4).map((app, index) => (
+                    <AppStoreCard
+                      key={`trending-${app.id}-${index}`}
+                      app={app}
+                      index={index}
+                      isInstalled={isAppInstalled(app)}
+                      installing={installing}
+                      onExplore={(id) => navigate(`/store/app/${id}`)}
+                      onManage={() => navigate('/')}
+                      onInstall={handleInstall}
+                      onOpenCustom={(app) => setCustomModalApp(app)}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -843,7 +383,19 @@ export function AppStore() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
-                  {filteredApps.map((app, index) => renderAppCard(app, index))}
+                  {filteredApps.map((app, index) => (
+                    <AppStoreCard
+                      key={`${app.store}-${app.id}-${index}`}
+                      app={app}
+                      index={index}
+                      isInstalled={isAppInstalled(app)}
+                      installing={installing}
+                      onExplore={(id) => navigate(`/store/app/${id}`)}
+                      onManage={() => navigate('/')}
+                      onInstall={handleInstall}
+                      onOpenCustom={(app) => setCustomModalApp(app)}
+                    />
+                  ))}
                 </div>
               </div>
             </>
@@ -862,7 +414,19 @@ export function AppStore() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
-                {filteredApps.map((app, index) => renderAppCard(app, index))}
+                {filteredApps.map((app, index) => (
+                  <AppStoreCard
+                    key={`${app.store}-${app.id}-${index}`}
+                    app={app}
+                    index={index}
+                    isInstalled={isAppInstalled(app)}
+                    installing={installing}
+                    onExplore={(id) => navigate(`/store/app/${id}`)}
+                    onManage={() => navigate('/')}
+                    onInstall={handleInstall}
+                    onOpenCustom={(app) => setCustomModalApp(app)}
+                  />
+                ))}
                 
                 {filteredApps.length === 0 && (
                   <div className="col-span-full py-16 text-center space-y-3 bg-card/20 rounded-2xl border border-dashed border-border/60">
@@ -901,112 +465,4 @@ export function AppStore() {
       )}
     </div>
   );
-
-  function renderAppCard(app: AppStoreItem, index: number) {
-    const isInstalled = isAppInstalled(app);
-
-    return (
-      <div 
-        key={`${app.store}-${app.id}-${index}`} 
-        onClick={() => navigate(`/store/app/${app.id}`)}
-        className="group bg-card hover:bg-card border border-border/80 hover:border-orbit-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 relative"
-      >
-        <div>
-          {/* Header row: Icon & Tags */}
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-accent/60 border border-border p-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-              {app.icon ? (
-                <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
-              ) : (
-                <Package className="w-6 h-6 text-secondary" />
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {isInstalled && (
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-1 shadow-sm">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                  <span>Instalado</span>
-                </span>
-              )}
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-primary/80 dark:text-secondary border border-border rounded-full">
-                {app.category}
-              </span>
-              <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20 rounded-full">
-                {app.store}
-              </span>
-            </div>
-          </div>
-
-          {/* Name & Description */}
-          <h3 
-            className="font-bold text-base text-primary group-hover:text-orbit-400 transition-colors line-clamp-1" 
-            title={app.name}
-          >
-            {app.name}
-          </h3>
-          
-          <p className="text-secondary text-xs line-clamp-2 mt-1 min-h-[34px] leading-relaxed">
-            {app.description}
-          </p>
-        </div>
-        
-        {/* Actions Grid (Explorar + Install / Gerenciar) */}
-        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
-          <div 
-            className="w-full py-2 bg-accent/70 text-primary/90 hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm"
-          >
-            <span>Explorar</span>
-            <ExternalLink className="w-3 h-3 opacity-60" />
-          </div>
-
-          {isInstalled ? (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate('/');
-              }}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] flex items-center justify-center gap-1.5"
-              title="Aplicativo já instalado no sistema. Clique para abrir ou gerenciar no painel."
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Gerenciar</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 w-full">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleInstall(app.id, app.name);
-                }}
-                disabled={installing !== null}
-                className="flex-1 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
-              >
-                {installing === app.id ? (
-                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
-                ) : (
-                  <>
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Install</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCustomModalApp(app);
-                }}
-                disabled={installing !== null}
-                title="Configurar portas, volumes e ambiente antes de instalar"
-                className="p-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl border border-border transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 }

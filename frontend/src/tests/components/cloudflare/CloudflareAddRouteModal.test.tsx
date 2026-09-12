@@ -218,4 +218,54 @@ describe('CloudflareAddRouteModal Component', () => {
       });
     });
   });
+
+  it('displays an explanatory authorization banner when Cloudflare API returns Not authorized', async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+      if (url.includes('/api/docker/containers')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              id: 'c-pdf',
+              names: ['/stirling-pdf'],
+              state: 'running',
+              ports: [{ public_port: 8082, private_port: 8080 }],
+            },
+          ],
+        });
+      }
+      if (url.includes('/api/cloudflare/routes') && opts?.method === 'POST') {
+        return Promise.resolve({
+          ok: false,
+          status: 403,
+          json: async () => ({
+            success: false,
+            error: "Cloudflare API: Não autorizado (Not authorized). O seu API Token não possui permissão para modificar as configurações do túnel.",
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <CloudflareAddRouteModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onRouteCreated={vi.fn()}
+        tunnelId="tun-123-abc"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('stirling-pdf')).toBeTruthy();
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /Criar Rota/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Permissão Insuficiente no Cloudflare/i)).toBeTruthy();
+      expect(screen.getByRole('link', { name: /Abrir Tokens da Cloudflare/i })).toBeTruthy();
+    });
+  });
 });

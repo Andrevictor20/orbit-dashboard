@@ -1,11 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  RefreshCw, LayoutGrid, List, Layers, Terminal, DownloadCloud 
-} from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getIconForImage } from '../../utils/icons';
-import { groupContainers, type GroupContainerItem } from '../../utils/containerGroups';
+import { cleanAppName, type GroupContainerItem, type ContainerLike } from '../../utils/containerGroups';
 import { AppGroupModal } from './AppGroupModal';
 import { DockerInstallModal } from './DockerInstallModal';
 import { BatchUpdateModal } from './BatchUpdateModal';
@@ -18,15 +14,21 @@ import {
   StackGridCard,
   ContainerGridCard,
   ContainerTableView,
+  ContainerListToolbar,
+  ContainerSkeletonGrid,
+  useFilteredContainers,
+  useContainerCustomLinks,
 } from './container-list';
+import { CONTAINERS_QUERY_KEY } from '../../queries';
+import { queryClient } from '../../lib/queryClient';
 
 export type { Container, PortInfo };
 
-// Global memory cache for instantaneous tab switching (SWR)
 let globalContainerCache: Container[] | null = null;
 
 export function resetContainerCache() {
   globalContainerCache = null;
+  queryClient.invalidateQueries({ queryKey: CONTAINERS_QUERY_KEY });
 }
 
 export function ContainerList() {
@@ -49,16 +51,6 @@ export function ContainerList() {
     matched_container_id?: string;
     matched_container_name?: string;
   }>>([]);
-  const [linkModal, setLinkModal] = useState<{ 
-    isOpen: boolean; 
-    containerId: string | null;
-    containerName?: string;
-    detectedCloudflareUrl?: string;
-  }>({ isOpen: false, containerId: null });
-  const [linkInput, setLinkInput] = useState('');
-  const [linkMode, setLinkMode] = useState<'builder' | 'raw'>('builder');
-  const [linkSubdomain, setLinkSubdomain] = useState('');
-  const [linkDomain, setLinkDomain] = useState('');
   const [isDockerInstallOpen, setIsDockerInstallOpen] = useState(false);
   
   // New filtering and sorting states
@@ -183,20 +175,59 @@ export function ContainerList() {
           setCustomLinks(prev => {
             const next = { ...prev };
             let changed = false;
+
+            const setLink = (k: string, v: string) => {
+              if (k && !next[k]) {
+                next[k] = v;
+                changed = true;
+              }
+            };
+
             for (const r of rules) {
               const url = r.public_url || (r.hostname ? `https://${r.hostname}` : '');
               if (!url) continue;
-              if (r.matched_container_id && !next[r.matched_container_id]) {
-                next[r.matched_container_id] = url;
-                changed = true;
+
+              if (r.matched_container_id) {
+                setLink(r.matched_container_id, url);
+                if (r.matched_container_id.length >= 12) {
+                  setLink(r.matched_container_id.substring(0, 12), url);
+                }
               }
-              if (r.matched_container_name && !next[r.matched_container_name]) {
-                next[r.matched_container_name] = url;
-                changed = true;
+
+              if (r.matched_container_name) {
+                const name = r.matched_container_name.replace(/^\//, '');
+                setLink(name, url);
+                setLink(name.toLowerCase(), url);
+
+                const cleaned = cleanAppName(name);
+                if (cleaned && cleaned.length >= 3) {
+                  setLink(cleaned, url);
+                }
+
+                const tokens = name.toLowerCase().split(/[-_]+/).filter((t: string) => t.length >= 3);
+                for (const t of tokens) {
+                  setLink(t, url);
+                }
               }
-              if (r.matched_container_name && !next[r.matched_container_name.toLowerCase()]) {
-                next[r.matched_container_name.toLowerCase()] = url;
-                changed = true;
+
+              if (r.hostname && r.hostname.includes('.')) {
+                const parts = r.hostname.toLowerCase().split('.');
+                const sub = parts[0];
+                const genericSubs = ['www', 'app', 'web', 'api', 'dashboard', 'orbit', 'proxy'];
+                if (sub && sub.length >= 3 && !genericSubs.includes(sub)) {
+                  setLink(sub, url);
+                }
+              }
+
+              if (r.service && (r.service.startsWith('http://') || r.service.startsWith('https://'))) {
+                try {
+                  const parsed = new URL(r.service);
+                  const host = parsed.hostname;
+                  if (host && host !== 'localhost' && !/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+                    setLink(host, url);
+                    setLink(host.toLowerCase(), url);
+                  }
+                } catch {}
               }
             }
             return changed ? next : prev;
@@ -208,104 +239,20 @@ export function ContainerList() {
     }
   };
 
-  const handleSetCustomLink = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const container = containers.find(c => c.id === id || c.id.startsWith(id) || id.startsWith(c.id));
-    const cleanName = container ? container.name.replace(/^\//, '') : '';
-    const composeService = container?.labels?.['com.docker.compose.service'] || container?.labels?.['io.casaos.app.name'] || '';
-
-    const currentLink = customLinks[id] || 
-      (cleanName ? customLinks[cleanName] || customLinks[cleanName.toLowerCase()] : '') ||
-      (composeService ? customLinks[composeService] : '') ||
-      '';
-
-    let matchedRoute = cloudflareRoutes.find(r => 
-      (r.matched_container_id && (r.matched_container_id === id || id.startsWith(r.matched_container_id) || r.matched_container_id.startsWith(id))) ||
-      (r.matched_container_name && cleanName && (r.matched_container_name === cleanName || r.matched_container_name.toLowerCase() === cleanName.toLowerCase()))
-    );
-
-    if (!matchedRoute && (cleanName || composeService)) {
-      const normClean = cleanName.toLowerCase().replace(/[-_]/g, '');
-      const normService = composeService.toLowerCase().replace(/[-_]/g, '');
-      matchedRoute = cloudflareRoutes.find(r => {
-        const sub = (r.hostname || '').split('.')[0].toLowerCase().replace(/[-_]/g, '');
-        return (normClean && (sub === normClean || sub.includes(normClean) || normClean.includes(sub))) ||
-               (normService && (sub === normService || sub.includes(normService) || normService.includes(sub)));
-      });
-    }
-
-    const detectedCloudflareUrl = matchedRoute?.public_url || (matchedRoute?.hostname ? `https://${matchedRoute.hostname}` : undefined);
-    const targetLink = currentLink || detectedCloudflareUrl || '';
-    setLinkInput(targetLink);
-
-    let savedDomain = localStorage.getItem('orbit_base_domain') || '';
-    if (!savedDomain && matchedRoute?.hostname && matchedRoute.hostname.includes('.')) {
-      savedDomain = matchedRoute.hostname.split('.').slice(1).join('.');
-      localStorage.setItem('orbit_base_domain', savedDomain);
-    }
-    if (!savedDomain) {
-      savedDomain = 'rasppi.cloud';
-    }
-    setLinkDomain(savedDomain);
-
-    if (targetLink && targetLink.startsWith('https://') && savedDomain && targetLink.endsWith(`.${savedDomain}`)) {
-      const sub = targetLink.replace('https://', '').replace(`.${savedDomain}`, '');
-      if (!sub.includes('/')) {
-        setLinkSubdomain(sub);
-        setLinkMode('builder');
-      } else {
-        setLinkMode('raw');
-      }
-    } else if (matchedRoute?.hostname && matchedRoute.hostname.includes('.')) {
-      const parts = matchedRoute.hostname.split('.');
-      setLinkSubdomain(parts[0]);
-      setLinkDomain(parts.slice(1).join('.'));
-      setLinkMode('builder');
-    } else {
-      const suggestedSub = cleanName.toLowerCase().replace(/[^a-z0-9-]/g, '-') || composeService.toLowerCase() || '';
-      setLinkSubdomain(suggestedSub);
-      setLinkMode(targetLink ? 'raw' : 'builder');
-    }
-
-    setLinkModal({
-      isOpen: true,
-      containerId: id,
-      containerName: cleanName || undefined,
-      detectedCloudflareUrl,
-    });
-  };
-
-  const handleSaveLink = async () => {
-    if (!linkModal.containerId) return;
-    const id = linkModal.containerId;
-    
-    let newLink = '';
-    if (linkMode === 'builder') {
-      if (linkSubdomain && linkDomain) {
-        newLink = `https://${linkSubdomain.trim()}.${linkDomain.trim()}`;
-        localStorage.setItem('orbit_base_domain', linkDomain.trim());
-      }
-    } else {
-      newLink = linkInput.trim();
-    }
-    
-    setLinkModal({ isOpen: false, containerId: null });
-    
-    try {
-      const res = await fetch(`/api/docker/links/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: newLink })
-      });
-      if (!res.ok) {
-        alert(`Erro ao salvar link: ${res.status} ${res.statusText}`);
-      }
-      fetchLinks();
-    } catch (err) {
-      console.error('Failed to set link', err);
-      alert(`Erro na rede ao tentar salvar link: ${err}`);
-    }
-  };
+  const {
+    linkModal,
+    setLinkModal,
+    linkInput,
+    setLinkInput,
+    linkMode,
+    setLinkMode,
+    linkSubdomain,
+    setLinkSubdomain,
+    linkDomain,
+    setLinkDomain,
+    handleSetCustomLink,
+    handleSaveLink,
+  } = useContainerCustomLinks(containers, customLinks, cloudflareRoutes, fetchLinks);
 
   const fetchUpdates = async () => {
     try {
@@ -370,86 +317,21 @@ export function ContainerList() {
     return () => clearInterval(interval);
   }, [actionLoading]);
 
-  // Smart Sorting and Filtering logic
-  const query = searchQuery.trim().toLowerCase();
-  const filteredAndSortedContainers = [...containers]
-    .filter(c => {
-      if (!query) return true;
-
-      const name = (c.name || '').toLowerCase();
-      const image = (c.image || '').toLowerCase();
-      const id = (c.id || '').toLowerCase();
-      const state = (c.state || '').toLowerCase();
-
-      const portStrings = (c.ports || []).flatMap(p => [
-        p.public_port?.toString() || '',
-        p.private_port?.toString() || '',
-      ]);
-
-      const labelStrings = c.labels ? Object.values(c.labels).map(v => v.toLowerCase()) : [];
-
-      if (
-        name.includes(query) ||
-        image.includes(query) ||
-        id.includes(query) ||
-        state.includes(query) ||
-        portStrings.some(p => p.includes(query)) ||
-        labelStrings.some(l => l.includes(query))
-      ) {
-        return true;
-      }
-
-      // Typo & alias tolerant matching (e.g. "overseer" -> "overseerr", "qbit" -> "qbittorrent")
-      if (query === 'overseer' && (name.includes('overseerr') || image.includes('overseerr'))) return true;
-      if (query === 'overseerr' && (name.includes('overseer') || image.includes('overseer'))) return true;
-      if (query === 'qbit' && (name.includes('qbittorrent') || image.includes('qbittorrent'))) return true;
-
-      return false;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'cpu':
-          comparison = (a.cpu_percent || 0) - (b.cpu_percent || 0);
-          break;
-        case 'ram':
-          comparison = (a.memory_used || 0) - (b.memory_used || 0);
-          break;
-        case 'disk':
-          const diskA = (a.size_rw || 0) + (a.size_root_fs || 0);
-          const diskB = (b.size_rw || 0) + (b.size_root_fs || 0);
-          comparison = diskA - diskB;
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-  const groupedItems = useMemo(() => {
-    if (!groupByStack) return null;
-    return groupContainers(filteredAndSortedContainers, customLinks, getIconForImage);
-  }, [filteredAndSortedContainers, groupByStack, customLinks]);
-
-  const displayItems = useMemo(() => {
-    return groupedItems || filteredAndSortedContainers.map(c => ({
-      type: 'single' as const,
-      id: c.id,
-      name: c.name,
-      container: c,
-      iconUrl: getIconForImage(c.image, c.name),
-      webLink: customLinks[c.id],
-      isRunning: c.state === 'running',
-    }));
-  }, [groupedItems, filteredAndSortedContainers, customLinks]);
+  const { filteredAndSortedContainers, displayItems } = useFilteredContainers(
+    containers,
+    searchQuery,
+    sortBy,
+    sortOrder,
+    groupByStack,
+    customLinks
+  );
 
   const toggleGroupExpanded = (groupKey: string) => {
     setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
   };
 
   const handleGroupAction = async (
-    e: React.MouseEvent,
+    e: MouseEvent,
     group: GroupContainerItem,
     action: 'start' | 'stop' | 'restart'
   ) => {
@@ -457,7 +339,7 @@ export function ContainerList() {
     setActionLoading(`group:${group.groupKey}:${action}`);
     try {
       await Promise.allSettled(
-        group.containers.map(c => fetch(`/api/docker/containers/${c.id}/${action}`, { method: 'POST' }))
+        group.containers.map((c: ContainerLike) => fetch(`/api/docker/containers/${c.id}/${action}`, { method: 'POST' }))
       );
       await fetchContainers(false);
     } catch (err) {
@@ -469,141 +351,31 @@ export function ContainerList() {
 
   return (
     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-300">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h3 className="text-xl font-bold text-primary flex items-center gap-2">
-            {t('containers.title')}
-          </h3>
-          <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">{t('containers.subtitle')}</p>
-        </div>
-        <div className="flex gap-2 items-center self-start sm:self-auto flex-wrap">
-          {/* Stack Grouping Toggle */}
-          <button
-            onClick={() => setGroupByStack(!groupByStack)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              groupByStack 
-                ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 shadow-sm' 
-                : 'bg-card text-secondary hover:text-primary border-border'
-            }`}
-            title={t('dashboard.group_managed')}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{t('dashboard.group_managed')}</span>
-          </button>
-
-          <div className="flex bg-card p-1 rounded-md border border-border">
-            <button 
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
-              aria-label="Grid"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:text-white'}`}
-              aria-label="Table"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Bulk Update All Containers Button */}
-          <button
-            onClick={handleUpdateAllContainers}
-            className={`px-3 sm:px-4 py-2 rounded-md flex items-center gap-2 transition-all text-xs sm:text-sm font-medium border ${
-              pendingUpdatesCount > 0
-                ? 'bg-violet-600/25 hover:bg-violet-600/40 text-violet-800 dark:text-violet-300 border-violet-500/50 shadow-sm font-semibold'
-                : 'bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary border-border'
-            }`}
-            title={t('containers.update_all')}
-          >
-            <DownloadCloud className={`w-3.5 h-3.5 ${pendingUpdatesCount > 0 ? 'text-violet-600 dark:text-violet-400' : ''}`} />
-            <span>{t('containers.update_all')}</span>
-            {pendingUpdatesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[10px] font-bold">
-                {pendingUpdatesCount}
-              </span>
-            )}
-          </button>
-
-          <button 
-            onClick={() => {
-              fetchContainers(true);
-              fetchUpdates();
-            }}
-            className="px-3 sm:px-4 py-2 bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary rounded-md flex items-center gap-2 transition-colors text-xs sm:text-sm font-medium border border-border"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </button>
-
-          {/* New Docker Install Modal Button */}
-          <button
-            onClick={() => setIsDockerInstallOpen(true)}
-            className="px-3 sm:px-4 py-2 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-lg flex items-center gap-1.5 transition-all text-xs sm:text-sm font-semibold shadow-sm shadow-orbit-500/20"
-            title={t('docker_install.title')}
-          >
-            <Terminal className="w-3.5 h-3.5" />
-            <span>{t('containers.new_container')}</span>
-          </button>
-        </div>
-      </div>
-      
-      {/* Search and Sort Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-card border border-border p-3 rounded-lg shadow-sm">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder={t('containers.search_placeholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary"
-          />
-        </div>
-        <div className="flex gap-2 items-center">
-          <span className="text-xs sm:text-sm text-slate-600 dark:text-secondary font-medium whitespace-nowrap">{t('common.filter')}:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-background border border-border rounded-md px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary flex-1 sm:flex-none"
-          >
-            <option value="name">{t('common.name')}</option>
-            <option value="cpu">CPU</option>
-            <option value="ram">RAM</option>
-            <option value="disk">{t('dashboard.storage')}</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-            className="px-3 py-2 bg-background border border-border rounded-md hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors text-sm font-medium"
-            title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-            aria-label="Sort order"
-          >
-            {sortOrder === 'asc' ? '↑' : '↓'}
-          </button>
-        </div>
-      </div>
+      <ContainerListToolbar
+        totalCount={containers.length}
+        runningCount={containers.filter(c => c.state === 'running').length}
+        groupByStack={groupByStack}
+        onToggleGroupByStack={() => setGroupByStack(!groupByStack)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        pendingUpdatesCount={pendingUpdatesCount}
+        onUpdateAllContainers={handleUpdateAllContainers}
+        onRefresh={() => {
+          fetchContainers(true);
+          fetchUpdates();
+        }}
+        loading={loading}
+        onOpenDockerInstall={() => setIsDockerInstallOpen(true)}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortOrder={sortOrder}
+        onToggleSortOrder={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+      />
 
       {loading && containers.length === 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pb-4">
-          {Array.from({ length: 10 }).map((_, idx) => (
-            <div key={idx} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 animate-pulse">
-              <div className="flex items-start gap-3">
-                <div className="w-14 h-14 bg-background/80 rounded-xl border border-border shrink-0" />
-                <div className="flex-1 space-y-2 py-1">
-                  <div className="h-4 bg-background/80 rounded w-3/4" />
-                  <div className="h-3 bg-background/50 rounded w-1/2" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 py-3 border-y border-border/50">
-                <div className="h-6 bg-background/50 rounded" />
-                <div className="h-6 bg-background/50 rounded" />
-                <div className="h-6 bg-background/50 rounded" />
-              </div>
-              <div className="h-8 bg-background/50 rounded w-full" />
-            </div>
-          ))}
-        </div>
+        <ContainerSkeletonGrid count={10} />
       )}
 
       {filteredAndSortedContainers.length === 0 && !loading && (

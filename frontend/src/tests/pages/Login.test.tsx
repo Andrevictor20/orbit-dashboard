@@ -3,6 +3,7 @@ import { Login } from '../../pages/Login';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../contexts/AuthContext';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 
 describe('Login component', () => {
   let originalFetch: typeof window.fetch;
@@ -44,11 +45,24 @@ describe('Login component', () => {
     );
   };
 
-  it('renders login form', () => {
-    renderComponent();
+  it('renders login form without painel seguro and displays wallpaper when configured', () => {
+    localStorage.setItem('orbit-wallpaper-url', 'https://example.com/login-wallpaper.jpg');
+    render(
+      <ThemeProvider>
+        <AuthProvider>
+          <MemoryRouter>
+            <Login />
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    );
     expect(screen.getByLabelText('Usuário')).toBeTruthy();
     expect(screen.getByLabelText('Senha')).toBeTruthy();
     expect(screen.getByText('Entrar no Dashboard')).toBeTruthy();
+    expect(screen.queryByText(/Painel Seguro/i)).toBeNull();
+    const wallpaperImg = document.querySelector('img[src="https://example.com/login-wallpaper.jpg"]');
+    expect(wallpaperImg).toBeTruthy();
+    localStorage.removeItem('orbit-wallpaper-url');
   });
 
   it('shows error on empty fields', async () => {

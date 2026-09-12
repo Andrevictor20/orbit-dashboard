@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { OrbitLogo } from '../components/ui/OrbitLogo';
 
 export function Login() {
   const { t } = useTranslation();
+  const { wallpaperUrl, wallpaperOpacity, wallpaperBlur } = useTheme();
   const [searchParams] = useSearchParams();
   const isUpdated = searchParams.get('updated') === 'true';
   const updatedVersion = searchParams.get('version') || localStorage.getItem('orbit_last_updated_version');
@@ -120,15 +122,35 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden text-secondary">
-      {/* Background decoration */}
-      <div className="absolute inset-0 z-0 opacity-10">
-        <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-orbit-500 rounded-full blur-[120px]" />
-        <div className="absolute top-3/4 right-0 w-1/3 h-1/3 bg-blue-500 rounded-full blur-[100px]" />
+      {/* Custom Wallpaper Layer with Frosted Glass Contrast Veil */}
+      {wallpaperUrl && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none" aria-hidden="true">
+          <img
+            src={wallpaperUrl}
+            alt=""
+            className="w-full h-full object-cover transition-all duration-500 ease-out will-change-transform"
+            style={{
+              filter: wallpaperBlur > 0 ? `blur(${wallpaperBlur}px)` : 'none',
+              transform: wallpaperBlur > 0 ? 'scale(1.03)' : 'scale(1)',
+            }}
+          />
+          <div
+            className="absolute inset-0 bg-background transition-colors duration-300"
+            style={{ opacity: wallpaperOpacity }}
+          />
+        </div>
+      )}
+
+      {/* Ambient Lighting & Glow Orbs (Subtle when wallpaper is active to preserve true colors) */}
+      <div className={`fixed inset-0 pointer-events-none overflow-hidden z-0 transition-opacity duration-500 ${wallpaperUrl ? 'opacity-25' : 'opacity-80'}`}>
+        <div className="absolute -top-36 -right-32 w-[650px] h-[650px] rounded-full bg-gradient-to-br from-orbit-500/20 via-purple-600/12 to-transparent blur-[140px] opacity-80 animate-float-slow" />
+        <div className="absolute top-1/4 -left-48 w-[720px] h-[720px] rounded-full bg-gradient-to-tr from-orbit-600/16 via-cyan-500/10 to-transparent blur-[150px] opacity-75 animate-float-reverse" />
+        <div className="absolute -bottom-40 right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-indigo-500/16 via-pink-500/10 to-transparent blur-[140px] opacity-70 animate-pulse-glow" />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in">
         <div className="flex justify-center">
-          <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-2xl shadow-orbit-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
+          <div className="p-1 rounded-3xl bg-card/90 backdrop-blur-xl border border-border/80 shadow-2xl shadow-orbit-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
             <OrbitLogo size={64} className="rounded-2xl" />
           </div>
         </div>
@@ -141,7 +163,7 @@ export function Login() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
-        <div className="bg-card py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
+        <div className="bg-card/90 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border/80 hover:shadow-orbit-500/10 transition-shadow duration-500">
           {isUpdated && step === 'credentials' && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-left animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500 shrink-0 mt-0.5">
@@ -309,19 +331,6 @@ export function Login() {
               </div>
             </form>
           )}
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-card/40 text-gray-500 text-xs">
-                  {t('auth.secure_panel', 'Painel Seguro')}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

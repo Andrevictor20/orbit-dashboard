@@ -4,7 +4,8 @@ import {
   getContainerGroupName, 
   formatGroupName,
   getSortedDeduplicatedPorts,
-  getContainerWebLink
+  getContainerWebLink,
+  cleanAppName
 } from '../../utils/containerGroups';
 
 describe('containerGroups utility', () => {
@@ -277,6 +278,81 @@ describe('containerGroups utility', () => {
         { 'web': 'https://web.rasppi.cloud' }
       );
       expect(linkFromCompose).toBe('https://web.rasppi.cloud');
+    });
+
+    it('cleans container app names by removing prefixes and suffixes', () => {
+      expect(cleanAppName('linuxserver-kavita-app-1')).toBe('kavita');
+      expect(cleanAppName('big-bear-pihole')).toBe('pihole');
+      expect(cleanAppName('/orbit-dashboard')).toBe('orbit-dashboard');
+      expect(cleanAppName('forumhub-frontend')).toBe('forumhub');
+    });
+
+    it('resolves links by stripped app name, token overlap and compose project', () => {
+      // 1. By cleaned app name (linuxserver-kavita-app-1 -> kavita)
+      const linkKavita = getContainerWebLink(
+        {
+          id: 'kavita-id',
+          name: 'linuxserver-kavita-app-1',
+          image: 'lscr.io/linuxserver/kavita:latest',
+          ports: [{ private_port: 5000, public_port: 5000, typ: 'tcp' }],
+        },
+        { 'kavita': 'https://kavita.rasppi.cloud' }
+      );
+      expect(linkKavita).toBe('https://kavita.rasppi.cloud');
+
+      // 2. By token overlap (stirling-pdf -> 'pdf' token matches 'pdf')
+      const linkPdf = getContainerWebLink(
+        {
+          id: 'pdf-id',
+          name: 'stirling-pdf',
+          image: 'froodle/s-pdf:latest',
+          ports: [{ private_port: 8080, public_port: 8080, typ: 'tcp' }],
+        },
+        { 'pdf': 'https://pdf.rasppi.cloud' }
+      );
+      expect(linkPdf).toBe('https://pdf.rasppi.cloud');
+
+      // 3. By compose project label
+      const linkComposeProj = getContainerWebLink(
+        {
+          id: 'proj-id',
+          name: 'coletor',
+          image: 'coletor:latest',
+          ports: [],
+          labels: { 'com.docker.compose.project': 'ar-saude' },
+        },
+        { 'ar-saude': 'https://saude.rasppi.cloud' }
+      );
+      expect(linkComposeProj).toBe('https://saude.rasppi.cloud');
+    });
+
+    it('resolves group webLink when customLink matches stack groupKey or sibling container', () => {
+      const stackContainers = [
+        {
+          id: 'stack-c1',
+          name: 'ar-saude-coletor',
+          image: 'coletor:latest',
+          state: 'running',
+          labels: { 'com.docker.compose.project': 'ar-saude' },
+        },
+        {
+          id: 'stack-c2',
+          name: 'ar-saude-frontend',
+          image: 'frontend:latest',
+          state: 'running',
+          ports: [{ private_port: 80, public_port: 3002, typ: 'tcp' }],
+          labels: { 'com.docker.compose.project': 'ar-saude' },
+        },
+      ];
+
+      const grouped = groupContainers(stackContainers, {
+        'ar-saude': 'https://saude.rasppi.cloud',
+      });
+      expect(grouped.length).toBe(1);
+      expect(grouped[0].type).toBe('group');
+      if (grouped[0].type === 'group') {
+        expect(grouped[0].webLink).toBe('https://saude.rasppi.cloud');
+      }
     });
   });
 });

@@ -6,6 +6,8 @@ import {
   Server,
   Box,
   ShieldCheck,
+  ShieldAlert,
+  ExternalLink,
   Loader2,
   Check,
   ChevronDown,
@@ -90,6 +92,7 @@ export function CloudflareAddRouteModal({
   const [containers, setContainers] = useState<ContainerOption[]>([]);
   const [loadingContainers, setLoadingContainers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const getAuthHeaders = () => {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
@@ -114,6 +117,7 @@ export function CloudflareAddRouteModal({
     setSelectedContainer('');
     setSelectedPort('');
     setCustomService('http://');
+    setAuthError(null);
 
     // Fetch containers
     setLoadingContainers(true);
@@ -158,44 +162,40 @@ export function CloudflareAddRouteModal({
       .finally(() => {
         setLoadingContainers(false);
       });
-  }, [isOpen]);
+  }, [isOpen, existingRules]);
 
   const handleContainerChange = (containerName: string) => {
     setSelectedContainer(containerName);
-    const cont = containers.find((c) => c.name === containerName);
-    if (cont) {
-      setSubdomain(cont.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
-      if (cont.ports.length > 0) {
-        setSelectedPort(cont.ports[0].toString());
-      } else {
-        setSelectedPort('');
-      }
+    setSubdomain(containerName.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+    const found = containers.find((c) => c.name === containerName);
+    if (found && found.ports.length > 0) {
+      setSelectedPort(found.ports[0].toString());
     } else {
       setSelectedPort('');
     }
   };
 
   const computeFinalHostname = (): string => {
-    if (hostnameMode === 'builder') {
-      const cleanSub = subdomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
-      const cleanBase = baseDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
-      if (cleanSub && cleanBase) return `${cleanSub}.${cleanBase}`;
-      return cleanSub || cleanBase;
+    if (hostnameMode === 'raw') {
+      return rawHostname.trim().toLowerCase().replace(/^https?:\/\//, '');
     }
-    return rawHostname.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    const cleanSub = subdomain.trim().toLowerCase().replace(/\.+$/, '');
+    const cleanBase = baseDomain.trim().toLowerCase().replace(/^\.+/, '');
+    if (!cleanSub) return cleanBase;
+    return `${cleanSub}.${cleanBase}`;
   };
 
   const computeFinalService = (): string => {
-    if (serviceMode === 'container') {
-      if (!selectedContainer) return '';
-      const portPart = selectedPort ? `:${selectedPort}` : '';
-      return `http://${selectedContainer}${portPart}`;
+    if (serviceMode === 'custom') {
+      return customService.trim();
     }
-    return customService.trim();
+    const port = selectedPort.trim() || '80';
+    return `http://${selectedContainer}:${port}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
 
     const cleanHostname = computeFinalHostname();
     const finalService = computeFinalService();
@@ -239,7 +239,18 @@ export function CloudflareAddRouteModal({
         onRouteCreated(data.route);
         onClose();
       } else {
-        toast.error((data as any).error || t('cloudflare.route_create_error', 'Falha ao criar rota'));
+        const errorMsg = (data as any).error || t('cloudflare.route_create_error', 'Falha ao criar rota');
+        const isAuthErr = errorMsg.toLowerCase().includes('authorized') ||
+                          errorMsg.toLowerCase().includes('autorizado') ||
+                          errorMsg.toLowerCase().includes('permissão') ||
+                          errorMsg.toLowerCase().includes('permission') ||
+                          res.status === 401 || res.status === 403;
+        if (isAuthErr) {
+          setAuthError(errorMsg);
+          toast.error(errorMsg, { duration: 8000 });
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch {
       toast.error(t('cloudflare.route_create_error', 'Falha na comunicação com o servidor'));
@@ -524,6 +535,37 @@ export function CloudflareAddRouteModal({
               {tunnelId && <span className="font-mono text-primary font-bold">({tunnelId.substring(0, 8)}...cfargotunnel.com)</span>}.
             </div>
           </div>
+
+          {/* Permission / Authorization Warning Banner */}
+          {authError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2 animate-fade-in">
+              <div className="flex items-start gap-2.5">
+                <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-rose-200">
+                    {t('cloudflare.route_auth_error_title', 'Permissão Insuficiente no Cloudflare (Não Autorizado)')}
+                  </p>
+                  <p className="text-secondary leading-relaxed">
+                    {t(
+                      'cloudflare.route_auth_error_desc',
+                      "Seu API Token precisa da permissão 'Account > Cloudflare Tunnel > Edit'. Acesse o painel da Cloudflare para atualizar as permissões do token."
+                    )}
+                  </p>
+                  <div className="pt-1.5">
+                    <a
+                      href="https://dash.cloudflare.com/profile/api-tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[11px] font-medium transition-colors"
+                    >
+                      <span>{t('cloudflare.route_auth_error_link', 'Abrir Tokens da Cloudflare')}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/60">

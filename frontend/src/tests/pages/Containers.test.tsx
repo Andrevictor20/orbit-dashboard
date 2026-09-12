@@ -3,6 +3,8 @@ import { Containers } from '../../pages/Containers';
 import { resetContainerCache } from '../../components/docker/ContainerList';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '../testUtils';
 
 describe('Containers list component', () => {
   beforeEach(() => {
@@ -26,7 +28,14 @@ describe('Containers list component', () => {
   });
 
   it('renders containers page', async () => {
-    render(<MemoryRouter><Containers /></MemoryRouter>);
+    const queryClient = createTestQueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Containers />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
     await waitFor(() => {
       // Just check if it renders the page without crashing
       expect(screen.getAllByRole('heading').length).toBeGreaterThan(0);
