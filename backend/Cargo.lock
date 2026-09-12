@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "backend"
-version = "3.4.1"
+version = "3.5.0"
 dependencies = [
  "argon2",
  "axum",
@@ -223,6 +223,7 @@ dependencies = [
  "serde_yaml",
  "subtle",
  "sysinfo",
+ "thiserror 2.0.20",
  "time",
  "tokio",
  "tokio-stream",
