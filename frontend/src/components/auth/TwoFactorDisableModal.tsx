@@ -22,15 +22,29 @@ export function TwoFactorDisableModal({ isOpen, onClose, onSuccess }: TwoFactorD
 
     setDisabling(true);
     try {
+      const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
         body: JSON.stringify({ current_password: currentPassword }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Fallback for non-JSON response
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Senha incorreta');
+        if (res.status === 401) {
+          throw new Error(data.error || t('profile.invalid_current_password', 'Senha atual incorreta'));
+        }
+        throw new Error(data.error || 'Erro ao desativar 2FA');
       }
 
       toast.success(t('two_factor.disabled_success', 'Autenticação de 2 Fatores desativada.'));

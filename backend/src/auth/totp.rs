@@ -54,7 +54,7 @@ pub fn verify_totp_code(secret_base32: &str, username: &str, code: &str) -> bool
     let totp = match Builder::new()
         .with_algorithm(Algorithm::SHA1)
         .with_digits(6)
-        .with_skew(1)
+        .with_skew(2)
         .with_step_duration(30)
         .with_secret(secret)
         .with_issuer(Some("Orbit Dashboard".to_string()))

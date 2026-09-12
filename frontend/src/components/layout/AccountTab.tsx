@@ -22,7 +22,11 @@ export function AccountTab() {
   const fetch2FAStatus = async () => {
     try {
       setLoading2FA(true);
-      const res = await fetch('/api/auth/2fa/status');
+      const token = localStorage.getItem('orbit_token');
+      const res = await fetch('/api/auth/2fa/status', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         setTwoFactorEnabled(data.enabled);
@@ -43,9 +47,14 @@ export function AccountTab() {
     e.preventDefault();
     setIsChangingPassword(true);
     try {
+      const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/auth/password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
         body: JSON.stringify({
           current_password: currentPassword,
           new_password: newPassword,

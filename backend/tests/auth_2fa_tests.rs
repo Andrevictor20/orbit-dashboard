@@ -35,8 +35,12 @@ fn test_totp_generation_and_verification() {
         .unwrap()
         .as_secs();
     let current_code = totp.generate(now).to_string();
+    let past_code = totp.generate(now.saturating_sub(30)).to_string();
+    let future_code = totp.generate(now.saturating_add(30)).to_string();
 
     assert!(verify_totp_code(&setup.secret, "admin", &current_code));
+    assert!(verify_totp_code(&setup.secret, "admin", &past_code));
+    assert!(verify_totp_code(&setup.secret, "admin", &future_code));
     assert!(!verify_totp_code(&setup.secret, "admin", "000000"));
     assert!(!verify_totp_code(&setup.secret, "admin", "12345"));
 }

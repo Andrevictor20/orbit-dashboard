@@ -15,11 +15,12 @@ pub fn get_jwt_secret() -> &'static [u8] {
             return key.into_bytes();
         }
 
-        let secret_path = std::path::Path::new("data/jwt.secret");
+        let data_dir = crate::system::data_migrator::get_active_data_dir();
+        let secret_path = data_dir.join("jwt.secret");
         if secret_path.exists() {
-            match std::fs::read_to_string(secret_path) {
+            match std::fs::read_to_string(&secret_path) {
                 Ok(key) if !key.trim().is_empty() => return key.trim().to_string().into_bytes(),
-                _ => tracing::warn!("Failed to read existing data/jwt.secret, generating new one"),
+                _ => tracing::warn!("Failed to read existing jwt.secret, generating new one"),
             }
         }
 
@@ -27,8 +28,8 @@ pub fn get_jwt_secret() -> &'static [u8] {
         let key_bytes: [u8; 64] = rand::random();
         let new_key = key_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
         
-        let _ = std::fs::create_dir_all("data");
-        if let Err(e) = std::fs::write(secret_path, &new_key) {
+        let _ = std::fs::create_dir_all(&data_dir);
+        if let Err(e) = std::fs::write(&secret_path, &new_key) {
             tracing::error!("Failed to save JWT secret to {:?}: {}", secret_path, e);
         } else {
             tracing::info!("Generated new JWT secret and saved to {:?}", secret_path);

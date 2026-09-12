@@ -176,10 +176,10 @@ pub async fn two_factor_login(
         )
     })?;
 
-    let cookie = Cookie::build(("auth_token", token))
+    let cookie = Cookie::build(("auth_token", token.clone()))
         .path("/")
         .http_only(true)
-        .same_site(SameSite::Strict)
+        .same_site(SameSite::Lax)
         .max_age(time::Duration::hours(2))
         .build();
 
@@ -187,6 +187,7 @@ pub async fn two_factor_login(
         jar.add(cookie),
         Json(serde_json::json!({
             "message": "success",
+            "token": token,
             "used_recovery_code": used_recovery
         })),
     ))
@@ -197,7 +198,7 @@ pub async fn two_factor_status(
     Extension(claims): Extension<Claims>,
 ) -> Result<Json<TwoFactorStatusResponse>, StatusCode> {
     let auth_data = get_auth_data().ok_or(StatusCode::UNAUTHORIZED)?;
-    if auth_data.username != claims.sub {
+    if !auth_data.username.trim().eq_ignore_ascii_case(claims.sub.trim()) {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
@@ -246,7 +247,7 @@ pub async fn two_factor_enable(
         )),
     };
 
-    if auth_data.username != claims.sub {
+    if !auth_data.username.trim().eq_ignore_ascii_case(claims.sub.trim()) {
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Unauthorized" })),
@@ -289,7 +290,7 @@ pub async fn two_factor_disable(
         )),
     };
 
-    if auth_data.username != claims.sub {
+    if !auth_data.username.trim().eq_ignore_ascii_case(claims.sub.trim()) {
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Unauthorized" })),
@@ -341,7 +342,7 @@ pub async fn two_factor_regenerate_codes(
         )),
     };
 
-    if auth_data.username != claims.sub {
+    if !auth_data.username.trim().eq_ignore_ascii_case(claims.sub.trim()) {
         return Err((
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Unauthorized" })),

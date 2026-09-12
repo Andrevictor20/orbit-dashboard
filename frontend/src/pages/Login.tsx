@@ -67,7 +67,7 @@ export function Login() {
         return;
       }
 
-      login('logged_in_token');
+      login(data.token || 'logged_in_token');
       navigate('/');
     } catch (err: any) {
       setError(err.message || t('auth.login_error', 'Erro ao realizar login.'));
@@ -108,7 +108,8 @@ export function Login() {
         }
       }
 
-      login('logged_in_token');
+      const data = await response.json();
+      login(data.token || 'logged_in_token');
       navigate('/');
     } catch (err: any) {
       setError(err.message || t('two_factor.invalid_code', 'Código inválido.'));

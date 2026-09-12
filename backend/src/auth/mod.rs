@@ -27,7 +27,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
 pub fn get_auth_file_path() -> String {
-    std::env::var("ORBIT_AUTH_FILE").unwrap_or_else(|_| "data/orbit_auth.json".to_string())
+    std::env::var("ORBIT_AUTH_FILE").unwrap_or_else(|_| {
+        crate::system::data_migrator::get_active_data_dir()
+            .join("orbit_auth.json")
+            .to_string_lossy()
+            .to_string()
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,16 +129,16 @@ pub async fn setup(
         &EncodingKey::from_secret(get_jwt_secret()),
     ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let cookie = Cookie::build(("auth_token", token))
+    let cookie = Cookie::build(("auth_token", token.clone()))
         .path("/")
         .http_only(true)
-        .same_site(SameSite::Strict)
+        .same_site(SameSite::Lax)
         .max_age(time::Duration::hours(2))
         .build();
 
     Ok((
         jar.add(cookie),
-        Json(serde_json::json!({ "message": "setup complete" })),
+        Json(serde_json::json!({ "message": "setup complete", "token": token })),
     ))
 }
 
@@ -230,16 +235,16 @@ pub async fn login(
         &EncodingKey::from_secret(get_jwt_secret()),
     ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let cookie = Cookie::build(("auth_token", token))
+    let cookie = Cookie::build(("auth_token", token.clone()))
         .path("/")
         .http_only(true)
-        .same_site(SameSite::Strict)
+        .same_site(SameSite::Lax)
         .max_age(time::Duration::hours(2))
         .build();
 
     Ok((
         jar.add(cookie),
-        Json(serde_json::json!({ "message": "success", "requires_2fa": false })),
+        Json(serde_json::json!({ "message": "success", "requires_2fa": false, "token": token })),
     ))
 }
 

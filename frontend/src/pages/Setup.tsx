@@ -46,10 +46,9 @@ export function Setup() {
         throw new Error(t('auth.setup_error', 'Erro ao configurar usuário. Pode já existir.'));
       }
 
-      await response.json();
+      const data = await response.json();
       
-      // We simulate storing a token because the actual auth is in HttpOnly cookie
-      login('logged_in_token');
+      login(data.token || 'logged_in_token');
       
       // Hard refresh to reload contexts and skip setup check
       window.location.href = '/';

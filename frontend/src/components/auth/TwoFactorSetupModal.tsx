@@ -31,7 +31,15 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       setStep('scan');
       setVerificationCode('');
       setLoading(true);
-      fetch('/api/auth/2fa/setup', { method: 'POST' })
+      const token = localStorage.getItem('orbit_token');
+      fetch('/api/auth/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+      })
         .then(async (res) => {
           if (!res.ok) throw new Error('Failed to start 2FA setup');
           return res.json();
@@ -84,9 +92,14 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
     setVerifying(true);
     try {
+      const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
         body: JSON.stringify({
           secret: setupData.secret,
           code: verificationCode.trim(),
@@ -94,9 +107,18 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
         }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Fallback for non-JSON response
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Código inválido');
+        if (res.status === 401) {
+          throw new Error(data.error || t('auth.session_expired', 'Sessão expirada. Faça login novamente.'));
+        }
+        throw new Error(data.error || t('two_factor.invalid_code', 'Código de autenticação inválido'));
       }
 
       toast.success(t('two_factor.enabled_success', 'Autenticação de 2 Fatores ativada com sucesso!'));
