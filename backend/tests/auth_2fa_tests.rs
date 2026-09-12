@@ -6,8 +6,11 @@ use backend::auth::{
 };
 use serde_json::json;
 use std::fs;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use totp_rs::{Algorithm, Builder, Secret};
+
+static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_totp_generation_and_verification() {
@@ -67,6 +70,7 @@ fn test_recovery_codes_single_use() {
 
 #[tokio::test]
 async fn test_2fa_full_lifecycle_and_anti_bypass() {
+    let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     let test_auth_path = "data/orbit_auth_2fa_test.json";
     let _ = fs::remove_file(test_auth_path);
 
@@ -243,21 +247,35 @@ async fn test_2fa_full_lifecycle_and_anti_bypass() {
     assert_eq!(new_codes.len(), 8);
 
     // 14. Disable 2FA with incorrect password -> fails
-    let disable_fail = server
+    let disable_fail_pw = server
         .post("/api/auth/2fa/disable")
         .add_cookie(auth_cookie.clone())
         .json(&json!({
-            "current_password": "wrong_password"
+            "current_password": "wrong_password",
+            "code": "123456"
         }))
         .await;
-    disable_fail.assert_status_unauthorized();
+    disable_fail_pw.assert_status_unauthorized();
 
-    // 15. Disable 2FA with correct password -> succeeds
+    // 15. Disable 2FA with correct password but invalid code -> fails (400 Bad Request)
+    let disable_fail_code = server
+        .post("/api/auth/2fa/disable")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "current_password": "initial_password",
+            "code": "INVALID-CODE"
+        }))
+        .await;
+    disable_fail_code.assert_status_bad_request();
+
+    // 16. Disable 2FA with correct password and valid recovery code -> succeeds
+    let valid_recovery_code = new_codes[0].as_str().unwrap();
     let disable_success = server
         .post("/api/auth/2fa/disable")
         .add_cookie(auth_cookie.clone())
         .json(&json!({
-            "current_password": "initial_password"
+            "current_password": "initial_password",
+            "code": valid_recovery_code
         }))
         .await;
     disable_success.assert_status_success();
@@ -277,3 +295,98 @@ async fn test_2fa_full_lifecycle_and_anti_bypass() {
     // Clean up test file
     let _ = fs::remove_file(test_auth_path);
 }
+
+#[tokio::test]
+async fn test_2fa_disable_with_totp_code() {
+    let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+    let test_auth_path = "data/orbit_auth_2fa_totp_disable_test.json";
+    let _ = fs::remove_file(test_auth_path);
+
+    unsafe {
+        std::env::set_var("ORBIT_AUTH_FILE", test_auth_path);
+        std::env::set_var("JWT_SECRET", "super_secret_jwt_key_for_testing");
+    }
+
+    let server = TestServer::new(app());
+
+    // 1. Initial setup
+    let setup_res = server
+        .post("/api/auth/setup")
+        .json(&json!({
+            "username": "admin",
+            "password": "initial_password"
+        }))
+        .await;
+    setup_res.assert_status_success();
+    let auth_cookie = setup_res.cookie("auth_token");
+
+    // 2. Setup 2FA
+    let setup_2fa_res = server
+        .post("/api/auth/2fa/setup")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    setup_2fa_res.assert_status_success();
+    let setup_2fa: serde_json::Value = setup_2fa_res.json();
+
+    let secret_base32 = setup_2fa["secret"].as_str().unwrap();
+    let recovery_codes = setup_2fa["recovery_codes"].as_array().unwrap();
+
+    let secret = Secret::try_from_base32(secret_base32).unwrap();
+    let totp = Builder::new()
+        .with_algorithm(Algorithm::SHA1)
+        .with_digits(6)
+        .with_skew(1)
+        .with_step_duration(30)
+        .with_secret(secret)
+        .with_account_name("admin".to_string())
+        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .build()
+        .unwrap();
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let totp_code = totp.generate(now).to_string();
+
+    // 3. Enable 2FA
+    let enable_res = server
+        .post("/api/auth/2fa/enable")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "secret": secret_base32,
+            "code": totp_code,
+            "recovery_codes": recovery_codes
+        }))
+        .await;
+    enable_res.assert_status_success();
+
+    // 4. Disable 2FA using a valid TOTP code
+    let now2 = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let current_totp_code = totp.generate(now2).to_string();
+
+    let disable_res = server
+        .post("/api/auth/2fa/disable")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "current_password": "initial_password",
+            "code": current_totp_code
+        }))
+        .await;
+    disable_res.assert_status_success();
+
+    // 5. Verify 2FA status is now disabled
+    let status_res = server
+        .get("/api/auth/2fa/status")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    status_res.assert_status_success();
+    let status_json: serde_json::Value = status_res.json();
+    assert_eq!(status_json["enabled"], false);
+
+    let _ = fs::remove_file(test_auth_path);
+}
+

@@ -39,6 +39,12 @@ pub struct PasswordConfirmPayload {
     pub current_password: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct DisableTwoFactorPayload {
+    pub current_password: String,
+    pub code: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct TwoFactorStatusResponse {
     pub enabled: bool,
@@ -278,9 +284,10 @@ pub async fn two_factor_enable(
 }
 
 /// Protected endpoint: disables 2FA after confirming the user's current password
+/// AND verifying either the current TOTP authenticator code or one of the backup recovery codes.
 pub async fn two_factor_disable(
     Extension(claims): Extension<Claims>,
-    Json(payload): Json<PasswordConfirmPayload>,
+    Json(payload): Json<DisableTwoFactorPayload>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let mut auth_data = match get_auth_data() {
         Some(d) => d,
@@ -310,6 +317,27 @@ pub async fn two_factor_disable(
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Incorrect password" })),
         ));
+    }
+
+    // Verify TOTP code or recovery code
+    if auth_data.totp_enabled {
+        let secret = match auth_data.totp_secret.as_ref() {
+            Some(s) if !s.is_empty() => s,
+            _ => return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Two-factor authentication is not configured" })),
+            )),
+        };
+
+        let is_valid_totp = verify_totp_code(secret, &auth_data.username, &payload.code);
+        let is_valid_recovery = verify_and_consume_recovery_code(&mut auth_data.recovery_codes, &payload.code);
+
+        if !is_valid_totp && !is_valid_recovery {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Invalid authentication code or recovery code" })),
+            ));
+        }
     }
 
     auth_data.totp_enabled = false;

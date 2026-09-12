@@ -39,7 +39,14 @@ describe('TwoFactorModals', () => {
       }
       if (url === '/api/auth/2fa/disable') {
         const body = JSON.parse(options.body);
-        if (body.current_password === 'correct_pass') {
+        if (body.current_password !== 'correct_pass') {
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: () => Promise.resolve({ error: 'Incorrect password' }),
+          });
+        }
+        if (body.code === '123456' || body.code === 'AAAA-1111') {
           return Promise.resolve({
             ok: true,
             status: 200,
@@ -48,8 +55,8 @@ describe('TwoFactorModals', () => {
         }
         return Promise.resolve({
           ok: false,
-          status: 401,
-          json: () => Promise.resolve({ error: 'Incorrect password' }),
+          status: 400,
+          json: () => Promise.resolve({ error: 'Invalid authentication or recovery code' }),
         });
       }
       return Promise.resolve({ ok: true });
@@ -94,7 +101,7 @@ describe('TwoFactorModals', () => {
   });
 
   describe('TwoFactorDisableModal', () => {
-    it('submits current password to disable 2FA', async () => {
+    it('submits current password and valid TOTP code to disable 2FA', async () => {
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -103,11 +110,44 @@ describe('TwoFactorModals', () => {
       expect(screen.getByText('Desativar Autenticação de 2 Fatores')).toBeInTheDocument();
 
       fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'correct_pass' } });
+      fireEvent.change(screen.getByPlaceholderText(/000000 ou XXXX-XXXX/i), { target: { value: '123456' } });
       fireEvent.click(screen.getByRole('button', { name: /Desativar 2FA/i }));
 
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it('submits current password and valid recovery code to disable 2FA', async () => {
+      const onSuccess = vi.fn();
+      const onClose = vi.fn();
+
+      render(<TwoFactorDisableModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />);
+
+      fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'correct_pass' } });
+      fireEvent.change(screen.getByPlaceholderText(/000000 ou XXXX-XXXX/i), { target: { value: 'AAAA-1111' } });
+      fireEvent.click(screen.getByRole('button', { name: /Desativar 2FA/i }));
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalled();
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
+    it('fails to disable when invalid code is provided', async () => {
+      const onSuccess = vi.fn();
+      const onClose = vi.fn();
+
+      render(<TwoFactorDisableModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />);
+
+      fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'correct_pass' } });
+      fireEvent.change(screen.getByPlaceholderText(/000000 ou XXXX-XXXX/i), { target: { value: '999999' } });
+      fireEvent.click(screen.getByRole('button', { name: /Desativar 2FA/i }));
+
+      await waitFor(() => {
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
       });
     });
   });
