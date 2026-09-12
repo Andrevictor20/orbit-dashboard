@@ -312,7 +312,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     };
 
     poll();
-    pollingRef.current = setInterval(poll, 1000);
+    pollingRef.current = setInterval(poll, 500);
 
     return () => {
       if (pollingRef.current) {

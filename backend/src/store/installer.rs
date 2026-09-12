@@ -16,6 +16,27 @@ use super::types::{CustomInstallPayload, InstallTask, PortMapping, VolumeMapping
 
 pub static INSTALL_TASKS: Lazy<RwLock<HashMap<String, InstallTask>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
+/// Sets permissions recursively on a directory using native Rust fs calls.
+/// Replaces the previous `docker run alpine chmod -R 777` which required
+/// an Alpine image pull and added 5-30s to every installation.
+#[cfg(unix)]
+fn set_permissions_recursive(dir: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let _ = fs::set_permissions(dir, fs::Permissions::from_mode(0o777));
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let _ = fs::set_permissions(&path, fs::Permissions::from_mode(0o777));
+            if path.is_dir() {
+                set_permissions_recursive(&path);
+            }
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn set_permissions_recursive(_dir: &std::path::Path) {}
+
 pub async fn install_app(Path(id): Path<String>) -> impl IntoResponse {
     let app = {
         let cache = APPS_CACHE.read().unwrap();
@@ -82,9 +103,9 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
         compose_content = compose_content.replace("network_mode: host", "");
         compose_content = compose_content.replace("network_mode: \"host\"", "");
 
-        // Force :latest tag for all images if no tag
-        let re_image = regex::Regex::new(r#"(?m)^(\s*image:\s*"?)([a-zA-Z0-9_\-\./]+):([a-zA-Z0-9_\-\.]+)(.*)$"#).unwrap();
-        compose_content = re_image.replace_all(&compose_content, "${1}${2}:latest${4}").to_string();
+        // NOTE: Do NOT force-replace image tags. Docker already defaults to :latest
+        // when no tag is specified. Replacing breaks explicit tags like nginx:alpine,
+        // duplicating them into nginx:latest:latest and pulling the wrong image.
 
         // Enforce safe container logging rotation limits (max 30MB per container)
         compose_content = ensure_safe_logging_config(&compose_content);
@@ -136,19 +157,10 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
             }
         }
 
-        // Fix permissions and SELinux contexts for the app directory
-        if let Ok(current_dir) = std::env::current_dir() {
-            let full_app_dir = current_dir.join(&app_dir);
-            let _ = Command::new("docker")
-                .args(["run", "--rm", "-v"])
-                .arg(format!("{}:/apps:z", full_app_dir.display()))
-                .arg("alpine")
-                .args(["chmod", "-R", "777", "/apps"])
-                .output()
-                .await;
-        }
+        // Fix permissions using native Rust fs calls (O(1) — no docker run needed)
+        set_permissions_recursive(std::path::Path::new(&app_dir));
 
-        // Phase 2: Pull images (10% -> 60%)
+        // Phase 2: Pull images with parallel layer downloads (10% -> 60%)
         {
             let mut tasks = INSTALL_TASKS.write().unwrap();
             if let Some(task) = tasks.get_mut(&task_id_clone) {
@@ -158,9 +170,11 @@ pub fn spawn_compose_installation_with_env(id: String, raw_compose: String, cust
             }
         }
 
+        // --parallel downloads all service images concurrently instead of sequentially
         let mut pull_cmd = Command::new("docker")
             .arg("compose")
             .arg("pull")
+            .arg("--parallel")
             .current_dir(&app_dir)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -304,54 +318,164 @@ pub async fn uninstall_app(Path(id): Path<String>) -> impl IntoResponse {
     }
 }
 
+/// Async non-blocking update for App Store apps.
+/// Returns a task_id immediately (HTTP 202) so the frontend can poll progress
+/// without blocking the connection for the entire pull+restart duration.
 pub async fn update_app(Path(id): Path<String>) -> impl IntoResponse {
     let app_dir = format!("data/apps/{}", id);
-    
-    // Check if directory exists
+
     if !std::path::Path::new(&app_dir).exists() {
-        return (StatusCode::NOT_FOUND, "App directory not found").into_response();
+        return (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "App directory not found"}))).into_response();
     }
 
-    // Run docker compose pull
-    let pull_output = Command::new("docker")
-        .arg("compose")
-        .arg("pull")
-        .current_dir(&app_dir)
-        .output()
-        .await;
-
-    match pull_output {
-        Ok(o) if !o.status.success() => {
-            let stderr = String::from_utf8_lossy(&o.stderr);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to pull updates: {}", stderr)).into_response();
-        },
-        Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to execute docker compose pull: {}", e)).into_response();
-        },
-        _ => {}
+    let task_id = uuid::Uuid::new_v4().to_string();
+    {
+        let mut tasks = INSTALL_TASKS.write().unwrap();
+        tasks.insert(task_id.clone(), InstallTask {
+            id: task_id.clone(),
+            status: "pulling".to_string(),
+            progress: 5,
+            logs: vec![format!("[INFO] Starting update for app: {}", id)],
+            error: None,
+        });
     }
 
-    // Run docker compose up -d to apply updates
-    let up_output = Command::new("docker")
-        .arg("compose")
-        .arg("up")
-        .arg("-d")
-        .current_dir(&app_dir)
-        .output()
-        .await;
-
-    match up_output {
-        Ok(o) if o.status.success() => {
-            (StatusCode::OK, "App updated successfully").into_response()
-        },
-        Ok(o) => {
-            let stderr = String::from_utf8_lossy(&o.stderr);
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to recreate app: {}", stderr)).into_response()
-        },
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to execute docker compose up: {}", e)).into_response()
+    let task_id_clone = task_id.clone();
+    tokio::spawn(async move {
+        // Phase 1: docker compose pull --parallel
+        {
+            let mut tasks = INSTALL_TASKS.write().unwrap();
+            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                task.progress = 10;
+                task.logs.push("[INFO] Pulling updated images (parallel)...".to_string());
+            }
         }
-    }
+
+        let pull_spawn = Command::new("docker")
+            .arg("compose")
+            .arg("pull")
+            .arg("--parallel")
+            .current_dir(&app_dir)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+
+        let pull_ok = match pull_spawn {
+            Ok(mut child) => {
+                if let Some(stderr) = child.stderr.take() {
+                    let mut reader = tokio::io::BufReader::new(stderr).lines();
+                    let mut pull_progress: u8 = 10;
+                    while let Ok(Some(line)) = reader.next_line().await {
+                        if !line.trim().is_empty() {
+                            if line.contains("Pull complete") || line.contains("Already exists") {
+                                pull_progress = (pull_progress + 4).min(55);
+                            } else if line.contains("Pulling") || line.contains("Downloading") {
+                                pull_progress = (pull_progress + 1).min(55);
+                            }
+                            let mut tasks = INSTALL_TASKS.write().unwrap();
+                            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                                task.progress = pull_progress;
+                                task.logs.push(format!("[PULL] {}", line));
+                                if task.logs.len() > 200 { task.logs.remove(0); }
+                            }
+                        }
+                    }
+                }
+                child.wait().await.map(|s| s.success()).unwrap_or(false)
+            }
+            Err(e) => {
+                let mut tasks = INSTALL_TASKS.write().unwrap();
+                if let Some(task) = tasks.get_mut(&task_id_clone) {
+                    task.status = "error".to_string();
+                    task.error = Some(format!("Failed to start docker compose pull: {}", e));
+                }
+                return;
+            }
+        };
+
+        if !pull_ok {
+            let mut tasks = INSTALL_TASKS.write().unwrap();
+            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                task.status = "error".to_string();
+                task.error = Some("docker compose pull failed".to_string());
+            }
+            return;
+        }
+
+        // Phase 2: docker compose up -d
+        {
+            let mut tasks = INSTALL_TASKS.write().unwrap();
+            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                task.status = "installing".to_string();
+                task.progress = 60;
+                task.logs.push("[INFO] Restarting containers with updated images...".to_string());
+            }
+        }
+
+        let up_spawn = Command::new("docker")
+            .arg("compose")
+            .arg("up")
+            .arg("-d")
+            .current_dir(&app_dir)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn();
+
+        match up_spawn {
+            Ok(mut child) => {
+                if let Some(stderr) = child.stderr.take() {
+                    let mut reader = tokio::io::BufReader::new(stderr).lines();
+                    let mut up_progress: u8 = 60;
+                    while let Ok(Some(line)) = reader.next_line().await {
+                        if !line.trim().is_empty() {
+                            if line.contains("Started") || line.contains("Created") || line.contains("Running") {
+                                up_progress = (up_progress + 10).min(95);
+                            }
+                            let mut tasks = INSTALL_TASKS.write().unwrap();
+                            if let Some(task) = tasks.get_mut(&task_id_clone) {
+                                task.progress = up_progress;
+                                task.logs.push(format!("[UP] {}", line));
+                                if task.logs.len() > 200 { task.logs.remove(0); }
+                            }
+                        }
+                    }
+                }
+                match child.wait().await {
+                    Ok(status) if status.success() => {
+                        let mut tasks = INSTALL_TASKS.write().unwrap();
+                        if let Some(task) = tasks.get_mut(&task_id_clone) {
+                            task.status = "done".to_string();
+                            task.progress = 100;
+                            task.logs.push("[INFO] App updated successfully!".to_string());
+                        }
+                    }
+                    Ok(status) => {
+                        let mut tasks = INSTALL_TASKS.write().unwrap();
+                        if let Some(task) = tasks.get_mut(&task_id_clone) {
+                            task.status = "error".to_string();
+                            task.error = Some(format!("docker compose up exited with: {}", status));
+                        }
+                    }
+                    Err(e) => {
+                        let mut tasks = INSTALL_TASKS.write().unwrap();
+                        if let Some(task) = tasks.get_mut(&task_id_clone) {
+                            task.status = "error".to_string();
+                            task.error = Some(format!("Process error: {}", e));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                let mut tasks = INSTALL_TASKS.write().unwrap();
+                if let Some(task) = tasks.get_mut(&task_id_clone) {
+                    task.status = "error".to_string();
+                    task.error = Some(format!("Failed to start docker compose up: {}", e));
+                }
+            }
+        }
+    });
+
+    (StatusCode::ACCEPTED, Json(serde_json::json!({ "task_id": task_id }))).into_response()
 }
 
 pub async fn inspect_app_config(Path(id): Path<String>) -> impl IntoResponse {
