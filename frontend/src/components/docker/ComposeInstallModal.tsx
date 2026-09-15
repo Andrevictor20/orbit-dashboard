@@ -99,12 +99,12 @@ export function ComposeInstallModal({
         headers: getAuthHeaders(),
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Falha ao carregar conteúdo da stack');
+      if (!res.ok) throw new Error(t('compose_modal.load_failed', 'Falha ao carregar conteúdo da stack'));
       const data = await res.json();
       setStackName(data.name);
       setComposeYaml(data.compose_yaml || '');
       setEnvContent(data.env_content || '');
-      toast.success(`Stack ${name} carregada!`);
+      toast.success(t('docker.stack_loaded', { name, defaultValue: `Stack ${name} carregada!` }));
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -113,8 +113,8 @@ export function ComposeInstallModal({
   };
 
   const validation = useMemo(() => {
-    return validateComposeSyntax(composeYaml);
-  }, [composeYaml]);
+    return validateComposeSyntax(composeYaml, t);
+  }, [composeYaml, t]);
 
   // Port conflict check
   useEffect(() => {
@@ -151,7 +151,7 @@ export function ComposeInstallModal({
   const handleSelectTemplate = (templateId: string) => {
     const tmpl = COMPOSE_TEMPLATES.find((t) => t.id === templateId);
     if (!tmpl) return;
-    if (composeYaml.trim() && !window.confirm('Substituir o conteúdo atual pelo template selecionado?')) {
+    if (composeYaml.trim() && !window.confirm(t('compose_modal.overwrite_confirm', 'Substituir o conteúdo atual pelo template selecionado?'))) {
       return;
     }
     setComposeYaml(tmpl.yaml);
@@ -162,17 +162,17 @@ export function ComposeInstallModal({
   const handleSaveDraft = async () => {
     const cleanName = stackName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
     if (!cleanName) {
-      toast.error('Informe um nome válido para a stack');
+      toast.error(t('compose_modal.name_required', 'Informe um nome válido para a stack'));
       return;
     }
 
     if (!validation.valid) {
-      toast.error(`Corrija os erros do YAML: ${validation.error}`);
+      toast.error(t('docker.fix_yaml_errors', { error: validation.error, defaultValue: `Corrija os erros do YAML: ${validation.error}` }));
       return;
     }
 
     setSaving(true);
-    const toastId = toast.loading(`Salvando rascunho de ${cleanName}...`);
+    const toastId = toast.loading(t('docker.saving_draft', { name: cleanName, defaultValue: `Salvando rascunho de ${cleanName}...` }));
 
     try {
       const res = await fetch('/api/docker/compose/save', {
@@ -188,10 +188,10 @@ export function ComposeInstallModal({
 
       if (!res.ok) {
         const errorMsg = await res.text();
-        throw new Error(errorMsg || 'Falha ao salvar a stack');
+        throw new Error(errorMsg || t('docker.failed_save_stack', 'Falha ao salvar a stack'));
       }
 
-      toast.success('Rascunho da stack salvo com sucesso!', { id: toastId });
+      toast.success(t('docker.draft_saved_success', 'Rascunho da stack salvo com sucesso!'), { id: toastId });
       loadStacks();
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`, { id: toastId });
@@ -203,17 +203,17 @@ export function ComposeInstallModal({
   const handleDeploy = async () => {
     const cleanName = stackName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
     if (!cleanName) {
-      toast.error('Informe um nome válido para a stack');
+      toast.error(t('compose_modal.name_required', 'Informe um nome válido para a stack'));
       return;
     }
 
     if (!validation.valid) {
-      toast.error(`Corrija os erros do YAML: ${validation.error}`);
+      toast.error(t('docker.fix_yaml_errors', { error: validation.error, defaultValue: `Corrija os erros do YAML: ${validation.error}` }));
       return;
     }
 
     setDeploying(true);
-    const toastId = toast.loading(`Instalando e executando stack ${cleanName}...`);
+    const toastId = toast.loading(t('docker.deploying_stack', { name: cleanName, defaultValue: `Instalando e executando stack ${cleanName}...` }));
 
     try {
       await fetch('/api/docker/compose/save', {
@@ -240,11 +240,11 @@ export function ComposeInstallModal({
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Erro ao iniciar container da stack');
+        throw new Error(errJson.error || t('docker.error_starting_container_install', 'Erro ao iniciar container da stack'));
       }
 
       const data = await res.json();
-      toast.success(`Instalação de ${cleanName} iniciada com sucesso!`, { id: toastId });
+      toast.success(t('docker.stack_install_started', { name: cleanName, defaultValue: `Instalação de ${cleanName} iniciada com sucesso!` }), { id: toastId });
 
       if (data.task_id) {
         startInstall(data.task_id, cleanName);

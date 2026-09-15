@@ -7,6 +7,7 @@ import {
   useCallback 
 } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { saveFileToDb, getFileFromDb, removeFileFromDb } from '../utils/uploadDb';
 
@@ -46,6 +47,7 @@ const UploadManagerContext = createContext<UploadManagerContextType | undefined>
 const STORAGE_KEY = 'orbit_active_uploads';
 
 export function UploadManagerProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [uploads, setUploads] = useState<UploadItem[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -203,7 +205,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       await removeFileFromDb(item.id);
       fileCacheRef.current.delete(item.id);
 
-      toast.success(`Upload de "${file.name}" concluído com sucesso!`);
+      toast.success(t('files.upload_single_success', { name: file.name, defaultValue: `Upload de "${file.name}" concluído com sucesso!` }));
       window.dispatchEvent(new CustomEvent('orbit:files_changed', { detail: { path: item.destinationPath } }));
     } catch (err: any) {
       if (err?.name === 'AbortError') {
@@ -286,13 +288,13 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     if (!item) return;
 
     if (!file) {
-      toast.error('Arquivo original não encontrado. Por favor, reenvie o arquivo.');
+      toast.error(t('files.original_file_not_found', 'Arquivo original não encontrado. Por favor, reenvie o arquivo.'));
       updateItem(id, { status: 'error', error: 'Arquivo expirado do cache local' });
       return;
     }
 
     processUpload(item, file);
-  }, [uploads, processUpload, updateItem]);
+  }, [uploads, processUpload, updateItem, t]);
 
   // Cancel upload
   const cancelUpload = useCallback(async (id: string) => {
@@ -306,8 +308,8 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     await removeFileFromDb(id);
 
     setUploads((prev) => prev.filter((u) => u.id !== id));
-    toast('Upload cancelado', { icon: '🛑' });
-  }, []);
+    toast(t('files.upload_cancelled', 'Upload cancelado'), { icon: '🛑' });
+  }, [t]);
 
   // Clear completed uploads from list
   const clearCompleted = useCallback(() => {
@@ -329,7 +331,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           } else {
             updateItem(item.id, {
               status: 'paused',
-              error: 'Página recarregada. Clique em Retomar para continuar o envio.',
+              error: t('files.upload_page_reloaded', 'Página recarregada. Clique em Retomar para continuar o envio.'),
             });
           }
         }

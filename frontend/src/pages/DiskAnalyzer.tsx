@@ -19,8 +19,10 @@ import { DiskTopConsumers } from '../components/disk/DiskTopConsumers';
 import { DiskDirectoryTree } from '../components/disk/DiskDirectoryTree';
 import { DiskInsightsTab } from '../components/disk/DiskInsightsTab';
 import { DiskSafetyGuideTab } from '../components/disk/DiskSafetyGuideTab';
+import { useTranslation } from 'react-i18next';
 
 export function DiskAnalyzer() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentUrlPath = searchParams.get('path') || '/';
 
@@ -49,7 +51,7 @@ export function DiskAnalyzer() {
   const loadMounts = async () => {
     try {
       const res = await fetch('/api/system/storage');
-      if (!res.ok) throw new Error('Falha ao obter discos');
+      if (!res.ok) throw new Error(t('disk.get_disks_error', 'Falha ao obter discos'));
       const json: MountItem[] = await res.json();
       const physicalOnly = (Array.isArray(json) ? json : []).filter((s) =>
         isPhysicalStorage(s.name, s.mount_point, s.fs_type)
@@ -168,13 +170,13 @@ export function DiskAnalyzer() {
 
   // Safe delete handler with prompt
   const handleDeleteItem = async (item: DiskItemStat) => {
-    const safety = getPathSafetyInfo(item.path);
+    const safety = getPathSafetyInfo(item.path, t);
     if (safety.level === 'critical') {
-      toast.error(`Bloqueado: "${item.name}" é um arquivo crítico do sistema e não deve ser removido.`);
+      toast.error(t('disk.critical_warning', { name: item.name, defaultValue: `Bloqueado: "${item.name}" é um arquivo crítico do sistema e não deve ser removido.` }));
       return;
     }
 
-    if (!window.confirm(`Tem certeza que deseja mover "${item.name}" para a lixeira?`)) return;
+    if (!window.confirm(t('disk.confirm_move_trash', { name: item.name, defaultValue: `Tem certeza que deseja mover "${item.name}" para a lixeira?` }))) return;
 
     try {
       const res = await fetch('/api/files/trash', {
@@ -182,28 +184,28 @@ export function DiskAnalyzer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paths: [item.path] }),
       });
-      if (!res.ok) throw new Error('Erro ao excluir item');
-      toast.success(`"${item.name}" movido para a lixeira!`);
+      if (!res.ok) throw new Error(t('disk.delete_item_error', 'Erro ao excluir item'));
+      toast.success(t('disk.moved_to_trash', { name: item.name, defaultValue: `"${item.name}" movido para a lixeira!` }));
       fetchAnalysis(currentPath);
     } catch {
-      toast.error('Falha ao excluir item.');
+      toast.error(t('disk.delete_item_fail', 'Falha ao excluir item.'));
     }
   };
 
   // 1-Click Docker Prune
   const handleDockerPrune = async () => {
-    if (!window.confirm('Deseja executar a limpeza do Docker (remover imagens órfãs, build cache e containers parados)?')) return;
+    if (!window.confirm(t('disk.docker_prune_confirm', 'Deseja executar a limpeza do Docker (remover imagens órfãs, build cache e containers parados)?'))) return;
     setIsPruningDocker(true);
     try {
       const res = await fetch('/api/docker/images/prune', { method: 'POST' });
       if (!res.ok) throw new Error('Falha ao limpar Docker');
       const resJson = await res.json();
-      const freed = resJson.space_reclaimed ? ` (${resJson.space_reclaimed} liberados)` : '';
-      toast.success(`Docker limpo com sucesso!${freed}`);
+      const freed = resJson.space_reclaimed ? t('disk.docker_pruned_freed', { size: resJson.space_reclaimed, defaultValue: ` (${resJson.space_reclaimed} liberados)` }) : '';
+      toast.success(`${t('disk.docker_pruned_success', 'Docker limpo com sucesso!')}${freed}`);
       loadMounts();
       fetchAnalysis(currentPath);
     } catch {
-      toast.error('Erro ao executar docker prune.');
+      toast.error(t('disk.docker_prune_error', 'Erro ao executar docker prune.'));
     } finally {
       setIsPruningDocker(false);
     }
@@ -211,16 +213,16 @@ export function DiskAnalyzer() {
 
   // 1-Click Empty System Trash
   const handleEmptyTrash = async () => {
-    if (!window.confirm('Tem certeza que deseja esvaziar permanentemente a lixeira do sistema?')) return;
+    if (!window.confirm(t('disk.empty_trash_confirm', 'Tem certeza que deseja esvaziar permanentemente a lixeira do sistema?'))) return;
     setIsCleaningTrash(true);
     try {
       const res = await fetch('/api/files/trash', { method: 'DELETE' });
       if (!res.ok) throw new Error('Erro ao esvaziar');
-      toast.success('Lixeira esvaziada com sucesso!');
+      toast.success(t('disk.empty_trash_success', 'Lixeira esvaziada com sucesso!'));
       loadMounts();
       fetchAnalysis(currentPath);
     } catch {
-      toast.error('Erro ao esvaziar lixeira.');
+      toast.error(t('disk.empty_trash_error', 'Erro ao esvaziar lixeira.'));
     } finally {
       setIsCleaningTrash(false);
     }
@@ -228,13 +230,13 @@ export function DiskAnalyzer() {
 
   // Quick Preset Folders
   const presetFolders = [
-    { label: 'Sistema (/)', path: '/' },
-    { label: 'Início (/home)', path: '/home' },
-    { label: 'Docker (/var/lib/docker)', path: '/var/lib/docker' },
-    { label: 'Logs (/var/log)', path: '/var/log' },
-    { label: 'Cache APT (/var/cache/apt)', path: '/var/cache/apt' },
-    { label: 'Temporários (/tmp)', path: '/tmp' },
-    { label: 'HD Externo (/mnt)', path: '/mnt' },
+    { label: t('disk.preset_system', 'Sistema (/)'), path: '/' },
+    { label: t('disk.preset_home', 'Início (/home)'), path: '/home' },
+    { label: t('disk.preset_docker', 'Docker (/var/lib/docker)'), path: '/var/lib/docker' },
+    { label: t('disk.preset_logs', 'Logs (/var/log)'), path: '/var/log' },
+    { label: t('disk.preset_cache_apt', 'Cache APT (/var/cache/apt)'), path: '/var/cache/apt' },
+    { label: t('disk.preset_temp', 'Temporários (/tmp)'), path: '/tmp' },
+    { label: t('disk.preset_external', 'HD Externo (/mnt)'), path: '/mnt' },
   ];
 
   return (
@@ -247,10 +249,10 @@ export function DiskAnalyzer() {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-primary">
-              Analisador de Espaço em Disco
+              {t('disk.title', 'Analisador de Espaço em Disco')}
             </h1>
             <p className="text-xs text-secondary mt-0.5">
-              Análise hierárquica precisa, maiores consumidores de espaço e diretrizes de segurança
+              {t('disk.subtitle', 'Análise hierárquica precisa, maiores consumidores de espaço e diretrizes de segurança')}
             </p>
           </div>
         </div>
@@ -266,7 +268,7 @@ export function DiskAnalyzer() {
             }`}
           >
             <FolderTree className="w-3.5 h-3.5" />
-            <span>Árvore de Pastas</span>
+            <span>{t('disk.folder_tree', 'Árvore de Pastas')}</span>
           </button>
           <button
             onClick={() => setActiveTab('insights')}
@@ -277,7 +279,7 @@ export function DiskAnalyzer() {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Insights & Dicas</span>
+            <span>{t('disk.insights_and_tips', 'Insights & Dicas')}</span>
           </button>
           <button
             onClick={() => setActiveTab('safety')}
@@ -288,7 +290,7 @@ export function DiskAnalyzer() {
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-            <span>O que NÃO Mexer</span>
+            <span>{t('disk.do_not_touch', 'O que NÃO Mexer')}</span>
           </button>
         </div>
       </div>
@@ -309,7 +311,7 @@ export function DiskAnalyzer() {
               type="text"
               value={customInputPath}
               onChange={(e) => setCustomInputPath(e.target.value)}
-              placeholder="Digite qualquer caminho de pasta (ex: /var/lib/docker, /home, /var/log, /mnt)..."
+              placeholder={t('disk.custom_path_placeholder', 'Digite qualquer caminho de pasta (ex: /var/lib/docker, /home, /var/log, /mnt)...')}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-xs text-primary font-mono placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 shadow-inner"
             />
           </div>
@@ -318,7 +320,7 @@ export function DiskAnalyzer() {
             disabled={loading}
             className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/20 transition-all disabled:opacity-50 shrink-0"
           >
-            <span>Analisar Pasta</span>
+            <span>{t('disk.analyze_folder', 'Analisar Pasta')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
@@ -327,7 +329,7 @@ export function DiskAnalyzer() {
         <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
           <span className="text-secondary font-medium mr-1 flex items-center gap-1">
             <Compass className="w-3 h-3 text-orbit-400" />
-            Atalhos Rápidos:
+            {t('disk.quick_shortcuts', 'Atalhos Rápidos:')}
           </span>
           {presetFolders.map((p) => (
             <button

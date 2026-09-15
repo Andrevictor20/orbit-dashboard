@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshCw, CheckCircle2, AlertCircle, ChevronUp, X, StopCircle } from 'lucide-react';
 import { useBatchUpdate } from '../../contexts/BatchUpdateContext';
 
 export const BatchUpdateFloatingBar: React.FC = () => {
+  const { t } = useTranslation();
   const {
     isUpdating,
     isCompleted,
@@ -23,7 +25,7 @@ export const BatchUpdateFloatingBar: React.FC = () => {
 
   return (
     <aside
-      aria-label="Progresso da atualização em lote"
+      aria-label={t('batch_update_modal.floating_aria_label', 'Progresso da atualização em lote')}
       className="fixed bottom-5 right-5 z-50 flex items-center gap-3 p-3 sm:px-4 sm:py-3 rounded-2xl bg-card/90 dark:bg-card/95 border border-border/80 shadow-2xl backdrop-blur-xl animate-slide-up text-primary max-w-sm sm:max-w-md w-auto"
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -49,10 +51,10 @@ export const BatchUpdateFloatingBar: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-primary truncate">
               {isUpdating
-                ? 'Atualizando em Segundo Plano'
+                ? t('batch_update_modal.floating_title_updating', 'Atualizando em Segundo Plano')
                 : failedCount > 0
-                ? 'Atualização com Falhas'
-                : 'Atualização Concluída'}
+                ? t('batch_update_modal.floating_title_failed', 'Atualização com Falhas')
+                : t('batch_update_modal.floating_title_success', 'Atualização Concluída')}
             </span>
             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 border border-border/50 shrink-0">
               {completedTasks}/{totalTasks} ({progressPercent}%)
@@ -61,10 +63,10 @@ export const BatchUpdateFloatingBar: React.FC = () => {
 
           <p className="text-[11px] text-slate-600 dark:text-secondary truncate mt-0.5">
             {isUpdating && activeContainerName
-              ? `Processando: ${activeContainerName}`
+              ? t('batch_update_modal.floating_processing', { defaultValue: `Processando: ${activeContainerName}`, name: activeContainerName })
               : isCompleted
-              ? `${completedTasks - failedCount} com sucesso, ${failedCount} erro(s)`
-              : 'Aguardando fila...'}
+              ? t('batch_update_modal.floating_summary', { defaultValue: `${completedTasks - failedCount} com sucesso, ${failedCount} erro(s)`, success: completedTasks - failedCount, failed: failedCount })
+              : t('batch_update_modal.floating_waiting', 'Aguardando fila...')}
           </p>
         </div>
       </div>
@@ -73,9 +75,9 @@ export const BatchUpdateFloatingBar: React.FC = () => {
         <button
           onClick={() => openModal()}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-orbit-600 hover:bg-orbit-500 text-white transition-all shadow-sm active:scale-95"
-          title="Ver detalhes da atualização"
+          title={t('batch_update_modal.floating_view_details', 'Ver detalhes da atualização')}
         >
-          <span>Progresso</span>
+          <span>{t('batch_update_modal.floating_progress_btn', 'Progresso')}</span>
           <ChevronUp className="w-3.5 h-3.5" />
         </button>
 
@@ -83,10 +85,10 @@ export const BatchUpdateFloatingBar: React.FC = () => {
           <button
             onClick={cancelAll}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm active:scale-95"
-            title="Cancelar todas as atualizações"
+            title={t('batch_update_modal.floating_cancel_all', 'Cancelar todas as atualizações')}
           >
             <StopCircle className="w-3.5 h-3.5" />
-            <span>Cancelar</span>
+            <span>{t('batch_update_modal.cancel', 'Cancelar')}</span>
           </button>
         )}
 
@@ -94,8 +96,8 @@ export const BatchUpdateFloatingBar: React.FC = () => {
           <button
             onClick={clear}
             className="p-1 text-slate-700 dark:text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-            title="Dispensar aviso"
-            aria-label="Dispensar aviso"
+            title={t('batch_update_modal.floating_dismiss', 'Dispensar aviso')}
+            aria-label={t('batch_update_modal.floating_dismiss', 'Dispensar aviso')}
           >
             <X className="w-4 h-4" />
           </button>

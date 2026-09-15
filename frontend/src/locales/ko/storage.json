@@ -1,0 +1,8 @@
+{
+  "microsd_card": "microSD 카드",
+  "external_hd_named": "외장 드라이브({{name}})",
+  "external_storage": "외부 저장소",
+  "primary_disk": "기본 SSD/드라이브",
+  "usb_drive": "USB 플래시/드라이브",
+  "system_storage": "시스템 스토리지"
+}

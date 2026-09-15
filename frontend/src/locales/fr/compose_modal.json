@@ -1,0 +1,14 @@
+{
+  "title": "Éditeur d'installation et de composition personnalisé",
+  "subtitle": "Configurez des piles personnalisées avec le peluchage, les modèles et la vérification des ports ou exécutez les commandes Docker Run.",
+  "tab_editor": "Éditeur de composition Docker",
+  "tab_dockerrun": "Exécution Docker (rapide)",
+  "template_placeholder": "Charger le modèle préconfiguré...",
+  "ports_warning": "Avertissement : Port(s) utilisé(s) sur l'hôte : {{ports}}.",
+  "valid_yaml": "Syntaxe YAML valide et aucun conflit.",
+  "validating_ports": "(vérification des ports...)",
+  "env_title": ".env (Variables)",
+  "name_required": "Entrez un nom de pile valide",
+  "load_failed": "Échec du chargement du contenu de la pile",
+  "overwrite_confirm": "Remplacer le contenu actuel par le modèle sélectionné ?"
+}

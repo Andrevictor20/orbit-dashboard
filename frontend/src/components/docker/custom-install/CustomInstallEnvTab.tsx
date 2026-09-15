@@ -62,7 +62,7 @@ export function CustomInstallEnvTab({ envVars, setEnvVars }: CustomInstallEnvTab
               type="button" 
               onClick={() => setEnvVars(envVars.filter((_, i) => i !== idx))}
               className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-              title="Remover"
+              title={t('common.remove', 'Remover')}
             >
               <X className="w-4 h-4" />
             </button>

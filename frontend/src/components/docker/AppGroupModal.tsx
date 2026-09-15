@@ -125,11 +125,14 @@ export function AppGroupModal({
                   <span className={`w-2 h-2 rounded-full ${
                     group.allRunning ? 'bg-emerald-500 animate-pulse' : group.anyRunning ? 'bg-amber-500' : 'bg-secondary'
                   }`} />
-                  <span>{group.runningCount}/{group.totalCount} ativos</span>
+                  <span>{group.runningCount}/{group.totalCount} {t('docker.active', 'ativos')}</span>
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-secondary mt-1 truncate font-medium">
-                Stack gerenciada com {group.totalCount} serviços interconectados
+                {t('docker.managed_stack_services', {
+                  count: group.totalCount,
+                  defaultValue: `Stack gerenciada com ${group.totalCount} serviços interconectados`
+                })}
               </p>
             </div>
           </div>
@@ -141,7 +144,7 @@ export function AppGroupModal({
                 onClick={() => handleBulkAction('start')}
                 disabled={Boolean(bulkActionLoading)}
                 className="p-2 rounded-xl text-slate-700 dark:text-secondary hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/15 transition-all disabled:opacity-50"
-                title="Iniciar todos os containers do grupo"
+                title={t('docker.start_all_stack', 'Iniciar todos os containers do grupo')}
               >
                 {bulkActionLoading === 'start' ? <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" /> : <Play className="w-4 h-4" />}
               </button>
@@ -149,7 +152,7 @@ export function AppGroupModal({
                 onClick={() => handleBulkAction('restart')}
                 disabled={Boolean(bulkActionLoading)}
                 className="p-2 rounded-xl text-slate-700 dark:text-secondary hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-500/15 transition-all disabled:opacity-50"
-                title="Reiniciar todos os containers do grupo"
+                title={t('docker.restart_all_stack', 'Reiniciar todos os containers do grupo')}
               >
                 {bulkActionLoading === 'restart' ? <RefreshCw className="w-4 h-4 animate-spin text-cyan-500" /> : <RotateCw className="w-4 h-4" />}
               </button>
@@ -157,7 +160,7 @@ export function AppGroupModal({
                 onClick={() => handleBulkAction('stop')}
                 disabled={Boolean(bulkActionLoading)}
                 className="p-2 rounded-xl text-slate-700 dark:text-secondary hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/15 transition-all disabled:opacity-50"
-                title="Parar todos os containers do grupo"
+                title={t('docker.stop_all_stack', 'Parar todos os containers do grupo')}
               >
                 {bulkActionLoading === 'stop' ? <RefreshCw className="w-4 h-4 animate-spin text-rose-500" /> : <Square className="w-4 h-4" />}
               </button>
@@ -166,7 +169,7 @@ export function AppGroupModal({
             <button 
               onClick={onClose}
               className="p-2 rounded-2xl text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors ml-1"
-              aria-label="Fechar modal"
+              aria-label={t('common.close', 'Fechar')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -209,7 +212,7 @@ export function AppGroupModal({
             </div>
             <div className="min-w-0">
               <span className="text-[10px] uppercase font-bold text-orbit-700 dark:text-orbit-300 tracking-wider block">
-                Serviços
+                {t('docker.services', 'Serviços')}
               </span>
               <span className="text-sm sm:text-base font-bold text-primary font-mono">
                 {group.runningCount} / {group.totalCount}
@@ -223,10 +226,13 @@ export function AppGroupModal({
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
               <Box className="w-3.5 h-3.5 text-orbit-500" />
-              Sub-containers do Grupo ({group.containers.length})
+              {t('docker.subcontainers_of_group', {
+                count: group.containers.length,
+                defaultValue: `Sub-containers do Grupo (${group.containers.length})`
+              })}
             </span>
             <span className="text-[11px] text-slate-600 dark:text-secondary font-mono">
-              Clique em um container para ver detalhes completos
+              {t('docker.click_container_details', 'Clique em um container para ver detalhes completos')}
             </span>
           </div>
 
@@ -290,7 +296,7 @@ export function AppGroupModal({
                         <button
                           onClick={(e) => onUpdateContainer(e, c.id)}
                           className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
-                          title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
+                          title={t('docker.image_update_available_tip', 'Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar.')}
                         >
                           <DownloadCloud className="w-3 h-3" />
                           <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
@@ -331,7 +337,7 @@ export function AppGroupModal({
                                   window.open(targetUrl, '_blank');
                                 }}
                                 className="hover:underline flex items-center gap-1 cursor-pointer font-medium"
-                                title={`Abrir porta: ${targetUrl}`}
+                                title={t('docker.open_port', { url: targetUrl, defaultValue: `Abrir porta: ${targetUrl}` })}
                               >
                                 <span>{p.public_port}:{p.private_port}</span>
                                 <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -368,7 +374,7 @@ export function AppGroupModal({
                             window.open(webLink, '_blank');
                           }}
                           className="px-2 py-1 rounded-lg text-orbit-700 dark:text-orbit-300 hover:text-white bg-orbit-500/15 hover:bg-orbit-500 border border-orbit-500/30 transition-all flex items-center gap-1 text-[11px] font-sans font-semibold"
-                          title={`Abrir Web UI (${webLink})`}
+                          title={t('docker.open_web_ui', { link: webLink, defaultValue: `Abrir Web UI (${webLink})` })}
                         >
                           <ExternalLink className="w-3 h-3" />
                           <span>{t('containers.open_app')}</span>
@@ -394,7 +400,7 @@ export function AppGroupModal({
                             onClick={(e) => handleContainerAction(e, c.id, 'restart')}
                             disabled={Boolean(actionLoading)}
                             className="p-1.5 rounded-lg text-slate-700 dark:text-secondary hover:text-cyan-600 dark:hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
-                            title="Reiniciar container"
+                            title={t('containers.restart_tip', 'Reiniciar container')}
                           >
                             {isSubActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-500" /> : <RotateCw className="w-3.5 h-3.5" />}
                           </button>
@@ -402,7 +408,7 @@ export function AppGroupModal({
                             onClick={(e) => handleContainerAction(e, c.id, 'pause')}
                             disabled={Boolean(actionLoading)}
                             className="p-1.5 rounded-lg text-slate-700 dark:text-secondary hover:text-amber-600 dark:hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
-                            title="Pausar container"
+                            title={t('docker.pause_container', 'Pausar container')}
                           >
                             {isSubActionLoading('pause') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-500" /> : <Pause className="w-3.5 h-3.5" />}
                           </button>
@@ -410,7 +416,7 @@ export function AppGroupModal({
                             onClick={(e) => handleContainerAction(e, c.id, 'stop')}
                             disabled={Boolean(actionLoading)}
                             className="p-1.5 rounded-lg text-slate-700 dark:text-secondary hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
-                            title="Parar container"
+                            title={t('containers.stop_tip', 'Parar container')}
                           >
                             {isSubActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-500" /> : <Square className="w-3.5 h-3.5" />}
                           </button>
@@ -420,7 +426,7 @@ export function AppGroupModal({
                           onClick={(e) => handleContainerAction(e, c.id, 'start')}
                           disabled={Boolean(actionLoading)}
                           className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                          title="Iniciar container"
+                          title={t('containers.start_tip', 'Iniciar container')}
                         >
                           {isSubActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                         </button>
@@ -432,7 +438,7 @@ export function AppGroupModal({
                           navigate(`/containers/${c.id}`);
                         }}
                         className="p-1.5 rounded-lg text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors ml-1"
-                        title="Ver detalhes do container"
+                        title={t('containers.view_details', 'Ver detalhes do container')}
                       >
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
@@ -448,13 +454,13 @@ export function AppGroupModal({
         <div className="p-4 sm:px-6 bg-accent/20 border-t border-border flex items-center justify-between text-xs text-slate-600 dark:text-secondary">
           <div className="flex items-center gap-2">
             <Radio className="w-4 h-4 text-orbit-500 animate-pulse" />
-            <span className="font-medium">Todos os sub-containers compartilham a rede e o ciclo de vida da stack.</span>
+            <span className="font-medium">{t('docker.stack_lifecycle_notice', 'Todos os sub-containers compartilham a rede e o ciclo de vida da stack.')}</span>
           </div>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-accent hover:bg-accent/80 text-primary font-semibold transition-colors border border-border active:scale-95 text-xs sm:text-sm"
           >
-            Fechar
+            {t('common.close', 'Fechar')}
           </button>
         </div>
       </div>

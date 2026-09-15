@@ -1,0 +1,18 @@
+{
+  "success_log": "更新并重启成功！",
+  "update_failed": "更新失败",
+  "conn_error": "连接错误",
+  "cancelled": "取消",
+  "gateway_timeout": "连接超时（网关超时）",
+  "cloudflare_524": "代理/Cloudflare 超时（错误 524）。该操作将在后台继续进行。",
+  "bad_gateway_502": "与网关/隧道的临时通信失败 (HTTP 502)。",
+  "gateway_timeout_504": "代理连接超时（网关超时 504）。",
+  "firewall_blocked_403": "访问被防火墙或代理规则阻止 (HTTP 403)。",
+  "proxy_error": "代理/网络错误：{{error}}",
+  "proxy_http_error": "代理或网络返回 HTTP {{status}} 错误。",
+  "max_timeout_exceeded": "超出最大全局超时（{{minutes}} 分钟）。",
+  "server_unreachable_retries": "{{retries}} 尝试后无法访问服务器 (HTTP {{status}})",
+  "task_not_found_idle": "在服务器上未找到或完成任务（空闲状态）。",
+  "network_oscillating_wait": "连接振荡。等待代理/网络稳定...",
+  "persistent_comm_failure": "与服务器持续通信失败"
+}

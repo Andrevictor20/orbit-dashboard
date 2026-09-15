@@ -1,0 +1,14 @@
+{
+  "title": "カスタムインストールと作成エディター",
+  "subtitle": "lint、テンプレート、ポートチェックを使用してカスタムスタックを構成するか、Docker Run コマンドを実行します。",
+  "tab_editor": "Docker Compose エディター",
+  "tab_dockerrun": "Docker 実行 (クイック)",
+  "template_placeholder": "事前設定されたテンプレートをロードします...",
+  "ports_warning": "警告: ホストで使用中のポート: {{ports}}。",
+  "valid_yaml": "有効な YAML 構文と競合なし。",
+  "validating_ports": "(ポートを検証中...)",
+  "env_title": ".env (変数)",
+  "name_required": "有効なスタック名を入力してください",
+  "load_failed": "スタックコンテンツのロードに失敗しました",
+  "overwrite_confirm": "現在のコンテンツを選択したテンプレートで置き換えますか?"
+}

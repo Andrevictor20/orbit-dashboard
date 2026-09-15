@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Sliders,
@@ -34,6 +35,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
   onServiceCall: _onServiceCall,
   isPendingAction = {},
 }) => {
+  const { t } = useTranslation();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   if (!isOpen || !device) return null;
@@ -109,7 +111,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-600 dark:text-secondary mt-0.5">
-                {device.entities.length} {device.entities.length === 1 ? 'entidade associada' : 'entidades associadas a este dispositivo'}
+                {device.entities.length} {device.entities.length === 1 ? t('homeassistant.entity_associated', 'entidade associada') : t('homeassistant.entities_associated', 'entidades associadas a este dispositivo')}
               </p>
             </div>
           </div>
@@ -117,7 +119,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
           <button
             onClick={onClose}
             className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-all border border-border/60"
-            aria-label="Fechar"
+            aria-label={t('common.close', 'Fechar')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -127,14 +129,14 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-border">
           {device.summary && (
             <div className="p-3.5 rounded-2xl bg-accent/40 border border-border/60 text-xs font-mono text-slate-600 dark:text-secondary flex items-center justify-between">
-              <span>Status Consolidado:</span>
+              <span>{t('homeassistant.consolidated_status', 'Status Consolidado:')}</span>
               <span className="font-semibold text-primary">{device.summary}</span>
             </div>
           )}
 
           <div className="space-y-2.5">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-secondary">
-              Entidades & Controles deste Dispositivo
+              {t('homeassistant.device_entities_controls', 'Entidades & Controles deste Dispositivo')}
             </h3>
 
             <div className="divide-y divide-border/40 rounded-2xl border border-border/60 bg-background/50 overflow-hidden">
@@ -166,7 +168,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                           <button
                             onClick={() => handleCopy(ent.entity_id)}
                             className="text-slate-600 dark:text-secondary hover:text-primary transition-colors p-0.5"
-                            title="Copiar ID da entidade"
+                            title={t('homeassistant.copy_entity_id', 'Copiar ID da entidade')}
                           >
                             {copiedId === ent.entity_id ? (
                               <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -194,7 +196,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                               ? 'bg-orbit-500 text-white border-orbit-400 shadow-md shadow-orbit-500/25'
                               : 'bg-card text-slate-700 dark:text-secondary hover:text-primary border-border/80'
                           }`}
-                          title={isOn ? 'Desligar' : 'Ligar'}
+                          title={isOn ? t('homeassistant.turn_off', 'Desligar') : t('homeassistant.turn_on', 'Ligar')}
                         >
                           <Power className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
                         </button>
@@ -216,7 +218,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white font-medium text-xs shadow-md shadow-orbit-500/20 transition-all active:scale-95"
           >
-            Concluído
+            {t('common.done', 'Concluído')}
           </button>
         </div>
       </div>

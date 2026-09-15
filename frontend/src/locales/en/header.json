@@ -1,0 +1,16 @@
+{
+  "search_orbit": "Search Orbit...",
+  "color_theme": "Theme",
+  "switch_language": "Language",
+  "toggle_theme": "Toggle light/dark mode",
+  "toggle_fullscreen": "Toggle fullscreen",
+  "profile": "Profile",
+  "update_available": "Update Available",
+  "system_connected": "System Connected",
+  "system_disconnected": "Disconnected from Host",
+  "language": "Language",
+  "preferences": "Preferences",
+  "user_profile": "User Profile",
+  "preferences_tooltip": "Preferences (Theme & Language)",
+  "close_preferences": "Close preferences"
+}

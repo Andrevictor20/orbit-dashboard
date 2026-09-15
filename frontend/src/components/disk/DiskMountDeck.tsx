@@ -1,5 +1,6 @@
 import React from 'react';
 import { HardDrive } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatStorage, getFriendlyDiskName } from '../../utils/format';
 
 export interface MountItem {
@@ -22,6 +23,7 @@ export const DiskMountDeck: React.FC<DiskMountDeckProps> = ({
   currentPath,
   handleNavigate,
 }) => {
+  const { t } = useTranslation();
   if (storages.length === 0) return null;
 
   return (
@@ -82,7 +84,7 @@ export const DiskMountDeck: React.FC<DiskMountDeckProps> = ({
             </div>
 
             <div className="flex items-center justify-between text-[11px] font-mono text-secondary">
-              <span>{availFormatted} livre</span>
+              <span>{availFormatted} {t('common.free', 'livre')}</span>
               <span className="font-semibold text-primary">
                 {pct}% ({usedFormatted}/{totalFormatted})
               </span>

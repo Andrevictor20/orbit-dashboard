@@ -1,0 +1,17 @@
+{
+  "title": "Sélectionnez le dossier du serveur",
+  "subtitle": "Parcourez les dossiers hôtes pour mapper les volumes de stockage.",
+  "roots": "Disques",
+  "up_dir": "Monter d'un niveau",
+  "new_folder": "Nouveau dossier",
+  "folder_name_placeholder": "Nouveau nom de dossier...",
+  "folder_created": "Dossier créé avec succès !",
+  "empty_folder": "Aucun sous-dossier trouvé dans ce répertoire.",
+  "return_to_root": "Revenir à la racine (/) ?",
+  "selected": "Chemin",
+  "select_this_folder": "Sélectionnez ce dossier",
+  "load_error": "Impossible d'accéder à ce répertoire",
+  "browse": "Sélectionnez le dossier sur le serveur",
+  "root": "Racine",
+  "root_dir": "Racine (/)"
+}

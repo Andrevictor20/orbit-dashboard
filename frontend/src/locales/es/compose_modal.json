@@ -1,0 +1,14 @@
+{
+  "title": "Instalación personalizada y editor de redacción",
+  "subtitle": "Configure pilas personalizadas con linting, plantillas y verificación de puertos o ejecute comandos Docker Run.",
+  "tab_editor": "Editor de redacción de Docker",
+  "tab_dockerrun": "Ejecución de Docker (rápido)",
+  "template_placeholder": "Cargar plantilla preconfigurada...",
+  "ports_warning": "Advertencia: Puerto(s) en uso en el host: {{ports}}.",
+  "valid_yaml": "Sintaxis YAML válida y sin conflictos.",
+  "validating_ports": "(verificando puertos...)",
+  "env_title": ".env (Variables)",
+  "name_required": "Ingrese un nombre de pila válido",
+  "load_failed": "No se pudo cargar el contenido de la pila",
+  "overwrite_confirm": "¿Reemplazar el contenido actual con la plantilla seleccionada?"
+}

@@ -1,0 +1,5 @@
+{
+  "upload_success": "Le téléchargement de \"{{name}}\" s'est terminé avec succès !",
+  "original_file_not_found": "Fichier d'origine introuvable. Veuillez télécharger à nouveau le fichier.",
+  "page_reloaded_resume": "Page rechargée. Cliquez sur Reprendre pour continuer le téléchargement."
+}

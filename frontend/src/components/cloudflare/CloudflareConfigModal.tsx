@@ -182,7 +182,7 @@ export function CloudflareConfigModal({
             </label>
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-secondary/70">
-                Permissão: Account &gt; Cloudflare Tunnel &gt; Edit
+                {t('cloudflare.permission_help', 'Permissão: Account > Cloudflare Tunnel > Edit')}
               </span>
               <button
                 type="button"

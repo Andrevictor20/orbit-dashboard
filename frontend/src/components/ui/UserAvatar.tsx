@@ -13,7 +13,7 @@ export function UserAvatar({
   size = 24,
   className = '',
   showGlow = false,
-  alt = 'Avatar do Usuário',
+  alt = 'User Avatar',
 }: UserAvatarProps) {
   const { customAvatar } = useTheme();
   const [imageError, setImageError] = useState(false);

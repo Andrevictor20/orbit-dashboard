@@ -1,0 +1,8 @@
+{
+  "microsd_card": "微型SD卡",
+  "external_hd_named": "外部驱动器（{{name}}）",
+  "external_storage": "外部存储",
+  "primary_disk": "主 SSD/驱动器",
+  "usb_drive": "USB 闪存/驱动器",
+  "system_storage": "系统存储"
+}

@@ -66,11 +66,11 @@ export function Images() {
     if (unusedImages.length === 0) {
       setConfirmAction({
         isOpen: true,
-        title: 'Nenhuma Imagem Não Utilizada',
-        message: 'Todas as imagens listadas estão vinculadas a containers existentes. Nenhuma imagem será removida.',
+        title: t('images.no_unused_title', 'Nenhuma Imagem Não Utilizada'),
+        message: t('images.no_unused_msg', 'Todas as imagens listadas estão vinculadas a containers existentes. Nenhuma imagem será removida.'),
         children: (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
-            Dica: Para remover uma imagem, pare e remova os containers que utilizam essa imagem primeiro.
+            {t('images.no_unused_tip', 'Dica: Para remover uma imagem, pare e remova os containers que utilizam essa imagem primeiro.')}
           </div>
         ),
         onConfirm: () => {}
@@ -82,17 +82,17 @@ export function Images() {
 
     setConfirmAction({
       isOpen: true,
-      title: 'Limpar Imagens Não Utilizadas',
-      message: `Tem certeza que deseja remover permanentemente as ${unusedImages.length} imagens não utilizadas (dangling/órfãs)? Esta ação liberará aproximadamente ${formatBytes(totalUnusedSize)} de espaço em disco.`,
+      title: t('images.prune_modal_title', 'Limpar Imagens Não Utilizadas'),
+      message: t('images.prune_modal_msg', { count: unusedImages.length, size: formatBytes(totalUnusedSize), defaultValue: `Tem certeza que deseja remover permanentemente as ${unusedImages.length} imagens não utilizadas (dangling/órfãs)? Esta ação liberará aproximadamente ${formatBytes(totalUnusedSize)} de espaço em disco.` }),
       children: (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-secondary font-medium">
-            <span>Imagens que serão excluídas:</span>
-            <span className="font-bold text-rose-400">{unusedImages.length} imagem(ns) (~{formatBytes(totalUnusedSize)})</span>
+            <span>{t('images.images_to_delete', 'Imagens que serão excluídas:')}</span>
+            <span className="font-bold text-rose-400">{t('images.count_with_size', { count: unusedImages.length, size: formatBytes(totalUnusedSize), defaultValue: `${unusedImages.length} imagem(ns) (~${formatBytes(totalUnusedSize)})` })}</span>
           </div>
           <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
             {unusedImages.map(img => {
-              const primaryTag = img.tags && img.tags.length > 0 ? img.tags[0] : '<sem tag>';
+              const primaryTag = img.tags && img.tags.length > 0 ? img.tags[0] : t('images.no_tag', '<sem tag>');
               return (
                 <div key={img.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
                   <div className="flex items-center gap-2 min-w-0">
@@ -110,11 +110,11 @@ export function Images() {
       onConfirm: () => {
         startTask({
           type: 'prune_images',
-          title: 'Limpeza de Imagens Docker',
+          title: t('images.prune_task_title', 'Limpeza de Imagens Docker'),
           destinationUrl: '/images',
           initialLogs: [
-            `[INFO] Iniciando limpeza de ${unusedImages.length} imagem(ns) não utilizada(s)...`,
-            ...unusedImages.map(img => `[PRUNE] Marcada para remoção: ${img.tags?.[0] || img.id} (${formatBytes(img.size)})`)
+            t('images.prune_starting_log', { count: unusedImages.length, defaultValue: `[INFO] Iniciando limpeza de ${unusedImages.length} imagem(ns) não utilizada(s)...` }),
+            ...unusedImages.map(img => t('images.marked_for_removal', { target: img.tags?.[0] || img.id, size: formatBytes(img.size), defaultValue: `[PRUNE] Marcada para remoção: ${img.tags?.[0] || img.id} (${formatBytes(img.size)})` }))
           ],
           runner: async (helpers) => {
             helpers.setProgress(25);
@@ -127,25 +127,25 @@ export function Images() {
             helpers.setProgress(80);
             if (!res.ok) {
               const err = await res.text();
-              throw new Error(err || 'Falha ao comunicar com o Docker daemon para prune.');
+              throw new Error(err || t('images.prune_docker_err', 'Falha ao comunicar com o Docker daemon para prune.'));
             }
             const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
             const deleted: string[] = data?.deleted || [];
             const spaceReclaimed: number = data?.space_reclaimed || 0;
 
-            helpers.addLog(`[INFO] Camadas/Imagens removidas pelo Docker: ${deleted.length}`);
-            deleted.slice(0, 15).forEach(id => helpers.addLog(`[SUCCESS] Imagem removida: ${id}`));
+            helpers.addLog(t('images.prune_docker_removed_log', { count: deleted.length, defaultValue: `[INFO] Camadas/Imagens removidas pelo Docker: ${deleted.length}` }));
+            deleted.slice(0, 15).forEach(id => helpers.addLog(t('images.prune_removed_log', { id, defaultValue: `[SUCCESS] Imagem removida: ${id}` })));
             if (deleted.length > 15) {
-              helpers.addLog(`[INFO] ... e mais ${deleted.length - 15} imagens/camadas removidas.`);
+              helpers.addLog(t('images.prune_more_removed_log', { count: deleted.length - 15, defaultValue: `[INFO] ... e mais ${deleted.length - 15} imagens/camadas removidas.` }));
             }
             if (spaceReclaimed > 0) {
-              helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
+              helpers.addLog(t('images.space_reclaimed_log', { size: formatBytes(spaceReclaimed), defaultValue: `[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}` }));
             }
-            helpers.setDone(`Limpeza concluída! ${deleted.length} imagem(ns)/camada(s) removida(s).`);
+            helpers.setDone(t('images.prune_done_log', { count: deleted.length, defaultValue: `Limpeza concluída! ${deleted.length} imagem(ns)/camada(s) removida(s).` }));
             if (deleted.length > 0) {
-              toast.success('Imagens limpas com sucesso!');
+              toast.success(t('images.prune_success', 'Imagens limpas com sucesso!'));
             } else {
-              toast('Nenhuma imagem removida pelo Docker.', { icon: 'ℹ️' });
+              toast(t('images.none_pruned', 'Nenhuma imagem removida pelo Docker.'), { icon: 'ℹ️' });
             }
             fetchImages();
           }
@@ -157,10 +157,10 @@ export function Images() {
   const confirmBuildPrune = () => {
     setConfirmAction({
       isOpen: true,
-      title: 'Limpar Cache de Build do Docker (BuildKit)',
-      message: 'Deseja limpar o cache de compilação (Build Cache) e camadas de imagens não utilizadas? Essa operação libera espaço em disco (frequentemente gigabytes acumulados) sem afetar seus containers em execução.',
+      title: t('images.build_prune_title', 'Limpar Cache de Build do Docker (BuildKit)'),
+      message: t('images.build_prune_msg', 'Deseja limpar o cache de compilação (Build Cache) e camadas de imagens não utilizadas? Essa operação libera espaço em disco (frequentemente gigabytes acumulados) sem afetar seus containers em execução.'),
       onConfirm: async () => {
-        const loadingToast = toast.loading('Limpando cache de build do Docker...');
+        const loadingToast = toast.loading(t('images.cleaning_build_cache', 'Limpando cache de build do Docker...'));
         try {
           const token = localStorage.getItem('orbit_token');
           const res = await fetch('/api/docker/builder/prune', { 
@@ -169,13 +169,13 @@ export function Images() {
           });
           if (res.ok) {
             const data = await res.json();
-            toast.success(data.message || 'Cache de build liberado com sucesso!', { id: loadingToast });
+            toast.success(data.message || t('images.build_cache_success', 'Cache de build liberado com sucesso!'), { id: loadingToast });
             fetchImages();
           } else {
-            toast.error('Erro ao limpar cache de build.', { id: loadingToast });
+            toast.error(t('images.build_cache_error', 'Erro ao limpar cache de build.'), { id: loadingToast });
           }
         } catch {
-          toast.error('Erro de conexão.', { id: loadingToast });
+          toast.error(t('common.connection_error', 'Erro de conexão.'), { id: loadingToast });
         }
       }
     });
@@ -184,10 +184,10 @@ export function Images() {
   const confirmDelete = (id: string) => {
     setConfirmAction({
       isOpen: true,
-      title: 'Excluir Imagem',
-      message: `Tem certeza que deseja excluir permanentemente a imagem ${id}? Se houver containers vinculados a ela, a ação falhará.`,
+      title: t('images.delete_image_title', 'Excluir Imagem'),
+      message: t('images.delete_image_msg', { id, defaultValue: `Tem certeza que deseja excluir permanentemente a imagem ${id}? Se houver containers vinculados a ela, a ação falhará.` }),
       onConfirm: async () => {
-        const loadingToast = toast.loading('Excluindo imagem...');
+        const loadingToast = toast.loading(t('images.deleting_image', 'Excluindo imagem...'));
         try {
           const token = localStorage.getItem('orbit_token');
           const res = await fetch(`/api/docker/images/${id}`, { 
@@ -195,15 +195,15 @@ export function Images() {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
-            toast.success('Imagem excluída com sucesso!', { id: loadingToast });
+            toast.success(t('images.delete_image_success', 'Imagem excluída com sucesso!'), { id: loadingToast });
             fetchImages();
           } else {
             const err = await res.text();
-            toast.error(`Erro ao excluir: ${err || 'Imagem em uso'}`, { id: loadingToast });
+            toast.error(t('images.delete_image_error', { defaultValue: `Erro ao excluir: ${err || 'Imagem em uso'}`, error: err }), { id: loadingToast });
           }
         } catch (e) {
           console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
+          toast.error(t('common.connection_error', 'Erro de conexão.'), { id: loadingToast });
         }
       }
     });
@@ -324,13 +324,13 @@ export function Images() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              aria-label="Ordenar imagens por"
+              aria-label={t('images.sort_by', 'Ordenar imagens por')}
               className="bg-transparent text-primary focus:outline-none cursor-pointer text-xs w-full"
             >
-              <option value="size_desc" className="bg-card text-primary">Tamanho (Maior)</option>
-              <option value="size_asc" className="bg-card text-primary">Tamanho (Menor)</option>
-              <option value="name" className="bg-card text-primary">Nome (A-Z)</option>
-              <option value="status" className="bg-card text-primary">Em uso primeiro</option>
+              <option value="size_desc" className="bg-card text-primary">{t('images.sort_size_desc', 'Tamanho (Maior)')}</option>
+              <option value="size_asc" className="bg-card text-primary">{t('images.sort_size_asc', 'Tamanho (Menor)')}</option>
+              <option value="name" className="bg-card text-primary">{t('images.sort_name', 'Nome (A-Z)')}</option>
+              <option value="status" className="bg-card text-primary">{t('images.sort_status', 'Em uso primeiro')}</option>
             </select>
           </div>
         </div>
@@ -341,11 +341,11 @@ export function Images() {
         {loading ? (
           <div className="p-8 sm:p-12 text-center text-secondary flex flex-col items-center justify-center gap-2">
             <Package className="w-8 h-8 animate-pulse text-orbit-500" />
-            <span>Carregando imagens...</span>
+            <span>{t('images.loading', 'Carregando imagens...')}</span>
           </div>
         ) : filteredAndSortedImages.length === 0 ? (
           <div className="p-8 sm:p-12 text-center text-secondary">
-            Nenhuma imagem encontrada com os filtros selecionados.
+            {t('images.no_images_match', 'Nenhuma imagem encontrada com os filtros selecionados.')}
           </div>
         ) : (
           <>
@@ -367,12 +367,12 @@ export function Images() {
                       {img.in_use ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          Em uso {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
+                          {t('images.in_use', 'Em uso')} {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
                           <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                          Não utilizada
+                          {t('images.unused', 'Não utilizada')}
                         </span>
                       )}
                     </div>
@@ -401,10 +401,10 @@ export function Images() {
                       <button 
                         onClick={() => confirmDelete(img.id)}
                         className="w-full py-2.5 px-3 rounded-xl border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-medium transition-colors flex items-center justify-center gap-2 min-h-[40px]"
-                        aria-label={`Excluir Imagem ${img.tags?.[0] || img.id}`}
+                        aria-label={`${t('images.delete_image', 'Excluir Imagem')} ${img.tags?.[0] || img.id}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        <span>Excluir Imagem</span>
+                        <span>{t('images.delete_image', 'Excluir Imagem')}</span>
                       </button>
                     </div>
                   </div>
@@ -417,11 +417,11 @@ export function Images() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-white/5 border-b border-border text-secondary text-xs uppercase tracking-wider">
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium">Tags / Imagem</th>
-                    <th className="p-4 font-medium">ID</th>
-                    <th className="p-4 font-medium">Tamanho</th>
-                    <th className="p-4 font-medium text-right">Ações</th>
+                    <th className="p-4 font-medium">{t('images.status_col', 'Status')}</th>
+                    <th className="p-4 font-medium">{t('images.tags_col', 'Tags / Imagem')}</th>
+                    <th className="p-4 font-medium">{t('images.id_col', 'ID')}</th>
+                    <th className="p-4 font-medium">{t('images.size_col', 'Tamanho')}</th>
+                    <th className="p-4 font-medium text-right">{t('common.actions', 'Ações')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -431,12 +431,12 @@ export function Images() {
                         {img.in_use ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            Em uso {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
+                            {t('images.in_use', 'Em uso')} {img.containers_count && img.containers_count > 1 ? `(${img.containers_count})` : ''}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
                             <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                            Não utilizada
+                            {t('images.unused', 'Não utilizada')}
                           </span>
                         )}
                       </td>
@@ -464,8 +464,8 @@ export function Images() {
                         <button 
                           onClick={() => confirmDelete(img.id)}
                           className="p-2 text-secondary hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                          title="Excluir Imagem"
-                          aria-label={`Excluir Imagem ${img.tags?.[0] || img.id}`}
+                          title={t('images.delete_image', 'Excluir Imagem')}
+                          aria-label={`${t('images.delete_image', 'Excluir Imagem')} ${img.tags?.[0] || img.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -486,7 +486,7 @@ export function Images() {
         message={confirmAction.message}
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
-        confirmText="Sim, excluir"
+        confirmText={t('common.confirm_delete', 'Sim, excluir')}
         children={confirmAction.children}
       />
     </div>

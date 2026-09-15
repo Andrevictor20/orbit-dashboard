@@ -1,0 +1,14 @@
+{
+  "title": "自定义安装和撰写编辑器",
+  "subtitle": "使用 linting、模板和端口检查配置自定义堆栈或运行 Docker Run 命令。",
+  "tab_editor": "Docker Compose 编辑器",
+  "tab_dockerrun": "Docker 运行（快速）",
+  "template_placeholder": "加载预先配置的模板...",
+  "ports_warning": "警告：主机上正在使用的端口：{{ports}}。",
+  "valid_yaml": "有效的 YAML 语法并且没有冲突。",
+  "validating_ports": "（正在验证端口...）",
+  "env_title": ".env（变量）",
+  "name_required": "输入有效的堆栈名称",
+  "load_failed": "无法加载堆栈内容",
+  "overwrite_confirm": "用选定的模板替换当前内容？"
+}

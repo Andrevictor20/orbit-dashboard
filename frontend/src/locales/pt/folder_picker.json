@@ -1,0 +1,17 @@
+{
+  "title": "Selecionar Pasta no Servidor",
+  "subtitle": "Navegue pelas pastas do host para mapear o volume de armazenamento.",
+  "roots": "Discos",
+  "up_dir": "Subir um nível",
+  "new_folder": "Nova Pasta",
+  "folder_name_placeholder": "Nome da nova pasta...",
+  "folder_created": "Pasta criada com sucesso!",
+  "empty_folder": "Nenhuma subpasta encontrada neste diretório.",
+  "return_to_root": "Voltar para a raiz (/)?",
+  "selected": "Caminho",
+  "select_this_folder": "Selecionar Esta Pasta",
+  "load_error": "Não foi possível acessar este diretório",
+  "browse": "Selecionar pasta no servidor",
+  "root": "Raiz",
+  "root_dir": "Raiz (/)"
+}

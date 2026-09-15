@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckSquare, Square, Share2, Archive, Download, Edit3, Network } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import { ARCHIVE_EXTENSIONS } from '../../types/fileManager';
@@ -36,7 +37,8 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
   setOpTargetItem,
   setOpModalType,
   onShareSamba,
-}) => {
+}: FileTableViewProps) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
@@ -52,10 +54,10 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                   )}
                 </button>
               </th>
-              <th className="py-3 px-4 font-bold">Nome</th>
-              <th className="py-3 px-4 font-bold">Tamanho</th>
-              <th className="py-3 px-4 font-bold hidden sm:table-cell">Modificado</th>
-              <th className="py-3 px-4 font-bold text-right">Ações</th>
+              <th className="py-3 px-4 font-bold">{t('common.name', 'Nome')}</th>
+              <th className="py-3 px-4 font-bold">{t('common.size', 'Tamanho')}</th>
+              <th className="py-3 px-4 font-bold hidden sm:table-cell">{t('files.modified', 'Modificado')}</th>
+              <th className="py-3 px-4 font-bold text-right">{t('common.actions', 'Ações')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -121,7 +123,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                           setShareFile(item);
                         }}
                         className="p-1 rounded-lg text-secondary hover:text-violet-400 hover:bg-accent"
-                        title="Compartilhar"
+                        title={t('files.share', 'Compartilhar')}
                       >
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
@@ -132,7 +134,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                             onShareSamba(item);
                           }}
                           className="p-1 rounded-lg text-secondary hover:text-orbit-400 hover:bg-accent"
-                          title="Compartilhar via Samba (SMB)"
+                          title={t('files.share_samba', 'Compartilhar via Samba (SMB)')}
                         >
                           <Network className="w-3.5 h-3.5" />
                         </button>
@@ -144,7 +146,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                             handleExtractArchive(item);
                           }}
                           className="p-1 rounded-lg text-secondary hover:text-amber-400 hover:bg-accent"
-                          title="Extrair"
+                          title={t('files.extract', 'Extrair')}
                         >
                           <Archive className="w-3.5 h-3.5" />
                         </button>
@@ -155,7 +157,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                           handleDownload(item);
                         }}
                         className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                        title="Download"
+                        title={t('common.download', 'Download')}
                       >
                         <Download className="w-3.5 h-3.5" />
                       </button>
@@ -166,7 +168,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                           setOpModalType('rename');
                         }}
                         className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent"
-                        title="Renomear"
+                        title={t('files.rename', 'Renomear')}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>

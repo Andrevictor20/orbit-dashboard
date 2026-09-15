@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Subtitles } from 'lucide-react';
 
 export interface SubtitleItem {
@@ -21,6 +22,8 @@ export function VideoSubtitleMenu({
   onSubtitleChange,
   onCustomSubtitleUpload,
 }: VideoSubtitleMenuProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-1 rounded-lg border border-zinc-700/50">
       <Subtitles className="w-4 h-4 text-orbit-400" />
@@ -31,7 +34,7 @@ export function VideoSubtitleMenu({
         className="bg-transparent text-xs text-white outline-none cursor-pointer max-w-[130px] md:max-w-[200px] truncate"
       >
         <option value="off" className="bg-zinc-900 text-white">
-          Legendas: Off
+          {t('files.subtitles_off', 'Legendas: Off')}
         </option>
         {subtitlesList.map((sub, idx) => (
           <option key={idx} value={sub.path} className="bg-zinc-900 text-white">
@@ -41,7 +44,7 @@ export function VideoSubtitleMenu({
       </select>
       <label
         className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white cursor-pointer transition-colors"
-        title="Carregar legenda do dispositivo (.srt, .vtt, .ass)"
+        title={t('files.upload_device_subtitle', 'Carregar legenda do dispositivo (.srt, .vtt, .ass)')}
       >
         <span className="text-[10px] font-mono border border-zinc-600 px-1 py-0.5 rounded">.SRT</span>
         <input

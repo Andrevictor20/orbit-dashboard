@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flame, CornerDownRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { DiskItemStat } from '../../stores/diskAnalyzerStore';
 import { formatBytes } from '../../utils/format';
 import { getItemIcon } from './diskUtils';
@@ -17,6 +18,7 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
   totalSize,
   handleNavigate,
 }) => {
+  const { t } = useTranslation();
   if (topConsumers.length === 0) return null;
 
   return (
@@ -25,12 +27,12 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
         <div className="flex items-center gap-2">
           <Flame className="w-4 h-4 text-rose-400" />
           <h3 className="text-sm font-bold text-primary">
-            Top Maiores Consumidores de Espaço em{' '}
+            {t('disk.top_consumers_title', 'Top Maiores Consumidores de Espaço em')}{' '}
             <span className="font-mono text-orbit-400">{currentPath}</span>
           </h3>
         </div>
         <span className="text-xs text-secondary font-mono">
-          {formatBytes(totalSize)} analisados
+          {formatBytes(totalSize)} {t('disk.analyzed', 'analisados')}
         </span>
       </div>
 
@@ -86,7 +88,7 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
                 </span>
                 {item.is_dir && (
                   <span className="text-orbit-500 dark:text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                    Explorar <CornerDownRight className="w-3 h-3" />
+                    {t('disk.explore', 'Explorar')} <CornerDownRight className="w-3 h-3" />
                   </span>
                 )}
               </div>

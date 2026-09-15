@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RefreshCw,
   ExternalLink,
@@ -27,6 +28,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
   formatPlatformName,
   parsedSections,
 }) => {
+  const { t } = useTranslation();
   return (
     <>
       {/* Top Banner & Highlights */}
@@ -38,18 +40,16 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
               <RefreshCw className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-primary flex items-center gap-1.5">
-                  <span>Compilação Multi-Arch em Andamento</span>
+                  <span>{t('system.multiarch_build_progress', 'Compilação Multi-Arch em Andamento')}</span>
                   <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono font-semibold">
                     GitHub Actions
                   </span>
                 </p>
                 <p className="text-[11.5px] text-slate-600 dark:text-secondary mt-0.5 leading-relaxed">
-                  A imagem da versão{' '}
-                  <strong className="text-primary font-mono">
-                    v{updateInfo.latest_version}
-                  </strong>{' '}
-                  está sendo compilada e empacotada no GitHub (~8 min). Esta tela
-                  atualizará automaticamente assim que estiver pronta.
+                  {t('system.multiarch_build_desc', {
+                    version: updateInfo.latest_version,
+                    defaultValue: `A imagem da versão v${updateInfo.latest_version} está sendo compilada e empacotada no GitHub (~8 min). Esta tela atualizará automaticamente assim que estiver pronta.`
+                  })}
                 </p>
               </div>
             </div>
@@ -57,10 +57,10 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
               <button
                 onClick={onRefreshInfo}
                 className="px-2.5 py-1 rounded-xl bg-card hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary text-[11px] font-semibold border border-border/70 flex items-center gap-1 transition-colors"
-                title="Verificar status no GitHub agora"
+                title={t('system.check_status_now', 'Verificar status no GitHub agora')}
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>Verificar</span>
+                <span>{t('common.check', 'Verificar')}</span>
               </button>
               {updateInfo.ci_workflow_url && (
                 <a
@@ -81,7 +81,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
         <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-card border border-border/70 text-xs">
           <div className="flex items-center gap-1.5 text-slate-600 dark:text-secondary">
             <Cpu className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-            <span>Arquitetura:</span>
+            <span>{t('system.architecture', 'Arquitetura:')}</span>
             <strong className="text-primary font-mono">
               {updateInfo
                 ? formatPlatformName(updateInfo.platform, updateInfo.arch)
@@ -93,7 +93,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
             <div className="flex items-center gap-1 text-slate-600 dark:text-secondary font-mono text-[11px]">
               <Clock className="w-3 h-3" />
               <span>
-                {new Date(updateInfo.published_at).toLocaleDateString('pt-BR')}
+                {new Date(updateInfo.published_at).toLocaleDateString()}
               </span>
             </div>
           )}
@@ -103,14 +103,14 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex flex-col justify-between shadow-sm">
             <span className="text-xs text-slate-600 dark:text-secondary font-medium">
-              Versão Instalada
+              {t('system.installed_version', 'Versão Instalada')}
             </span>
             <span className="text-xl font-bold text-primary font-mono mt-1">
               v{updateInfo?.current_version || '1.9.9'}
             </span>
             <div className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 mt-1 font-semibold">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Instalação Ativa</span>
+              <span>{t('system.active_installation', 'Instalação Ativa')}</span>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
             }`}
           >
             <span className="text-xs text-slate-600 dark:text-secondary font-medium">
-              Mais Recente
+              {t('system.latest_version', 'Mais Recente')}
             </span>
             <span
               className={`text-xl font-bold font-mono mt-1 ${
@@ -148,16 +148,16 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
       <div className="px-5 pt-2 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
           <Sparkles className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-          <span>O que mudou nesta versão</span>
+          <span>{t('system.what_changed', 'O que mudou nesta versão')}</span>
         </div>
 
         <button
           onClick={onRefreshInfo}
           className="text-[11px] text-slate-700 dark:text-secondary hover:text-primary transition-colors flex items-center gap-1 bg-card hover:bg-accent px-2.5 py-1 rounded-lg border border-border/70 active:scale-95 shadow-sm font-medium"
-          title="Verificar atualizações"
+          title={t('system.check_updates', 'Verificar atualizações')}
         >
           <RefreshCw className="w-3 h-3" />
-          <span>Verificar</span>
+          <span>{t('common.check', 'Verificar')}</span>
         </button>
       </div>
 
@@ -210,11 +210,10 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
           <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-card border border-border/60 text-slate-600 dark:text-secondary text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mb-1" />
             <p className="text-sm font-semibold text-primary">
-              Orbit 100% Atualizado
+              {t('system.orbit_up_to_date', 'Orbit 100% Atualizado')}
             </p>
             <p className="text-xs text-slate-600 dark:text-secondary">
-              Você está rodando a versão mais recente com todas as melhorias e
-              correções aplicadas.
+              {t('system.running_latest_desc', 'Você está rodando a versão mais recente com todas as melhorias e correções aplicadas.')}
             </p>
           </div>
         )}

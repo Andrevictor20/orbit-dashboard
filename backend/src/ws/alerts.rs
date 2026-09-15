@@ -89,6 +89,7 @@ mod tests {
             docker_tx: 0,
             orbit_cpu: 0.0,
             orbit_memory: 0,
+            ..Default::default()
         };
 
         evaluate_and_push_alerts(&stats);
@@ -147,6 +148,7 @@ mod tests {
             docker_tx: 0,
             orbit_cpu: 0.0,
             orbit_memory: 0,
+            ..Default::default()
         };
 
         evaluate_and_push_alerts(&stats);

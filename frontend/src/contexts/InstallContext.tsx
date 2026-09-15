@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 export type TaskType = 
@@ -72,6 +73,7 @@ const INSTALL_STORAGE_KEY = 'orbit_install_tasks';
 const CURRENT_TASK_ID_KEY = 'orbit_install_current_id';
 
 export function InstallProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<InstallTask[]>(() => {
     try {
       const raw = localStorage.getItem(INSTALL_STORAGE_KEY);
@@ -120,7 +122,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const hasActiveTask = tasks.some(t => t.status !== 'done' && t.status !== 'error' && t.status !== 'cancelled');
     if (hasActiveTask) {
-      toast('Recuperando download/instalação de container em andamento...', {
+      toast(t('store.resuming_download_install', 'Recuperando download/instalação de container em andamento...'), {
         icon: '📦',
         duration: 4000,
       });
@@ -138,7 +140,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
           activeList.forEach(backendTask => {
             addOrUpdateTask({
               ...backendTask,
-              title: backendTask.title || `Instalação ${backendTask.id.slice(0, 8)}`,
+              title: backendTask.title || t('store.install_id', { id: backendTask.id.slice(0, 8), defaultValue: `Instalação ${backendTask.id.slice(0, 8)}` }),
               type: 'app_install',
               destinationUrl: '/containers',
             });
@@ -186,10 +188,10 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     const newTask: InstallTask = {
       id,
       type: 'app_install',
-      title: `Instalação de ${name}`,
+      title: t('store.install_app_name', { name, defaultValue: `Instalação de ${name}` }),
       status: 'starting',
       progress: 0,
-      logs: [`[INFO] Iniciando instalação do app ${name}...`],
+      logs: [t('store.starting_install_log', { name, defaultValue: `[INFO] Iniciando instalação do app ${name}...` })],
       destinationUrl: '/containers',
       createdAt: Date.now()
     };
@@ -214,15 +216,15 @@ export function InstallProvider({ children }: { children: ReactNode }) {
         updateTask(targetId, {
           status: 'cancelled',
         });
-        addLog(targetId, '[INFO] Instalação cancelada pelo usuário.');
-        toast.success('Download/instalação cancelada');
+        addLog(targetId, t('store.install_cancelled_user_log', '[INFO] Instalação cancelada pelo usuário.'));
+        toast.success(t('store.downloadCancelled', 'Download/instalação cancelada'));
       } else {
         const err = await res.json().catch(() => null);
-        toast.error(err?.error || 'Erro ao cancelar instalação');
+        toast.error(err?.error || t('store.cancel_install_error', 'Erro ao cancelar instalação'));
       }
     } catch (err: any) {
       console.error('Failed to cancel install:', err);
-      toast.error('Erro de conexão ao cancelar instalação');
+      toast.error(t('store.cancel_install_connection_error', 'Erro de conexão ao cancelar instalação'));
     }
   };
 
@@ -365,8 +367,8 @@ export function InstallProvider({ children }: { children: ReactNode }) {
               const existing = tasksRef.current.find(t => t.id === id);
               updateTask(id, {
                 status: 'error',
-                error: 'Tarefa não encontrada ou finalizada no servidor',
-                logs: [...(existing?.logs || []), '[ERROR] Tarefa não encontrada ou expirada no servidor.'],
+                error: t('store.task_not_found_error', 'Tarefa não encontrada ou finalizada no servidor'),
+                logs: [...(existing?.logs || []), t('store.task_expired_log', '[ERROR] Tarefa não encontrada ou expirada no servidor.')],
               });
             }
           } catch (e) {

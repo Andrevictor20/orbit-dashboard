@@ -62,10 +62,10 @@ export function Networks() {
   const confirmDeleteNetwork = (id: string, name: string) => {
     setConfirmAction({
       isOpen: true,
-      title: 'Remover Rede',
-      message: `Tem certeza que deseja remover a rede ${name}? Containers atrelados a ela podem perder comunicação.`,
+      title: t('networks.delete_network_title', 'Remover Rede'),
+      message: t('networks.delete_network_msg', { name, defaultValue: `Tem certeza que deseja remover a rede ${name}? Containers atrelados a ela podem perder comunicação.` }),
       onConfirm: async () => {
-        const loadingToast = toast.loading('Removendo rede...');
+        const loadingToast = toast.loading(t('networks.removing_network', 'Removendo rede...'));
         try {
           const token = localStorage.getItem('orbit_token');
           const res = await fetch(`/api/docker/networks/${id}`, {
@@ -73,15 +73,15 @@ export function Networks() {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
-            toast.success('Rede removida com sucesso!', { id: loadingToast });
+            toast.success(t('networks.network_deleted_success', 'Rede removida com sucesso!'), { id: loadingToast });
             fetchNetworks();
           } else {
             const err = await res.text();
-            toast.error(`Erro ao remover rede: ${err}`, { id: loadingToast });
+            toast.error(t('networks.network_deleted_error', { error: err, defaultValue: `Erro ao remover rede: ${err}` }), { id: loadingToast });
           }
         } catch (e) {
           console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
+          toast.error(t('common.conn_error', 'Erro de conexão.'), { id: loadingToast });
         }
       }
     });
@@ -93,11 +93,11 @@ export function Networks() {
     if (unusedNetworks.length === 0) {
       setConfirmAction({
         isOpen: true,
-        title: 'Nenhuma Rede Não Utilizada',
-        message: 'Todas as redes Docker existentes estão em uso por containers. Nenhuma rede será removida.',
+        title: t('networks.no_unused_title', 'Nenhuma Rede Não Utilizada'),
+        message: t('networks.no_unused_msg', 'Todas as redes Docker existentes estão em uso por containers. Nenhuma rede será removida.'),
         children: (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
-            Dica: Redes padrão como bridge e host não são removidas pelo comando de limpeza.
+            {t('networks.no_unused_tip', 'Dica: Redes padrão como bridge e host não são removidas pelo comando de limpeza.')}
           </div>
         ),
         onConfirm: () => {}
@@ -107,13 +107,13 @@ export function Networks() {
 
     setConfirmAction({
       isOpen: true,
-      title: 'Limpar Redes Não Utilizadas',
-      message: `Tem certeza que deseja remover as ${unusedNetworks.length} redes não utilizadas abaixo? Esta ação não pode ser desfeita.`,
+      title: t('networks.prune_modal_title', 'Limpar Redes Não Utilizadas'),
+      message: t('networks.prune_modal_msg', { count: unusedNetworks.length, defaultValue: `Tem certeza que deseja remover as ${unusedNetworks.length} redes não utilizadas abaixo? Esta ação não pode ser desfeita.` }),
       children: (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-secondary font-medium">
-            <span>Redes que serão removidas:</span>
-            <span className="font-bold text-rose-400">{unusedNetworks.length} rede(s)</span>
+            <span>{t('networks.networks_to_delete', 'Redes que serão removidas:')}</span>
+            <span className="font-bold text-rose-400">{t('networks.networks_count', { count: unusedNetworks.length, defaultValue: `${unusedNetworks.length} rede(s)` })}</span>
           </div>
           <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
             {unusedNetworks.map(net => (
@@ -134,11 +134,11 @@ export function Networks() {
       onConfirm: () => {
         startTask({
           type: 'prune_networks',
-          title: 'Limpeza de Redes Docker',
+          title: t('networks.prune_task_title', 'Limpeza de Redes Docker'),
           destinationUrl: '/networks',
           initialLogs: [
-            `[INFO] Iniciando limpeza de ${unusedNetworks.length} rede(s) não utilizada(s)...`,
-            ...unusedNetworks.map(n => `[PRUNE] Marcada para remoção: ${n.name} (${n.driver})`)
+            t('networks.prune_starting_log', { count: unusedNetworks.length, defaultValue: `[INFO] Iniciando limpeza de ${unusedNetworks.length} rede(s) não utilizada(s)...` }),
+            ...unusedNetworks.map(n => t('networks.marked_for_removal', { target: `${n.name} (${n.driver})`, defaultValue: `[PRUNE] Marcada para remoção: ${n.name} (${n.driver})` }))
           ],
           runner: async (helpers) => {
             helpers.setProgress(20);
@@ -151,18 +151,18 @@ export function Networks() {
             helpers.setProgress(80);
             if (!res.ok) {
               const err = await res.text();
-              throw new Error(err || 'Falha ao comunicar com o Docker daemon para prune.');
+              throw new Error(err || t('networks.prune_docker_err', 'Falha ao comunicar com o Docker daemon para prune.'));
             }
             const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
             const deleted: string[] = data?.deleted || [];
 
-            helpers.addLog(`[INFO] Redes removidas pelo Docker: ${deleted.length}`);
-            deleted.forEach(name => helpers.addLog(`[SUCCESS] Rede removida: ${name}`));
-            helpers.setDone(`Limpeza concluída! ${deleted.length} rede(s) removida(s).`);
+            helpers.addLog(t('networks.prune_docker_removed_log', { count: deleted.length, defaultValue: `[INFO] Redes removidas pelo Docker: ${deleted.length}` }));
+            deleted.forEach(name => helpers.addLog(t('networks.prune_removed_log', { name, defaultValue: `[SUCCESS] Rede removida: ${name}` })));
+            helpers.setDone(t('networks.prune_done_log', { count: deleted.length, defaultValue: `Limpeza concluída! ${deleted.length} rede(s) removida(s).` }));
             if (deleted.length > 0) {
-              toast.success('Redes não utilizadas removidas com sucesso!');
+              toast.success(t('networks.prune_success', 'Redes não utilizadas removidas com sucesso!'));
             } else {
-              toast('Nenhuma rede removida pelo Docker.', { icon: 'ℹ️' });
+              toast(t('networks.none_pruned', 'Nenhuma rede removida pelo Docker.'), { icon: 'ℹ️' });
             }
             fetchNetworks();
           }
@@ -266,12 +266,12 @@ export function Networks() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              aria-label="Ordenar redes por"
+              aria-label={t('networks.sort_by', 'Ordenar redes por')}
               className="bg-transparent text-primary focus:outline-none cursor-pointer text-xs w-full"
             >
-              <option value="status" className="bg-card text-primary">Em uso primeiro</option>
-              <option value="name" className="bg-card text-primary">Nome (A-Z)</option>
-              <option value="driver" className="bg-card text-primary">Driver</option>
+              <option value="status" className="bg-card text-primary">{t('networks.sort_status', 'Em uso primeiro')}</option>
+              <option value="name" className="bg-card text-primary">{t('networks.sort_name', 'Nome (A-Z)')}</option>
+              <option value="driver" className="bg-card text-primary">{t('networks.sort_driver', 'Driver')}</option>
             </select>
           </div>
         </div>
@@ -282,11 +282,11 @@ export function Networks() {
         {loading ? (
           <div className="p-8 sm:p-12 text-center text-secondary flex flex-col items-center justify-center gap-2">
             <Network className="w-8 h-8 animate-pulse text-orbit-500" />
-            <span>Carregando redes...</span>
+            <span>{t('networks.loading', 'Carregando redes...')}</span>
           </div>
         ) : filteredAndSortedNetworks.length === 0 ? (
           <div className="p-8 sm:p-12 text-center text-secondary">
-            Nenhuma rede encontrada com os filtros selecionados.
+            {t('networks.no_networks_match', 'Nenhuma rede encontrada com os filtros selecionados.')}
           </div>
         ) : (
           <>
@@ -306,12 +306,12 @@ export function Networks() {
                     {net.in_use ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        Em uso {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
+                        {t('networks.in_use', 'Em uso')} {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
                         <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                        Não utilizada
+                        {t('networks.unused', 'Não utilizada')}
                       </span>
                     )}
                   </div>
@@ -332,10 +332,10 @@ export function Networks() {
                     <button
                       onClick={() => confirmDeleteNetwork(net.id, net.name)}
                       className="w-full py-2.5 px-3 rounded-xl border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-medium transition-colors flex items-center justify-center gap-2 min-h-[40px]"
-                      aria-label={`Remover Rede ${net.name}`}
+                      aria-label={`${t('networks.delete_network', 'Remover Rede')} ${net.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      <span>Remover Rede</span>
+                      <span>{t('networks.delete_network', 'Remover Rede')}</span>
                     </button>
                   </div>
                 </div>
@@ -347,11 +347,11 @@ export function Networks() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-white/5 border-b border-border text-secondary text-xs uppercase tracking-wider">
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium">Nome</th>
-                    <th className="p-4 font-medium">Driver</th>
-                    <th className="p-4 font-medium">ID (Curto)</th>
-                    <th className="p-4 font-medium text-right">Ações</th>
+                    <th className="p-4 font-medium">{t('networks.status_col', 'Status')}</th>
+                    <th className="p-4 font-medium">{t('networks.name_col', 'Nome')}</th>
+                    <th className="p-4 font-medium">{t('networks.driver_col', 'Driver')}</th>
+                    <th className="p-4 font-medium">{t('networks.id_col', 'ID (Curto)')}</th>
+                    <th className="p-4 font-medium text-right">{t('common.actions', 'Ações')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -361,12 +361,12 @@ export function Networks() {
                         {net.in_use ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            Em uso {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
+                            {t('networks.in_use', 'Em uso')} {net.containers_count && net.containers_count > 0 ? `(${net.containers_count})` : ''}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
                             <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                            Não utilizada
+                            {t('networks.unused', 'Não utilizada')}
                           </span>
                         )}
                       </td>
@@ -384,8 +384,8 @@ export function Networks() {
                         <button
                           onClick={() => confirmDeleteNetwork(net.id, net.name)}
                           className="p-2 text-secondary hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                          title="Remover Rede"
-                          aria-label={`Remover Rede ${net.name}`}
+                          title={t('networks.delete_network', 'Remover Rede')}
+                          aria-label={`${t('networks.delete_network', 'Remover Rede')} ${net.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -406,7 +406,7 @@ export function Networks() {
         message={confirmAction.message}
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
-        confirmText="Sim, continuar"
+        confirmText={t('common.confirm_continue', 'Sim, continuar')}
         children={confirmAction.children}
       />
     </div>

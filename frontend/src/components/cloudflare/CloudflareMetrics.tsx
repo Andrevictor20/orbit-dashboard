@@ -40,8 +40,8 @@ export function CloudflareMetrics({
           {status?.mode === 'remote'
             ? 'API Cloudflare Zero Trust'
             : status?.mode === 'local'
-            ? 'Arquivo config.yml local'
-            : 'Não configurado'}
+            ? t('cloudflare.local_config_file', 'Arquivo config.yml local')
+            : t('common.not_configured', 'Não configurado')}
         </span>
       </div>
 
@@ -56,7 +56,9 @@ export function CloudflareMetrics({
           </span>
         </div>
         <span className="text-[11px] text-secondary/70 mt-1 block font-mono truncate">
-          {status?.account_id ? `Conta: ${status.account_id.substring(0, 8)}...` : 'Sem conta'}
+          {status?.account_id
+            ? t('cloudflare.account_prefix', { id: status.account_id.substring(0, 8), defaultValue: `Conta: ${status.account_id.substring(0, 8)}...` })
+            : t('cloudflare.no_account', 'Sem conta')}
         </span>
       </div>
 

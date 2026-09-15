@@ -81,7 +81,7 @@ export function FolderPickerModal({
         setCurrentPath(data.current_path);
       }
     } catch (err: any) {
-      setError(err.message || 'Erro ao carregar diretórios');
+      setError(err.message || t('files.error_loading_directories', 'Erro ao carregar diretórios'));
       setFolders([]);
     } finally {
       setLoading(false);
@@ -159,7 +159,7 @@ export function FolderPickerModal({
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Falha ao criar diretório');
+        throw new Error(errJson.error || t('files.failed_create_folder', 'Falha ao criar diretório'));
       }
 
       toast.success(t('folder_picker.folder_created', 'Pasta criada com sucesso!'));
@@ -167,7 +167,7 @@ export function FolderPickerModal({
       setCreatingFolder(false);
       loadDirectories(currentPath);
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar pasta');
+      toast.error(err.message || t('files.failed_create_folder', 'Erro ao criar pasta'));
     } finally {
       setLoading(false);
     }
@@ -232,7 +232,7 @@ export function FolderPickerModal({
               }`}
             >
               <HardDrive className="w-3 h-3" />
-              <span>/ (Raiz)</span>
+              <span>/ ({t('folder_picker.root', 'Raiz')})</span>
             </button>
             {storages.map((storage) => (
               <button
@@ -260,7 +260,7 @@ export function FolderPickerModal({
               type="button"
               onClick={() => handleNavigateTo('/')}
               className="p-1 rounded hover:bg-accent text-secondary hover:text-primary font-bold shrink-0"
-              title="Raiz (/)"
+              title={t('folder_picker.root_dir', 'Raiz (/)')}
             >
               /
             </button>

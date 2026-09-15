@@ -52,8 +52,8 @@ describe('Overview Component', () => {
     );
     
     // Check titles
-    expect(screen.getByText('Orbit Dashboard')).toBeTruthy();
-    expect(screen.getByText('Desconectado')).toBeTruthy();
+    expect(screen.getByText('Boas-vindas')).toBeTruthy();
+    expect(screen.getByText('24h')).toBeTruthy();
     
     // Check default zeros
     expect(screen.getAllByText('0.0%').length).toBeGreaterThan(0); // CPU and Memory
@@ -71,6 +71,8 @@ describe('Overview Component', () => {
         network_rx: 20 * 1024 * 1024, // 20 MB/s
         network_interface: 'eth0',
         network_interface_type: 'ethernet',
+        gpu_usage: 15.0,
+        gpu_name: 'AMD Radeon Vega',
         disks: [
           { name: '/dev/sda1', mount_point: '/', used: 50 * 1024 * 1024 * 1024, total: 100 * 1024 * 1024 * 1024 },
           { name: 'securityfs', mount_point: '/sys/kernel/security', used: 0, total: 0 },
@@ -86,7 +88,7 @@ describe('Overview Component', () => {
       </BrowserRouter>
     );
     
-    expect(screen.getByText('Conectado')).toBeTruthy();
+    expect(screen.getByText('Boas-vindas')).toBeTruthy();
     expect(screen.getByText('25.5%')).toBeTruthy(); // CPU
     expect(screen.getByText('45.0°C')).toBeTruthy(); // Temp
     expect(screen.getByText('1.00 GB')).toBeTruthy(); // Mem used
@@ -94,10 +96,11 @@ describe('Overview Component', () => {
     expect(screen.getByText('eth0')).toBeTruthy(); // Network interface badge
     expect(screen.getByText('10.0 MB/s')).toBeTruthy(); // TX speed
     expect(screen.getByText('20.0 MB/s')).toBeTruthy(); // RX speed
+    expect(screen.getByText('Uso de GPU')).toBeTruthy(); // GPU card
     
     // Physical disk name displayed
     expect(screen.getByText('SSD / HD Principal')).toBeTruthy();
-    expect(screen.getByText('50.00 GB usado')).toBeTruthy();
+    expect(screen.getByText(/50.00 GB livre/)).toBeTruthy();
 
     // Pseudo filesystems MUST NOT be rendered
     expect(screen.queryByText('securityfs')).toBeNull();

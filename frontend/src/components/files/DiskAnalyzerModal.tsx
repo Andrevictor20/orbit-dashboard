@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, 
   PieChart, 
@@ -37,6 +38,7 @@ interface DiskAnalyzerModalProps {
 }
 
 export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }: DiskAnalyzerModalProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<DiskAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +48,11 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
     setError(null);
     try {
       const res = await fetch(`/api/files/analyze?path=${encodeURIComponent(currentPath)}`);
-      if (!res.ok) throw new Error('Falha ao analisar o diretório');
+      if (!res.ok) throw new Error(t('files.error_analyzing_dir', 'Falha ao analisar o diretório'));
       const json: DiskAnalysisResponse = await res.json();
       setData(json);
     } catch (err: any) {
-      setError(err.message || 'Erro ao carregar dados');
+      setError(err.message || t('common.error', 'Erro ao carregar dados'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
             </div>
             <div>
               <h2 className="text-base font-bold text-primary flex items-center gap-2">
-                Analisador de Espaço em Disco
+                {t('files.disk_analyzer_title', 'Analisador de Espaço em Disco')}
               </h2>
               <p className="text-xs text-slate-600 dark:text-secondary font-mono max-w-lg truncate">
                 {currentPath}
@@ -106,14 +108,14 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
               onClick={fetchAnalysis}
               disabled={loading}
               className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors border border-border disabled:opacity-50"
-              title="Recarregar Análise"
+              title={t('files.reload_analysis', 'Recarregar Análise')}
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={onClose}
               className="p-2 rounded-xl bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors border border-border"
-              title="Fechar"
+              title={t('common.close', 'Fechar')}
             >
               <X size={16} />
             </button>
@@ -125,7 +127,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-600 dark:text-secondary">
               <Loader2 className="animate-spin text-violet-600 dark:text-violet-400" size={32} />
-              <p className="text-sm font-medium">Calculando tamanhos recursivos de arquivos...</p>
+              <p className="text-sm font-medium">{t('files.calculating_recursive_sizes', 'Calculando tamanhos recursivos de arquivos...')}</p>
             </div>
           ) : error ? (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-sm text-center font-medium">
@@ -137,7 +139,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Espaço Total Ocupado</span>
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">{t('files.total_space_used', 'Espaço Total Ocupado')}</span>
                     <h3 className="text-2xl font-bold text-violet-600 dark:text-violet-400 mt-1 font-mono">
                       {formatBytes(data.total_size)}
                     </h3>
@@ -149,7 +151,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
 
                 <div className="p-4 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">Total de Itens</span>
+                    <span className="text-xs text-slate-600 dark:text-secondary font-medium">{t('files.total_items', 'Total de Itens')}</span>
                     <h3 className="text-2xl font-bold text-primary mt-1 font-mono">
                       {data.item_count}
                     </h3>
@@ -163,12 +165,12 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
               {/* Items List Ranking */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-secondary">
-                  Ranking de Consumo por Item
+                  {t('files.ranking_consumption', 'Ranking de Consumo por Item')}
                 </h4>
 
                 {data.items.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-600 dark:text-secondary rounded-xl bg-accent/20 border border-border">
-                    Esta pasta está vazia.
+                    {t('files.empty_directory', 'Esta pasta está vazia.')}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -185,7 +187,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
                             </span>
                             {item.is_dir && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 font-bold">
-                                Pasta
+                                {t('files.folder', 'Pasta')}
                               </span>
                             )}
                           </div>
@@ -204,7 +206,7 @@ export function DiskAnalyzerModal({ currentPath, isOpen, onClose, onNavigateTo }
                                   onClose();
                                 }}
                                 className="p-1.5 rounded-lg bg-accent hover:bg-violet-600 text-slate-700 dark:text-secondary hover:text-white transition-colors"
-                                title="Abrir esta pasta"
+                                title={t('files.open_folder', 'Abrir esta pasta')}
                               >
                                 <ArrowRight size={14} />
                               </button>

@@ -1,0 +1,5 @@
+{
+  "upload_success": "¡La carga de \"{{name}}\" se completó exitosamente!",
+  "original_file_not_found": "Archivo original no encontrado. Vuelva a cargar el archivo.",
+  "page_reloaded_resume": "Página recargada. Haga clic en Reanudar para continuar subiendo."
+}

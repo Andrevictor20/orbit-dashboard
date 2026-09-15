@@ -26,28 +26,34 @@ pub fn start_backup_scheduler() {
                 }
 
                 info!(
-                    "Disparando rotina de backup agendado ({} apps)",
-                    config.target_apps.len()
+                    "Disparando rotina de backup agendado (escopo: {:?})",
+                    config.schedule_scope
                 );
                 last_executed_day = Some(current_day);
 
-                // Determine target apps (either explicit or scan data/apps)
-                let apps_to_backup: Vec<String> = if !config.target_apps.is_empty() {
-                    config.target_apps.clone()
+                if config.schedule_scope.as_deref() == Some("full_system") {
+                    let _ = super::ops::create_backup_dispatch("system_full", "system_full", true, "scheduled").await;
+                } else if config.schedule_scope.as_deref() == Some("all_containers") {
+                    let _ = super::ops::create_backup_dispatch("all_containers", "all_containers", true, "scheduled").await;
                 } else {
-                    let mut detected = Vec::new();
-                    if let Ok(entries) = fs::read_dir("data/apps") {
-                        for entry in entries.flatten() {
-                            if entry.path().is_dir() {
-                                detected.push(entry.file_name().to_string_lossy().to_string());
+                    // Determine target apps (either explicit or scan data/apps)
+                    let apps_to_backup: Vec<String> = if !config.target_apps.is_empty() {
+                        config.target_apps.clone()
+                    } else {
+                        let mut detected = Vec::new();
+                        if let Ok(entries) = fs::read_dir("data/apps") {
+                            for entry in entries.flatten() {
+                                if entry.path().is_dir() {
+                                    detected.push(entry.file_name().to_string_lossy().to_string());
+                                }
                             }
                         }
-                    }
-                    detected
-                };
+                        detected
+                    };
 
-                for app in apps_to_backup {
-                    let _ = create_backup_internal(&app, true, "scheduled").await;
+                    for app in apps_to_backup {
+                        let _ = create_backup_internal(&app, true, "scheduled").await;
+                    }
                 }
             }
         }

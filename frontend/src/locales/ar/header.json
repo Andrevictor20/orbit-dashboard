@@ -1,0 +1,16 @@
+{
+  "search_orbit": "مدار البحث...",
+  "color_theme": "الموضوع",
+  "switch_language": "اللغة",
+  "toggle_theme": "تبديل الوضع الفاتح / الداكن",
+  "toggle_fullscreen": "تبديل ملء الشاشة",
+  "profile": "الملف الشخصي",
+  "update_available": "التحديث متاح",
+  "system_connected": "النظام متصل",
+  "system_disconnected": "تم قطع الاتصال بالمضيف",
+  "language": "اللغة",
+  "preferences": "التفضيلات",
+  "user_profile": "ملف تعريف المستخدم",
+  "preferences_tooltip": "التفضيلات (الموضوع واللغة)",
+  "close_preferences": "إغلاق التفضيلات"
+}

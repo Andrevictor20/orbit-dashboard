@@ -1,0 +1,22 @@
+{
+  "avatar_title": "Ícone do Usuário / Avatar",
+  "avatar_desc": "Personalize o ícone do seu perfil com uma imagem local ou URL.",
+  "upload_image": "Carregar Imagem",
+  "avatar_updated": "Ícone de perfil atualizado com sucesso!",
+  "avatar_reset": "Ícone restaurado para o padrão!",
+  "wallpaper_title": "Plano de Fundo (Wallpaper)",
+  "wallpaper_desc": "Adicione uma imagem de fundo com efeito de vidro translúcido adaptativo.",
+  "upload_wallpaper": "Carregar Foto",
+  "wallpaper_updated": "Plano de fundo atualizado com sucesso!",
+  "wallpaper_removed": "Plano de fundo removido!",
+  "presets": "Galeria de Temas",
+  "adjustments": "Ajustes de Legibilidade",
+  "dimmer": "Opacidade do Véu",
+  "dimmer_hint": "Escurece o fundo para garantir contraste e legibilidade com os cards.",
+  "blur": "Desfoque de Fundo",
+  "blur_hint": "Suaviza detalhes para destacar o conteúdo em primeiro plano.",
+  "preset_space_nebula": "Nebulosa Espacial",
+  "preset_cosmic_mountain": "Montanha Cósmica",
+  "preset_cyberpunk_lines": "Linhas Cyberpunk",
+  "preset_minimalist_gradient": "Gradiente Minimalista"
+}

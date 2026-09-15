@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Activity, HardDrive, Sparkles, DownloadCloud, Pencil, Plus, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { StatCard } from '../../ui/StatCard';
@@ -92,6 +93,8 @@ export function ContainerOverviewTab({
   setVolumeError,
   isHiddenEnv,
 }: ContainerOverviewTabProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       {hasUpdate && (
@@ -99,8 +102,8 @@ export function ContainerOverviewTab({
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />
             <div>
-              <span className="font-semibold text-primary dark:text-white">Atualização disponível</span>
-              <p className="text-xs text-secondary dark:text-zinc-400 mt-0.5 font-medium">Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.</p>
+              <span className="font-semibold text-primary dark:text-white">{t('containers.update_available', 'Atualização disponível')}</span>
+              <p className="text-xs text-secondary dark:text-zinc-400 mt-0.5 font-medium">{t('containers.update_available_desc', 'Uma nova versão da imagem foi detectada para a arquitetura do seu dispositivo.')}</p>
             </div>
           </div>
           <button
@@ -109,33 +112,33 @@ export function ContainerOverviewTab({
             className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium text-xs transition-colors shrink-0 shadow-md shadow-violet-900/30 flex items-center gap-1.5"
           >
             <DownloadCloud className={`w-3.5 h-3.5 ${updating ? 'animate-bounce' : ''}`} />
-            <span>{updating ? 'Atualizando...' : 'Atualizar Agora'}</span>
+            <span>{updating ? t('common.updating', 'Atualizando...') : t('containers.update_now', 'Atualizar Agora')}</span>
           </button>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
-          title="Uso de CPU" 
+          title={t('metrics.cpu_percent', 'Uso de CPU')} 
           value={`${cpuPercent}%`} 
           trend="Realtime"
           trendUp={parseFloat(cpuPercent) < 80}
-          subText="Consumo atual do processo"
+          subText={t('containers.cpu_subtext', 'Consumo atual do processo')}
           icon={Activity}
         />
         <StatCard 
-          title="Uso de Memória" 
+          title={t('metrics.mem_percent', 'Uso de Memória')} 
           value={`${memUsed} MB`} 
           trend={`${memLimit} MB`}
           trendUp={true}
-          subText="Limite configurado"
+          subText={t('containers.mem_subtext', 'Limite configurado')}
           icon={HardDrive}
         />
         <StatCard 
-          title="Armazenamento" 
+          title={t('dashboard.storage', 'Armazenamento')} 
           value={formatBytes((container.size_rw || 0) + (container.size_root_fs || 0))} 
           trend="RW + RootFS"
           trendUp={true}
-          subText="Espaço ocupado em disco"
+          subText={t('containers.storage_subtext', 'Espaço ocupado em disco')}
           icon={HardDrive}
         />
       </div>
@@ -144,7 +147,7 @@ export function ContainerOverviewTab({
         <div className="col-span-2 glass-panel rounded-xl p-6 min-h-[400px] flex flex-col border border-border">
           <h3 className="text-lg font-bold mb-6 text-primary flex items-center gap-2">
             <Activity className="w-5 h-5 text-secondary" />
-            Desempenho em Tempo Real
+            {t('containers.realtime_performance', 'Desempenho em Tempo Real')}
           </h3>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -178,10 +181,10 @@ export function ContainerOverviewTab({
         
         <div className="col-span-1 space-y-6">
           <div className="glass-panel rounded-xl p-6 border border-border">
-            <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">Informações da Rede</h3>
+            <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">{t('containers.network_info', 'Informações da Rede')}</h3>
             <div className="space-y-4">
               <div>
-                <span className="text-xs text-secondary uppercase font-semibold">Acessos e Portas</span>
+                <span className="text-xs text-secondary uppercase font-semibold">{t('containers.ports_access', 'Acessos e Portas')}</span>
                 <div className="mt-2">
                   {renderPorts()}
                 </div>
@@ -190,31 +193,31 @@ export function ContainerOverviewTab({
           </div>
 
           <div className="glass-panel rounded-xl p-6 border border-border">
-            <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">Ambiente & Config</h3>
+            <h3 className="text-md font-bold mb-4 text-primary border-b border-border pb-2">{t('containers.env_and_config', 'Ambiente & Config')}</h3>
             <div className="space-y-4">
               <div>
-                <span className="text-xs text-secondary uppercase font-semibold">Criado em</span>
+                <span className="text-xs text-secondary uppercase font-semibold">{t('containers.created', 'Criado em')}</span>
                 <p className="text-sm mt-1">{inspectData?.Created ? new Date(inspectData.Created).toLocaleString() : 'N/A'}</p>
               </div>
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-secondary uppercase font-semibold">Variáveis (Env)</span>
+                  <span className="text-xs text-secondary uppercase font-semibold">{t('containers.env_variables_short', 'Variáveis (Env)')}</span>
                   {!editingEnv && <button type="button" onClick={beginEnvEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
-                    <Pencil className="w-3 h-3" /> Editar Variáveis
+                    <Pencil className="w-3 h-3" /> {t('containers.edit_env', 'Editar Variáveis')}
                   </button>}
                 </div>
                 {editingEnv ? <div className="mt-2 space-y-2">
-                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container, causando breve indisponibilidade e um novo ID.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">{t('containers.env_warning', 'Salvar recriará o container, causando breve indisponibilidade e um novo ID.')}</p>
                   {envVariables.map((variable, index) => <div className="flex gap-2" key={index}>
-                    <input aria-label={`Chave da variável ${index + 1}`} value={variable.key} onChange={(event) => updateEnvField(index, 'key', event.target.value)} placeholder="CHAVE" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                    <input aria-label={`Valor da variável ${index + 1}`} value={variable.value} onChange={(event) => updateEnvField(index, 'value', event.target.value)} placeholder="valor" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                    <button type="button" aria-label={`Remover variável ${index + 1}`} onClick={() => setEnvVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
+                    <input aria-label={t('containers.var_key_aria', { index: index + 1, defaultValue: `Chave da variável ${index + 1}` })} value={variable.key} onChange={(event) => updateEnvField(index, 'key', event.target.value)} placeholder="CHAVE" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
+                    <input aria-label={t('containers.var_value_aria', { index: index + 1, defaultValue: `Valor da variável ${index + 1}` })} value={variable.value} onChange={(event) => updateEnvField(index, 'value', event.target.value)} placeholder="valor" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
+                    <button type="button" aria-label={t('containers.var_remove_aria', { index: index + 1, defaultValue: `Remover variável ${index + 1}` })} onClick={() => setEnvVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
                   </div>)}
-                  <button type="button" onClick={() => setEnvVariables((current) => [...current, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
+                  <button type="button" onClick={() => setEnvVariables((current) => [...current, { key: '', value: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> {t('common.add_plus', '+ Adicionar')}</button>
                   {envError && <p role="alert" className="text-xs text-rose-400">{envError}</p>}
                   <div className="flex gap-2">
-                    <button type="button" onClick={handleUpdateEnv} disabled={envSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{envSaving ? 'Salvando...' : 'Salvar alterações'}</button>
-                    <button type="button" onClick={() => { setEditingEnv(false); setEnvError(null); }} disabled={envSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">Cancelar</button>
+                    <button type="button" onClick={handleUpdateEnv} disabled={envSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{envSaving ? t('common.saving', 'Salvando...') : t('common.save_changes', 'Salvar alterações')}</button>
+                    <button type="button" onClick={() => { setEditingEnv(false); setEnvError(null); }} disabled={envSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">{t('common.cancel', 'Cancelar')}</button>
                   </div>
                 </div> : <div className="mt-2 max-h-[150px] overflow-y-auto space-y-1">
                   {inspectData?.Config?.Env ? inspectData.Config.Env.map((e: string, i: number) => {
@@ -225,30 +228,30 @@ export function ContainerOverviewTab({
                         <span className="text-secondary">{key}</span>={val.join('=')}
                       </div>
                     )
-                  }) : <span className="text-secondary text-sm">Nenhuma variável configurada</span>}
+                  }) : <span className="text-secondary text-sm">{t('containers.no_env_configured', 'Nenhuma variável configurada')}</span>}
                 </div>}
               </div>
 
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-secondary uppercase font-semibold">Volumes (Binds)</span>
+                  <span className="text-xs text-secondary uppercase font-semibold">{t('containers.volumes_binds', 'Volumes (Binds)')}</span>
                   {!editingVolumes && <button type="button" onClick={beginVolumeEdit} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary">
-                    <Pencil className="w-3 h-3" /> Editar Volumes
+                    <Pencil className="w-3 h-3" /> {t('containers.edit_volumes', 'Editar Volumes')}
                   </button>}
                 </div>
                 {editingVolumes ? <div className="mt-2 space-y-2">
-                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Salvar recriará o container. Volumes anônimos podem ser perdidos.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">{t('containers.volumes_warning', 'Salvar recriará o container. Volumes anônimos podem ser perdidos.')}</p>
                   {volumeVariables.map((variable, index) => <div className="flex gap-2" key={index}>
-                    <input aria-label={`Host path ${index + 1}`} value={variable.host} onChange={(event) => updateVolumeField(index, 'host', event.target.value)} placeholder="/host/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
+                    <input aria-label={t('containers.host_path_aria', { index: index + 1, defaultValue: `Host path ${index + 1}` })} value={variable.host} onChange={(event) => updateVolumeField(index, 'host', event.target.value)} placeholder="/host/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
                     <span className="text-secondary flex items-center">:</span>
-                    <input aria-label={`Container path ${index + 1}`} value={variable.container} onChange={(event) => updateVolumeField(index, 'container', event.target.value)} placeholder="/container/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
-                    <button type="button" aria-label={`Remover volume ${index + 1}`} onClick={() => setVolumeVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
+                    <input aria-label={t('containers.container_path_aria', { index: index + 1, defaultValue: `Container path ${index + 1}` })} value={variable.container} onChange={(event) => updateVolumeField(index, 'container', event.target.value)} placeholder="/container/path" className="min-w-0 flex-1 rounded bg-black/40 border border-border px-2 py-1 text-xs font-mono" />
+                    <button type="button" aria-label={t('containers.volume_remove_aria', { index: index + 1, defaultValue: `Remover volume ${index + 1}` })} onClick={() => setVolumeVariables((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="p-1 text-secondary hover:text-rose-400"><X className="w-4 h-4" /></button>
                   </div>)}
-                  <button type="button" onClick={() => setVolumeVariables((current) => [...current, { host: '', container: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> + Adicionar</button>
+                  <button type="button" onClick={() => setVolumeVariables((current) => [...current, { host: '', container: '' }])} className="inline-flex items-center gap-1 text-xs text-secondary hover:text-primary"><Plus className="w-3 h-3" /> {t('common.add_plus', '+ Adicionar')}</button>
                   {volumeError && <p role="alert" className="text-xs text-rose-400">{volumeError}</p>}
                   <div className="flex gap-2">
-                    <button type="button" onClick={handleUpdateVolumes} disabled={volumeSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{volumeSaving ? 'Salvando...' : 'Salvar alterações'}</button>
-                    <button type="button" onClick={() => { setEditingVolumes(false); setVolumeError(null); }} disabled={volumeSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">Cancelar</button>
+                    <button type="button" onClick={handleUpdateVolumes} disabled={volumeSaving} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{volumeSaving ? t('common.saving', 'Salvando...') : t('common.save_changes', 'Salvar alterações')}</button>
+                    <button type="button" onClick={() => { setEditingVolumes(false); setVolumeError(null); }} disabled={volumeSaving} className="rounded bg-accent px-3 py-1.5 text-xs text-secondary">{t('common.cancel', 'Cancelar')}</button>
                   </div>
                 </div> : <div className="mt-2 max-h-[150px] overflow-y-auto space-y-1">
                   {inspectData?.HostConfig?.Binds && inspectData.HostConfig.Binds.length > 0 ? inspectData.HostConfig.Binds.map((b: string, i: number) => {
@@ -258,7 +261,7 @@ export function ContainerOverviewTab({
                         <span className="text-secondary">{parts[0]}</span>:{parts[1]}
                       </div>
                     )
-                  }) : <span className="text-secondary text-sm">Nenhum volume mapeado</span>}
+                  }) : <span className="text-secondary text-sm">{t('containers.no_volumes_mapped', 'Nenhum volume mapeado')}</span>}
                 </div>}
               </div>
             </div>

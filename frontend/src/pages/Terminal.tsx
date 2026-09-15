@@ -93,7 +93,8 @@ export function Terminal() {
           <button
             onClick={addTab}
             className="ml-2 mb-1 p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors flex shrink-0"
-            title="Nova Aba"
+            title={t('terminal.new_tab', 'Nova Aba')}
+            aria-label={t('terminal.new_tab', 'Nova Aba')}
           >
             <Plus className="w-4 h-4" />
           </button>

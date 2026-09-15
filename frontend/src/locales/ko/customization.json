@@ -1,0 +1,22 @@
+{
+  "avatar_title": "사용자 아이콘 / 아바타",
+  "avatar_desc": "로컬 이미지나 URL로 프로필 아이콘을 맞춤설정하세요.",
+  "upload_image": "이미지 업로드",
+  "avatar_updated": "프로필 아이콘이 업데이트되었습니다!",
+  "avatar_reset": "아이콘이 기본값으로 재설정되었습니다!",
+  "wallpaper_title": "배경화면",
+  "wallpaper_desc": "적응형 반투명 유리 대비 베일을 사용하여 맞춤 배경화면을 추가하세요.",
+  "upload_wallpaper": "사진 업로드",
+  "wallpaper_updated": "배경화면이 성공적으로 업데이트되었습니다!",
+  "wallpaper_removed": "배경화면이 제거되었습니다!",
+  "presets": "테마갤러리",
+  "adjustments": "가독성 조정",
+  "dimmer": "베일 조광기 불투명도",
+  "dimmer_hint": "카드에 비해 높은 대비와 가독성을 보장하기 위해 배경을 어둡게 합니다.",
+  "blur": "배경 흐림",
+  "blur_hint": "전경 카드 내용을 강조하기 위해 미세한 사진 세부 정보를 매끄럽게 만듭니다.",
+  "preset_space_nebula": "우주 성운",
+  "preset_cosmic_mountain": "코스믹 마운틴",
+  "preset_cyberpunk_lines": "사이버펑크 라인",
+  "preset_minimalist_gradient": "미니멀리스트 그라데이션"
+}

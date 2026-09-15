@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, RefreshCw, CheckCircle2, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { OrbitLogo } from '../ui/OrbitLogo';
@@ -28,6 +29,7 @@ interface UpdateModalProps {
 }
 
 export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: UpdateModalProps) {
+  const { t } = useTranslation();
   const [updating, setUpdating] = useState(false);
   const [taskState, setTaskState] = useState<UpdateTaskState>({
     status: 'idle',
@@ -133,8 +135,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 ...prev,
                 status: 'done',
                 progress: 100,
-                current_step: 'Atualização concluída com sucesso! Recarregando painel...',
-                logs: [...prev.logs, `✔ Painel reconectado na nova versão ${healthData.version}.`]
+                current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Recarregando painel...'),
+                logs: [...prev.logs, t('system.dashboard_reconnected', { version: healthData.version, defaultValue: `✔ Painel reconectado na nova versão ${healthData.version}.` })]
               }));
               toast.success(`Orbit v${healthData.version} online!`);
               setTimeout(() => {
@@ -151,7 +153,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
           setTaskState(prev => ({
             ...prev,
             status: 'error',
-            error: 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.'
+            error: t('system.timeout_reconnecting', 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.')
           }));
         }
       }, 2000);
@@ -165,21 +167,24 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
       if (pollInterval) clearInterval(pollInterval);
       if (healthInterval) clearInterval(healthInterval);
     };
-  }, [updating, updateInfo]);
+  }, [updating, updateInfo, t]);
 
   // Clean Markdown & Bullet Parser for Release Notes
   const parsedSections = useMemo(
-    () => parseReleaseNotes(updateInfo?.release_notes || ''),
-    [updateInfo?.release_notes]
+    () => parseReleaseNotes(updateInfo?.release_notes || '', t),
+    [updateInfo?.release_notes, t]
   );
 
   const handleStartUpdate = async () => {
     if (updateInfo?.ci_status === 'building') {
-      toast.error('A imagem ainda está sendo compilada no GitHub Actions. Aguarde.');
+      toast.error(t('system.image_building_wait', 'A imagem ainda está sendo compilada no GitHub Actions. Aguarde.'));
       return;
     }
 
-    if (!window.confirm(`Deseja iniciar a atualização do Orbit para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`)) {
+    if (!window.confirm(t('system.confirm_update_version', {
+      version: updateInfo?.latest_version,
+      defaultValue: `Deseja iniciar a atualização do Orbit para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`
+    }))) {
       return;
     }
 
@@ -187,8 +192,8 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
     setTaskState({
       status: 'pulling',
       progress: 5,
-      current_step: 'Iniciando download da imagem mais recente...',
-      logs: ['[Orbit Update Agent] Inicializando atualização...', `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
+      current_step: t('system.starting_download', 'Iniciando download da imagem mais recente...'),
+      logs: [t('system.update_agent_init', '[Orbit Update Agent] Inicializando atualização...'), `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
       error: null,
     });
 
@@ -201,7 +206,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Falha ao acionar processo de atualização');
+        throw new Error(errJson.error || t('system.failed_start_update', 'Falha ao acionar processo de atualização'));
       }
 
       const data = await res.json();
@@ -215,7 +220,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         status: 'error',
         error: e.message
       }));
-      toast.error(e.message || 'Erro ao iniciar atualização.');
+      toast.error(e.message || t('system.failed_start_update', 'Erro ao iniciar atualização.'));
     }
   };
 
@@ -239,24 +244,24 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-primary leading-tight">
-                  {updating ? 'Atualizando Orbit' : 'Atualização do Sistema'}
+                  {updating ? t('system.updating_orbit', 'Atualizando Orbit') : t('system.update_title', 'Atualização do Sistema')}
                 </h2>
                 {!updating && updateInfo?.ci_status === 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                     <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                    <span>Compilando Imagem</span>
+                    <span>{t('system.building_image', 'Compilando Imagem')}</span>
                   </span>
                 )}
                 {!updating && hasNewVersion && updateInfo?.ci_status !== 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Nova Versão Disponível
+                    {t('system.new_version_available', 'Nova Versão Disponível')}
                   </span>
                 )}
               </div>
               <p className="text-xs text-secondary mt-0.5">
                 {updating 
-                  ? (taskState.current_step || 'Processando download e reinicialização segura...')
-                  : 'Gerenciamento de versão e resumo das melhorias'
+                  ? (taskState.current_step || t('system.downloading_and_restarting', 'Processando download e reinicialização segura...'))
+                  : t('system.version_management_desc', 'Gerenciamento de versão e resumo das melhorias')
                 }
               </p>
             </div>
@@ -266,7 +271,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             onClick={onClose}
             disabled={updating && taskState.status !== 'error'}
             className="p-1.5 text-slate-700 dark:text-secondary hover:text-primary rounded-xl hover:bg-accent transition-colors disabled:opacity-30"
-            aria-label="Fechar"
+            aria-label={t('common.close', 'Fechar')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -298,7 +303,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             disabled={updating && taskState.status !== 'error'}
             className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors disabled:opacity-30"
           >
-            Fechar
+            {t('common.close', 'Fechar')}
           </button>
 
           {!updating && (
@@ -306,10 +311,10 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               <button
                 disabled
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold cursor-not-allowed opacity-80"
-                title="A imagem Docker multi-arch está sendo gerada no GitHub. O botão será liberado automaticamente."
+                title={t('system.building_image_tooltip', 'A imagem Docker multi-arch está sendo gerada no GitHub. O botão será liberado automaticamente.')}
               >
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                <span>Compilando Imagem no GitHub...</span>
+                <span>{t('system.building_image_github', 'Compilando Imagem no GitHub...')}</span>
               </button>
             ) : !hasNewVersion ? (
               <button
@@ -317,7 +322,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-border/80 text-slate-700 dark:text-secondary text-xs font-semibold cursor-default opacity-80"
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Sistema na Versão Mais Recente</span>
+                <span>{t('system.system_up_to_date', 'Sistema na Versão Mais Recente')}</span>
               </button>
             ) : (
               <button
@@ -325,7 +330,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all"
               >
                 <Download className="w-4 h-4" />
-                <span>Atualizar para v{updateInfo?.latest_version}</span>
+                <span>{t('system.update_to_version', { version: updateInfo?.latest_version, defaultValue: `Atualizar para v${updateInfo?.latest_version}` })}</span>
               </button>
             )
           )}

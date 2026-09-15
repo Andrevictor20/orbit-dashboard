@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Sun, 
   CloudSun, 
@@ -31,6 +32,7 @@ interface WeatherData {
 }
 
 export function WeatherCard() {
+  const { t } = useTranslation();
   const { settings, updateSettings } = useSettings();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,10 +83,10 @@ export function WeatherCard() {
     setSavedCity(clean);
     if (clean) {
       localStorage.setItem('orbit_weather_city', clean);
-      toast.success(`Cidade alterada para ${clean}`);
+      toast.success(t('dashboard.weather_city_changed', { city: clean, defaultValue: `Cidade alterada para ${clean}` }));
     } else {
       localStorage.removeItem('orbit_weather_city');
-      toast.success('Localização automática ativada');
+      toast.success(t('dashboard.weather_auto_location', 'Localização automática ativada'));
     }
     updateSettings({ weather_city: clean }).catch(() => {});
     setIsEditingCity(false);
@@ -134,7 +136,7 @@ export function WeatherCard() {
       <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 flex items-center justify-center min-h-[140px]">
         <div className="flex items-center gap-2 text-xs text-secondary">
           <RefreshCw className="w-4 h-4 animate-spin text-orbit-500" />
-          <span>Carregando previsão do tempo...</span>
+          <span>{t('dashboard.weather_loading', 'Carregando previsão do tempo...')}</span>
         </div>
       </div>
     );
@@ -148,7 +150,7 @@ export function WeatherCard() {
           <form onSubmit={handleSaveCity} className="flex items-center gap-1.5 flex-1 max-w-xs">
             <input
               type="text"
-              placeholder="Digite o nome da cidade..."
+              placeholder={t('dashboard.weather_city_placeholder', 'Digite o nome da cidade...')}
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
               autoFocus
@@ -157,7 +159,7 @@ export function WeatherCard() {
             <button
               type="submit"
               className="p-1 bg-orbit-500 text-white rounded-lg hover:bg-orbit-600 transition-colors"
-              title="Salvar cidade"
+              title={t('dashboard.weather_save_city', 'Salvar cidade')}
             >
               <Check className="w-3.5 h-3.5" />
             </button>
@@ -183,7 +185,7 @@ export function WeatherCard() {
           onClick={() => loadWeather()}
           disabled={loading}
           className="p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-          title="Atualizar clima"
+          title={t('dashboard.weather_refresh', 'Atualizar clima')}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orbit-500' : ''}`} />
         </button>
@@ -200,11 +202,11 @@ export function WeatherCard() {
               {weather ? Math.round(weather.temperature_c) : '--'}°C
             </div>
             <div className="text-xs text-secondary font-medium line-clamp-1">
-              {weather?.condition_text || 'Parcialmente Nublado'}
+              {weather?.condition_text || t('dashboard.weather_partly_cloudy', 'Parcialmente Nublado')}
             </div>
             {weather?.apparent_temperature_c !== undefined && (
               <div className="text-[10px] text-secondary/80 font-mono mt-0.5">
-                Sensação {Math.round(weather.apparent_temperature_c)}°C
+                {t('dashboard.weather_feels_like', 'Sensação')} {Math.round(weather.apparent_temperature_c)}°C
               </div>
             )}
           </div>

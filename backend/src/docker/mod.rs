@@ -57,6 +57,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/backups", get(backups::list_backups_handler))
         .route("/api/backups/stats", get(backups::get_backup_stats_handler))
         .route("/api/backups/create", post(backups::create_backup_handler))
+        .route("/api/backups/restore", post(backups::restore_backup_post_handler))
         .route("/api/backups/restore/{id}", post(backups::restore_backup_handler))
         .route("/api/backups/{id}", delete(backups::delete_backup_handler))
         .route("/api/backups/download/{id}", get(backups::download_backup_handler))

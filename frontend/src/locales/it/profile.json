@@ -1,0 +1,15 @@
+{
+  "title": "Il mio conto",
+  "admin_user": "Amministratore",
+  "tab_account": "Conto e sicurezza",
+  "tab_integrations": "Integrazioni",
+  "tab_system": "Server e porta",
+  "tab_customization": "Aspetto e sfondo",
+  "current_password": "Password attuale",
+  "new_password": "Nuova parola d'ordine",
+  "confirm_password": "Conferma nuova password",
+  "change_password": "Cambia password",
+  "password_updated": "Password aggiornata con successo!",
+  "password_error": "Password corrente non valida o errore del server.",
+  "invalid_current_password": "Password corrente errata o errore del server."
+}

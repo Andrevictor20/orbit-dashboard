@@ -1,0 +1,8 @@
+{
+  "microsd_card": "scheda microSD",
+  "external_hd_named": "Unità esterna ({{name}})",
+  "external_storage": "Archiviazione esterna",
+  "primary_disk": "SSD/unità primaria",
+  "usb_drive": "Chiavetta/unità USB",
+  "system_storage": "Archiviazione del sistema"
+}

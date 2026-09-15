@@ -8,7 +8,7 @@ pub struct DiskStat {
     pub total: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct SystemStats {
     #[serde(default)]
     pub timestamp: u64,
@@ -29,6 +29,16 @@ pub struct SystemStats {
     pub network_interface: Option<String>,
     #[serde(default)]
     pub network_interface_type: Option<String>,
+    #[serde(default)]
+    pub gpu_usage: Option<f32>,
+    #[serde(default)]
+    pub gpu_memory_used: Option<u64>,
+    #[serde(default)]
+    pub gpu_memory_total: Option<u64>,
+    #[serde(default)]
+    pub gpu_name: Option<String>,
+    #[serde(default)]
+    pub gpu_temperature: Option<f32>,
 }
 
 #[derive(Deserialize, Default)]

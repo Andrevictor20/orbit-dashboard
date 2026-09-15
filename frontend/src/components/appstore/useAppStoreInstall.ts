@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useInstall } from '../../contexts/InstallContext';
 import type { PortConflictItem } from '../docker/PortConflictDialog';
 
@@ -12,6 +13,7 @@ export interface PortConflictModalData {
 }
 
 export function useAppStoreInstall() {
+  const { t } = useTranslation();
   const { startInstall } = useInstall();
   const [installing, setInstalling] = useState<string | null>(null);
   const [customModalApp, setCustomModalApp] = useState<{ id: string; name: string } | null>(null);
@@ -84,7 +86,7 @@ export function useAppStoreInstall() {
       }
     } catch (err: any) {
       console.error('Install error:', err);
-      toast.error(err.message || 'Erro ao iniciar instalação');
+      toast.error(err.message || t('store.install_start_error', 'Erro ao iniciar instalação'));
     } finally {
       setInstalling(null);
     }
@@ -109,7 +111,7 @@ export function useAppStoreInstall() {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || 'Falha na instalação personalizada');
+        throw new Error(text || t('store.custom_install_fail', 'Falha na instalação personalizada'));
       }
 
       const data = await res.json();

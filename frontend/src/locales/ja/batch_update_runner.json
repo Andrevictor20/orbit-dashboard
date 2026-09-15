@@ -1,0 +1,18 @@
+{
+  "success_log": "アップデートして再起動に成功しました！",
+  "update_failed": "アップデートに失敗しました",
+  "conn_error": "接続エラー",
+  "cancelled": "キャンセルされました",
+  "gateway_timeout": "接続がタイムアウトしました (ゲートウェイ タイムアウト)",
+  "cloudflare_524": "プロキシ/Cloudflare でのタイムアウト (エラー 524)。操作はバックグラウンドで続行されます。",
+  "bad_gateway_502": "ゲートウェイ/トンネルとの一時的な通信障害 (HTTP 502)。",
+  "gateway_timeout_504": "プロキシによって接続がタイムアウトしました (ゲートウェイ タイムアウト 504)。",
+  "firewall_blocked_403": "ファイアウォールまたはプロキシ ルールによってアクセスがブロックされました (HTTP 403)。",
+  "proxy_error": "プロキシ/ネットワーク エラー: {{error}}",
+  "proxy_http_error": "プロキシまたはネットワークから HTTP {{status}} エラーが返されました。",
+  "max_timeout_exceeded": "最大グローバル タイムアウト ({{minutes}} 分) を超えました。",
+  "server_unreachable_retries": "{{retries}} 試行後にサーバーに到達できません (HTTP {{status}})",
+  "task_not_found_idle": "サーバー上でタスクが見つからないか終了しました (アイドル状態)。",
+  "network_oscillating_wait": "接続が振動しています。プロキシ/ネットワークの安定化を待っています...",
+  "persistent_comm_failure": "サーバーとの永続的な通信障害"
+}

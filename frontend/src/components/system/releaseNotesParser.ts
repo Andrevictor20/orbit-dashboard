@@ -13,15 +13,15 @@ export interface ReleaseSection {
   items: ReleaseItem[];
 }
 
-export function parseReleaseNotes(raw: string): ReleaseSection[] {
+export function parseReleaseNotes(raw: string, t?: (key: string, fallback: string) => string): ReleaseSection[] {
   if (!raw || !raw.trim()) return [];
 
   const sections: ReleaseSection[] = [];
   const lines = raw.split('\n');
 
   let currentSection: ReleaseSection = {
-    title: 'Melhorias da Versão',
-    badgeLabel: 'NOVIDADE',
+    title: t ? t('system.release_notes_improvements', 'Melhorias da Versão') : 'Melhorias da Versão',
+    badgeLabel: t ? t('system.release_badge_new', 'NOVIDADE') : 'NOVIDADE',
     badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     icon: Sparkles,
     items: [],
@@ -45,8 +45,8 @@ export function parseReleaseNotes(raw: string): ReleaseSection[] {
         lower.includes('fluidez')
       ) {
         currentSection = {
-          title: heading.replace(/^[^\w\s]+/, '').trim() || 'Desempenho & Fluidez',
-          badgeLabel: 'DESEMPENHO',
+          title: heading.replace(/^[^\w\s]+/, '').trim() || (t ? t('system.release_title_performance', 'Desempenho & Fluidez') : 'Desempenho & Fluidez'),
+          badgeLabel: t ? t('system.release_badge_performance', 'DESEMPENHO') : 'DESEMPENHO',
           badgeClass:
             'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold',
           icon: Zap,
@@ -58,8 +58,8 @@ export function parseReleaseNotes(raw: string): ReleaseSection[] {
         lower.includes('bug')
       ) {
         currentSection = {
-          title: heading.replace(/^[^\w\s]+/, '').trim() || 'Correções & Estabilidade',
-          badgeLabel: 'CORREÇÃO',
+          title: heading.replace(/^[^\w\s]+/, '').trim() || (t ? t('system.release_title_fix', 'Correções & Estabilidade') : 'Correções & Estabilidade'),
+          badgeLabel: t ? t('system.release_badge_fix', 'CORREÇÃO') : 'CORREÇÃO',
           badgeClass:
             'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30 font-semibold',
           icon: Wrench,
@@ -67,8 +67,8 @@ export function parseReleaseNotes(raw: string): ReleaseSection[] {
         };
       } else {
         currentSection = {
-          title: heading.replace(/^[^\w\s]+/, '').trim() || 'Novidades',
-          badgeLabel: 'NOVIDADE',
+          title: heading.replace(/^[^\w\s]+/, '').trim() || (t ? t('system.release_title_new', 'Novidades') : 'Novidades'),
+          badgeLabel: t ? t('system.release_badge_new', 'NOVIDADE') : 'NOVIDADE',
           badgeClass:
             'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold',
           icon: Sparkles,

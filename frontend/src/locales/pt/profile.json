@@ -1,0 +1,15 @@
+{
+  "title": "Minha Conta",
+  "admin_user": "Administrador",
+  "tab_account": "Conta & Segurança",
+  "tab_integrations": "Integrações",
+  "tab_system": "Servidor & Porta",
+  "tab_customization": "Aparência & Fundo",
+  "current_password": "Senha Atual",
+  "new_password": "Nova Senha",
+  "confirm_password": "Confirmar Nova Senha",
+  "change_password": "Alterar Senha",
+  "password_updated": "Senha atualizada com sucesso!",
+  "password_error": "Senha atual inválida ou erro no servidor.",
+  "invalid_current_password": "Senha atual incorreta ou erro no servidor."
+}

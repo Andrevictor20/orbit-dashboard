@@ -1,0 +1,22 @@
+{
+  "avatar_title": "用户图标/头像",
+  "avatar_desc": "使用本地图像或 URL 自定义您的个人资料图标。",
+  "upload_image": "上传图片",
+  "avatar_updated": "个人资料图标更新成功！",
+  "avatar_reset": "图标重置为默认值！",
+  "wallpaper_title": "背景壁纸",
+  "wallpaper_desc": "添加带有自适应磨砂玻璃对比面纱的自定义壁纸。",
+  "upload_wallpaper": "上传照片",
+  "wallpaper_updated": "背景壁纸更新成功！",
+  "wallpaper_removed": "背景壁纸已删除！",
+  "presets": "主题画廊",
+  "adjustments": "易读性调整",
+  "dimmer": "面纱调光器不透明度",
+  "dimmer_hint": "调暗背景以确保卡片的高对比度和可读性。",
+  "blur": "背景模糊",
+  "blur_hint": "平滑精细的照片细节以强调前景卡片内容。",
+  "preset_space_nebula": "太空星云",
+  "preset_cosmic_mountain": "宇宙山",
+  "preset_cyberpunk_lines": "赛博朋克线",
+  "preset_minimalist_gradient": "极简渐变"
+}

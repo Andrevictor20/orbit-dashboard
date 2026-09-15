@@ -1,0 +1,8 @@
+{
+  "microsd_card": "microSDカード",
+  "external_hd_named": "外付けドライブ ({{name}})",
+  "external_storage": "外部ストレージ",
+  "primary_disk": "プライマリSSD/ドライブ",
+  "usb_drive": "USBフラッシュ/ドライブ",
+  "system_storage": "システムストレージ"
+}

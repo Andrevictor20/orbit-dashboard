@@ -1,0 +1,14 @@
+{
+  "title": "사용자 정의 설치 및 작성 편집기",
+  "subtitle": "Linting, 템플릿 및 포트 확인을 사용하여 사용자 지정 스택을 구성하거나 Docker Run 명령을 실행하세요.",
+  "tab_editor": "Docker Compose 편집기",
+  "tab_dockerrun": "도커 실행(빠른)",
+  "template_placeholder": "사전 구성된 템플릿 로드...",
+  "ports_warning": "경고: 호스트에서 사용 중인 포트: {{ports}}.",
+  "valid_yaml": "유효한 YAML 구문이며 충돌이 없습니다.",
+  "validating_ports": "(포트 확인 중...)",
+  "env_title": ".env(변수)",
+  "name_required": "유효한 스택 이름을 입력하세요.",
+  "load_failed": "스택 콘텐츠를 로드하지 못했습니다.",
+  "overwrite_confirm": "현재 콘텐츠를 선택한 템플릿으로 바꾸시겠습니까?"
+}

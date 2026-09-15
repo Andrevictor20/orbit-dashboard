@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Edit3, X } from 'lucide-react';
 import type { MountItem } from '../../types/fileManager';
 import { formatStorage } from '../../utils/format';
@@ -28,6 +29,7 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
   navigateToTrash,
   primaryStorage,
 }) => {
+  const { t } = useTranslation();
   return (
     <footer className="py-2 px-4 sm:px-6 border-t border-border/70 bg-card/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
       {/* Left: Path View & Edit */}
@@ -104,7 +106,7 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
             <strong className="text-primary">
               {formatStorage(primaryStorage.available_bytes || (primaryStorage.total_bytes - primaryStorage.used_bytes), 1)}
             </strong>
-            {' '}Disponível / {formatStorage(primaryStorage.total_bytes, 1)}
+            {' '}{t('files.available', 'Disponível')} / {formatStorage(primaryStorage.total_bytes, 1)}
           </span>
         </div>
       )}

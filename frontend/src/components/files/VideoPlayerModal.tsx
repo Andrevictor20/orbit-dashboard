@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { 
   Play, 
   X, 
   Film, 
-  Loader2,
+  Loader2, 
   Download,
   AlertCircle
 } from 'lucide-react';
@@ -20,6 +21,7 @@ interface VideoPlayerModalProps {
 }
 
 export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -89,7 +91,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       const newSub: SubtitleItem = {
         name: fileUploaded.name,
         path: blobUrl,
-        label: `Arquivo (${fileUploaded.name})`,
+        label: t('files.custom_subtitle_file', { name: fileUploaded.name, defaultValue: `Arquivo (${fileUploaded.name})` }),
         lang: 'custom',
       };
 
@@ -359,7 +361,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
               <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/70 text-white shadow-2xl border border-white/10">
                 <Loader2 className="w-8 h-8 text-orbit-400 animate-spin" />
-                <span className="text-xs text-zinc-300 font-medium">Otimizando fluxo...</span>
+                <span className="text-xs text-zinc-300 font-medium">{t('files.optimizing_stream', 'Otimizando fluxo...')}</span>
               </div>
             </div>
           )}
@@ -372,9 +374,9 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
                   <AlertCircle className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-semibold text-white">Falha na Decodificação do Vídeo</h4>
+                  <h4 className="font-semibold text-white">{t('files.video_decode_failure', 'Falha na Decodificação do Vídeo')}</h4>
                   <p className="text-xs text-zinc-400">
-                    O codec de áudio ou vídeo deste arquivo pode não ser compatível nativamente com o navegador. Você pode baixá-lo ou abrir com reprodutor externo (VLC).
+                    {t('files.video_codec_incompatible', 'O codec de áudio ou vídeo deste arquivo pode não ser compatível nativamente com o navegador. Você pode baixá-lo ou abrir com reprodutor externo (VLC).')}
                   </p>
                 </div>
                 <a
@@ -382,7 +384,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
                   download={file.name}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-orbit-600 hover:bg-orbit-500 text-white rounded-xl text-xs font-medium transition-colors shadow-lg shadow-orbit-600/30"
                 >
-                  <Download className="w-4 h-4" /> Baixar Arquivo
+                  <Download className="w-4 h-4" /> {t('files.download_file', 'Baixar Arquivo')}
                 </a>
               </div>
             </div>

@@ -1,0 +1,16 @@
+{
+  "search_orbit": "Rechercher l'orbite...",
+  "color_theme": "Thème",
+  "switch_language": "Langue",
+  "toggle_theme": "Basculer en mode clair/sombre",
+  "toggle_fullscreen": "Basculer en plein écran",
+  "profile": "Profil",
+  "update_available": "Mise à jour disponible",
+  "system_connected": "Système connecté",
+  "system_disconnected": "Déconnecté de l'hôte",
+  "language": "Langue",
+  "preferences": "Préférences",
+  "user_profile": "Profil utilisateur",
+  "preferences_tooltip": "Préférences (thème et langue)",
+  "close_preferences": "Fermer les préférences"
+}

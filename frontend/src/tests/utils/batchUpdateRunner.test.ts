@@ -183,5 +183,34 @@ describe('batchUpdateRunner utility', () => {
       expect(result.success).toBe(true);
       expect(steps.length).toBeGreaterThanOrEqual(4);
     });
+
+    it('translates messages using t parameter when provided', async () => {
+      const fakeT = (key: string, _opts?: any) => {
+        if (key === 'batch_update_runner.gateway_timeout') return 'Connection timed out';
+        if (key === 'batch_update_runner.cloudflare_524') return 'Cloudflare 524 error';
+        if (key === 'batch_update_runner.update_failed') return 'Failed updating container';
+        return key;
+      };
+
+      expect(sanitizeErrorMessage('', 504, fakeT)).toBe('Connection timed out');
+      expect(sanitizeErrorMessage('<html>524: A timeout occurred</html>', 524, fakeT)).toBe('Cloudflare 524 error');
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'error', error: '' }),
+      });
+
+      const result = await pollContainerUpdate({
+        containerId: 'c-err',
+        cleanName: 'app',
+        token: 'token',
+        signal: new AbortController().signal,
+        pollIntervalMs: 10,
+        t: fakeT,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed updating container');
+    });
   });
 });

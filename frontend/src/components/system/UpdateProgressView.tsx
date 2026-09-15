@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshCw, Download, Terminal, AlertTriangle } from 'lucide-react';
 
 export interface UpdateTaskState {
@@ -20,6 +21,8 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
   reconnectAttempts,
   terminalEndRef,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="p-5 space-y-4 overflow-y-auto flex-1">
       <div className="space-y-4 animate-in fade-in duration-150">
@@ -31,7 +34,7 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
               ) : (
                 <Download className="w-4 h-4 text-orbit-500 animate-bounce" />
               )}
-              {taskState.current_step || 'Executando atualização...'}
+              {taskState.current_step || t('system.running_update', 'Executando atualização...')}
             </span>
             <span className="text-orbit-600 dark:text-orbit-400 font-mono text-xs tabular-nums font-bold">
               {taskState.progress}%
@@ -47,7 +50,7 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
 
           {taskState.status === 'recreating' && (
             <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-secondary pt-1">
-              <span>Tentativa de reconexão:</span>
+              <span>{t('system.reconnection_attempt', 'Tentativa de reconexão:')}</span>
               <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">
                 {reconnectAttempts}/45
               </span>
@@ -61,7 +64,7 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
             <div className="flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5 text-orbit-400" />
               <span className="font-medium text-zinc-300">
-                Terminal de Atualização
+                {t('system.update_terminal', 'Terminal de Atualização')}
               </span>
             </div>
             <span className="text-zinc-500 font-mono text-[10px]">

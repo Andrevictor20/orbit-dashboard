@@ -1,0 +1,16 @@
+{
+  "search_orbit": "Cerca in orbita...",
+  "color_theme": "Tema",
+  "switch_language": "Lingua",
+  "toggle_theme": "Attiva/disattiva la modalità luce/buio",
+  "toggle_fullscreen": "Attiva/disattiva lo schermo intero",
+  "profile": "Profilo",
+  "update_available": "Aggiornamento disponibile",
+  "system_connected": "Sistema connesso",
+  "system_disconnected": "Disconnesso dall'host",
+  "language": "Lingua",
+  "preferences": "Preferenze",
+  "user_profile": "Profilo utente",
+  "preferences_tooltip": "Preferenze (Tema e lingua)",
+  "close_preferences": "Chiudi le preferenze"
+}

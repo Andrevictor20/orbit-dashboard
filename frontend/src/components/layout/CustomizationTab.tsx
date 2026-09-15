@@ -7,21 +7,25 @@ import { UserAvatar } from '../ui/UserAvatar';
 
 const WALLPAPER_PRESETS = [
   {
+    id: 'space_nebula',
     name: 'Nebulosa Espacial',
     url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=1920&auto=format&fit=crop',
     thumb: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=240&auto=format&fit=crop'
   },
   {
+    id: 'cosmic_mountain',
     name: 'Montanha Cósmica',
     url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop',
     thumb: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=240&auto=format&fit=crop'
   },
   {
+    id: 'cyberpunk_lines',
     name: 'Linhas Cyberpunk',
     url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1920&auto=format&fit=crop',
     thumb: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=240&auto=format&fit=crop'
   },
   {
+    id: 'minimalist_gradient',
     name: 'Gradiente Minimalista',
     url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop',
     thumb: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=240&auto=format&fit=crop'
@@ -318,7 +322,7 @@ export function CustomizationTab() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
                   <span className="text-[10px] text-white font-medium truncate drop-shadow">
-                    {preset.name}
+                    {t(`customization.preset_${preset.id}`, preset.name)}
                   </span>
                 </div>
                 {wallpaperUrl === preset.url && (

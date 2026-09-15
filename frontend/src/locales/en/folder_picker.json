@@ -1,0 +1,17 @@
+{
+  "title": "Select Server Folder",
+  "subtitle": "Browse host folders to map storage volumes.",
+  "roots": "Disks",
+  "up_dir": "Up one level",
+  "new_folder": "New Folder",
+  "folder_name_placeholder": "New folder name...",
+  "folder_created": "Folder created successfully!",
+  "empty_folder": "No subfolders found in this directory.",
+  "return_to_root": "Return to root (/)?",
+  "selected": "Path",
+  "select_this_folder": "Select This Folder",
+  "load_error": "Could not access this directory",
+  "browse": "Select folder on server",
+  "root": "Root",
+  "root_dir": "Root (/)"
+}

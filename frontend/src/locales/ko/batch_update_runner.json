@@ -1,0 +1,18 @@
+{
+  "success_log": "성공적으로 업데이트되고 다시 시작되었습니다!",
+  "update_failed": "업데이트 실패",
+  "conn_error": "연결 오류",
+  "cancelled": "취소됨",
+  "gateway_timeout": "연결 시간 초과(게이트웨이 시간 초과)",
+  "cloudflare_524": "프록시/Cloudflare의 시간 초과(오류 524). 작업은 백그라운드에서 계속됩니다.",
+  "bad_gateway_502": "게이트웨이/터널(HTTP 502)과의 일시적인 통신 오류입니다.",
+  "gateway_timeout_504": "프록시에 의해 연결 시간이 초과되었습니다(게이트웨이 시간 초과 504).",
+  "firewall_blocked_403": "방화벽이나 프록시 규칙(HTTP 403)에 의해 액세스가 차단되었습니다.",
+  "proxy_error": "프록시/네트워크 오류: {{error}}",
+  "proxy_http_error": "프록시 또는 네트워크에서 HTTP {{status}} 오류가 반환되었습니다.",
+  "max_timeout_exceeded": "최대 전역 시간 초과({{minutes}}분)가 초과되었습니다.",
+  "server_unreachable_retries": "{{retries}} 시도 후 서버에 연결할 수 없음(HTTP {{status}})",
+  "task_not_found_idle": "서버에서 작업을 찾을 수 없거나 완료되지 않았습니다(유휴 상태).",
+  "network_oscillating_wait": "진동하는 연결. 프록시/네트워크 안정화를 기다리는 중...",
+  "persistent_comm_failure": "서버와의 지속적인 통신 실패"
+}

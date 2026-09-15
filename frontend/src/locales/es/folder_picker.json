@@ -1,0 +1,17 @@
+{
+  "title": "Seleccionar carpeta del servidor",
+  "subtitle": "Explore las carpetas del host para asignar volúmenes de almacenamiento.",
+  "roots": "Discos",
+  "up_dir": "Subir un nivel",
+  "new_folder": "Nueva carpeta",
+  "folder_name_placeholder": "Nuevo nombre de carpeta...",
+  "folder_created": "¡Carpeta creada exitosamente!",
+  "empty_folder": "No se encontraron subcarpetas en este directorio.",
+  "return_to_root": "¿Volver a la raíz (/)?",
+  "selected": "Camino",
+  "select_this_folder": "Seleccione esta carpeta",
+  "load_error": "No se pudo acceder a este directorio",
+  "browse": "Seleccionar carpeta en el servidor",
+  "root": "raíz",
+  "root_dir": "Raíz (/)"
+}

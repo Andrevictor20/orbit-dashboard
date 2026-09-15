@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, 
   ChevronLeft, 
@@ -24,6 +25,7 @@ interface ImageGalleryModalProps {
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'];
 
 export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: ImageGalleryModalProps) {
+  const { t } = useTranslation();
   const imageFiles = files.filter(f => !f.is_dir && IMAGE_EXTENSIONS.includes(f.extension.toLowerCase()));
   
   const initialIndex = Math.max(0, imageFiles.findIndex(f => f.path === currentFile.path));
@@ -125,7 +127,7 @@ export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: Image
               {activeImage.name}
             </h2>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <span>{currentIndex + 1} de {imageFiles.length || 1}</span>
+              <span>{t('files.image_counter', { current: currentIndex + 1, total: imageFiles.length || 1, defaultValue: `${currentIndex + 1} de ${imageFiles.length || 1}` })}</span>
               <span>•</span>
               <span>{(activeImage.size / 1024).toFixed(1)} KB</span>
             </div>
@@ -137,21 +139,21 @@ export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: Image
           <button
             onClick={handleZoomOut}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Zoom Menos (-)"
+            title={t('files.zoom_out', 'Zoom Menos (-)')}
           >
             <ZoomOut size={18} />
           </button>
           <button
             onClick={handleResetZoom}
             className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Redefinir Zoom"
+            title={t('files.reset_zoom', 'Redefinir Zoom')}
           >
             {Math.round(scale * 100)}%
           </button>
           <button
             onClick={handleZoomIn}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Zoom Mais (+)"
+            title={t('files.zoom_in', 'Zoom Mais (+)')}
           >
             <ZoomIn size={18} />
           </button>
@@ -161,14 +163,14 @@ export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: Image
           <button
             onClick={handleRotateCcw}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Girar para Esquerda"
+            title={t('files.rotate_left', 'Girar para Esquerda')}
           >
             <RotateCcw size={18} />
           </button>
           <button
             onClick={handleRotateCw}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Girar para Direita (R)"
+            title={t('files.rotate_right', 'Girar para Direita (R)')}
           >
             <RotateCw size={18} />
           </button>
@@ -178,21 +180,21 @@ export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: Image
           <button
             onClick={toggleFullscreen}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Alternar Tela Cheia"
+            title={t('files.toggle_fullscreen', 'Alternar Tela Cheia')}
           >
             {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
           <button
             onClick={handleDownload}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/5"
-            title="Baixar Imagem"
+            title={t('files.download_image', 'Baixar Imagem')}
           >
             <Download size={18} />
           </button>
           <button
             onClick={onClose}
             className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/20 ml-2"
-            title="Fechar (Esc / Espaço)"
+            title={t('files.close_key_hint', 'Fechar (Esc / Espaço)')}
           >
             <X size={18} />
           </button>
@@ -206,14 +208,14 @@ export function ImageGalleryModal({ currentFile, files, isOpen, onClose }: Image
             <button
               onClick={handlePrev}
               className="absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-2xl bg-black/60 hover:bg-black/80 text-white/70 hover:text-white border border-white/10 backdrop-blur-md transition-all hover:scale-110 active:scale-95 shadow-2xl"
-              title="Anterior (←)"
+              title={t('files.prev_key_hint', 'Anterior (←)')}
             >
               <ChevronLeft size={28} />
             </button>
             <button
               onClick={handleNext}
               className="absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-2xl bg-black/60 hover:bg-black/80 text-white/70 hover:text-white border border-white/10 backdrop-blur-md transition-all hover:scale-110 active:scale-95 shadow-2xl"
-              title="Próximo (→)"
+              title={t('files.next_key_hint', 'Próximo (→)')}
             >
               <ChevronRight size={28} />
             </button>

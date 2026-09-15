@@ -1,0 +1,22 @@
+{
+  "avatar_title": "ユーザーアイコン/アバター",
+  "avatar_desc": "ローカル画像または URL を使用してプロフィール アイコンをカスタマイズします。",
+  "upload_image": "画像をアップロードする",
+  "avatar_updated": "プロフィールアイコンが正常に更新されました。",
+  "avatar_reset": "アイコンをデフォルトにリセットしました!",
+  "wallpaper_title": "背景の壁紙",
+  "wallpaper_desc": "アダプティブ曇りガラス コントラスト ベールを備えたカスタム壁紙を追加します。",
+  "upload_wallpaper": "写真をアップロードする",
+  "wallpaper_updated": "背景の壁紙が正常に更新されました。",
+  "wallpaper_removed": "背景の壁紙を削除しました。",
+  "presets": "テーマギャラリー",
+  "adjustments": "可読性の調整",
+  "dimmer": "ベールディマーの不透明度",
+  "dimmer_hint": "背景を暗くして、カード上で高いコントラストと読みやすさを確保します。",
+  "blur": "背景ぼかし",
+  "blur_hint": "写真の細かい部分を滑らかにして、前景のカード コンテンツを強調します。",
+  "preset_space_nebula": "宇宙星雲",
+  "preset_cosmic_mountain": "コズミックマウンテン",
+  "preset_cyberpunk_lines": "サイバーパンクライン",
+  "preset_minimalist_gradient": "ミニマリストのグラデーション"
+}

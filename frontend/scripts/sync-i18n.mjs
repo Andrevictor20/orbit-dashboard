@@ -6,119 +6,74 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const LOCALES_DIR = path.resolve(__dirname, '../src/locales');
+const localesDir = path.resolve(__dirname, '../src/locales');
 
-const ptPath = path.join(LOCALES_DIR, 'pt.ts');
-const enPath = path.join(LOCALES_DIR, 'en.ts');
+const isCheckOnly = process.argv.includes('--check');
 
-function extractObjectFromTs(filePath) {
-  const content = fs.readFileSync(filePath, 'utf8');
-  // Remove "export const pt = " or "export const en = " and trailing semicolon
-  const cleaned = content
-    .replace(/^export\s+const\s+(?:pt|en)\s*=\s*/m, '')
-    .replace(/;\s*$/, '');
-  
-  // Use Function constructor or loose parser to safely evaluate object
-  try {
-    return new Function(`return (${cleaned});`)();
-  } catch (err) {
-    console.error(`Error parsing ${filePath}:`, err.message);
-    process.exit(1);
-  }
+const enDir = path.join(localesDir, 'en');
+if (!fs.existsSync(enDir)) {
+  console.error('Base "en" locale directory not found!');
+  process.exit(1);
 }
 
-function deepCompareKeys(source, target, prefix = '') {
-  const missing = [];
-  for (const key of Object.keys(source)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (!(key in target)) {
-      missing.push(fullKey);
-    } else if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-      if (typeof target[key] === 'object' && target[key] !== null) {
-        missing.push(...deepCompareKeys(source[key], target[key], fullKey));
-      } else {
-        missing.push(fullKey);
+const domainFiles = fs.readdirSync(enDir).filter(f => f.endsWith('.json')).sort();
+const langDirs = fs.readdirSync(localesDir).filter(f => {
+  const full = path.join(localesDir, f);
+  return fs.statSync(full).isDirectory() && f !== 'en';
+}).sort();
+
+console.log(`\n🌐 Orbit i18n Synchronizer`);
+console.log(`Found ${domainFiles.length} domain files in canonical "en". Auditing ${langDirs.length} languages...\n`);
+
+let totalMissingAll = 0;
+let hasDiscrepancy = false;
+
+for (const lang of langDirs) {
+  const targetDir = path.join(localesDir, lang);
+  let langMissing = 0;
+  let langTotal = 0;
+
+  for (const file of domainFiles) {
+    const enFile = path.join(enDir, file);
+    const targetFile = path.join(targetDir, file);
+
+    const enData = JSON.parse(fs.readFileSync(enFile, 'utf-8'));
+    let targetData = {};
+    if (fs.existsSync(targetFile)) {
+      try {
+        targetData = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
+      } catch (e) {
+        console.error(`Invalid JSON in ${targetFile}:`, e.message);
       }
     }
-  }
-  return missing;
-}
 
-function syncMissingKeys(source, target) {
-  let changed = false;
-  const result = { ...target };
-
-  for (const key of Object.keys(source)) {
-    if (!(key in result)) {
-      result[key] = source[key];
-      changed = true;
-    } else if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-      if (typeof result[key] === 'object' && result[key] !== null) {
-        const [subResult, subChanged] = syncMissingKeys(source[key], result[key]);
-        result[key] = subResult;
-        if (subChanged) changed = true;
-      } else {
-        result[key] = source[key];
-        changed = true;
+    let modified = false;
+    for (const [key, val] of Object.entries(enData)) {
+      langTotal++;
+      if (targetData[key] === undefined) {
+        langMissing++;
+        if (!isCheckOnly) {
+          targetData[key] = val; // fallback to en
+          modified = true;
+        }
       }
     }
-  }
 
-  return [result, changed];
-}
-
-function formatTsExport(varName, obj) {
-  const jsonStr = JSON.stringify(obj, null, 2);
-  return `export const ${varName} = ${jsonStr};\n`;
-}
-
-function main() {
-  const isCheckMode = process.argv.includes('--check');
-
-  if (!fs.existsSync(ptPath) || !fs.existsSync(enPath)) {
-    console.error('Error: pt.ts and en.ts must exist in frontend/src/locales/');
-    process.exit(1);
-  }
-
-  const pt = extractObjectFromTs(ptPath);
-  const en = extractObjectFromTs(enPath);
-
-  const missingInEn = deepCompareKeys(pt, en);
-  const missingInPt = deepCompareKeys(en, pt);
-
-  if (isCheckMode) {
-    if (missingInEn.length === 0 && missingInPt.length === 0) {
-      console.log('✅ i18n Check: pt.ts and en.ts are 100% in sync!');
-      process.exit(0);
-    } else {
-      console.error('❌ i18n Check failed:');
-      if (missingInEn.length > 0) {
-        console.error(`  Missing in en.ts (${missingInEn.length}):`, missingInEn);
-      }
-      if (missingInPt.length > 0) {
-        console.error(`  Missing in pt.ts (${missingInPt.length}):`, missingInPt);
-      }
-      process.exit(1);
+    if (modified && !isCheckOnly) {
+      fs.writeFileSync(targetFile, JSON.stringify(targetData, null, 2) + '\n', 'utf-8');
     }
   }
 
-  // Sync mode
-  let [syncedEn, enChanged] = syncMissingKeys(pt, en);
-  let [syncedPt, ptChanged] = syncMissingKeys(en, pt);
-
-  if (enChanged) {
-    fs.writeFileSync(enPath, formatTsExport('en', syncedEn), 'utf8');
-    console.log(`✨ Synchronized en.ts with ${missingInEn.length} new keys from pt.ts.`);
-  }
-
-  if (ptChanged) {
-    fs.writeFileSync(ptPath, formatTsExport('pt', syncedPt), 'utf8');
-    console.log(`✨ Synchronized pt.ts with ${missingInPt.length} new keys from en.ts.`);
-  }
-
-  if (!enChanged && !ptChanged) {
-    console.log('✅ Locales are already in sync (0 keys missing).');
-  }
+  totalMissingAll += langMissing;
+  const coverage = Math.round(((langTotal - langMissing) / langTotal) * 100);
+  const statusIcon = langMissing === 0 ? '✅' : isCheckOnly ? '⚠️' : '🔄';
+  console.log(`${statusIcon} ${lang.toUpperCase().padEnd(6)}: ${coverage}% translated (${langMissing} missing keys${isCheckOnly ? ' detected' : ' filled with fallback'})`);
+  if (langMissing > 0) hasDiscrepancy = true;
 }
 
-main();
+if (isCheckOnly && hasDiscrepancy) {
+  console.log(`\n❌ i18n Check failed: ${totalMissingAll} missing translations across languages. Run "npm run i18n:sync" to synchronize.`);
+  process.exit(1);
+} else {
+  console.log(`\n✨ All ${langDirs.length + 1} languages audited successfully! Total missing keys: ${totalMissingAll}\n`);
+}

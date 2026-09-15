@@ -26,6 +26,11 @@ export interface SystemStats {
   orbit_memory: number;
   network_interface?: string;
   network_interface_type?: 'ethernet' | 'wifi' | string;
+  gpu_usage?: number;
+  gpu_memory_used?: number;
+  gpu_memory_total?: number;
+  gpu_name?: string;
+  gpu_temperature?: number;
 }
 
 export interface MetricHistoryPoint {
@@ -37,6 +42,7 @@ export interface MetricHistoryPoint {
   memory: number;
   dockerMemory: number;
   orbitMemory: number;
+  gpu?: number;
   tx: number;
   rx: number;
   dockerTx: number;
@@ -86,6 +92,7 @@ export function StatsProvider({ children }: { children: ReactNode }) {
               memory: item.memory_used || 0,
               dockerMemory: item.docker_memory || 0,
               orbitMemory: item.orbit_memory || 0,
+              gpu: item.gpu_usage || 0,
               tx: item.network_tx || 0,
               rx: item.network_rx || 0,
               dockerTx: item.docker_tx || 0,
@@ -114,6 +121,7 @@ export function StatsProvider({ children }: { children: ReactNode }) {
           memory: stats.memory_used,
           dockerMemory: stats.docker_memory,
           orbitMemory: stats.orbit_memory,
+          gpu: stats.gpu_usage || 0,
           tx: stats.network_tx,
           rx: stats.network_rx,
           dockerTx: stats.docker_tx,

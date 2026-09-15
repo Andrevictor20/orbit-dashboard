@@ -1,0 +1,18 @@
+{
+  "success_log": "Updated and restarted successfully!",
+  "update_failed": "Update failed",
+  "conn_error": "Connection error",
+  "cancelled": "Cancelled",
+  "gateway_timeout": "Connection timed out (Gateway Timeout)",
+  "cloudflare_524": "Timeout on proxy/Cloudflare (Error 524). The operation will continue in the background.",
+  "bad_gateway_502": "Temporary communication failure with gateway/tunnel (HTTP 502).",
+  "gateway_timeout_504": "Connection timed out by proxy (Gateway Timeout 504).",
+  "firewall_blocked_403": "Access blocked by firewall or proxy rules (HTTP 403).",
+  "proxy_error": "Proxy/network error: {{error}}",
+  "proxy_http_error": "HTTP {{status}} error returned by proxy or network.",
+  "max_timeout_exceeded": "Maximum global timeout exceeded ({{minutes}} minutes).",
+  "server_unreachable_retries": "Server unreachable after {{retries}} attempts (HTTP {{status}})",
+  "task_not_found_idle": "Task not found or finished on server (idle status).",
+  "network_oscillating_wait": "Connection oscillating. Waiting for proxy/network stabilization...",
+  "persistent_comm_failure": "Persistent communication failure with server"
+}

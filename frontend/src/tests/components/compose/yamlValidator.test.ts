@@ -65,4 +65,17 @@ networks:
     const ports = extractPortsFromYaml(yaml);
     expect(ports).toEqual([]);
   });
+
+  it('uses translation function when provided', () => {
+    const fakeT = (key: string, opts?: any) => {
+      if (key === 'docker.yaml_empty_error') return 'YAML content cannot be empty.';
+      if (key === 'docker.yaml_root_services_error') return 'Root must declare services.';
+      if (key === 'docker.yaml_tabs_error') return `Tabs not allowed on line ${opts?.line}.`;
+      return key;
+    };
+
+    expect(validateComposeSyntax('  ', fakeT).error).toBe('YAML content cannot be empty.');
+    expect(validateComposeSyntax('version: "3"', fakeT).error).toBe('Root must declare services.');
+    expect(validateComposeSyntax("services:\n\tweb:\n", fakeT).error).toBe('Tabs not allowed on line 2.');
+  });
 });

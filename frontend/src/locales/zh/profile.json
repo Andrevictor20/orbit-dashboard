@@ -1,0 +1,15 @@
+{
+  "title": "我的帐户",
+  "admin_user": "管理员",
+  "tab_account": "账户与安全",
+  "tab_integrations": "集成",
+  "tab_system": "服务器及端口",
+  "tab_customization": "外观&背景",
+  "current_password": "当前密码",
+  "new_password": "新密码",
+  "confirm_password": "确认新密码",
+  "change_password": "更改密码",
+  "password_updated": "密码更新成功！",
+  "password_error": "当前密码无效或服务器错误。",
+  "invalid_current_password": "当前密码不正确或服务器错误。"
+}

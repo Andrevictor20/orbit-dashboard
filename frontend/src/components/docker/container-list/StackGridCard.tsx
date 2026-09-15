@@ -79,7 +79,10 @@ export function StackGridCard({
                 onOpenGroupModal(group);
               }}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
-              title={`${stackUpdatesCount} container(s) com atualização disponível nesta stack. Clique para ver e atualizar.`}
+              title={t('docker.stack_updates_tooltip', {
+                count: stackUpdatesCount,
+                defaultValue: `${stackUpdatesCount} container(s) com atualização disponível nesta stack. Clique para ver e atualizar.`
+              })}
             >
               <DownloadCloud className="w-3.5 h-3.5" />
               <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })} ({stackUpdatesCount})</span>
@@ -94,15 +97,15 @@ export function StackGridCard({
       {/* Resource Metrics */}
       <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-xl border border-border/60">
         <div className="flex flex-col">
-          <span className="text-[10px] text-purple-700 dark:text-purple-400 uppercase font-semibold tracking-wider">CPU</span>
+          <span className="text-[10px] text-purple-700 dark:text-purple-400 uppercase font-semibold tracking-wider">{t('docker.cpu', 'CPU')}</span>
           <span className="text-xs text-primary font-mono font-bold">{group.totalCpu.toFixed(1)}%</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold tracking-wider">RAM</span>
+          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-semibold tracking-wider">{t('docker.ram', 'RAM')}</span>
           <span className="text-xs text-primary font-mono font-bold">{formatRAM(group.totalMemory)}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-orbit-700 dark:text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
+          <span className="text-[10px] text-orbit-700 dark:text-orbit-400 uppercase font-semibold tracking-wider">{t('docker.disk', 'Disco')}</span>
           <span className="text-xs text-primary font-mono font-bold">{formatBytes(group.totalDisk)}</span>
         </div>
       </div>
@@ -153,7 +156,7 @@ export function StackGridCard({
                               window.open(targetUrl, '_blank');
                             }}
                             className="hover:underline flex items-center gap-1 cursor-pointer"
-                            title={`Abrir porta principal: ${targetUrl}`}
+                            title={t('docker.open_primary_port', { url: targetUrl, defaultValue: `Abrir porta principal: ${targetUrl}` })}
                           >
                             <span>{p.public_port}:{p.private_port}</span>
                             <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -165,7 +168,7 @@ export function StackGridCard({
                               window.open(targetUrl, '_blank');
                             }}
                             className="hover:underline flex items-center gap-1 cursor-pointer"
-                            title={`Abrir porta: ${targetUrl}`}
+                            title={t('docker.open_port', { url: targetUrl, defaultValue: `Abrir porta: ${targetUrl}` })}
                           >
                             <span>{p.private_port}/{p.typ || 'tcp'}</span>
                             <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -192,7 +195,7 @@ export function StackGridCard({
                 window.open(resolveWebUrl(group.webLink), '_blank');
               }}
               className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-600 dark:text-orbit-400 hover:text-orbit-700 dark:hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
-              title={`Abrir ${group.primaryContainer.name} (${group.webLink})`}
+              title={t('docker.open_app_target', { name: group.primaryContainer.name, link: group.webLink, defaultValue: `Abrir ${group.primaryContainer.name} (${group.webLink})` })}
             >
               <Globe className="w-3 h-3 text-orbit-600 dark:text-orbit-400" />
               <span className="truncate max-w-[70px]">{t('containers.open_app')}</span>
@@ -217,10 +220,10 @@ export function StackGridCard({
         <button
           onClick={() => onOpenGroupModal(group)}
           className="glass-button px-3 py-1.5 text-xs rounded-lg text-orbit-700 dark:text-orbit-300 hover:text-orbit-900 dark:hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/40 flex-1 flex items-center justify-center gap-1.5 font-semibold transition-colors"
-          title="Ver e gerenciar todos os sub-containers"
+          title={t('docker.manage_subcontainers_title', 'Ver e gerenciar todos os sub-containers')}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Ver Sub-containers</span>
+          <span>{t('docker.view_subcontainers', 'Ver Sub-containers')}</span>
           {stackUpdatesCount > 0 && (
             <span className="ml-1 px-1.5 py-0.2 rounded-full bg-violet-600 text-white text-[10px] font-bold">
               {stackUpdatesCount}
@@ -232,7 +235,7 @@ export function StackGridCard({
           onClick={(e) => onGroupAction(e, group, 'restart')}
           disabled={Boolean(actionLoading)}
           className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-          title="Reiniciar todos os containers da stack"
+          title={t('docker.restart_all_stack', 'Reiniciar todos os containers da stack')}
         >
           {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <RotateCw className="w-3.5 h-3.5" />}
         </button>
@@ -242,7 +245,7 @@ export function StackGridCard({
             onClick={(e) => onGroupAction(e, group, 'stop')}
             disabled={Boolean(actionLoading)}
             className="glass-button p-2 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-            title="Parar todos os containers da stack"
+            title={t('docker.stop_all_stack', 'Parar todos os containers da stack')}
           >
             {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-400" /> : <Square className="w-3.5 h-3.5" />}
           </button>
@@ -251,7 +254,7 @@ export function StackGridCard({
             onClick={(e) => onGroupAction(e, group, 'start')}
             disabled={Boolean(actionLoading)}
             className="glass-button p-2 text-xs rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold transition-colors"
-            title="Iniciar todos os containers da stack"
+            title={t('docker.start_all_stack', 'Iniciar todos os containers da stack')}
           >
             {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
           </button>

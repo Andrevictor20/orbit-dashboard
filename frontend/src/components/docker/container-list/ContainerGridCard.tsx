@@ -66,7 +66,7 @@ export function ContainerGridCard({
           <button
             onClick={(e) => onUpdateContainer(e, c.id)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
-            title="Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar."
+            title={t('docker.new_version_available_tip', 'Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar.')}
           >
             <DownloadCloud className="w-3.5 h-3.5" />
             <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
@@ -194,28 +194,28 @@ export function ContainerGridCard({
               onClick={(e) => onAction(e, c.id, 'stop')} 
               disabled={actionLoading === c.id} 
               className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-              title="Parar container"
+              title={t('docker.stop_container', 'Parar container')}
             >
               <Square className="w-3.5 h-3.5 shrink-0" />
-              <span>Parar</span>
+              <span>{t('docker.stop_container', 'Parar')}</span>
             </button>
             <button 
               onClick={(e) => onAction(e, c.id, 'pause')} 
               disabled={actionLoading === c.id} 
               className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-              title="Pausar container"
+              title={t('docker.pause_container', 'Pausar container')}
             >
               <Pause className="w-3.5 h-3.5 shrink-0" />
-              <span>Pausar</span>
+              <span>{t('docker.pause_container', 'Pausar')}</span>
             </button>
             <button 
               onClick={(e) => onAction(e, c.id, 'restart')} 
               disabled={actionLoading === c.id} 
               className="glass-button px-2 py-1.5 text-xs rounded-lg text-secondary hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1 transition-colors" 
-              title="Reiniciar container"
+              title={t('docker.restart_container', 'Reiniciar container')}
             >
               <RotateCw className={`w-3.5 h-3.5 shrink-0 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
-              <span>Reiniciar</span>
+              <span>{t('docker.restart_container', 'Reiniciar')}</span>
             </button>
           </>
         ) : c.state?.toLowerCase() === 'paused' ? (
@@ -224,19 +224,19 @@ export function ContainerGridCard({
               onClick={(e) => onAction(e, c.id, 'unpause')} 
               disabled={actionLoading === c.id} 
               className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500/30 flex-1 flex items-center justify-center gap-1.5 font-semibold transition-colors"
-              title="Retomar execução do container"
+              title={t('docker.unpause_container', 'Retomar execução do container')}
             >
               <PlayCircle className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-              <span>Retomar</span>
+              <span>{t('docker.unpause_container', 'Retomar')}</span>
             </button>
             <button 
               onClick={(e) => onAction(e, c.id, 'stop')} 
               disabled={actionLoading === c.id} 
               className="glass-button px-2.5 py-1.5 text-xs rounded-lg text-secondary hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex-1 flex items-center justify-center gap-1.5 transition-colors"
-              title="Parar container"
+              title={t('docker.stop_container', 'Parar container')}
             >
               <Square className="w-3.5 h-3.5" />
-              <span>Parar</span>
+              <span>{t('docker.stop_container', 'Parar')}</span>
             </button>
           </>
         ) : (
@@ -244,10 +244,10 @@ export function ContainerGridCard({
             onClick={(e) => onAction(e, c.id, 'start')} 
             disabled={actionLoading === c.id} 
             className="glass-button px-3 py-1.5 text-xs rounded-lg text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500/30 w-full flex items-center justify-center gap-1.5 font-semibold transition-colors"
-            title="Iniciar container"
+            title={t('docker.start_container', 'Iniciar container')}
           >
             <Play className={`w-3.5 h-3.5 ${actionLoading === c.id ? 'animate-pulse' : ''}`} />
-            <span>Iniciar Container</span>
+            <span>{t('docker.start_container', 'Iniciar Container')}</span>
           </button>
         )}
       </div>

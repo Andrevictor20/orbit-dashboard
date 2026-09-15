@@ -98,7 +98,7 @@ export const DeviceCardMedia: React.FC<DeviceCardMediaProps> = ({
             </>
           ) : (
             <span className="text-secondary text-[11px]">
-              {media?.state === 'unavailable' ? 'Indisponível' : t('homeassistant.state_off')}
+              {media?.state === 'unavailable' ? t('common.unavailable', 'Indisponível') : t('homeassistant.state_off')}
             </span>
           )}
         </div>

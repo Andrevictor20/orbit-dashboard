@@ -1,161 +1,18 @@
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  Activity, 
-  HardDrive, 
-  ExternalLink, 
-  Plus, 
-  LayoutGrid, 
-  Layers, 
-  Cpu, 
-  Terminal, 
-  PieChart, 
-  Search, 
-  Network,
-  Zap,
-  CreditCard,
-  Usb,
-  Wifi,
-  Cable,
-  Cloud
-} from 'lucide-react';
+import { LayoutGrid, Layers, Terminal, PieChart, Plus, Search, Clock } from 'lucide-react';
 import { useStats } from '../contexts/StatsContext';
-import { getFriendlyDiskName, getDiskCategoryInfo, isPhysicalStorage, formatStorage, formatNetworkSpeed } from '../utils/format';
+import { isPhysicalStorage, formatStorage, formatNetworkSpeed } from '../utils/format';
+import { getFriendlyDiskName } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
-import { groupContainers, type GroupContainerItem, type GroupedContainerItem } from '../utils/containerGroups';
+import { groupContainers, type GroupContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
 import { OrbitLogo } from '../components/ui/OrbitLogo';
-import { ContainerIcon } from '../components/ui/ContainerIcon';
-import { MiniSparkline } from '../components/metrics/MiniSparkline';
-import { WeatherCard } from '../components/dashboard/WeatherCard';
 import { useSettings } from '../contexts/SettingsContext';
-
-interface OverviewContainer {
-  id: string;
-  name: string;
-  image: string;
-  state: string;
-  status: string;
-  ports?: Array<{ private_port: number; public_port?: number; typ: string }>;
-  labels?: Record<string, string>;
-}
-
-// Memoized App Card to eliminate DOM churn during filtering and stats updates
-const AppCardItem = memo(function AppCardItem({
-  item,
-  onSelectGroup,
-  onOpenApp,
-  t
-}: {
-  item: GroupedContainerItem<OverviewContainer>;
-  onSelectGroup: (group: GroupContainerItem<OverviewContainer>) => void;
-  onOpenApp: (webLink?: string, containerId?: string, isRunning?: boolean) => void;
-  t: any;
-}) {
-  if (item.type === 'group') {
-    return (
-      <div
-        onClick={() => onSelectGroup(item)}
-        className="group relative bg-card hover:bg-accent/80 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
-        title={`${item.name} (${t('dashboard.container_count', { count: item.totalCount })})`}
-      >
-        {/* Top-right stack indicator */}
-        <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-orbit-500/15 text-orbit-700 dark:text-orbit-400 border border-orbit-500/30 font-semibold font-mono">
-            {item.totalCount}
-          </span>
-          <span className={`w-2 h-2 rounded-full ${
-            item.allRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : item.anyRunning ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-secondary/40'
-          }`} />
-        </div>
-
-        {/* Multi-layer App Icon */}
-        <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-card border border-border/80 p-1.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-sm relative">
-          <ContainerIcon
-            src={item.iconUrl}
-            name={item.name}
-            size={36}
-            className="w-full h-full"
-          />
-          <div className="absolute -bottom-1 -right-1 p-0.5 rounded-md bg-orbit-500 text-white shadow-md">
-            <Layers className="w-2.5 h-2.5" />
-          </div>
-        </div>
-
-        {/* Stack Name */}
-        <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={item.name}>
-          {item.name}
-        </span>
-
-        {/* Subtext */}
-        <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
-          {item.anyRunning ? (
-            <span className="text-orbit-600 dark:text-orbit-400 group-hover:underline flex items-center gap-0.5 font-medium">
-              {item.runningCount}/{item.totalCount} {item.totalCount > 1 ? t('common.active_plural', 'ativos') : t('common.active', 'ativo').toLowerCase()}
-            </span>
-          ) : (
-            <span className="text-secondary/60">{t('common.stopped', 'Parado')}</span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const c = item.container;
-  const isRunning = item.isRunning;
-  const webLink = item.webLink;
-
-  return (
-    <div
-      onClick={() => onOpenApp(webLink, c.id, isRunning)}
-      className="group relative bg-card hover:bg-accent/80 border border-border/80 hover:border-orbit-500/50 rounded-2xl p-3.5 flex flex-col items-center justify-between text-center transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
-      title={`${c.name} (${c.state})`}
-    >
-      {/* Status indicator dot */}
-      <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-        {webLink?.startsWith('https://') && (
-          <span title="Túnel Cloudflare / HTTPS Seguro">
-            <Cloud className="w-3 h-3 text-amber-500/90" />
-          </span>
-        )}
-        <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-secondary/40'}`} />
-      </div>
-
-      {/* App Icon */}
-      <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-card border border-border/80 p-1.5 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform duration-150 shadow-sm">
-        <ContainerIcon
-          src={item.iconUrl}
-          name={c.name}
-          image={c.image}
-          size={36}
-          className="w-full h-full"
-        />
-      </div>
-
-      {/* App Name */}
-      <span className="font-bold text-xs text-primary truncate w-full capitalize group-hover:text-orbit-400 transition-colors" title={c.name}>
-        {c.name}
-      </span>
-
-      {/* Port / Status Subtext */}
-      <div className="mt-1 flex items-center gap-1 text-[10px] text-secondary font-mono truncate max-w-full">
-        {isRunning ? (
-          webLink ? (
-            <span className="text-orbit-600 dark:text-orbit-400 group-hover:underline flex items-center gap-0.5 font-semibold">
-              {webLink.startsWith('https://') && <Cloud className="w-2.5 h-2.5 text-amber-500 shrink-0 inline" />}
-              {t('common.open', 'Abrir')} <ExternalLink className="w-2.5 h-2.5 inline" />
-            </span>
-          ) : (
-            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{t('common.active', 'Ativo')}</span>
-          )
-        ) : (
-          <span className="text-secondary/60">{t('common.stopped', 'Parado')}</span>
-        )}
-      </div>
-    </div>
-  );
-});
+import { AppCardItem, type OverviewContainer } from '../components/dashboard/OverviewAppCard';
+import { OverviewTelemetryCards } from '../components/dashboard/OverviewTelemetryCards';
+import { OverviewWeatherWidget } from '../components/dashboard/OverviewWeatherWidget';
 
 export function Overview() {
   const navigate = useNavigate();
@@ -172,9 +29,7 @@ export function Overview() {
   const fetchContainers = () => {
     fetch('/api/docker/containers')
       .then(res => res.ok ? res.json() : [])
-      .then(data => {
-        if (Array.isArray(data)) setContainers(data);
-      })
+      .then(data => { if (Array.isArray(data)) setContainers(data); })
       .catch(() => {});
   };
 
@@ -190,9 +45,7 @@ export function Overview() {
     fetchLinks();
   }, []);
 
-  const groupedItems = useMemo(() => {
-    return groupContainers(containers, customLinks, getIconForImage);
-  }, [containers, customLinks]);
+  const groupedItems = useMemo(() => groupContainers(containers, customLinks, getIconForImage), [containers, customLinks]);
 
   // Telemetry derived values
   const cpuPercent = stats ? stats.cpu_usage.toFixed(1) : '0.0';
@@ -202,13 +55,10 @@ export function Overview() {
     ? ((stats.memory_used / stats.memory_total) * 100).toFixed(1)
     : '0.0';
 
-  // Deduplicate and filter physical storage disks
   const uniqueDisksMap = new Map<string, any>();
   if (stats && Array.isArray(stats.disks)) {
     stats.disks.forEach((d: any) => {
-      if (!isPhysicalStorage(d.name, d.mount_point, d.fs_type, d.total)) {
-        return;
-      }
+      if (!isPhysicalStorage(d.name, d.mount_point, d.fs_type, d.total)) return;
       const key = d.name.startsWith('/dev/') ? d.name : getFriendlyDiskName(d.name, d.mount_point);
       if (uniqueDisksMap.has(key)) {
         const existing = uniqueDisksMap.get(key)!;
@@ -232,430 +82,172 @@ export function Overview() {
 
   const globalDiskUsed = uniqueDisks.reduce((acc, d) => acc + d.used, 0);
   const globalDiskTotal = uniqueDisks.reduce((acc, d) => acc + d.total, 0);
-
-  const diskUsedFormatted = formatStorage(globalDiskUsed, 2);
-  const diskTotalFormatted = formatStorage(globalDiskTotal, 2);
-  const diskPercent = globalDiskTotal > 0
-    ? ((globalDiskUsed / globalDiskTotal) * 100).toFixed(1)
-    : '0.0';
-
+  const diskPercent = globalDiskTotal > 0 ? ((globalDiskUsed / globalDiskTotal) * 100).toFixed(1) : '0.0';
   const tempC = stats ? stats.temperature.toFixed(1) : '0.0';
   const netTxSpeed = formatNetworkSpeed(stats?.network_tx);
   const netRxSpeed = formatNetworkSpeed(stats?.network_rx);
 
   const safeHistory = Array.isArray(history) ? history : [];
-
   const cpuHistory = useMemo(() => {
-    if (safeHistory.length === 0) {
-      const v = parseFloat(cpuPercent) || 0;
-      return [v, v, v, v, v, v];
-    }
+    if (safeHistory.length === 0) { const v = parseFloat(cpuPercent) || 0; return [v, v, v, v, v, v]; }
     return safeHistory.slice(-24).map((p) => p.cpu || 0);
   }, [safeHistory, cpuPercent]);
 
   const ramHistory = useMemo(() => {
-    if (safeHistory.length === 0) {
-      const v = parseFloat(memoryPercent) || 0;
-      return [v, v, v, v, v, v];
-    }
+    if (safeHistory.length === 0) { const v = parseFloat(memoryPercent) || 0; return [v, v, v, v, v, v]; }
     const total = stats?.memory_total || 1;
     return safeHistory.slice(-24).map((p) => (p.memory / total) * 100);
   }, [safeHistory, memoryPercent, stats?.memory_total]);
 
   const netRxHistory = useMemo(() => {
-    if (safeHistory.length === 0) {
-      const v = stats?.network_rx || 0;
-      return [v, v, v, v, v, v];
-    }
+    if (safeHistory.length === 0) { const v = stats?.network_rx || 0; return [v, v, v, v, v, v]; }
     return safeHistory.slice(-24).map((p) => p.rx || 0);
   }, [safeHistory, stats?.network_rx]);
 
   const netTxHistory = useMemo(() => {
-    if (safeHistory.length === 0) {
-      const v = stats?.network_tx || 0;
-      return [v, v, v, v, v, v];
-    }
+    if (safeHistory.length === 0) { const v = stats?.network_tx || 0; return [v, v, v, v, v, v]; }
     return safeHistory.slice(-24).map((p) => p.tx || 0);
   }, [safeHistory, stats?.network_tx]);
 
-  // Running vs stopped containers count
-  const runningContainersCount = useMemo(() => {
-    return containers.filter(c => c.state.toLowerCase() === 'running').length;
-  }, [containers]);
+  const gpuHistory = useMemo(() => {
+    if (safeHistory.length === 0) { const v = stats?.gpu_usage || 0; return [v, v, v, v, v, v]; }
+    return safeHistory.slice(-24).map((p) => p.gpu || 0);
+  }, [safeHistory, stats?.gpu_usage]);
 
-  // Filtered Apps & Stacks
+  // Real-time clock with 12h / 24h toggle and timezone
+  const [timeFormat, setTimeFormat] = useState<'24h' | '12h'>(() => {
+    return (localStorage.getItem('orbit_time_format') as '24h' | '12h') || '24h';
+  });
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const toggleTimeFormat = () => {
+    const next = timeFormat === '24h' ? '12h' : '24h';
+    setTimeFormat(next);
+    localStorage.setItem('orbit_time_format', next);
+  };
+
+  const formattedTime = useMemo(() => {
+    if (timeFormat === '12h') {
+      return currentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+    return currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  }, [currentTime, timeFormat]);
+
+  const timezoneOffsetStr = useMemo(() => {
+    const offsetMin = -currentTime.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const hours = Math.floor(Math.abs(offsetMin) / 60);
+    return `GMT${sign}${hours}`;
+  }, [currentTime]);
+
+  const runningContainersCount = useMemo(
+    () => containers.filter(c => c.state.toLowerCase() === 'running').length,
+    [containers]
+  );
+
   const filteredApps = useMemo(() => {
     return groupedItems.filter((item) => {
       const nameMatch = item.name.toLowerCase().includes(searchFilter.toLowerCase());
       if (!nameMatch) return false;
-
-      if (activeFilter === 'running') {
-        return item.type === 'group' ? item.anyRunning : item.isRunning;
-      }
-      if (activeFilter === 'stopped') {
-        return item.type === 'group' ? !item.anyRunning : !item.isRunning;
-      }
-      if (activeFilter === 'stacks') {
-        return item.type === 'group';
-      }
+      if (activeFilter === 'running') return item.type === 'group' ? item.anyRunning : item.isRunning;
+      if (activeFilter === 'stopped') return item.type === 'group' ? !item.anyRunning : !item.isRunning;
+      if (activeFilter === 'stacks') return item.type === 'group';
       return true;
     });
   }, [groupedItems, searchFilter, activeFilter]);
 
   const handleOpenApp = (webLink?: string, containerId?: string, isRunning?: boolean) => {
-    if (webLink && isRunning) {
-      window.open(webLink, '_blank');
-    } else if (containerId) {
-      navigate(`/containers/${containerId}`);
-    }
+    if (webLink && isRunning) window.open(webLink, '_blank');
+    else if (containerId) navigate(`/containers/${containerId}`);
   };
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-150">
-      {/* 1. HERO HEADER: CLEAN TITLE & QUICK ACTIONS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/85 backdrop-blur-2xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <OrbitLogo size={28} className="rounded-xl shrink-0" />
+      {/* Hero Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card/85 backdrop-blur-2xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-sm">
+        {/* Left: Welcome Greeting & Live Clock */}
+        <div className="space-y-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <OrbitLogo size={30} className="rounded-xl shrink-0" />
             <h1 className="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">
-              {t('dashboard.title', 'Orbit Dashboard')}
+              {t('dashboard.welcome', 'Boas-vindas')}
             </h1>
-            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-              isConnected 
-                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-              <span>{isConnected ? t('dashboard.connected', 'Conectado') : t('dashboard.disconnected', 'Desconectado')}</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-accent/60 border border-border text-primary shadow-inner">
+              <Clock className="w-3.5 h-3.5 text-orbit-500" />
+              <span>{formattedTime}</span>
+              <span className="text-[10px] text-secondary">({timezoneOffsetStr})</span>
+              <button
+                type="button"
+                onClick={toggleTimeFormat}
+                title={t('dashboard.time_format_toggle', 'Alternar formato 12h/24h')}
+                className="ml-1 px-1.5 py-0.2 rounded bg-card hover:bg-accent border border-border/80 text-[9px] font-bold text-secondary hover:text-primary transition-all active:scale-95 cursor-pointer"
+              >
+                {timeFormat}
+              </button>
             </div>
           </div>
-          <p className="text-xs sm:text-sm text-secondary">
-            {t('dashboard.subtitle', 'Monitore o desempenho do sistema e gerencie seus aplicativos')}
+          <p className="text-xs sm:text-sm text-secondary truncate">
+            {t('dashboard.welcome_sub', 'Monitore o desempenho do sistema e gerencie seus aplicativos')}
           </p>
         </div>
 
-        {/* Quick Top Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/store"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all"
-          >
+        {/* Middle: Integrated Weather & Air Quality */}
+        {settings.show_weather_card !== false && (
+          <div className="flex items-center px-3.5 py-2 rounded-2xl bg-accent/30 border border-border/60 backdrop-blur-md self-start lg:self-center">
+            <OverviewWeatherWidget />
+          </div>
+        )}
+
+        {/* Right: Quick Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap self-end lg:self-center shrink-0">
+          <Link to="/store" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all">
             <Plus className="w-3.5 h-3.5" />
             <span>{t('store.install_app', 'Instalar Aplicativo')}</span>
           </Link>
-
-          <Link
-            to="/containers"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-primary text-xs font-semibold transition-all shadow-sm"
-          >
+          <Link to="/containers" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-primary text-xs font-semibold transition-all shadow-sm">
             <Layers className="w-3.5 h-3.5" />
             <span>{t('sidebar.containers', 'Containers')}</span>
           </Link>
-
-          <Link
-            to="/terminal"
-            className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-emerald-500 transition-all shadow-sm"
-            title="Terminal Web"
-          >
+          <Link to="/terminal" className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-emerald-500 transition-all shadow-sm" title="Terminal Web">
             <Terminal className="w-4 h-4" />
           </Link>
-
-          <Link
-            to="/disk-analyzer"
-            className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-violet-500 transition-all shadow-sm"
-            title="Analisador de Disco"
-          >
+          <Link to="/disk-analyzer" className="p-2 rounded-xl bg-card hover:bg-accent border border-border text-secondary hover:text-violet-500 transition-all shadow-sm" title="Analisador de Disco">
             <PieChart className="w-4 h-4" />
           </Link>
         </div>
       </div>
 
-      {/* 2. COMPACT & REFINED TELEMETRY SUMMARY ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-stretch">
-        {/* CPU & Temp Card */}
-        <Link 
-          to="/metrics" 
-          className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
-        >
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-secondary">
-              <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
-              <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform">
-                <Cpu className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
-              <span className="text-xs font-mono text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
-                {tempC}°C
-              </span>
-            </div>
-          </div>
+      {/* Telemetry Row */}
+      <OverviewTelemetryCards
+        cpuPercent={cpuPercent}
+        tempC={tempC}
+        memoryUsedGB={memoryUsedGB}
+        memoryTotalGB={memoryTotalGB}
+        memoryPercent={memoryPercent}
+        netTxSpeed={netTxSpeed}
+        netRxSpeed={netRxSpeed}
+        containers={containers}
+        runningContainersCount={runningContainersCount}
+        uniqueDisks={uniqueDisks}
+        diskPercent={diskPercent}
+        diskUsedFormatted={formatStorage(globalDiskUsed, 2)}
+        diskTotalFormatted={formatStorage(globalDiskTotal, 2)}
+        cpuHistory={cpuHistory}
+        ramHistory={ramHistory}
+        netRxHistory={netRxHistory}
+        netTxHistory={netTxHistory}
+        gpuHistory={gpuHistory}
+        isConnected={isConnected}
+        stats={stats}
+      />
 
-          {/* Mini Gráfico de Histórico da CPU */}
-          <div className="my-2 py-1">
-            <MiniSparkline
-              data={cpuHistory}
-              color="#8b5cf6"
-              gradientId="overviewSparkCpu"
-              height={42}
-              min={0}
-              max={100}
-            />
-          </div>
-
-          <div>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-300 ${
-                  parseFloat(cpuPercent) > 80 ? 'bg-rose-500' : parseFloat(cpuPercent) > 50 ? 'bg-amber-500' : 'bg-violet-500'
-                }`}
-                style={{ width: `${Math.min(parseFloat(cpuPercent), 100)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
-              <span>{isConnected ? t('dashboard.live', 'Tempo real') : 'Offline'}</span>
-              <span>{cpuPercent}% de carga</span>
-            </div>
-          </div>
-        </Link>
-
-        {/* Memory RAM Card */}
-        <Link 
-          to="/metrics" 
-          className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
-        >
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-secondary">
-              <span className="text-xs font-medium">{t('dashboard.memory_usage', 'Memória RAM')}</span>
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                <Activity className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{memoryUsedGB} GB</span>
-              <span className="text-xs font-mono text-secondary font-medium">
-                / {memoryTotalGB} GB ({memoryPercent}%)
-              </span>
-            </div>
-          </div>
-
-          {/* Mini Gráfico de Histórico da RAM */}
-          <div className="my-2 py-1">
-            <MiniSparkline
-              data={ramHistory}
-              color="#10b981"
-              gradientId="overviewSparkRam"
-              height={42}
-              min={0}
-              max={100}
-            />
-          </div>
-
-          <div>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-300 ${
-                  parseFloat(memoryPercent) > 85 ? 'bg-rose-500' : parseFloat(memoryPercent) > 70 ? 'bg-amber-500' : 'bg-emerald-500'
-                }`}
-                style={{ width: `${Math.min(parseFloat(memoryPercent), 100)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
-              <span>{Math.max(0, parseFloat(memoryTotalGB) - parseFloat(memoryUsedGB)).toFixed(2)} GB livre</span>
-              <span>{memoryPercent}% em uso</span>
-            </div>
-          </div>
-        </Link>
-
-        {/* Storage Multi-Drive Summary Card: HDs, SSDs e Cartão MicroSD Separados */}
-        <Link 
-          to="/disk-analyzer" 
-          className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between relative overflow-hidden"
-          title="Ver Analisador de Disco"
-        >
-          <div className="flex items-center justify-between text-secondary mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
-              {uniqueDisks.length > 1 && (
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orbit-500/15 text-orbit-700 dark:text-orbit-400 border border-orbit-500/30">
-                  {uniqueDisks.length} unidades
-                </span>
-              )}
-            </div>
-            <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 group-hover:scale-110 transition-transform">
-              <HardDrive className="w-4 h-4" />
-            </div>
-          </div>
-
-          {uniqueDisks.length <= 1 ? (
-            /* Single Drive View or Zero-State */
-            <div className="flex-1 flex flex-col justify-between py-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">
-                  {uniqueDisks[0] ? formatStorage(uniqueDisks[0].used, 2) : diskUsedFormatted}
-                </span>
-                <span className="text-xs font-mono text-secondary font-medium">
-                  / {uniqueDisks[0] ? formatStorage(uniqueDisks[0].total, 2) : diskTotalFormatted} ({diskPercent}%)
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden my-3">
-                <div 
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-orbit-500'
-                  }`}
-                  style={{ width: `${Math.min(parseFloat(diskPercent), 100)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-secondary font-mono pt-1.5 border-t border-border/40">
-                <span className="truncate max-w-[150px]">
-                  {uniqueDisks[0] ? getFriendlyDiskName(uniqueDisks[0].name, uniqueDisks[0].mount_point) : 'Disco Principal'}
-                </span>
-                <span>
-                  {uniqueDisks[0] ? `${formatStorage(uniqueDisks[0].used, 2)} usado` : ''}
-                </span>
-              </div>
-            </div>
-          ) : (
-            /* Multi-Drive Stacked View: HDs, SSDs, microSD separados com excelente ocupação */
-            <div className="space-y-3 flex-1 flex flex-col justify-center py-1">
-              {uniqueDisks.map((d, idx) => {
-                const info = getDiskCategoryInfo(d.name, d.mount_point);
-                const usedFmt = formatStorage(d.used, 2);
-                const totalFmt = formatStorage(d.total, 2);
-                const percent = d.total > 0 ? ((d.used / d.total) * 100).toFixed(1) : '0.0';
-                const percentNum = parseFloat(percent);
-                const isCritical = percentNum > 85;
-                const isWarning = percentNum > 70;
-
-                return (
-                  <div key={d.name || idx} className="pt-2 first:pt-0 border-t border-border/40 first:border-t-0">
-                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {info.category === 'sdcard' ? (
-                          <CreditCard className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                        ) : info.category === 'nvme' ? (
-                          <Zap className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400 shrink-0" />
-                        ) : info.category === 'usb' ? (
-                          <Usb className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        ) : (
-                          <HardDrive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
-                        )}
-                        <span className="text-xs font-semibold text-primary truncate max-w-[125px] sm:max-w-[145px]" title={info.friendlyName}>
-                          {info.friendlyName}
-                        </span>
-                        <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 font-semibold border border-border/50 shrink-0">
-                          {info.typeLabel}
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs font-mono font-bold text-primary">
-                          {usedFmt}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-600 dark:text-secondary ml-1 font-medium">
-                          / {totalFmt} ({percent}%)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          isCritical 
-                            ? 'bg-rose-500' 
-                            : isWarning 
-                            ? 'bg-amber-500' 
-                            : info.category === 'nvme' 
-                            ? 'bg-orbit-500' 
-                            : info.category === 'sdcard' 
-                            ? 'bg-amber-500' 
-                            : 'bg-sky-500'
-                        }`}
-                        style={{ width: `${Math.min(percentNum, 100)}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1">
-                      <span className="truncate text-secondary/70">{d.mount_point}</span>
-                      <span>{usedFmt} usado</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Link>
-
-        {/* Network & Containers Card */}
-        <Link 
-          to="/metrics"
-          className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
-        >
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-secondary">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs font-medium">{t('dashboard.network_traffic', 'Tráfego de Rede')}</span>
-                {stats?.network_interface && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-mono font-medium flex items-center gap-1">
-                    {stats.network_interface_type === 'wifi' ? (
-                      <Wifi className="w-2.5 h-2.5" />
-                    ) : (
-                      <Cable className="w-2.5 h-2.5" />
-                    )}
-                    {stats.network_interface}
-                  </span>
-                )}
-              </div>
-              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
-                {stats?.network_interface_type === 'wifi' ? (
-                  <Wifi className="w-4 h-4" />
-                ) : (
-                  <Network className="w-4 h-4" />
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between font-mono text-xs text-secondary">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
-                TX: <strong className="text-primary">{netTxSpeed}</strong>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 dark:bg-sky-400" />
-                RX: <strong className="text-primary">{netRxSpeed}</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Mini Gráfico Dual de Tráfego de Rede (RX em Ciano, TX em Índigo tracejado) */}
-          <div className="my-2 py-1">
-            <MiniSparkline
-              data={netRxHistory}
-              secondaryData={netTxHistory}
-              color="#38bdf8"
-              secondaryColor="#818cf8"
-              gradientId="overviewSparkRx"
-              secondaryGradientId="overviewSparkTx"
-              height={42}
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/50">
-            <span className="text-secondary text-[11px] font-medium">{containers.length} Containers</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-semibold font-mono text-[11px] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {runningContainersCount} ativos
-            </span>
-          </div>
-        </Link>
-
-        {/* Weather Forecast Card */}
-        {settings.show_weather_card && <WeatherCard />}
-      </div>
-
-      {/* 3. MODERN SPOTLIGHT: INSTALLED APPS & STACKS BENTO LAUNCHER */}
+      {/* Apps Grid */}
       <div className="space-y-4">
-        {/* Apps Header & Filter Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -669,37 +261,23 @@ export function Overview() {
             </span>
           </div>
 
-          {/* Filter Pills & Search Bar */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Filter Pills */}
             <div className="flex items-center bg-accent/60 border border-border rounded-xl p-0.5 text-xs">
-              <button
-                onClick={() => setActiveFilter('all')}
-                className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
-                }`}
-              >
-                Todos ({groupedItems.length})
-              </button>
-              <button
-                onClick={() => setActiveFilter('running')}
-                className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'running' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
-                }`}
-              >
-                Ativos
-              </button>
-              <button
-                onClick={() => setActiveFilter('stacks')}
-                className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                  activeFilter === 'stacks' ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
-                }`}
-              >
-                Stacks
-              </button>
+              {(['all', 'running', 'stacks'] as const).map((filter) => {
+                const labels = { all: `Todos (${groupedItems.length})`, running: 'Ativos', stacks: 'Stacks' };
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setActiveFilter(filter)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
+                      activeFilter === filter ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
+                    }`}
+                  >
+                    {labels[filter]}
+                  </button>
+                );
+              })}
             </div>
-
-            {/* Instant App Search */}
             <div className="relative w-full sm:w-48">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
               <input
@@ -713,7 +291,6 @@ export function Overview() {
           </div>
         </div>
 
-        {/* Bento App Grid with GPU-safe layout */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
           {filteredApps.map((item) => (
             <AppCardItem
@@ -724,8 +301,6 @@ export function Overview() {
               t={t}
             />
           ))}
-
-          {/* Quick Install Card */}
           <div
             onClick={() => navigate('/store')}
             className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card hover:bg-accent/60 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px] shadow-sm"
@@ -740,7 +315,6 @@ export function Overview() {
         </div>
       </div>
 
-      {/* App Group / Stack Sub-Containers Modal */}
       <AppGroupModal
         group={selectedGroup}
         isOpen={Boolean(selectedGroup)}

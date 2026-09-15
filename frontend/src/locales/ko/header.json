@@ -1,0 +1,16 @@
+{
+  "search_orbit": "궤도 검색...",
+  "color_theme": "테마",
+  "switch_language": "언어",
+  "toggle_theme": "밝은/어두운 모드 전환",
+  "toggle_fullscreen": "전체 화면 전환",
+  "profile": "프로필",
+  "update_available": "업데이트 가능",
+  "system_connected": "시스템 연결됨",
+  "system_disconnected": "호스트에서 연결이 끊어졌습니다.",
+  "language": "언어",
+  "preferences": "환경설정",
+  "user_profile": "사용자 프로필",
+  "preferences_tooltip": "환경설정(테마 및 언어)",
+  "close_preferences": "환경설정 닫기"
+}

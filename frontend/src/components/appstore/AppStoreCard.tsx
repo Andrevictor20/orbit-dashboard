@@ -1,4 +1,5 @@
 import { Package, CheckCircle2, ExternalLink, Download, SlidersHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AppStoreItem } from '../../queries/useStoreAppsQuery';
 
 interface AppStoreCardProps {
@@ -22,6 +23,7 @@ export function AppStoreCard({
   onInstall,
   onOpenCustom,
 }: AppStoreCardProps) {
+  const { t } = useTranslation();
   return (
     <div
       key={`${app.store}-${app.id}-${index}`}
@@ -79,10 +81,10 @@ export function AppStoreCard({
               onManage();
             }}
             className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] flex items-center justify-center gap-1.5"
-            title="Aplicativo já instalado no sistema. Clique para abrir ou gerenciar no painel."
+            title={t('store.app_already_installed_tip', 'Aplicativo já instalado no sistema. Clique para abrir ou gerenciar no painel.')}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Gerenciar</span>
+            <span>{t('common.manage', 'Gerenciar')}</span>
           </button>
         ) : (
           <div className="flex items-center gap-1.5 w-full">
@@ -99,7 +101,7 @@ export function AppStoreCard({
               ) : (
                 <>
                   <Download className="w-3.5 h-3.5" />
-                  <span>Install</span>
+                  <span>{t('store.install_app', 'Instalar')}</span>
                 </>
               )}
             </button>
@@ -110,7 +112,7 @@ export function AppStoreCard({
                 onOpenCustom(app);
               }}
               disabled={installing !== null}
-              title="Configurar portas, volumes e ambiente antes de instalar"
+              title={t('store.customize_install_tip', 'Configurar portas, volumes e ambiente antes de instalar')}
               className="p-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl border border-border transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />

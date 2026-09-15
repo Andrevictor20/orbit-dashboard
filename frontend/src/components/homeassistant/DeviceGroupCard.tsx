@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Lightbulb,
   Zap,
@@ -30,6 +31,8 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
   onQuickToggle,
   isPending = false,
 }) => {
+  const { t } = useTranslation();
+
   const getCategoryTheme = (category: DeviceCategory) => {
     switch (category) {
       case 'light':
@@ -38,7 +41,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-amber-600 dark:text-amber-400',
           bg: 'bg-amber-500/15 border-amber-500/30 shadow-amber-500/10',
           glow: 'group-hover:border-amber-500/50',
-          label: 'Iluminação',
+          label: t('homeassistant.tab_lights', 'Iluminação'),
         };
       case 'switch':
         return {
@@ -46,7 +49,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-indigo-600 dark:text-indigo-400',
           bg: 'bg-indigo-500/15 border-indigo-500/30 shadow-indigo-500/10',
           glow: 'group-hover:border-indigo-500/50',
-          label: 'Tomada / Interruptor',
+          label: t('homeassistant.tab_switches', 'Tomada / Interruptor'),
         };
       case 'media':
         return {
@@ -54,7 +57,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-purple-600 dark:text-purple-400',
           bg: 'bg-purple-500/15 border-purple-500/30 shadow-purple-500/10',
           glow: 'group-hover:border-purple-500/50',
-          label: 'Mídia & TV',
+          label: t('homeassistant.media_players', 'Mídia & TV'),
         };
       case 'camera':
         return {
@@ -62,7 +65,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-rose-600 dark:text-rose-400',
           bg: 'bg-rose-500/15 border-rose-500/30 shadow-rose-500/10',
           glow: 'group-hover:border-rose-500/50',
-          label: 'Câmera',
+          label: t('homeassistant.cameras', 'Câmera'),
         };
       case 'mobile':
         return {
@@ -70,7 +73,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-emerald-600 dark:text-emerald-400',
           bg: 'bg-emerald-500/15 border-emerald-500/30 shadow-emerald-500/10',
           glow: 'group-hover:border-emerald-500/50',
-          label: 'Dispositivo Móvel',
+          label: t('homeassistant.mobile_devices', 'Dispositivo Móvel'),
         };
       case 'climate':
         return {
@@ -78,7 +81,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-cyan-600 dark:text-cyan-400',
           bg: 'bg-cyan-500/15 border-cyan-500/30 shadow-cyan-500/10',
           glow: 'group-hover:border-cyan-500/50',
-          label: 'Climatização',
+          label: t('homeassistant.tab_climate', 'Climatização'),
         };
       case 'network':
         return {
@@ -86,7 +89,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-sky-600 dark:text-sky-400',
           bg: 'bg-sky-500/15 border-sky-500/30 shadow-sky-500/10',
           glow: 'group-hover:border-sky-500/50',
-          label: 'Rede & Internet',
+          label: t('homeassistant.tab_network', 'Rede & Internet'),
         };
       case 'system':
         if (device.id.includes('sun')) {
@@ -95,7 +98,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
             color: 'text-amber-600 dark:text-yellow-400',
             bg: 'bg-yellow-500/15 border-yellow-500/30 shadow-yellow-500/10',
             glow: 'group-hover:border-yellow-500/50',
-            label: 'Ciclo Solar',
+            label: t('homeassistant.solar_cycle', 'Ciclo Solar'),
           };
         }
         if (device.id.includes('backup')) {
@@ -104,7 +107,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
             color: 'text-blue-600 dark:text-blue-400',
             bg: 'bg-blue-500/15 border-blue-500/30 shadow-blue-500/10',
             glow: 'group-hover:border-blue-500/50',
-            label: 'Backups',
+            label: t('homeassistant.backups', 'Backups'),
           };
         }
         if (device.id.includes('cloud')) {
@@ -113,7 +116,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
             color: 'text-teal-600 dark:text-teal-400',
             bg: 'bg-teal-500/15 border-teal-500/30 shadow-teal-500/10',
             glow: 'group-hover:border-teal-500/50',
-            label: 'Nuvem & Voz',
+            label: t('homeassistant.cloud_voice', 'Nuvem & Voz'),
           };
         }
         return {
@@ -121,7 +124,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-violet-600 dark:text-violet-400',
           bg: 'bg-violet-500/15 border-violet-500/30 shadow-violet-500/10',
           glow: 'group-hover:border-violet-500/50',
-          label: 'Sistema',
+          label: t('homeassistant.tab_system', 'Sistema'),
         };
       case 'automation':
         return {
@@ -129,7 +132,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-amber-700 dark:text-amber-300',
           bg: 'bg-amber-500/15 border-amber-500/30 shadow-amber-500/10',
           glow: 'group-hover:border-amber-500/50',
-          label: 'Automação / Modo',
+          label: t('homeassistant.automation_mode', 'Automação / Modo'),
         };
       default:
         return {
@@ -137,7 +140,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           color: 'text-orbit-600 dark:text-orbit-400',
           bg: 'bg-orbit-500/15 border-orbit-500/30 shadow-orbit-500/10',
           glow: 'group-hover:border-orbit-500/50',
-          label: 'Dispositivo',
+          label: t('homeassistant.device', 'Dispositivo'),
         };
     }
   };
@@ -203,8 +206,8 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
           >
             <button
               disabled={isPending}
-              aria-label={`Alternar ${device.name}`}
-              title={`Alternar ${device.name}`}
+              aria-label={t('homeassistant.toggle_device', { name: device.name, defaultValue: `Alternar ${device.name}` })}
+              title={t('homeassistant.toggle_device', { name: device.name, defaultValue: `Alternar ${device.name}` })}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
                 isPrimaryOn
                   ? 'bg-orbit-500 border-orbit-400 shadow-md shadow-orbit-500/30'
@@ -239,7 +242,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
 
         <span className="inline-flex items-center gap-1.5 text-[11px] text-secondary/60 shrink-0 font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-orbit-500/70" />
-          {device.entities.length} {device.entities.length === 1 ? 'entidade' : 'entidades agrupadas'}
+          {device.entities.length} {device.entities.length === 1 ? t('homeassistant.entity_singular', 'entidade') : t('homeassistant.entities_grouped_label', 'entidades agrupadas')}
         </span>
       </div>
     </div>

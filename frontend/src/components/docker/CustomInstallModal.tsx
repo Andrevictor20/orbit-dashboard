@@ -195,7 +195,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
           <button 
             onClick={onClose} 
             className="p-2 text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors" 
-            aria-label="Fechar"
+            aria-label={t('common.close', 'Fechar')}
           >
             <X className="w-5 h-5" />
           </button>

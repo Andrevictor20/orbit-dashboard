@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Download, ArrowLeft, Settings, ChevronDown, Package } from 'lucide-react';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
@@ -16,6 +17,7 @@ interface AppStoreItem {
 }
 
 export function AppDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState<AppStoreItem | null>(null);
@@ -191,7 +193,7 @@ export function AppDetail() {
         className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Voltar
+        {t('common.back', 'Voltar')}
       </button>
 
       <div className="bg-background border shad-border rounded-xl p-8 flex flex-col md:flex-row gap-8 items-start">
@@ -199,26 +201,26 @@ export function AppDetail() {
           {app.icon ? (
             <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
           ) : (
-            <Package className="w-16 h-16 text-secondary" />
+            <Package className="w-16 h-16 text-gray-400" />
           )}
         </div>
 
         <div className="flex-1 space-y-4">
           <div>
             <h1 className="text-3xl font-bold">{app.name}</h1>
-            <p className="text-gray-400 mt-2 text-lg">{app.description}</p>
+            <p className="text-gray-400 mt-2 text-base leading-relaxed">{app.description}</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 py-4 border-y border-gray-800">
+          <div className="flex gap-6 py-2 border-y border-gray-800">
             <div>
-              <div className="text-xs text-gray-500 uppercase font-semibold">Categoria</div>
+              <div className="text-xs text-gray-500 uppercase font-semibold">{t('store.category', 'Categoria')}</div>
               <div className="mt-1 flex items-center gap-2">
                 <Package className="w-4 h-4 text-gray-400" />
                 <span>{app.category}</span>
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 uppercase font-semibold">Loja / Repositório</div>
+              <div className="text-xs text-gray-500 uppercase font-semibold">{t('store.store_repo', 'Loja / Repositório')}</div>
               <div className="mt-1 font-medium">{app.store}</div>
             </div>
           </div>
@@ -236,7 +238,7 @@ export function AppDetail() {
                   ) : (
                     <Download className="w-5 h-5" />
                   )}
-                  Instalar
+                  {t('store.install_app', 'Instalar')}
                 </button>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -254,7 +256,7 @@ export function AppDetail() {
                     className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-2"
                   >
                     <Settings className="w-4 h-4" />
-                    Instalação Personalizada
+                    {t('store.install_custom', 'Instalação Personalizada')}
                   </button>
                 </div>
               )}

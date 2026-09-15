@@ -95,7 +95,7 @@ export function CustomInstallVolumesTab({
                   type="button" 
                   onClick={() => setVolumes(volumes.filter((_, i) => i !== idx))}
                   className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                  title="Remover"
+                  title={t('common.remove', 'Remover')}
                 >
                   <X className="w-4 h-4" />
                 </button>

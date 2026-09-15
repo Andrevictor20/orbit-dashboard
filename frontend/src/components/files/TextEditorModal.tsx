@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Save, 
   X, 
@@ -95,6 +96,7 @@ function renderMarkdownToHtml(md: string): string {
 }
 
 export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps) {
+  const { t } = useTranslation();
   const [content, setContent] = useState<string>('');
   const [originalContent, setOriginalContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +124,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
     setError(null);
     fetch(`/api/files/content?path=${encodeURIComponent(file.path)}`)
       .then(async res => {
-        if (!res.ok) throw new Error('Falha ao carregar conteúdo do arquivo');
+        if (!res.ok) throw new Error(t('files.failed_load_file_content', 'Falha ao carregar conteúdo do arquivo'));
         return res.json();
       })
       .then(data => {
@@ -131,10 +133,10 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         setIsLoading(false);
       })
       .catch(err => {
-        setError(err.message || 'Erro ao abrir arquivo');
+        setError(err.message || t('files.error_opening', 'Erro ao abrir arquivo'));
         setIsLoading(false);
       });
-  }, [file.path]);
+  }, [file.path, t]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -149,14 +151,14 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         }),
       });
 
-      if (!res.ok) throw new Error('Erro ao salvar arquivo');
+      if (!res.ok) throw new Error(t('files.error_saving', 'Erro ao salvar arquivo'));
 
       setOriginalContent(content);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
       if (onSaved) onSaved();
     } catch (err: any) {
-      setError(err.message || 'Erro ao salvar alterações');
+      setError(err.message || t('files.error_saving_changes', 'Erro ao salvar alterações'));
     } finally {
       setIsSaving(false);
     }
@@ -164,7 +166,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
 
   const handleClose = () => {
     if (isDirty) {
-      if (window.confirm('Existem alterações não salvas. Deseja realmente fechar?')) {
+      if (window.confirm(t('files.unsaved_changes_confirm', 'Existem alterações não salvas. Deseja realmente fechar?'))) {
         onClose();
       }
     } else {
@@ -189,7 +191,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(content);
-    toast.success('Conteúdo copiado!');
+    toast.success(t('files.content_copied', 'Conteúdo copiado!'));
   };
 
   const lines = useMemo(() => content.split('\n'), [content]);
@@ -234,10 +236,10 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                   ? 'bg-orbit-500 text-white font-semibold shadow-sm'
                   : 'text-secondary hover:text-primary'
               }`}
-              title="Modo Código"
+              title={t('files.code_mode', 'Modo Código')}
             >
               <Code className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Código</span>
+              <span className="hidden xs:inline">{t('files.code', 'Código')}</span>
             </button>
 
             {hasPreview && (
@@ -250,10 +252,10 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                       ? 'bg-orbit-500 text-white font-semibold shadow-sm'
                       : 'text-secondary hover:text-primary'
                   }`}
-                  title={isHtml ? 'Prévia do Site' : 'Prévia Markdown'}
+                  title={isHtml ? t('files.site_preview', 'Prévia do Site') : t('files.markdown_preview', 'Prévia Markdown')}
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span className="hidden xs:inline">{isHtml ? 'Site' : 'Prévia'}</span>
+                  <span className="hidden xs:inline">{isHtml ? t('files.site', 'Site') : t('files.preview', 'Prévia')}</span>
                 </button>
 
                 <button
@@ -264,10 +266,10 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                       ? 'bg-orbit-500 text-white font-semibold shadow-sm'
                       : 'text-secondary hover:text-primary'
                   }`}
-                  title="Dividir tela (Código + Prévia)"
+                  title={t('files.split_screen', 'Dividir tela (Código + Prévia)')}
                 >
                   <Columns className="w-3.5 h-3.5" />
-                  <span>Dividido</span>
+                  <span>{t('files.split', 'Dividido')}</span>
                 </button>
               </>
             )}
@@ -277,14 +279,14 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
             {saveSuccess && (
               <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold animate-in fade-in">
                 <Check className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Salvo!</span>
+                <span className="hidden sm:inline">{t('files.saved', 'Salvo!')}</span>
               </span>
             )}
 
             <button
               onClick={handleCopyCode}
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              title="Copiar código"
+              title={t('files.copy_code', 'Copiar código')}
             >
               <Copy className="w-4 h-4" />
             </button>
@@ -293,7 +295,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
               data-testid="toggle-fullscreen-editor"
               onClick={toggleFullscreen}
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              title={isFullscreen ? 'Sair da Tela Cheia' : 'Tela Cheia'}
+              title={isFullscreen ? t('common.exit_fullscreen', 'Sair da Tela Cheia') : t('common.fullscreen', 'Tela Cheia')}
             >
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
@@ -309,14 +311,14 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
               }`}
             >
               {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>Salvar</span>
+              <span>{t('common.save', 'Salvar')}</span>
             </button>
 
             <button
               data-testid="close-text-modal"
               onClick={handleClose}
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              aria-label="Fechar editor"
+              aria-label={t('files.close_editor', 'Fechar editor')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -328,7 +330,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-secondary">
               <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
-              <span className="text-sm font-medium">Carregando conteúdo...</span>
+              <span className="text-sm font-medium">{t('files.loading_content', 'Carregando conteúdo...')}</span>
             </div>
           ) : error ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
@@ -338,7 +340,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl bg-accent text-primary text-xs font-medium"
               >
-                Fechar
+                {t('common.close', 'Fechar')}
               </button>
             </div>
           ) : (
@@ -360,7 +362,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                       data-testid="text-editor-area"
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder="Digite seu código ou texto aqui..."
+                      placeholder={t('files.editor_placeholder', 'Digite seu código ou texto aqui...')}
                       className="w-full h-full p-4 bg-transparent text-emerald-400 font-mono text-xs sm:text-sm resize-none focus:outline-none leading-relaxed selection:bg-orbit-500/30 overflow-auto"
                       spellCheck={false}
                       autoFocus
@@ -377,7 +379,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                       <div className="bg-card/95 px-4 py-2 flex items-center justify-between text-xs text-secondary border-b border-border">
                         <div className="flex items-center gap-2 font-medium text-primary">
                           <Globe className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
-                          <span>Prévia do Website (Live HTML)</span>
+                          <span>{t('files.site_preview_live', 'Prévia do Website (Live HTML)')}</span>
                         </div>
                       </div>
                       <iframe
@@ -392,7 +394,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                     <div className="max-w-3xl mx-auto py-2">
                       <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800 text-xs font-semibold text-orbit-600 dark:text-orbit-400">
                         <Sparkles className="w-4 h-4" />
-                        <span>Prévia Markdown Estilizada</span>
+                        <span>{t('files.markdown_preview_styled', 'Prévia Markdown Estilizada')}</span>
                       </div>
                       <div 
                         data-testid="markdown-preview-container"
@@ -403,7 +405,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-secondary gap-2">
                       <FileText className="w-10 h-10 text-zinc-600" />
-                      <p className="text-xs">Prévia não disponível para esta extensão.</p>
+                      <p className="text-xs">{t('files.preview_not_available', 'Prévia não disponível para esta extensão.')}</p>
                     </div>
                   )}
                 </div>
@@ -415,8 +417,8 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         {/* Footer */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2 border-t border-border bg-card text-[11px] sm:text-xs text-secondary shrink-0">
           <div className="flex items-center gap-3 sm:gap-6">
-            <span>Linhas: <strong className="text-primary font-mono">{lineCount}</strong></span>
-            <span>Caracteres: <strong className="text-primary font-mono">{charCount}</strong></span>
+            <span>{t('files.lines', 'Linhas:')} <strong className="text-primary font-mono">{lineCount}</strong></span>
+            <span>{t('files.characters', 'Caracteres:')} <strong className="text-primary font-mono">{charCount}</strong></span>
             <span className="uppercase font-mono px-2 py-0.5 rounded bg-accent text-primary font-semibold text-[10px]">
               {file.extension || 'TXT'}
             </span>
@@ -426,12 +428,12 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
             {isDirty ? (
               <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                Modificado
+                {t('files.modified', 'Modificado')}
               </span>
             ) : (
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Salvo
+                {t('files.saved_status', 'Salvo')}
               </span>
             )}
           </div>

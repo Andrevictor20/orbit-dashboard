@@ -1,0 +1,8 @@
+{
+  "microsd_card": "بطاقة مايكرو اس دي",
+  "external_hd_named": "محرك الأقراص الخارجي ({{name}})",
+  "external_storage": "التخزين الخارجي",
+  "primary_disk": "SSD / محرك الأقراص الأساسي",
+  "usb_drive": "فلاش USB / محرك الأقراص",
+  "system_storage": "تخزين النظام"
+}

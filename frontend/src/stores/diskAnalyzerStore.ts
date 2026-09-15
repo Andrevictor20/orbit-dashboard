@@ -85,7 +85,7 @@ export const diskAnalyzerStore = {
           scannedBytes: results.total_size 
         });
       } catch {
-        diskAnalyzerStore.setState({ error: 'Erro ao processar resultados da análise', isScanning: false });
+        diskAnalyzerStore.setState({ error: 'disk.process_results_error', isScanning: false });
       }
       if (eventSource) {
         eventSource.close();
@@ -95,7 +95,7 @@ export const diskAnalyzerStore = {
 
     eventSource.onerror = () => {
       diskAnalyzerStore.setState({ 
-        error: 'Conexão interrompida ou erro na análise', 
+        error: 'disk.connection_interrupted_error', 
         isScanning: false 
       });
       if (eventSource) {

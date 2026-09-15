@@ -103,10 +103,10 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-border/60 bg-accent/40 text-secondary font-semibold uppercase tracking-wider text-[10px]">
-              <th className="p-3">Entidade</th>
-              <th className="p-3">Nome Amigável</th>
-              <th className="p-3">Estado</th>
-              <th className="p-3 text-right">Ação</th>
+              <th className="p-3">{t('homeassistant.entity', 'Entidade')}</th>
+              <th className="p-3">{t('homeassistant.friendly_name', 'Nome Amigável')}</th>
+              <th className="p-3">{t('common.state', 'Estado')}</th>
+              <th className="p-3 text-right">{t('homeassistant.action', 'Ação')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
@@ -164,7 +164,7 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-xs text-secondary pt-2">
           <span>
-            Página {page} de {totalPages}
+            {t('homeassistant.page_of', { page, total: totalPages, defaultValue: `Página ${page} de ${totalPages}` })}
           </span>
           <div className="flex items-center gap-1">
             <button

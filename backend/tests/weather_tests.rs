@@ -43,5 +43,7 @@ async fn test_weather_endpoint_returns_json() {
     assert!(json.get("temperature_c").is_some());
     assert!(json.get("humidity").is_some());
     assert!(json.get("condition_text").is_some());
+    assert!(json.get("aqi").is_some());
+    assert!(json.get("aqi_label").is_some());
     assert_eq!(json["location_name"].as_str().unwrap(), "Sao Paulo");
 }

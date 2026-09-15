@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, 
   Network, 
@@ -41,6 +42,7 @@ interface SambaModalProps {
 }
 
 export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<SambaStatus | null>(null);
   const [shares, setShares] = useState<SambaShare[]>([]);
   const [loading, setLoading] = useState(false);
@@ -75,11 +77,11 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
         setShares(shData);
       }
     } catch {
-      toast.error('Erro ao carregar dados do Samba');
+      toast.error(t('files.samba_load_error', 'Erro ao carregar dados do Samba'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -88,19 +90,19 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
         const sanitized = folder.name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
         setShareName(sanitized);
         setSharePath(folder.path);
-        setComment(`Compartilhamento da pasta ${folder.name}`);
+        setComment(t('files.samba_folder_share_desc', { name: folder.name, defaultValue: `Compartilhamento da pasta ${folder.name}` }));
       } else {
         setShareName('');
         setSharePath('');
         setComment('');
       }
     }
-  }, [isOpen, folder, fetchStatusAndShares]);
+  }, [isOpen, folder, fetchStatusAndShares, t]);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
-    toast.success('Caminho de rede copiado!');
+    toast.success(t('files.samba_network_path_copied', 'Caminho de rede copiado!'));
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
@@ -119,13 +121,13 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
       });
 
       if (res.ok) {
-        toast.success(nextState ? 'Serviço Samba ativado' : 'Serviço Samba desativado');
+        toast.success(nextState ? t('files.samba_enabled', 'Serviço Samba ativado') : t('files.samba_disabled', 'Serviço Samba desativado'));
         fetchStatusAndShares();
       } else {
-        toast.error('Falha ao alternar serviço Samba');
+        toast.error(t('files.samba_toggle_failed', 'Falha ao alternar serviço Samba'));
       }
     } catch {
-      toast.error('Erro de conexão');
+      toast.error(t('files.connection_error', 'Erro de conexão'));
     } finally {
       setTogglingService(false);
     }
@@ -134,7 +136,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
   const handleCreateShare = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shareName.trim() || !sharePath.trim()) {
-      toast.error('Preencha o nome e o caminho do compartilhamento');
+      toast.error(t('files.samba_fill_name_and_path', 'Preencha o nome e o caminho do compartilhamento'));
       return;
     }
 
@@ -156,7 +158,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
       });
 
       if (res.ok) {
-        toast.success(`Pasta compartilhada com sucesso como '${shareName}'!`);
+        toast.success(t('files.samba_share_success', { name: shareName, defaultValue: `Pasta compartilhada com sucesso como '${shareName}'!` }));
         fetchStatusAndShares();
         if (!folder) {
           setShareName('');
@@ -165,17 +167,17 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
         }
       } else {
         const err = await res.text();
-        toast.error(`Erro: ${err || 'Não foi possível criar compartilhamento'}`);
+        toast.error(err ? `Erro: ${err}` : t('files.samba_create_failed', 'Não foi possível criar compartilhamento'));
       }
     } catch {
-      toast.error('Erro ao conectar com o servidor');
+      toast.error(t('files.samba_server_conn_error', 'Erro ao conectar com o servidor'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteShare = async (name: string) => {
-    if (!confirm(`Deseja realmente remover o compartilhamento '${name}'? Os arquivos não serão deletados.`)) {
+    if (!confirm(t('files.samba_confirm_remove', { name, defaultValue: `Deseja realmente remover o compartilhamento '${name}'? Os arquivos não serão deletados.` }))) {
       return;
     }
 
@@ -188,13 +190,13 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
       });
 
       if (res.ok) {
-        toast.success(`Compartilhamento '${name}' removido`);
+        toast.success(t('files.samba_share_removed', { name, defaultValue: `Compartilhamento '${name}' removido` }));
         fetchStatusAndShares();
       } else {
-        toast.error('Erro ao remover compartilhamento');
+        toast.error(t('files.samba_remove_error', 'Erro ao remover compartilhamento'));
       }
     } catch {
-      toast.error('Erro de conexão ao remover compartilhamento');
+      toast.error(t('files.samba_remove_conn_error', 'Erro de conexão ao remover compartilhamento'));
     }
   };
 
@@ -215,9 +217,9 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
               <Network className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-primary">Compartilhamento Samba (SMB)</h2>
+              <h2 className="text-base font-bold text-primary">{t('files.samba_network_sharing', 'Compartilhamento Samba (SMB)')}</h2>
               <p className="text-xs text-secondary">
-                Acesse seus arquivos diretamente pelo Windows Explorer, Mac Finder ou rede local
+                {t('files.samba_modal_desc', 'Acesse seus arquivos diretamente pelo Windows Explorer, Mac Finder ou rede local')}
               </p>
             </div>
           </div>
@@ -238,7 +240,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 <span className={`w-2.5 h-2.5 rounded-full ${status?.enabled ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-secondary/40'}`} />
                 <div>
                   <span className="text-xs font-semibold text-primary">
-                    Servidor Samba: {status?.enabled ? 'Ativo' : 'Desativado'}
+                    {t('files.samba_server_label', 'Servidor Samba')}: {status?.enabled ? t('files.samba_status_active', 'Ativo') : t('files.samba_status_inactive', 'Desativado')}
                   </span>
                   <div className="text-[11px] text-secondary font-mono">
                     IP LAN: <strong className="text-primary">{lanIp}</strong> | Workgroup: {status?.workgroup || 'WORKGROUP'}
@@ -257,7 +259,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 }`}
               >
                 <Power className={`w-3.5 h-3.5 ${togglingService ? 'animate-spin' : ''}`} />
-                <span>{status?.enabled ? 'Desativar' : 'Ativar Samba'}</span>
+                <span>{status?.enabled ? t('files.samba_disable', 'Desativar') : t('files.samba_enable', 'Ativar Samba')}</span>
               </button>
             </div>
 
@@ -268,7 +270,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 <button
                   onClick={() => handleCopy(`\\\\${lanIp}`, 'win_base')}
                   className="p-1 hover:text-orbit-500 transition-colors ml-2 text-secondary shrink-0"
-                  title="Copiar atalho Windows"
+                  title={t('files.samba_copy_win_shortcut', 'Copiar atalho Windows')}
                 >
                   {copiedKey === 'win_base' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
@@ -278,7 +280,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 <button
                   onClick={() => handleCopy(`smb://${lanIp}`, 'mac_base')}
                   className="p-1 hover:text-orbit-500 transition-colors ml-2 text-secondary shrink-0"
-                  title="Copiar atalho Mac / Linux"
+                  title={t('files.samba_copy_mac_shortcut', 'Copiar atalho Mac / Linux')}
                 >
                   {copiedKey === 'mac_base' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
@@ -290,17 +292,17 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
           <form onSubmit={handleCreateShare} className="bg-card border border-border/80 rounded-xl p-4 space-y-3 shadow-sm">
             <h3 className="text-xs font-bold text-primary flex items-center gap-1.5">
               <Plus className="w-4 h-4 text-orbit-500" />
-              {folder ? `Compartilhar Pasta: ${folder.name}` : 'Criar Novo Compartilhamento'}
+              {folder ? t('files.samba_share_folder_title', { name: folder.name, defaultValue: `Compartilhar Pasta: ${folder.name}` }) : t('files.samba_create_new_share', 'Criar Novo Compartilhamento')}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-medium text-secondary mb-1">
-                  Nome do Compartilhamento (Rede)
+                  {t('files.samba_share_name', 'Nome do Compartilhamento (Rede)')}
                 </label>
                 <input
                   type="text"
-                  placeholder="ex: public, backups, filmes"
+                  placeholder={t('files.samba_share_name_placeholder', 'ex: public, backups, filmes')}
                   value={shareName}
                   onChange={(e) => setShareName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                   className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500 font-mono"
@@ -310,11 +312,11 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
 
               <div>
                 <label className="block text-[11px] font-medium text-secondary mb-1">
-                  Caminho no Host
+                  {t('files.samba_host_path', 'Caminho no Host')}
                 </label>
                 <input
                   type="text"
-                  placeholder="/DATA ou caminho da pasta"
+                  placeholder={t('files.samba_host_path_placeholder', '/DATA ou caminho da pasta')}
                   value={sharePath}
                   onChange={(e) => setSharePath(e.target.value)}
                   className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500 font-mono"
@@ -325,11 +327,11 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
 
             <div>
               <label className="block text-[11px] font-medium text-secondary mb-1">
-                Descrição / Comentário (Opcional)
+                {t('files.samba_desc_optional', 'Descrição / Comentário (Opcional)')}
               </label>
               <input
                 type="text"
-                placeholder="ex: Arquivos e downloads da rede"
+                placeholder={t('files.samba_comment_placeholder', 'ex: Arquivos e downloads da rede')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500"
@@ -345,7 +347,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                     onChange={(e) => setGuestOk(e.target.checked)}
                     className="rounded border-border text-orbit-500 focus:ring-orbit-500"
                   />
-                  <span>Acesso Convidado (Sem Senha)</span>
+                  <span>{t('files.samba_guest_access', 'Acesso Convidado (Sem Senha)')}</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-secondary hover:text-primary">
@@ -355,7 +357,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                     onChange={(e) => setReadOnly(e.target.checked)}
                     className="rounded border-border text-orbit-500 focus:ring-orbit-500"
                   />
-                  <span>Somente Leitura</span>
+                  <span>{t('files.samba_read_only', 'Somente Leitura')}</span>
                 </label>
               </div>
 
@@ -369,7 +371,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 ) : (
                   <FolderSymlink className="w-3.5 h-3.5" />
                 )}
-                <span>Salvar Compartilhamento</span>
+                <span>{t('files.samba_save_share', 'Salvar Compartilhamento')}</span>
               </button>
             </div>
           </form>
@@ -377,13 +379,13 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
           {/* Active Shares List */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-primary flex items-center justify-between">
-              <span>Compartilhamentos Ativos ({shares.length})</span>
+              <span>{t('files.samba_active_shares', { count: shares.length, defaultValue: `Compartilhamentos Ativos (${shares.length})` })}</span>
               {loading && <RefreshCw className="w-3 h-3 animate-spin text-orbit-500" />}
             </h3>
 
             {shares.length === 0 ? (
               <div className="text-center py-6 text-xs text-secondary bg-accent/20 rounded-xl border border-dashed border-border/80">
-                Nenhum compartilhamento configurado ainda.
+                {t('files.samba_no_shares', 'Nenhum compartilhamento configurado ainda.')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -405,15 +407,15 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                               ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
                               : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                           }`}>
-                            {sh.read_only ? 'Leitura' : 'Leitura & Escrita'}
+                            {sh.read_only ? t('files.samba_read', 'Leitura') : t('files.samba_read_write', 'Leitura & Escrita')}
                           </span>
                           {sh.guest_ok ? (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30 font-mono font-medium flex items-center gap-0.5">
-                              <ShieldCheck className="w-2.5 h-2.5" /> Público
+                              <ShieldCheck className="w-2.5 h-2.5" /> {t('files.public', 'Público')}
                             </span>
                           ) : (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 font-mono font-medium flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Autenticado
+                              <Lock className="w-2.5 h-2.5" /> {t('files.authenticated', 'Autenticado')}
                             </span>
                           )}
                         </div>
@@ -442,7 +444,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                         <button
                           onClick={() => handleDeleteShare(sh.name)}
                           className="p-1.5 text-secondary hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors"
-                          title="Remover compartilhamento"
+                          title={t('files.samba_remove_share', 'Remover compartilhamento')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -461,7 +463,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
             onClick={onClose}
             className="px-4 py-2 bg-card hover:bg-accent border border-border rounded-xl text-xs font-semibold text-secondary hover:text-primary transition-colors"
           >
-            Fechar
+            {t('common.close', 'Fechar')}
           </button>
         </div>
       </div>

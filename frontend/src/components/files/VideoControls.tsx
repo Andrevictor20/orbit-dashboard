@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Play, 
   Pause, 
@@ -48,6 +49,7 @@ export function VideoControls({
   showControls,
   children,
 }: VideoControlsProps) {
+  const { t } = useTranslation();
   const bufferedPercent = duration > 0 ? Math.min(100, (bufferedEnd / duration) * 100) : 0;
 
   return (
@@ -158,7 +160,7 @@ export function VideoControls({
           <button
             onClick={onToggleFullscreen}
             className="p-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-            title="Tela Cheia"
+            title={t('files.fullscreen', 'Tela Cheia')}
           >
             <Maximize className="w-4 h-4" />
           </button>

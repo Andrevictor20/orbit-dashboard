@@ -1,0 +1,15 @@
+{
+  "title": "私のアカウント",
+  "admin_user": "管理者",
+  "tab_account": "アカウントとセキュリティ",
+  "tab_integrations": "統合",
+  "tab_system": "サーバーとポート",
+  "tab_customization": "外観と背景",
+  "current_password": "現在のパスワード",
+  "new_password": "新しいパスワード",
+  "confirm_password": "新しいパスワードを確認する",
+  "change_password": "パスワードの変更",
+  "password_updated": "パスワードが正常に更新されました。",
+  "password_error": "現在のパスワードが無効か、サーバーエラーです。",
+  "invalid_current_password": "現在のパスワードが間違っているか、サーバーエラーです。"
+}

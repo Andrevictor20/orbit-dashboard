@@ -24,8 +24,8 @@ export function AlertsPanel() {
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <h4 className="text-sm font-medium text-emerald-400/90">Sistemas Estáveis</h4>
-            <p className="text-[11px] text-secondary">Nenhuma anomalia registrada nas últimas 24h.</p>
+            <h4 className="text-sm font-medium text-emerald-400/90">{t('metrics.systems_stable', 'Sistemas Estáveis')}</h4>
+            <p className="text-[11px] text-secondary">{t('metrics.no_anomalies_24h', 'Nenhuma anomalia registrada nas últimas 24h.')}</p>
           </div>
         </div>
       ) : (

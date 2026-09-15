@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Terminal as TerminalIcon, Copy, ClipboardPaste, Trash2 } from 'lucide-react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -10,6 +11,7 @@ interface ContainerTerminalTabProps {
 }
 
 export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
+  const { t } = useTranslation();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -55,7 +57,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
       if (saved) {
         sessionBuffer = saved;
         term.write(saved);
-        term.writeln('\r\n\x1b[33m--- Contexto restaurado da sessão anterior (F5) ---\x1b[0m');
+        term.writeln(`\r\n\x1b[33m--- ${t('docker.restored_context', 'Contexto restaurado da sessão anterior (F5)')} ---\x1b[0m`);
       }
     } catch {}
 
@@ -76,7 +78,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
         if (term.hasSelection() || event.shiftKey) {
           const selected = term.getSelection();
           if (selected) {
-            navigator.clipboard.writeText(selected).then(() => toast.success('Copiado!')).catch(() => {});
+            navigator.clipboard.writeText(selected).then(() => toast.success(t('common.copied', 'Copiado!'))).catch(() => {});
             return false;
           }
         }
@@ -91,7 +93,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
     });
 
     ws.onopen = () => {
-      term.writeln('\x1b[1;32mConectado ao shell do container...\x1b[0m');
+      term.writeln(`\x1b[1;32m${t('docker.connected_to_shell', 'Conectado ao shell do container...')}\x1b[0m`);
       sendResize(term.cols, term.rows);
     };
 
@@ -104,7 +106,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
     };
 
     ws.onclose = () => {
-      term.writeln('\r\n\x1b[1;31mConexão encerrada.\x1b[0m');
+      term.writeln(`\r\n\x1b[1;31m${t('docker.connection_closed', 'Conexão encerrada.')}\x1b[0m`);
     };
 
     term.onData((data) => {
@@ -140,7 +142,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
       <div className="bg-black/50 p-3 border-b border-border flex justify-between items-center">
         <div className="flex items-center gap-2">
           <TerminalIcon className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-semibold text-primary">Shell TTY do Container (sh)</span>
+          <span className="text-sm font-semibold text-primary">{t('docker.shell_tty', 'Shell TTY do Container (sh)')}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -148,32 +150,32 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
               if (xtermRef.current) {
                 const sel = xtermRef.current.getSelection();
                 if (sel) {
-                  navigator.clipboard.writeText(sel).then(() => toast.success('Copiado!')).catch(() => {});
+                  navigator.clipboard.writeText(sel).then(() => toast.success(t('common.copied', 'Copiado!'))).catch(() => {});
                 } else {
-                  toast('Selecione um texto para copiar');
+                  toast(t('docker.select_text_to_copy', 'Selecione um texto para copiar'));
                 }
               }
             }}
             className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
-            title="Copiar Seleção"
+            title={t('docker.copy_selection', 'Copiar Seleção')}
           >
             <Copy className="w-3 h-3" />
-            <span>Copiar</span>
+            <span>{t('common.copy', 'Copiar')}</span>
           </button>
           <button
             onClick={() => {
               navigator.clipboard.readText().then(text => {
                 if (text && wsRef.current?.readyState === WebSocket.OPEN) {
                   wsRef.current.send(text);
-                  toast.success('Conteúdo colado!');
+                  toast.success(t('docker.content_pasted', 'Conteúdo colado!'));
                 }
-              }).catch(() => toast.error('Permissão necessária para colar'));
+              }).catch(() => toast.error(t('docker.clipboard_paste_permission', 'Permissão necessária para colar')));
             }}
             className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
-            title="Colar da Área de Transferência"
+            title={t('docker.paste_from_clipboard', 'Colar da Área de Transferência')}
           >
             <ClipboardPaste className="w-3 h-3" />
-            <span>Colar</span>
+            <span>{t('common.paste', 'Colar')}</span>
           </button>
           <button
             onClick={() => {
@@ -185,7 +187,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
               }
             }}
             className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2 py-1 rounded transition-colors"
-            title="Limpar Terminal"
+            title={t('docker.clear_terminal', 'Limpar Terminal')}
           >
             <Trash2 className="w-3 h-3" />
           </button>

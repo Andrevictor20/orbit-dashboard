@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { FileText, Download, X, ZoomIn, ZoomOut, ExternalLink, Maximize, Minimize, Loader2, AlertCircle } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 
@@ -9,6 +10,7 @@ interface PdfViewerModalProps {
 }
 
 export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
+  const { t } = useTranslation();
   const [zoom, setZoom] = useState(100);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -31,7 +33,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => {
-        if (!res.ok) throw new Error('Não foi possível carregar o arquivo PDF.');
+        if (!res.ok) throw new Error(t('files.failed_load_pdf', 'Não foi possível carregar o arquivo PDF.'));
         return res.blob();
       })
       .then(blob => {
@@ -92,7 +94,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               <h3 className="font-semibold text-primary text-sm sm:text-base truncate max-w-[150px] xs:max-w-xs sm:max-w-md" title={file.name}>
                 {file.name}
               </h3>
-              <p className="text-[11px] text-secondary">Documento PDF</p>
+              <p className="text-[11px] text-secondary">{t('files.pdf_document', 'Documento PDF')}</p>
             </div>
           </div>
 
@@ -102,7 +104,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               <button
                 onClick={() => setZoom(z => Math.max(50, z - 25))}
                 className="p-1 text-secondary hover:text-primary transition-colors"
-                title="Reduzir Zoom"
+                title={t('files.zoom_out', 'Reduzir Zoom')}
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
@@ -110,7 +112,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               <button
                 onClick={() => setZoom(z => Math.min(200, z + 25))}
                 className="p-1 text-secondary hover:text-primary transition-colors"
-                title="Aumentar Zoom"
+                title={t('files.zoom_in', 'Aumentar Zoom')}
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
@@ -121,7 +123,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               data-testid="toggle-fullscreen-pdf"
               onClick={toggleFullscreen}
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              title={isFullscreen ? 'Sair da Tela Cheia' : 'Tela Cheia'}
+              title={isFullscreen ? t('files.exit_fullscreen', 'Sair da Tela Cheia') : t('files.fullscreen', 'Tela Cheia')}
             >
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
@@ -132,10 +134,10 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               target="_blank"
               rel="noreferrer"
               className="flex sm:hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 transition-colors text-xs font-semibold shadow-sm"
-              title="Abrir no leitor nativo do celular"
+              title={t('files.open_in_mobile_reader', 'Abrir no leitor nativo do celular')}
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Abrir no Celular</span>
+              <span>{t('files.open_mobile', 'Abrir no Celular')}</span>
             </a>
 
             {/* Download Button */}
@@ -155,7 +157,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               target="_blank"
               rel="noreferrer"
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              title="Abrir em nova aba"
+              title={t('files.open_in_new_tab', 'Abrir em nova aba')}
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -165,7 +167,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               data-testid="close-pdf-modal"
               onClick={onClose}
               className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              aria-label="Fechar PDF"
+              aria-label={t('files.close_pdf', 'Fechar PDF')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -177,7 +179,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 text-secondary">
               <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
-              <span className="text-sm font-medium">Carregando PDF...</span>
+              <span className="text-sm font-medium">{t('files.loading_pdf', 'Carregando PDF...')}</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center gap-3 text-secondary p-6 text-center">
@@ -189,7 +191,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                 rel="noreferrer"
                 className="px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors"
               >
-                Abrir em nova aba
+                {t('files.open_in_new_tab', 'Abrir em nova aba')}
               </a>
             </div>
           ) : (
@@ -206,7 +208,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               >
                 <div className="flex flex-col items-center justify-center h-full gap-3 p-6 text-center text-secondary">
                   <FileText className="w-12 h-12 text-zinc-600" />
-                  <p className="text-sm font-medium text-primary">Não foi possível embutir o PDF diretamente.</p>
+                  <p className="text-sm font-medium text-primary">{t('files.pdf_embed_failed', 'Não foi possível embutir o PDF diretamente.')}</p>
                   <div className="flex gap-2">
                     <a
                       href={pdfUrl}
@@ -214,14 +216,14 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                       rel="noreferrer"
                       className="px-3 py-1.5 rounded-xl bg-orbit-500/20 text-orbit-600 dark:text-orbit-400 border border-orbit-500/30 text-xs font-semibold"
                     >
-                      Abrir em nova aba
+                      {t('files.open_in_new_tab', 'Abrir em nova aba')}
                     </a>
                     <a
                       href={downloadUrl}
                       download={file.name}
                       className="px-3 py-1.5 rounded-xl bg-accent text-primary text-xs font-semibold"
                     >
-                      Baixar arquivo
+                      {t('files.download_file', 'Baixar arquivo')}
                     </a>
                   </div>
                 </div>

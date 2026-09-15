@@ -67,8 +67,8 @@ export function MobilePreferencesDropdown({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary active:scale-95 shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
-        title="Preferências (Tema e Idioma)"
-        aria-label="Preferências (Tema e Idioma)"
+        title={t('header.preferences_tooltip', 'Preferências (Tema e Idioma)')}
+        aria-label={t('header.preferences_tooltip', 'Preferências (Tema e Idioma)')}
         aria-expanded={isOpen}
       >
         <Palette className="w-4 h-4" />
@@ -83,7 +83,7 @@ export function MobilePreferencesDropdown({
             <button
               onClick={() => setIsOpen(false)}
               className="p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
-              aria-label="Fechar preferências"
+              aria-label={t('header.close_preferences', 'Fechar preferências')}
             >
               <X className="w-3.5 h-3.5" />
             </button>

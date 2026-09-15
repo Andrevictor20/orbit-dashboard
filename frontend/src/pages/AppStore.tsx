@@ -88,7 +88,7 @@ export function AppStore() {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      const loadingToast = toast.loading('Sincronizando lojas de aplicativos...');
+      const loadingToast = toast.loading(t('store.syncing_stores', 'Sincronizando lojas de aplicativos...'));
       const token = localStorage.getItem('orbit_token');
       const res = await fetch('/api/store/sync', {
         method: 'POST',
@@ -96,14 +96,14 @@ export function AppStore() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`Catálogo atualizado! (${data.total_apps || 0} apps)`, { id: loadingToast });
+        toast.success(t('store.catalog_updated', { count: data.total_apps || 0, defaultValue: `Catálogo atualizado! (${data.total_apps || 0} apps)` }), { id: loadingToast });
         queryClient.invalidateQueries({ queryKey: STORE_APPS_QUERY_KEY });
       } else {
-        toast.error('Erro ao sincronizar lojas.', { id: loadingToast });
+        toast.error(t('store.sync_error', 'Erro ao sincronizar lojas.'), { id: loadingToast });
       }
     } catch (err: any) {
       console.error('Sync error:', err);
-      toast.error('Erro de conexão ao sincronizar.');
+      toast.error(t('store.sync_connection_error', 'Erro de conexão ao sincronizar.'));
     } finally {
       setSyncing(false);
     }
@@ -302,9 +302,9 @@ export function AppStore() {
                 <Package className="w-8 h-8" />
               </div>
               <div className="space-y-1 max-w-md">
-                <h3 className="text-lg font-bold text-primary">Nenhum aplicativo no catálogo local</h3>
+                <h3 className="text-lg font-bold text-primary">{t('store.no_apps_local', 'Nenhum aplicativo no catálogo local')}</h3>
                 <p className="text-xs sm:text-sm text-secondary">
-                  O catálogo está sendo baixado em segundo plano ou você pode iniciar a sincronização imediata agora.
+                  {t('store.no_apps_local_desc', 'O catálogo está sendo baixado em segundo plano ou você pode iniciar a sincronização imediata agora.')}
                 </p>
               </div>
               <div className="flex items-center gap-3 pt-2">
@@ -314,14 +314,14 @@ export function AppStore() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-md shadow-orbit-500/20 transition-all active:scale-[0.98]"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                  <span>{syncing ? 'Sincronizando...' : 'Sincronizar Catálogo'}</span>
+                  <span>{syncing ? t('store.syncing', 'Sincronizando...') : t('store.sync_catalog', 'Sincronizar Catálogo')}</span>
                 </button>
                 <button
                   onClick={() => setIsDockerInstallOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-card hover:bg-accent border border-border text-secondary hover:text-primary transition-all active:scale-[0.98]"
                 >
                   <Terminal className="w-3.5 h-3.5" />
-                  <span>Instalar Manualmente</span>
+                  <span>{t('store.install_manual', 'Instalar Manualmente')}</span>
                 </button>
               </div>
             </div>
@@ -344,13 +344,13 @@ export function AppStore() {
                   <div className="flex items-center gap-2">
                     <Flame className="w-4 h-4 text-amber-500" />
                     <span className="text-base font-bold text-primary tracking-tight">Trending Now</span>
-                    <span className="text-xs text-secondary">· Populares na comunidade</span>
+                    <span className="text-xs text-secondary">· {t('store.popular_community', 'Populares na comunidade')}</span>
                   </div>
                   <button 
                     onClick={() => setSelectedCategory('All')}
                     className="text-xs font-semibold text-orbit-400 hover:text-orbit-300 transition-colors flex items-center gap-1"
                   >
-                    <span>Ver todos</span>
+                    <span>{t('store.view_all', 'Ver todos')}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -377,8 +377,12 @@ export function AppStore() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <LayoutGrid className="w-4 h-4 text-orbit-500" />
-                    <span className="text-base font-bold text-primary tracking-tight">Catálogo de Aplicações</span>
-                    <span className="text-xs text-secondary">({filteredApps.length} disponíveis)</span>
+                    <span className="text-base font-bold text-primary tracking-tight">
+                      {t('store.catalog_applications', 'Catálogo de Aplicações')}
+                    </span>
+                    <span className="text-xs text-secondary">
+                      {t('store.available_count', { count: filteredApps.length, defaultValue: `(${filteredApps.length} disponíveis)` })}
+                    </span>
                   </div>
                 </div>
 
@@ -405,10 +409,12 @@ export function AppStore() {
               <div className="flex items-center justify-between pb-1 border-b border-border/50">
                 <div>
                   <h2 className="text-base font-bold text-primary tracking-tight">
-                    {selectedCategory === 'All' ? 'Todas as Aplicações' : selectedCategory}
+                    {selectedCategory === 'All' ? t('store.all_applications', 'Todas as Aplicações') : selectedCategory}
                   </h2>
                   <p className="text-xs text-secondary mt-0.5">
-                    {filteredApps.length} {filteredApps.length === 1 ? 'aplicativo encontrado' : 'aplicativos encontrados'}
+                    {filteredApps.length === 1
+                      ? t('store.apps_found_one', { count: 1, defaultValue: '1 aplicativo encontrado' })
+                      : t('store.apps_found_other', { count: filteredApps.length, defaultValue: `${filteredApps.length} aplicativos encontrados` })}
                   </p>
                 </div>
               </div>
@@ -431,9 +437,9 @@ export function AppStore() {
                 {filteredApps.length === 0 && (
                   <div className="col-span-full py-16 text-center space-y-3 bg-card/20 rounded-2xl border border-dashed border-border/60">
                     <Package className="w-10 h-10 text-secondary/50 mx-auto" />
-                    <p className="text-sm font-semibold text-primary">Nenhum aplicativo encontrado</p>
+                    <p className="text-sm font-semibold text-primary">{t('store.no_apps_found', 'Nenhum aplicativo encontrado')}</p>
                     <p className="text-xs text-secondary max-w-sm mx-auto">
-                      Não encontramos apps com o termo "{search}". Tente buscar por outra categoria ou termo.
+                      {t('store.no_apps_search_desc', { term: search, defaultValue: `Não encontramos apps com o termo "${search}". Tente buscar por outra categoria ou termo.` })}
                     </p>
                   </div>
                 )}

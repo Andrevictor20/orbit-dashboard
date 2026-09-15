@@ -10,4 +10,10 @@ export * from './DeviceCardSystem';
 export * from './RawEntitiesTable';
 export * from './DeviceGroupCard';
 export * from './DeviceDetailModal';
+export * from './HAConnectView';
+export * from './HAHeader';
+export * from './HAToolbar';
+export * from './HADevicesTab';
+export * from './HAQuickScenes';
+export * from './useHomeAssistant';
 

@@ -1,46 +1,44 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  Folder, 
-  Upload, 
-  Search, 
-  Loader2 
-} from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   FileSidebar,
   FileToolbar,
   FileBreadcrumbs,
-  FileGridView,
-  FileTableView,
-  FileTrashView,
-  AudioPlayerModal,
-  VideoPlayerModal,
-  TextEditorModal,
-  PdfViewerModal,
-  ImageGalleryModal,
-  DiskAnalyzerModal,
-  ShareModal,
-  FileOperationsModal,
-  SambaModal,
+  FileModalsContainer,
+  FileContentArea,
+  useFileManagerOperations,
+  useFileManagerNavigation,
 } from '../components/files';
-import { useUploadManager } from '../contexts/UploadManagerContext';
 import type { OperationType } from '../components/files/FileOperationsModal';
 import type { FileItem, MountItem, ShortcutPlace, TrashItem } from '../types/fileManager';
 export type { FileItem, MountItem, ShortcutPlace, TrashItem };
 export { IMAGE_EXTENSIONS, ARCHIVE_EXTENSIONS, CODE_EXTENSIONS } from '../types/fileManager';
-import { useTasks } from '../contexts/InstallContext';
 import { isPhysicalStorage } from '../utils/format';
 
 export function FileManager() {
   const { t } = useTranslation();
-  const { startTask } = useTasks();
-  const { enqueueMultipleUploads } = useUploadManager();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const urlPath = searchParams.get('path');
-  const isTrashView = urlPath === '__trash__';
-  const [currentPath, setCurrentPath] = useState<string>(isTrashView ? '/' : (urlPath || '/'));
+  const nav = useFileManagerNavigation();
+  const {
+    urlPath,
+    isTrashView,
+    currentPath,
+    setCurrentPath,
+    history,
+    historyIndex,
+    isEditingPath,
+    setIsEditingPath,
+    manualPathInput,
+    setManualPathInput,
+    navigateTo,
+    navigateToTrash,
+    handleGoBack,
+    handleGoForward,
+    handleManualPathSubmit,
+    currentFolderName,
+    breadcrumbSegments,
+  } = nav;
+
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -50,10 +48,6 @@ export function FileManager() {
   const [sortAsc, setSortAsc] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(false);
-
-  // History navigation stack
-  const [history, setHistory] = useState<string[]>([currentPath]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
 
   // Clipboard for Copy / Cut
   const [clipboard, setClipboard] = useState<{
@@ -67,10 +61,6 @@ export function FileManager() {
   // Dropdown menus
   const [showCreateMenu, setShowCreateMenu] = useState<boolean>(false);
   const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
-
-  // Manual path editing
-  const [isEditingPath, setIsEditingPath] = useState<boolean>(false);
-  const [manualPathInput, setManualPathInput] = useState<string>(currentPath);
 
   // Shortcuts & Disks
   const [places, setPlaces] = useState<ShortcutPlace[]>([]);
@@ -135,7 +125,7 @@ export function FileManager() {
     setSelectedItems([]);
     fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
       .then(res => {
-        if (!res.ok) throw new Error('Não foi possível listar arquivos');
+        if (!res.ok) throw new Error(t('files.failed_list_files', 'Não foi possível listar arquivos'));
         return res.json();
       })
       .then(data => {
@@ -147,7 +137,7 @@ export function FileManager() {
       })
       .catch(() => {
         if (path !== '/') {
-          toast.error(`Diretório ${path} não encontrado. Retornando para a raiz.`);
+          toast.error(t('files.dir_not_found', { path, defaultValue: `Diretório ${path} não encontrado. Retornando para a raiz.` }));
           navigateTo('/');
         } else {
           setFiles([]);
@@ -156,14 +146,31 @@ export function FileManager() {
       });
   };
 
+  const ops = useFileManagerOperations({
+    currentPath,
+    loadFiles,
+    loadTrash,
+    navigateTo,
+    fileInputRef,
+    folderInputRef,
+    selectedItems,
+    setSelectedItems,
+    clipboard,
+    setClipboard,
+    setActiveImageFile,
+    setActiveAudioFile,
+    setActiveVideoFile,
+    setActivePdfFile,
+    setActiveTextFile,
+    setIsDraggingOver,
+  });
+
   // Sync with URL query parameter
   useEffect(() => {
     if (urlPath === '__trash__' || isTrashView) {
       loadTrash();
-    } else if (urlPath && urlPath !== currentPath) {
-      setCurrentPath(urlPath);
     }
-  }, [urlPath]);
+  }, [urlPath, isTrashView]);
 
   // Load shortcuts and storages once
   useEffect(() => {
@@ -199,7 +206,6 @@ export function FileManager() {
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is in an input or modal
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
       if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
@@ -214,7 +220,7 @@ export function FileManager() {
         selectAll();
       } else if (e.key === 'Delete' && selectedItems.length > 0) {
         e.preventDefault();
-        handleMoveToTrash(selectedItems);
+        ops.handleMoveToTrash(selectedItems);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -230,332 +236,7 @@ export function FileManager() {
     };
     window.addEventListener('orbit:files_changed', handleFilesChanged);
     return () => window.removeEventListener('orbit:files_changed', handleFilesChanged);
-  }, [currentPath, loadFiles]);
-
-  // Upload handler via Chunked Resumable Upload Manager
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-
-    const filesArray = Array.from(fileList);
-    await enqueueMultipleUploads(filesArray, currentPath);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  // Folder upload handler via Task System
-  const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-
-    const filesArray = Array.from(fileList);
-    const formData = new FormData();
-    filesArray.forEach((f) => {
-      const relativePath = (f as any).webkitRelativePath || f.name;
-      formData.append('files', f, relativePath);
-    });
-
-    startTask({
-      type: 'file_upload',
-      title: `Upload de Pasta (${filesArray.length} itens)`,
-      destinationUrl: `/files?path=${encodeURIComponent(currentPath)}`,
-      initialLogs: [
-        `[INFO] Iniciando upload de pasta com ${filesArray.length} itens para ${currentPath}...`,
-      ],
-      runner: async (helpers) => {
-        helpers.setProgress(40);
-        helpers.setStatus('running');
-        const token = localStorage.getItem('orbit_token');
-        const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-        helpers.setProgress(90);
-        if (!res.ok) throw new Error('Falha no upload da pasta.');
-        helpers.setDone(`Upload de pasta concluído com sucesso!`);
-        toast.success(`Pasta enviada com sucesso!`);
-        loadFiles(currentPath);
-      }
-    });
-
-    if (folderInputRef.current) folderInputRef.current.value = '';
-  };
-
-  // External Drag & Drop
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingOver(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const filesArray = Array.from(e.dataTransfer.files);
-      await enqueueMultipleUploads(filesArray, currentPath);
-    }
-  };
-
-  // Internal Drag & Drop (Move items)
-  const handleInternalDrop = async (e: React.DragEvent, targetDestination: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rawData = e.dataTransfer.getData('text/plain');
-    if (!rawData) return;
-
-    try {
-      const paths: string[] = JSON.parse(rawData);
-      if (!Array.isArray(paths) || paths.length === 0) return;
-
-      for (const p of paths) {
-        if (p === targetDestination) continue;
-        const fileName = p.split('/').pop() || '';
-        const destPath = targetDestination === '/' ? `/${fileName}` : `${targetDestination}/${fileName}`;
-        
-        await fetch('/api/files/move', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: p, destination: destPath }),
-        });
-      }
-
-      toast.success(`${paths.length} item(s) movido(s)!`);
-      loadFiles(currentPath);
-    } catch {
-      // Ignored
-    }
-  };
-
-  // Click on File or Folder
-  const handleItemClick = (item: FileItem) => {
-    if (item.is_dir) {
-      navigateTo(item.path);
-      return;
-    }
-
-    const ext = item.extension.toLowerCase();
-
-    // Image viewer
-    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'].includes(ext)) {
-      setActiveImageFile(item);
-      return;
-    }
-
-    // Audio player
-    if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
-      setActiveAudioFile(item);
-      return;
-    }
-
-    // Video player
-    if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
-      setActiveVideoFile(item);
-      return;
-    }
-
-    // PDF viewer
-    if (ext === 'pdf') {
-      setActivePdfFile(item);
-      return;
-    }
-
-    // Code & Text Editor
-    const textExtensions = [
-      'txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'py', 'rs', 'go', 'c', 'cpp',
-      'h', 'html', 'css', 'scss', 'yml', 'yaml', 'toml', 'xml', 'sql', 'sh', 'env',
-      'dockerfile', 'gitignore', 'conf', 'ini', 'log', 'csv'
-    ];
-    if (textExtensions.includes(ext) || item.size < 500 * 1024) {
-      setActiveTextFile(item);
-      return;
-    }
-
-    // Fallback: Direct download
-    handleDownload(item);
-  };
-
-  // Archive Extraction
-  const handleExtractArchive = async (item: FileItem) => {
-    const toastId = toast.loading(`Extraindo ${item.name}...`);
-    try {
-      const res = await fetch('/api/files/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: item.path, destination: currentPath }),
-      });
-      if (res.ok) {
-        toast.success(`Arquivo ${item.name} extraído com sucesso!`, { id: toastId });
-        loadFiles(currentPath);
-      } else {
-        const err = await res.json();
-        toast.error(err.error || 'Erro ao extrair arquivo', { id: toastId });
-      }
-    } catch {
-      toast.error('Falha ao comunicar com o servidor', { id: toastId });
-    }
-  };
-
-  // Trash Operations
-  const handleRestoreTrash = async (ids: string[]) => {
-    const toastId = toast.loading('Restaurando itens da lixeira...');
-    try {
-      const res = await fetch('/api/files/trash/restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
-      });
-      if (res.ok) {
-        toast.success('Itens restaurados com sucesso!', { id: toastId });
-        loadTrash();
-      } else {
-        toast.error('Erro ao restaurar itens', { id: toastId });
-      }
-    } catch {
-      toast.error('Falha de conexão', { id: toastId });
-    }
-  };
-
-  const handleEmptyTrash = async () => {
-    if (!window.confirm('Tem certeza que deseja esvaziar permanentemente toda a lixeira?')) return;
-    const toastId = toast.loading('Esvaziando lixeira...');
-    try {
-      const res = await fetch('/api/files/trash/empty', { method: 'DELETE' });
-      if (res.ok) {
-        toast.success('Lixeira esvaziada com sucesso!', { id: toastId });
-        loadTrash();
-      } else {
-        toast.error('Erro ao esvaziar lixeira', { id: toastId });
-      }
-    } catch {
-      toast.error('Falha de conexão', { id: toastId });
-    }
-  };
-
-  const handleMoveToTrash = async (items: FileItem[]) => {
-    const paths = items.map(i => i.path);
-    const count = paths.length;
-    const toastId = toast.loading(`Movendo ${count} item(s) para a lixeira...`);
-    try {
-      const res = await fetch('/api/files/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths, permanent: false }),
-      });
-      if (res.ok) {
-        toast.success(`${count} item(s) movido(s) para a lixeira!`, { id: toastId });
-        loadFiles(currentPath);
-        setSelectedItems([]);
-      } else {
-        toast.error('Erro ao mover itens para a lixeira', { id: toastId });
-      }
-    } catch {
-      toast.error('Falha na requisição', { id: toastId });
-    }
-  };
-
-  // Copy & Cut Operations
-  const handleCopy = (items: FileItem[]) => {
-    setClipboard({ action: 'copy', items });
-    toast.success(`${items.length} item(s) copiado(s)`);
-  };
-
-  const handleCut = (items: FileItem[]) => {
-    setClipboard({ action: 'cut', items });
-    toast.success(`${items.length} item(s) recortado(s)`);
-  };
-
-  const handlePaste = async () => {
-    if (!clipboard || clipboard.items.length === 0) return;
-    const toastId = toast.loading(`${clipboard.action === 'cut' ? 'Movendo' : 'Copiando'} ${clipboard.items.length} item(s)...`);
-
-    try {
-      for (const item of clipboard.items) {
-        const fileName = item.name;
-        const destPath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
-
-        if (clipboard.action === 'cut') {
-          await fetch('/api/files/move', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source: item.path, destination: destPath }),
-          });
-        } else {
-          await fetch('/api/files/copy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source: item.path, destination: destPath }),
-          });
-        }
-      }
-
-      toast.success('Operação concluída com sucesso!', { id: toastId });
-      if (clipboard.action === 'cut') setClipboard(null);
-      loadFiles(currentPath);
-    } catch {
-      toast.error('Erro ao colar itens', { id: toastId });
-    }
-  };
-
-  // Compression
-  const handleCompressSelection = async () => {
-    if (selectedItems.length === 0) return;
-    const toastId = toast.loading('Compactando itens...');
-    try {
-      const paths = selectedItems.map(i => i.path);
-      const res = await fetch('/api/files/compress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths, destination: currentPath }),
-      });
-      if (res.ok) {
-        toast.success('Itens compactados com sucesso!', { id: toastId });
-        loadFiles(currentPath);
-        setSelectedItems([]);
-      } else {
-        toast.error('Erro ao compactar itens', { id: toastId });
-      }
-    } catch {
-      toast.error('Falha de conexão', { id: toastId });
-    }
-  };
-
-  // Navigation functions
-  const navigateTo = (newPath: string) => {
-    if (newPath === currentPath) return;
-    const cleanPath = newPath.replace(/\/+/g, '/') || '/';
-    const nextHistory = history.slice(0, historyIndex + 1);
-    nextHistory.push(cleanPath);
-    setHistory(nextHistory);
-    setHistoryIndex(nextHistory.length - 1);
-    setCurrentPath(cleanPath);
-    setSearchParams({ path: cleanPath });
-  };
-
-  const navigateToTrash = () => {
-    setSearchParams({ path: '__trash__' });
-  };
-
-  const handleGoBack = () => {
-    if (historyIndex > 0) {
-      const prevPath = history[historyIndex - 1];
-      setHistoryIndex(historyIndex - 1);
-      setCurrentPath(prevPath);
-      setSearchParams({ path: prevPath });
-    }
-  };
-
-  const handleGoForward = () => {
-    if (historyIndex < history.length - 1) {
-      const nextPath = history[historyIndex + 1];
-      setHistoryIndex(historyIndex + 1);
-      setCurrentPath(nextPath);
-      setSearchParams({ path: nextPath });
-    }
-  };
-
-  const handleDownload = (item: FileItem) => {
-    if (item.is_dir) {
-      window.location.href = `/api/files/archive?path=${encodeURIComponent(item.path)}`;
-    } else {
-      window.location.href = `/api/files/download?path=${encodeURIComponent(item.path)}`;
-    }
-  };
+  }, [currentPath]);
 
   // Filter & Sort files
   const filteredFiles = useMemo(() => {
@@ -579,38 +260,12 @@ export function FileManager() {
       });
   }, [files, showHiddenFiles, searchQuery, sortBy, sortAsc]);
 
-  // Current folder name & item count
-  const currentFolderName = useMemo(() => {
-    if (isTrashView) return t('files.trash') || 'Lixeira';
-    if (currentPath === '/' || !currentPath) return 'Raiz (/)';
-    const parts = currentPath.split('/').filter(Boolean);
-    return parts[parts.length - 1] || 'Arquivos';
-  }, [currentPath, isTrashView, t]);
-
   // Primary Storage Capacity calculation
   const primaryStorage = useMemo(() => {
     if (storages.length === 0) return null;
     const match = storages.find(s => s.mount_point === '/' || currentPath.startsWith(s.mount_point)) || storages[0];
     return match;
   }, [storages, currentPath]);
-
-  // Breadcrumbs calculation
-  const breadcrumbSegments = () => {
-    if (isTrashView) {
-      return [{ label: 'Lixeira do Sistema', path: '__trash__' }];
-    }
-    if (currentPath === '/' || !currentPath) {
-      return [{ label: 'Raiz', path: '/' }];
-    }
-    const parts = currentPath.split('/').filter(Boolean);
-    const crumbs = [{ label: 'Raiz', path: '/' }];
-    let accum = '';
-    parts.forEach((p) => {
-      accum += `/${p}`;
-      crumbs.push({ label: p, path: accum });
-    });
-    return crumbs;
-  };
 
   const isSelected = (item: FileItem) => selectedItems.some(i => i.path === item.path);
 
@@ -631,26 +286,19 @@ export function FileManager() {
     }
   };
 
-  const handleManualPathSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualPathInput.trim()) {
-      navigateTo(manualPathInput.trim());
-    }
-  };
-
   return (
     <div 
       className="flex flex-col h-[calc(100vh-5.5rem)] w-full rounded-3xl overflow-hidden border border-border/80 bg-card text-primary shadow-2xl relative"
       onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
       onDragLeave={() => setIsDraggingOver(false)}
-      onDrop={handleDrop}
+      onDrop={ops.handleDrop}
     >
       {/* Hidden file & folder inputs for uploads */}
       <input
         type="file"
         multiple
         ref={fileInputRef}
-        onChange={handleFileUpload}
+        onChange={ops.handleFileUpload}
         className="hidden"
       />
       <input
@@ -660,7 +308,7 @@ export function FileManager() {
         webkitdirectory=""
         directory=""
         ref={folderInputRef}
-        onChange={handleFolderUpload}
+        onChange={ops.handleFolderUpload}
         className="hidden"
       />
 
@@ -685,7 +333,7 @@ export function FileManager() {
           isTrashView={isTrashView}
           navigateTo={navigateTo}
           navigateToTrash={navigateToTrash}
-          handleInternalDrop={handleInternalDrop}
+          handleInternalDrop={ops.handleInternalDrop}
           trashItems={trashItems}
           storages={storages}
           showHiddenFiles={showHiddenFiles}
@@ -713,7 +361,7 @@ export function FileManager() {
             loadFiles={loadFiles}
             fileInputRef={fileInputRef}
             clipboard={clipboard}
-            handlePaste={handlePaste}
+            handlePaste={ops.handlePaste}
             showSortMenu={showSortMenu}
             setShowSortMenu={setShowSortMenu}
             sortBy={sortBy}
@@ -722,14 +370,14 @@ export function FileManager() {
             setSortAsc={setSortAsc}
             viewMode={viewMode}
             setViewMode={setViewMode}
-            handleEmptyTrash={handleEmptyTrash}
+            handleEmptyTrash={ops.handleEmptyTrash}
             trashItemsCount={trashItems.length}
             selectedItems={selectedItems}
             selectAll={selectAll}
-            handleCompressSelection={handleCompressSelection}
-            handleCopy={handleCopy}
-            handleCut={handleCut}
-            handleMoveToTrash={handleMoveToTrash}
+            handleCompressSelection={ops.handleCompressSelection}
+            handleCopy={ops.handleCopy}
+            handleCut={ops.handleCut}
+            handleMoveToTrash={ops.handleMoveToTrash}
             setSelectedItems={setSelectedItems}
             onOpenSamba={() => {
               setSambaTargetFolder(null);
@@ -740,91 +388,39 @@ export function FileManager() {
           {/* Drag & Drop Overlay */}
           {isDraggingOver && (
             <div className="absolute inset-4 z-40 border-2 border-dashed border-orbit-500 bg-orbit-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
-              <Upload className="w-12 h-12 text-orbit-400 animate-bounce" />
-              <p className="font-semibold text-primary text-base">Solte os arquivos aqui para carregar</p>
+              <div className="w-12 h-12 text-orbit-400 animate-bounce" />
+              <p className="font-semibold text-primary text-base">{t('files.drop_files_here', 'Solte os arquivos aqui para carregar')}</p>
             </div>
           )}
 
           {/* Content Body */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto relative scrollbar-thin">
-            {isLoading ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-                <Loader2 className="w-9 h-9 animate-spin text-orbit-400" />
-                <span className="text-xs font-medium">Carregando arquivos...</span>
-              </div>
-            ) : isTrashView ? (
-              <FileTrashView
-                trashItems={trashItems}
-                handleRestoreTrash={handleRestoreTrash}
-              />
-            ) : filteredFiles.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-                {searchQuery ? (
-                  <>
-                    <Search className="w-12 h-12 stroke-[1.5] text-zinc-600" />
-                    <p className="text-sm font-semibold text-primary">Nenhum arquivo encontrado para "{searchQuery}"</p>
-                    <button
-                      data-testid="clear-search-btn"
-                      onClick={() => setSearchQuery('')}
-                      className="px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 text-xs font-semibold hover:bg-orbit-500/25 transition-colors"
-                    >
-                      Limpar pesquisa
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Folder className="w-14 h-14 stroke-[1.5] text-zinc-600" />
-                    <p className="text-base font-semibold text-primary">Esta pasta está vazia</p>
-                    <p className="text-xs text-secondary max-w-sm text-center">
-                      Arraste e solte arquivos aqui ou use o botão Importar para começar.
-                    </p>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-2 px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors shadow-md shadow-orbit-500/20"
-                    >
-                      Carregar arquivos
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : viewMode === 'grid' ? (
-              <FileGridView
-                files={filteredFiles}
-                selectedItems={selectedItems}
-                isSelected={isSelected}
-                toggleSelect={toggleSelect}
-                handleItemClick={handleItemClick}
-                handleInternalDrop={handleInternalDrop}
-                setShareFile={setShareFile}
-                handleExtractArchive={handleExtractArchive}
-                handleDownload={handleDownload}
-                setOpTargetItem={setOpTargetItem}
-                setOpModalType={setOpModalType}
-                onShareSamba={(folder) => {
-                  setSambaTargetFolder(folder);
-                  setSambaModalOpen(true);
-                }}
-              />
-            ) : (
-              <FileTableView
-                files={filteredFiles}
-                selectedItems={selectedItems}
-                selectAll={selectAll}
-                isSelected={isSelected}
-                toggleSelect={toggleSelect}
-                handleItemClick={handleItemClick}
-                handleInternalDrop={handleInternalDrop}
-                setShareFile={setShareFile}
-                handleExtractArchive={handleExtractArchive}
-                handleDownload={handleDownload}
-                setOpTargetItem={setOpTargetItem}
-                setOpModalType={setOpModalType}
-                onShareSamba={(folder) => {
-                  setSambaTargetFolder(folder);
-                  setSambaModalOpen(true);
-                }}
-              />
-            )}
+            <FileContentArea
+              isLoading={isLoading}
+              isTrashView={isTrashView}
+              filteredFiles={filteredFiles}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              fileInputRef={fileInputRef}
+              trashItems={trashItems}
+              handleRestoreTrash={ops.handleRestoreTrash}
+              viewMode={viewMode}
+              selectedItems={selectedItems}
+              isSelected={isSelected}
+              toggleSelect={toggleSelect}
+              selectAll={selectAll}
+              handleItemClick={ops.handleItemClick}
+              handleInternalDrop={ops.handleInternalDrop}
+              setShareFile={setShareFile}
+              handleExtractArchive={ops.handleExtractArchive}
+              handleDownload={ops.handleDownload}
+              setOpTargetItem={setOpTargetItem}
+              setOpModalType={setOpModalType}
+              onShareSamba={(folder) => {
+                setSambaTargetFolder(folder);
+                setSambaModalOpen(true);
+              }}
+            />
           </div>
 
           {/* BOTTOM BAR: PATH BREADCRUMB & CAPACITY VIEW */}
@@ -844,85 +440,34 @@ export function FileManager() {
       </div>
 
       {/* MODALS */}
-      {activeImageFile && (
-        <ImageGalleryModal
-          currentFile={activeImageFile}
-          files={files}
-          isOpen={activeImageFile !== null}
-          onClose={() => setActiveImageFile(null)}
-        />
-      )}
-
-      {activeAudioFile && (
-        <AudioPlayerModal
-          file={activeAudioFile}
-          onClose={() => setActiveAudioFile(null)}
-        />
-      )}
-
-      {activeVideoFile && (
-        <VideoPlayerModal
-          file={activeVideoFile}
-          onClose={() => setActiveVideoFile(null)}
-        />
-      )}
-
-      {activeTextFile && (
-        <TextEditorModal
-          file={activeTextFile}
-          onClose={() => setActiveTextFile(null)}
-          onSaved={() => loadFiles(currentPath)}
-        />
-      )}
-
-      {activePdfFile && (
-        <PdfViewerModal
-          file={activePdfFile}
-          onClose={() => setActivePdfFile(null)}
-        />
-      )}
-
-      {isDiskAnalyzerOpen && (
-        <DiskAnalyzerModal
-          currentPath={currentPath}
-          isOpen={isDiskAnalyzerOpen}
-          onClose={() => setIsDiskAnalyzerOpen(false)}
-          onNavigateTo={(target) => navigateTo(target)}
-        />
-      )}
-
-      {shareFile && (
-        <ShareModal
-          file={shareFile}
-          isOpen={shareFile !== null}
-          onClose={() => setShareFile(null)}
-        />
-      )}
-
-      {sambaModalOpen && (
-        <SambaModal
-          folder={sambaTargetFolder}
-          isOpen={sambaModalOpen}
-          onClose={() => {
-            setSambaModalOpen(false);
-            setSambaTargetFolder(null);
-          }}
-        />
-      )}
-
-
-
-      <FileOperationsModal
-        isOpen={opModalType !== null}
-        type={opModalType}
-        currentPath={currentPath}
-        targetItem={opTargetItem}
+      <FileModalsContainer
+        activeImageFile={activeImageFile}
+        setActiveImageFile={setActiveImageFile}
+        files={files}
+        activeAudioFile={activeAudioFile}
+        setActiveAudioFile={setActiveAudioFile}
+        activeVideoFile={activeVideoFile}
+        setActiveVideoFile={setActiveVideoFile}
+        activeTextFile={activeTextFile}
+        setActiveTextFile={setActiveTextFile}
+        activePdfFile={activePdfFile}
+        setActivePdfFile={setActivePdfFile}
+        isDiskAnalyzerOpen={isDiskAnalyzerOpen}
+        setIsDiskAnalyzerOpen={setIsDiskAnalyzerOpen}
+        shareFile={shareFile}
+        setShareFile={setShareFile}
+        sambaModalOpen={sambaModalOpen}
+        setSambaModalOpen={setSambaModalOpen}
+        sambaTargetFolder={sambaTargetFolder}
+        setSambaTargetFolder={setSambaTargetFolder}
+        opModalType={opModalType}
+        setOpModalType={setOpModalType}
+        opTargetItem={opTargetItem}
+        setOpTargetItem={setOpTargetItem}
         selectedItems={selectedItems}
-        onClose={() => {
-          setOpModalType(null);
-          setOpTargetItem(null);
-        }}
-        onSuccess={() => loadFiles(currentPath)}
+        currentPath={currentPath}
+        loadFiles={loadFiles}
+        navigateTo={navigateTo}
       />
     </div>
   );

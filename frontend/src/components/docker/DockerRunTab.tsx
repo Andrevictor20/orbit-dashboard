@@ -104,7 +104,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Não foi possível interpretar o comando.');
+        throw new Error(errJson.error || t('docker.could_not_parse_input', 'Não foi possível interpretar o comando.'));
       }
 
       const data: ParseResponse = await res.json();
@@ -114,7 +114,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
       }
       setPortOverrides({});
     } catch (err: any) {
-      setParseError(err.message || 'Erro ao processar o comando.');
+      setParseError(err.message || t('docker.error_processing_command', 'Erro ao processar o comando.'));
       setParsedData(null);
     } finally {
       setParsing(false);
@@ -161,18 +161,18 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Erro ao iniciar instalação do container.');
+        throw new Error(errJson.error || t('docker.error_starting_container_install', 'Erro ao iniciar instalação do container.'));
       }
 
       const data = await res.json();
       if (data.task_id) {
-        toast.success(`Iniciando instalação de ${finalAppName}!`);
+        toast.success(t('docker.starting_install_name', { name: finalAppName, defaultValue: `Iniciando instalação de ${finalAppName}!` }));
         startInstall(data.task_id, finalAppName);
         onClose();
         onSuccess(finalAppName);
       }
     } catch (err: any) {
-      toast.error(err.message || 'Falha ao instalar container.');
+      toast.error(err.message || t('docker.install_container_failed', 'Falha ao instalar container.'));
     } finally {
       setInstalling(false);
     }
@@ -190,7 +190,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
           {parsing && (
             <span className="flex items-center gap-1 text-[11px] text-orbit-400">
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Analisando...</span>
+              <span>{t('docker.analyzing_params', 'Analisando...')}</span>
             </span>
           )}
         </label>
@@ -215,7 +215,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
         <div className="bg-accent/20 border border-border/80 rounded-xl p-4 space-y-3 animate-in fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
             <div>
-              <span className="text-xs text-secondary">Nome detectado:</span>
+              <span className="text-xs text-secondary">{t('docker.detected_name', 'Nome detectado:')}</span>
               <input
                 type="text"
                 value={appName}
@@ -230,7 +230,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
               className="px-3 py-1.5 bg-accent hover:bg-card border border-border text-xs text-primary rounded-lg flex items-center gap-1.5 transition-colors self-start sm:self-auto font-medium"
             >
               <FileCode className="w-3.5 h-3.5 text-orbit-500" />
-              <span>Abrir no Editor Compose</span>
+              <span>{t('docker.open_in_compose_editor', 'Abrir no Editor Compose')}</span>
               <ArrowRight className="w-3 h-3 text-secondary" />
             </button>
           </div>
@@ -253,7 +253,7 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
                       const currentPort = p.host_port ? (portOverrides[p.host_port] ?? p.host_port) : null;
                       return (
                         <div key={pIdx} className="flex items-center gap-2 text-[11px]">
-                          <span>Porta:</span>
+                          <span>{t('docker.port_label', 'Porta:')}</span>
                           {p.host_port ? (
                             <input
                               type="number"
@@ -262,19 +262,19 @@ export function DockerRunTab({ onTransferToEditor, onSuccess, onClose, startInst
                               className="w-16 px-1.5 py-0.5 bg-card border border-border rounded text-center"
                             />
                           ) : (
-                            <span className="text-secondary">dinâmica</span>
+                            <span className="text-secondary">{t('docker.dynamic_port', 'dinâmica')}</span>
                           )}
                           <span>-&gt; {p.container_port}/{p.protocol}</span>
                           {conflict && (
                             <span className="text-rose-400 flex items-center gap-1 font-sans text-[10px]">
                               <AlertTriangle className="w-3 h-3" />
-                              <span>Em uso ({conflict.in_use_by || 'host'})</span>
+                              <span>{t('docker.in_use_parens', { inUseBy: conflict.in_use_by || 'host', defaultValue: `Em uso (${conflict.in_use_by || 'host'})` })}</span>
                               <button
                                 type="button"
                                 onClick={() => handlePortChange(p.host_port!, String(conflict.suggested_port))}
                                 className="underline hover:text-rose-300 ml-1"
                               >
-                                Usar {conflict.suggested_port}
+                                {t('docker.use_port_btn', { port: conflict.suggested_port, defaultValue: `Usar ${conflict.suggested_port}` })}
                               </button>
                             </span>
                           )}

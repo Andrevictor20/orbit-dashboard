@@ -10,10 +10,12 @@ import {
   Trash2,
   FileText
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useUploadManager } from '../../contexts/UploadManagerContext';
 import { formatBytes } from '../../utils/format';
 
 export function UploadProgressDrawer() {
+  const { t } = useTranslation();
   const {
     uploads,
     isDrawerOpen,
@@ -54,8 +56,8 @@ export function UploadProgressDrawer() {
           </div>
           <span>
             {activeUploads.length > 0
-              ? `${activeUploads.length} enviando (${overallProgress}%)`
-              : `${completedUploads.length} concluído(s)`}
+              ? t('files.upload_sending', { count: activeUploads.length, progress: overallProgress, defaultValue: `${activeUploads.length} enviando (${overallProgress}%)` })
+              : t('files.upload_completed_single', { count: completedUploads.length, defaultValue: `${completedUploads.length} concluído(s)` })}
           </span>
           {totalSpeed > 0 && (
             <span className="text-[11px] font-mono text-secondary">
@@ -79,9 +81,9 @@ export function UploadProgressDrawer() {
               <Upload className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-primary">Envio de Arquivos</h4>
+              <h4 className="text-xs font-bold text-primary">{t('files.upload_drawer_title', 'Envio de Arquivos')}</h4>
               <p className="text-[10px] text-secondary font-mono">
-                {completedUploads.length}/{uploads.length} concluído(s)
+                {t('files.upload_completed_count', { completed: completedUploads.length, total: uploads.length, defaultValue: `${completedUploads.length}/${uploads.length} concluído(s)` })}
                 {totalSpeed > 0 && ` • ${totalSpeed.toFixed(1)} MB/s`}
               </p>
             </div>
@@ -91,14 +93,14 @@ export function UploadProgressDrawer() {
             <button
               onClick={() => setIsMinimized(true)}
               className="p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-              title="Minimizar"
+              title={t('files.minimize', 'Minimizar')}
             >
               <ChevronDown className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsDrawerOpen(false)}
               className="p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
-              title="Fechar"
+              title={t('common.close', 'Fechar')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -139,7 +141,7 @@ export function UploadProgressDrawer() {
                       <button
                         onClick={() => pauseUpload(item.id)}
                         className="p-1 rounded text-secondary hover:text-amber-500 hover:bg-accent transition-colors"
-                        title="Pausar envio"
+                        title={t('files.pause_upload', 'Pausar envio')}
                       >
                         <Pause className="w-3.5 h-3.5" />
                       </button>
@@ -148,7 +150,7 @@ export function UploadProgressDrawer() {
                       <button
                         onClick={() => resumeUpload(item.id)}
                         className="p-1 rounded text-secondary hover:text-emerald-500 hover:bg-accent transition-colors"
-                        title="Retomar envio"
+                        title={t('files.resume_upload', 'Retomar envio')}
                       >
                         <Play className="w-3.5 h-3.5" />
                       </button>
@@ -156,7 +158,7 @@ export function UploadProgressDrawer() {
                     <button
                       onClick={() => cancelUpload(item.id)}
                       className="p-1 rounded text-secondary hover:text-rose-500 hover:bg-accent transition-colors"
-                      title="Cancelar ou remover"
+                      title={t('files.cancel_upload', 'Cancelar ou remover')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -184,14 +186,14 @@ export function UploadProgressDrawer() {
                   <div className="flex items-center gap-1">
                     {isCompleted ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Concluído
+                        <CheckCircle2 className="w-3 h-3" /> {t('files.upload_completed', 'Concluído')}
                       </span>
                     ) : isError ? (
                       <span className="text-rose-500 flex items-center gap-1" title={item.error}>
-                        <AlertCircle className="w-3 h-3" /> Erro
+                        <AlertCircle className="w-3 h-3" /> {t('files.upload_error', 'Erro')}
                       </span>
                     ) : isPaused ? (
-                      <span className="text-amber-600 dark:text-amber-400">Pausado</span>
+                      <span className="text-amber-600 dark:text-amber-400">{t('files.upload_paused', 'Pausado')}</span>
                     ) : (
                       <span className="text-orbit-600 dark:text-orbit-400">
                         {item.progress}% {item.speedMBs > 0 && `• ${item.speedMBs} MB/s`}
@@ -212,7 +214,7 @@ export function UploadProgressDrawer() {
               onClick={clearCompleted}
               className="text-[11px] text-secondary hover:text-primary transition-colors font-medium"
             >
-              Limpar concluídos
+              {t('files.clear_completed', 'Limpar concluídos')}
             </button>
           </div>
         )}

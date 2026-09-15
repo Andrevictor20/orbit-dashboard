@@ -1,9 +1,11 @@
 mod models;
 pub mod ops;
+pub mod restore;
 pub mod scheduler;
 
 pub use models::*;
 pub use ops::*;
+pub use restore::*;
 pub use scheduler::*;
 
 use axum::{
@@ -44,7 +46,9 @@ pub async fn create_backup_handler(
     Json(payload): Json<CreateBackupPayload>,
 ) -> Result<Json<BackupItem>, (StatusCode, Json<serde_json::Value>)> {
     let stop = payload.stop_container.unwrap_or(true);
-    match create_backup_internal(&payload.app_id, stop, "manual").await {
+    let target_type = payload.target_type.as_deref().unwrap_or("");
+    let app_id = payload.app_id.as_deref().unwrap_or("");
+    match create_backup_dispatch(target_type, app_id, stop, "manual").await {
         Ok(item) => Ok(Json(item)),
         Err((code, msg)) => Err((code, Json(serde_json::json!({ "error": msg })))),
     }
@@ -63,21 +67,42 @@ pub async fn restore_backup_handler(
     }
 }
 
+pub async fn restore_backup_post_handler(
+    Json(payload): Json<RestoreBackupPayload>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let target = payload.id.or(payload.filename).or(payload.app_name).unwrap_or_default();
+    match restore_backup_internal(&target).await {
+        Ok((app_id, restarted)) => Ok(Json(serde_json::json!({
+            "success": true,
+            "app_id": app_id,
+            "restarted": restarted
+        }))),
+        Err((code, msg)) => Err((code, Json(serde_json::json!({ "error": msg })))),
+    }
+}
+
 pub async fn delete_backup_handler(AxumPath(id): AxumPath<String>) -> impl IntoResponse {
     let mut items = load_backup_index();
     let dir = get_backups_dir();
 
-    if let Some(pos) = items.iter().position(|b| b.id == id) {
+    if let Some(pos) = items.iter().position(|b| b.id == id || b.filename == id) {
         let removed = items.remove(pos);
         let path = dir.join(&removed.filename);
         let _ = std::fs::remove_file(path);
         save_backup_index(&items);
         (StatusCode::OK, Json(serde_json::json!({ "success": true })))
     } else {
-        (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Backup não encontrado" })),
-        )
+        let safe_name = id.replace("..", "").replace('/', "");
+        let path = dir.join(&safe_name);
+        if path.exists() {
+            let _ = std::fs::remove_file(path);
+            (StatusCode::OK, Json(serde_json::json!({ "success": true })))
+        } else {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Backup não encontrado" })),
+            )
+        }
     }
 }
 
@@ -85,12 +110,18 @@ pub async fn download_backup_handler(
     AxumPath(id): AxumPath<String>,
 ) -> Result<Response, StatusCode> {
     let items = load_backup_index();
-    let backup = items
-        .into_iter()
-        .find(|b| b.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let file_path = get_backups_dir().join(&backup.filename);
+    let filename = if let Some(backup) = items.into_iter().find(|b| b.id == id || b.filename == id) {
+        backup.filename
+    } else {
+        let safe_name = id.replace("..", "").replace('/', "");
+        if get_backups_dir().join(&safe_name).exists() {
+            safe_name
+        } else {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    };
 
+    let file_path = get_backups_dir().join(&filename);
     if !file_path.exists() {
         return Err(StatusCode::NOT_FOUND);
     }
@@ -104,7 +135,7 @@ pub async fn download_backup_handler(
     headers.insert(header::CONTENT_TYPE, "application/gzip".parse().unwrap());
     headers.insert(
         header::CONTENT_DISPOSITION,
-        format!("attachment; filename=\"{}\"", backup.filename)
+        format!("attachment; filename=\"{}\"", filename)
             .parse()
             .unwrap(),
     );
@@ -122,18 +153,32 @@ pub async fn upload_backup_handler(
     let dir = get_backups_dir();
     let mut uploaded_filename = String::new();
     let mut app_id = "uploaded-app".to_string();
+    let mut app_name = "Upload Manual".to_string();
+    let mut target_type = "single_app".to_string();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("").to_string();
-        if name == "file" {
+        if name == "file" || name == "backup" {
             let original_name = field.file_name().unwrap_or("backup.tar.gz").to_string();
             let safe_name = original_name.replace("..", "").replace('/', "");
 
-            // Extract app_id from backup_<app_id>_<timestamp>.tar.gz if possible
-            if safe_name.starts_with("backup_") {
+            if safe_name.contains("system_full") {
+                app_id = "system_full".to_string();
+                app_name = "Sistema Completo (Orbit + Containers)".to_string();
+                target_type = "system_full".to_string();
+            } else if safe_name.contains("orbit_configs") {
+                app_id = "orbit_configs".to_string();
+                app_name = "Configurações Orbit & Integrações".to_string();
+                target_type = "orbit_configs".to_string();
+            } else if safe_name.contains("all_containers") {
+                app_id = "all_containers".to_string();
+                app_name = "Todos os Contêineres & Stacks".to_string();
+                target_type = "all_containers".to_string();
+            } else if safe_name.starts_with("backup_") {
                 let parts: Vec<&str> = safe_name.split('_').collect();
                 if parts.len() >= 2 {
                     app_id = parts[1].to_string();
+                    app_name = app_id.clone();
                 }
             }
 
@@ -163,12 +208,14 @@ pub async fn upload_backup_handler(
     let backup_item = BackupItem {
         id: uuid::Uuid::new_v4().to_string(),
         app_id: app_id.clone(),
-        app_name: app_id,
+        app_name,
         filename: uploaded_filename,
         size_bytes: size,
         created_at: timestamp_str,
         status: "completed".to_string(),
         backup_type: "manual".to_string(),
+        target_type,
+        description: Some("Snapshot importado manualmente via upload".to_string()),
     };
 
     let mut current = load_backup_index();

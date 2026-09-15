@@ -1,0 +1,14 @@
+{
+  "title": "Custom Installation & Compose Editor",
+  "subtitle": "Configure custom stacks with linting, templates and port checking or run Docker Run commands.",
+  "tab_editor": "Docker Compose Editor",
+  "tab_dockerrun": "Docker Run (Quick)",
+  "template_placeholder": "Load pre-configured template...",
+  "ports_warning": "Warning: Port(s) in use on host: {{ports}}.",
+  "valid_yaml": "Valid YAML syntax and no conflicts.",
+  "validating_ports": "(verifying ports...)",
+  "env_title": ".env (Variables)",
+  "name_required": "Enter a valid stack name",
+  "load_failed": "Failed to load stack content",
+  "overwrite_confirm": "Replace current content with selected template?"
+}

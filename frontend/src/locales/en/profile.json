@@ -1,0 +1,15 @@
+{
+  "title": "My Account",
+  "admin_user": "Administrator",
+  "tab_account": "Account & Security",
+  "tab_integrations": "Integrations",
+  "tab_system": "Server & Port",
+  "tab_customization": "Appearance & Background",
+  "current_password": "Current Password",
+  "new_password": "New Password",
+  "confirm_password": "Confirm New Password",
+  "change_password": "Change Password",
+  "password_updated": "Password updated successfully!",
+  "password_error": "Invalid current password or server error.",
+  "invalid_current_password": "Current password incorrect or server error."
+}

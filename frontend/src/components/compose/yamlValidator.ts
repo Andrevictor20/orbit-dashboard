@@ -41,13 +41,22 @@ export function extractPortsFromYaml(yamlText: string): number[] {
   return Array.from(new Set(ports));
 }
 
-export function validateComposeSyntax(yamlText: string): { valid: boolean; error?: string } {
+export function validateComposeSyntax(
+  yamlText: string,
+  t?: (key: string, options?: any) => string
+): { valid: boolean; error?: string } {
   if (!yamlText.trim()) {
-    return { valid: false, error: 'O conteúdo YAML não pode estar vazio.' };
+    return {
+      valid: false,
+      error: t ? t('docker.yaml_empty_error') : 'O conteúdo YAML não pode estar vazio.',
+    };
   }
 
   if (!yamlText.includes('services:')) {
-    return { valid: false, error: 'A raiz do arquivo deve declarar a seção "services:".' };
+    return {
+      valid: false,
+      error: t ? t('docker.yaml_root_services_error') : 'A raiz do arquivo deve declarar a seção "services:".',
+    };
   }
 
   // Basic indentation check
@@ -57,7 +66,9 @@ export function validateComposeSyntax(yamlText: string): { valid: boolean; error
     if (line.includes('\t')) {
       return {
         valid: false,
-        error: `Linha ${i + 1}: Tabs (\\t) não são permitidos em YAML. Use espaços para indentação.`,
+        error: t
+          ? t('docker.yaml_tabs_error', { line: i + 1 })
+          : `Linha ${i + 1}: Tabs (\\t) não são permitidos em YAML. Use espaços para indentação.`,
       };
     }
   }

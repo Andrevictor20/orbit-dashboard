@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../ui/ConfirmModal';
 
 interface DeleteOptions {
@@ -23,18 +24,20 @@ export function ContainerDeleteModal({
   setDeleteOptions,
   onConfirm,
 }: ContainerDeleteModalProps) {
+  const { t } = useTranslation();
+
   return (
     <ConfirmModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Excluir Container"
-      message={`Tem certeza que deseja excluir permanentemente o container ${containerName}?`}
+      title={t('containers.delete_container', 'Excluir Container')}
+      message={t('containers.delete_confirm_msg', { name: containerName, defaultValue: `Tem certeza que deseja excluir permanentemente o container ${containerName}?` })}
       onConfirm={onConfirm}
       isDestructive={true}
-      confirmText="Sim, excluir"
+      confirmText={t('containers.confirm_delete', 'Sim, excluir')}
     >
       <div className="bg-black/20 p-4 rounded-lg border border-border/50">
-        <p className="text-sm text-primary font-medium mb-3">Opções de exclusão em cascata:</p>
+        <p className="text-sm text-primary font-medium mb-3">{t('containers.cascade_delete_options', 'Opções de exclusão em cascata:')}</p>
         <div className="space-y-2">
           <label className="flex items-center gap-3 cursor-pointer pb-2 mb-2 border-b border-border/50">
             <input
@@ -46,7 +49,7 @@ export function ContainerDeleteModal({
                 setDeleteOptions({ volumes: checked, image: checked, network: checked });
               }}
             />
-            <span className="text-sm font-semibold text-primary">Selecionar tudo</span>
+            <span className="text-sm font-semibold text-primary">{t('common.select_all', 'Selecionar tudo')}</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -55,7 +58,7 @@ export function ContainerDeleteModal({
               checked={deleteOptions.volumes}
               onChange={(e) => setDeleteOptions(prev => ({ ...prev, volumes: e.target.checked }))}
             />
-            <span className="text-sm text-secondary">Excluir volumes anônimos associados</span>
+            <span className="text-sm text-secondary">{t('containers.delete_associated_volumes', 'Excluir volumes anônimos associados')}</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -64,7 +67,7 @@ export function ContainerDeleteModal({
               checked={deleteOptions.image}
               onChange={(e) => setDeleteOptions(prev => ({ ...prev, image: e.target.checked }))}
             />
-            <span className="text-sm text-secondary">Excluir imagem do container</span>
+            <span className="text-sm text-secondary">{t('containers.delete_container_image', 'Excluir imagem do container')}</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
@@ -73,7 +76,7 @@ export function ContainerDeleteModal({
               checked={deleteOptions.network}
               onChange={(e) => setDeleteOptions(prev => ({ ...prev, network: e.target.checked }))}
             />
-            <span className="text-sm text-secondary">Excluir redes exclusivas do container</span>
+            <span className="text-sm text-secondary">{t('containers.delete_container_networks', 'Excluir redes exclusivas do container')}</span>
           </label>
         </div>
       </div>

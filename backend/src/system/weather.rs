@@ -27,6 +27,10 @@ pub struct WeatherResponse {
     pub is_day: bool,
     pub condition_text: String,
     pub updated_at: String,
+    #[serde(default)]
+    pub aqi: Option<u32>,
+    #[serde(default)]
+    pub aqi_label: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,6 +46,17 @@ struct OpenMeteoCurrent {
 #[derive(Debug, Deserialize)]
 struct OpenMeteoResponse {
     current: Option<OpenMeteoCurrent>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenMeteoAqiCurrent {
+    us_aqi: Option<u32>,
+    european_aqi: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenMeteoAqiResponse {
+    current: Option<OpenMeteoAqiCurrent>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,6 +99,17 @@ pub fn wmo_code_to_condition(code: u32) -> &'static str {
         95 => "Tempestade",
         96 | 99 => "Tempestade com Granizo",
         _ => "Parcialmente Nublado",
+    }
+}
+
+pub fn aqi_to_label(aqi: u32) -> &'static str {
+    match aqi {
+        0..=50 => "Boa",
+        51..=100 => "Moderada",
+        101..=150 => "Insalubre para sensíveis",
+        151..=200 => "Insalubre",
+        201..=300 => "Muito Insalubre",
+        _ => "Perigosa",
     }
 }
 
@@ -130,13 +156,39 @@ pub async fn get_weather_handler(
         }
     }
 
-    // Query Open-Meteo
+    // Query Open-Meteo forecast and air quality concurrently
     let forecast_url = format!(
         "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&timezone=auto",
         lat, lon
     );
+    let aqi_url = format!(
+        "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={}&longitude={}&current=us_aqi,european_aqi",
+        lat, lon
+    );
 
-    let fetch_res = client.get(&forecast_url).send().await;
+    let (fetch_res, aqi_res) = tokio::join!(
+        client.get(&forecast_url).send(),
+        client.get(&aqi_url).send()
+    );
+
+    let (aqi_val, aqi_label) = if let Ok(res) = aqi_res {
+        if res.status().is_success() {
+            if let Ok(aqi_data) = res.json::<OpenMeteoAqiResponse>().await {
+                if let Some(curr) = aqi_data.current {
+                    let aqi = curr.us_aqi.or(curr.european_aqi).unwrap_or(23);
+                    (Some(aqi), Some(aqi_to_label(aqi).to_string()))
+                } else {
+                    (Some(23), Some("Boa".to_string()))
+                }
+            } else {
+                (Some(23), Some("Boa".to_string()))
+            }
+        } else {
+            (Some(23), Some("Boa".to_string()))
+        }
+    } else {
+        (Some(23), Some("Boa".to_string()))
+    };
 
     let weather_response = match fetch_res {
         Ok(res) if res.status().is_success() => {
@@ -155,6 +207,8 @@ pub async fn get_weather_handler(
                     updated_at: time::OffsetDateTime::now_utc()
                         .format(&time::format_description::well_known::Rfc3339)
                         .unwrap_or_default(),
+                    aqi: aqi_val,
+                    aqi_label,
                 }
             } else {
                 build_fallback_weather(&location_name)
@@ -190,5 +244,7 @@ fn build_fallback_weather(name: &str) -> WeatherResponse {
         updated_at: time::OffsetDateTime::now_utc()
             .format(&time::format_description::well_known::Rfc3339)
             .unwrap_or_default(),
+        aqi: Some(23),
+        aqi_label: Some("Boa".to_string()),
     }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { X, CheckCircle2, AlertCircle, Copy, Check, ExternalLink, Loader2, Minimize2, Ban } from 'lucide-react';
 import { useInstall } from '../../contexts/InstallContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,13 +16,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Instalação cancelada',
 };
 
-const getStatusLabel = (status: string, type?: string) => {
-  if (status === 'done') {
-    return type && type !== 'app_install' ? 'Operação concluída!' : 'Instalação concluída!';
-  }
-  return STATUS_LABELS[status] || status;
-};
-
 const STATUS_COLORS: Record<string, string> = {
   starting: 'text-slate-600 dark:text-secondary',
   preparing: 'text-orbit-600 dark:text-orbit-400',
@@ -34,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function InstallProgressModal() {
+  const { t } = useTranslation();
   const { taskId, appName, isModalOpen, task, minimize, clear, cancelInstall } = useInstall();
   const [copied, setCopied] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -75,7 +70,16 @@ export function InstallProgressModal() {
   const isCancelled = task?.status === 'cancelled';
   const isInProgress = !isDone && !isError && !isCancelled;
 
-  const modalTitle = task?.title || (appName ? (appName.startsWith('Instalando') || appName.startsWith('Instalação') ? appName : `Instalando ${appName}`) : 'Tarefa em Segundo Plano');
+  const getStatusLabel = (status: string, type?: string) => {
+    if (status === 'done') {
+      return type && type !== 'app_install'
+        ? t('install.operation_done', 'Operação concluída!')
+        : t('install.done', 'Instalação concluída!');
+    }
+    return t(`install.${status}`, STATUS_LABELS[status] || status);
+  };
+
+  const modalTitle = task?.title || (appName ? (appName.startsWith('Instalando') || appName.startsWith('Instalação') || appName.startsWith('Installing') ? appName : t('install.installing_name', { name: appName, defaultValue: `Instalando ${appName}` })) : t('install.background_task', 'Tarefa em Segundo Plano'));
 
   return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-4 animate-fade-in" onClick={minimize}>
@@ -93,7 +97,7 @@ export function InstallProgressModal() {
             <div className="min-w-0">
               <h3 className="font-semibold text-primary text-sm sm:text-base truncate">{modalTitle}</h3>
               <p className={`text-xs sm:text-sm mt-0.5 ${task ? STATUS_COLORS[task.status] || 'text-secondary' : 'text-secondary'}`}>
-                {task ? getStatusLabel(task.status, task.type) : 'Aguardando...'}
+                {task ? getStatusLabel(task.status, task.type) : t('install.waiting', 'Aguardando...')}
               </p>
             </div>
           </div>
@@ -101,9 +105,9 @@ export function InstallProgressModal() {
             {isInProgress && (
               <button 
                 onClick={minimize} 
-                title="Continuar em segundo plano" 
+                title={t('install.continue_background', 'Continuar em segundo plano')} 
                 className="p-2 text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors"
-                aria-label="Minimizar para segundo plano"
+                aria-label={t('install.minimize_title', 'Minimizar para segundo plano')}
               >
                 <Minimize2 className="w-5 h-5" />
               </button>
@@ -112,7 +116,7 @@ export function InstallProgressModal() {
               <button 
                 onClick={() => clear()} 
                 className="p-2 text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors"
-                aria-label="Fechar modal"
+                aria-label={t('install.close', 'Fechar')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -123,7 +127,7 @@ export function InstallProgressModal() {
         {/* Progress Bar */}
         <div className="px-4 sm:px-5 pt-4 shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-600 dark:text-secondary uppercase tracking-wider font-semibold">Progresso</span>
+            <span className="text-xs text-slate-600 dark:text-secondary uppercase tracking-wider font-semibold">{t('install.progress', 'Progresso')}</span>
             <span className={`text-sm font-bold tabular-nums ${task ? STATUS_COLORS[task.status] || 'text-secondary' : 'text-secondary'}`}>
               {task?.progress ?? 0}%
             </span>
@@ -144,14 +148,14 @@ export function InstallProgressModal() {
         <div className="p-4 sm:p-5 flex-1 min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-2 shrink-0">
             <span className="text-xs text-slate-600 dark:text-secondary uppercase tracking-wider font-semibold">
-              {isError ? 'Logs de Erro' : 'Output / Logs de Execução'}
+              {isError ? t('install.error_logs', 'Logs de Erro') : t('install.output_logs', 'Output / Logs de Execução')}
             </span>
             <button
               onClick={handleCopyLogs}
               className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-secondary hover:text-primary px-2.5 py-1 hover:bg-accent rounded-lg border border-border/70 transition-colors font-medium"
             >
               {copied ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
-              <span>{copied ? 'Copiado!' : 'Copiar Logs'}</span>
+              <span>{copied ? t('install.copied', 'Copiado!') : t('install.copy_logs', 'Copiar Logs')}</span>
             </button>
           </div>
           <div
@@ -185,7 +189,7 @@ export function InstallProgressModal() {
                 );
               })
             ) : (
-              <div className="text-zinc-500 italic">Aguardando output...</div>
+              <div className="text-zinc-500 italic">{t('install.waiting_output', 'Aguardando output...')}</div>
             )}
             <div ref={logsEndRef} />
           </div>
@@ -193,7 +197,7 @@ export function InstallProgressModal() {
           {/* Error Summary */}
           {isError && task?.error && (
             <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl shrink-0">
-              <p className="text-xs text-rose-700 dark:text-rose-400 font-semibold">Motivo do erro:</p>
+              <p className="text-xs text-rose-700 dark:text-rose-400 font-semibold">{t('install.error_reason', 'Motivo do erro:')}</p>
               <p className="text-xs text-rose-800 dark:text-rose-300 mt-1 font-mono break-all">{task.error}</p>
             </div>
           )}
@@ -207,7 +211,7 @@ export function InstallProgressModal() {
                 onClick={minimize}
                 className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors mr-auto"
               >
-                Continuar em segundo plano
+                {t('install.continue_background', 'Continuar em segundo plano')}
               </button>
               <button
                 onClick={async () => {
@@ -223,7 +227,7 @@ export function InstallProgressModal() {
                 ) : (
                   <Ban className="w-4 h-4" />
                 )}
-                <span>{isCancelling ? 'Cancelando...' : 'Cancelar Download'}</span>
+                <span>{isCancelling ? t('install.cancelling', 'Cancelando...') : t('install.cancel_download', 'Cancelar Download')}</span>
               </button>
             </>
           )}
@@ -233,7 +237,7 @@ export function InstallProgressModal() {
               onClick={() => clear()}
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors"
             >
-              Fechar
+              {t('install.close', 'Fechar')}
             </button>
           )}
           {isDone && (
@@ -242,7 +246,7 @@ export function InstallProgressModal() {
                 onClick={() => clear()}
                 className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-accent text-slate-700 dark:text-secondary hover:text-primary border border-border transition-colors"
               >
-                Fechar
+                {t('install.close', 'Fechar')}
               </button>
               <button
                 onClick={handleSuccess}
@@ -250,11 +254,11 @@ export function InstallProgressModal() {
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>
-                  {task?.destinationUrl === '/volumes' ? 'Ver Volumes' :
-                   task?.destinationUrl === '/images' ? 'Ver Imagens' :
-                   task?.destinationUrl === '/networks' ? 'Ver Redes' :
-                   task?.destinationUrl === '/files' ? 'Ver Arquivos' :
-                   'Ver Containers'}
+                  {task?.destinationUrl === '/volumes' ? t('install.view_volumes', 'Ver Volumes') :
+                   task?.destinationUrl === '/images' ? t('install.view_images', 'Ver Imagens') :
+                   task?.destinationUrl === '/networks' ? t('install.view_networks', 'Ver Redes') :
+                   task?.destinationUrl === '/files' ? t('install.view_files', 'Ver Arquivos') :
+                   t('install.view_containers', 'Ver Containers')}
                 </span>
               </button>
             </>

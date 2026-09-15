@@ -1,0 +1,14 @@
+{
+  "title": "Instalação Personalizada & Editor Compose",
+  "subtitle": "Configure stacks customizadas com linting, templates e checagem de portas ou execute Docker Run.",
+  "tab_editor": "Editor Docker Compose",
+  "tab_dockerrun": "Docker Run (Rápido)",
+  "template_placeholder": "Carregar modelo pré-configurado...",
+  "ports_warning": "Atenção: Porta(s) em uso no host: {{ports}}.",
+  "valid_yaml": "Sintaxe YAML válida e sem conflitos.",
+  "validating_ports": "(verificando portas...)",
+  "env_title": ".env (Variáveis)",
+  "name_required": "Informe um nome válido para a stack",
+  "load_failed": "Falha ao carregar conteúdo da stack",
+  "overwrite_confirm": "Substituir o conteúdo atual pelo template selecionado?"
+}

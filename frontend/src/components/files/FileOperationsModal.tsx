@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -33,6 +34,7 @@ export function FileOperationsModal({
   onClose,
   onSuccess,
 }: FileOperationsModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function FileOperationsModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: fullPath }),
         });
-        if (!res.ok) throw new Error('Não foi possível criar a pasta');
+        if (!res.ok) throw new Error(t('files.failed_create_folder', 'Não foi possível criar a pasta'));
       } else if (type === 'new_file') {
         const fullPath = `${currentPath === '/' ? '' : currentPath}/${name.trim()}`;
         const res = await fetch('/api/files/create', {
@@ -74,7 +76,7 @@ export function FileOperationsModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: fullPath }),
         });
-        if (!res.ok) throw new Error('Não foi possível criar o arquivo');
+        if (!res.ok) throw new Error(t('files.failed_create_file', 'Não foi possível criar o arquivo'));
       } else if (type === 'rename' && targetItem) {
         const parent = targetItem.path.substring(0, targetItem.path.lastIndexOf('/')) || '/';
         const newPath = `${parent === '/' ? '' : parent}/${name.trim()}`;
@@ -86,7 +88,7 @@ export function FileOperationsModal({
             new_path: newPath,
           }),
         });
-        if (!res.ok) throw new Error('Não foi possível renomear');
+        if (!res.ok) throw new Error(t('files.failed_rename', 'Não foi possível renomear'));
       } else if (type === 'delete') {
         const pathsToDelete = selectedItems.length > 0
           ? selectedItems.map(i => i.path)
@@ -99,13 +101,13 @@ export function FileOperationsModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: pathsToDelete }),
         });
-        if (!res.ok) throw new Error('Não foi possível excluir os itens');
+        if (!res.ok) throw new Error(t('files.failed_delete_items', 'Não foi possível excluir os itens'));
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Erro ao realizar operação');
+      setError(err.message || t('files.error_performing_operation', 'Erro ao realizar operação'));
     } finally {
       setIsSubmitting(false);
     }
@@ -113,10 +115,10 @@ export function FileOperationsModal({
 
   const getTitle = () => {
     switch (type) {
-      case 'new_folder': return 'Nova Pasta';
-      case 'new_file': return 'Novo Arquivo';
-      case 'rename': return 'Renomear Item';
-      case 'delete': return 'Excluir Item(s)';
+      case 'new_folder': return t('files.new_folder', 'Nova Pasta');
+      case 'new_file': return t('files.new_file', 'Novo Arquivo');
+      case 'rename': return t('files.rename_item', 'Renomear Item');
+      case 'delete': return t('files.delete_item', 'Excluir Item(s)');
     }
   };
 
@@ -163,23 +165,25 @@ export function FileOperationsModal({
               <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs font-medium">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <p>
-                  Esta ação não pode ser desfeita. Todos os arquivos e subpastas selecionados serão permanentemente removidos.
+                  {t('files.delete_permanent_warning', 'Esta ação não pode ser desfeita. Todos os arquivos e subpastas selecionados serão permanentemente removidos.')}
                 </p>
               </div>
               <p className="text-sm text-slate-700 dark:text-secondary px-1 font-medium">
-                Tem certeza que deseja excluir <strong className="text-primary">{selectedItems.length > 0 ? `${selectedItems.length} itens` : targetItem?.name}</strong>?
+                {t('files.confirm_delete_question', 'Tem certeza que deseja excluir {{target}}?', {
+                  target: selectedItems.length > 0 ? `${selectedItems.length} itens` : targetItem?.name || ''
+                })}
               </p>
             </div>
           ) : (
             <div>
               <label className="block text-xs font-semibold text-primary/80 dark:text-secondary mb-1.5">
-                {type === 'new_folder' ? 'Nome da Pasta' : type === 'new_file' ? 'Nome do Arquivo' : 'Novo Nome'}
+                {type === 'new_folder' ? t('files.folder_name', 'Nome da Pasta') : type === 'new_file' ? t('files.file_name', 'Nome do Arquivo') : t('files.new_name', 'Novo Nome')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={type === 'new_file' ? 'exemplo.txt' : 'Nome do item'}
+                placeholder={type === 'new_file' ? 'exemplo.txt' : t('files.item_name_placeholder', 'Nome do item')}
                 autoFocus
                 required
                 className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-primary placeholder:text-secondary/60 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all"
@@ -193,7 +197,7 @@ export function FileOperationsModal({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-sm font-medium text-secondary hover:text-primary hover:bg-accent/80 transition-colors"
             >
-              Cancelar
+              {t('common.cancel', 'Cancelar')}
             </button>
             <button
               type="submit"
@@ -205,7 +209,7 @@ export function FileOperationsModal({
               }`}
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              <span>{type === 'delete' ? 'Excluir' : 'Confirmar'}</span>
+              <span>{type === 'delete' ? t('common.delete', 'Excluir') : t('common.confirm', 'Confirmar')}</span>
             </button>
           </div>
         </form>

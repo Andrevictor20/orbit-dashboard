@@ -1,0 +1,16 @@
+{
+  "search_orbit": "軌道を検索...",
+  "color_theme": "テーマ",
+  "switch_language": "言語",
+  "toggle_theme": "ライト/ダークモードの切り替え",
+  "toggle_fullscreen": "全画面表示の切り替え",
+  "profile": "プロフィール",
+  "update_available": "利用可能なアップデート",
+  "system_connected": "システム接続済み",
+  "system_disconnected": "ホストから切断されました",
+  "language": "言語",
+  "preferences": "設定",
+  "user_profile": "ユーザープロフィール",
+  "preferences_tooltip": "設定 (テーマと言語)",
+  "close_preferences": "設定を閉じる"
+}

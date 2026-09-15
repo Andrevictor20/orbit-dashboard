@@ -1,0 +1,22 @@
+{
+  "avatar_title": "Icono de usuario/Avatar",
+  "avatar_desc": "Personaliza el ícono de tu perfil con una imagen local o URL.",
+  "upload_image": "Subir imagen",
+  "avatar_updated": "¡El ícono de perfil se actualizó exitosamente!",
+  "avatar_reset": "¡Restablecimiento del icono a los valores predeterminados!",
+  "wallpaper_title": "Fondo de pantalla",
+  "wallpaper_desc": "Agregue un papel tapiz personalizado con velo de contraste de vidrio esmerilado adaptable.",
+  "upload_wallpaper": "Subir foto",
+  "wallpaper_updated": "¡El fondo de pantalla se actualizó exitosamente!",
+  "wallpaper_removed": "¡Se eliminó el fondo de pantalla!",
+  "presets": "Galería temática",
+  "adjustments": "Ajustes de legibilidad",
+  "dimmer": "Opacidad del atenuador de velo",
+  "dimmer_hint": "Atenúa el fondo para garantizar un alto contraste y legibilidad sobre las tarjetas.",
+  "blur": "Desenfoque de fondo",
+  "blur_hint": "Suaviza los detalles finos de la fotografía para enfatizar el contenido de la tarjeta en primer plano.",
+  "preset_space_nebula": "Nebulosa espacial",
+  "preset_cosmic_mountain": "Montaña Cósmica",
+  "preset_cyberpunk_lines": "Líneas ciberpunk",
+  "preset_minimalist_gradient": "Degradado minimalista"
+}

@@ -2,6 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 export interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,12 +22,16 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   isDestructive = true,
   children
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
+
+  const resolvedConfirm = confirmText ?? t('common.confirm', 'Confirmar');
+  const resolvedCancel = cancelText ?? t('common.cancel', 'Cancelar');
 
   return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
@@ -59,7 +65,7 @@ export function ConfirmModal({
               onClick={onClose}
               className="px-4 py-2 rounded-lg font-medium text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors"
             >
-              {cancelText}
+              {resolvedCancel}
             </button>
             <button
               onClick={() => {
@@ -72,7 +78,7 @@ export function ConfirmModal({
                   : 'bg-orbit-600 hover:bg-orbit-700'
               }`}
             >
-              {confirmText}
+              {resolvedConfirm}
             </button>
           </div>
         </div>

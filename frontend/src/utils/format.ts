@@ -145,30 +145,34 @@ export function isPhysicalStorage(
  * Classifies a storage device and returns a user-friendly, clean label.
  * e.g., 'Cartão microSD', 'SSD NVMe', 'HD Externo', 'Pendrive USB', 'Armazenamento do Sistema'
  */
-export function getFriendlyDiskName(name?: string, mountPoint?: string): string {
+export function getFriendlyDiskName(name?: string, mountPoint?: string, t?: (key: string, options?: any) => string): string {
   const n = (name || '').toLowerCase();
   const m = (mountPoint || '').toLowerCase();
 
   if (n.includes('mmcblk') || n.includes('sdcard')) {
-    return 'Cartão microSD';
+    return t ? t('storage.microsd_card', 'Cartão microSD') : 'Cartão microSD';
   }
   if (n.includes('nvme')) {
     return 'SSD NVMe';
   }
   if (m.startsWith('/mnt') || m.startsWith('/media') || m.startsWith('/run/media') || m.startsWith('/host/mnt') || m.startsWith('/host/media')) {
     const mountFolder = mountPoint?.split('/').filter(s => s && s !== 'host' && s !== 'mnt' && s !== 'media' && s !== 'run').pop();
-    return mountFolder ? `HD Externo (${mountFolder})` : 'HD / Armazenamento Externo';
+    return mountFolder
+      ? (t ? t('storage.external_hd_named', { name: mountFolder, defaultValue: `HD Externo (${mountFolder})` }) : `HD Externo (${mountFolder})`)
+      : (t ? t('storage.external_storage', 'HD / Armazenamento Externo') : 'HD / Armazenamento Externo');
   }
   if (n.startsWith('/dev/sd') || n.startsWith('sd')) {
     if (m === '/' || m === '/root' || m === '/home' || m === '/host') {
-      return 'SSD / HD Principal';
+      return t ? t('storage.primary_disk', 'SSD / HD Principal') : 'SSD / HD Principal';
     }
-    return 'Pendrive / HD USB';
+    return t ? t('storage.usb_drive', 'Pendrive / HD USB') : 'Pendrive / HD USB';
   }
   if (m === '/' || m === '/root' || m === '/host' || n === 'root' || n === '/dev/root') {
-    return 'Armazenamento do Sistema';
+    return t ? t('storage.system_storage', 'Armazenamento do Sistema') : 'Armazenamento do Sistema';
   }
-  return name && !name.startsWith('/dev/') && !name.startsWith('/') ? name : 'Armazenamento do Sistema';
+  return name && !name.startsWith('/dev/') && !name.startsWith('/')
+    ? name
+    : (t ? t('storage.system_storage', 'Armazenamento do Sistema') : 'Armazenamento do Sistema');
 }
 
 export interface DiskCategoryInfo {

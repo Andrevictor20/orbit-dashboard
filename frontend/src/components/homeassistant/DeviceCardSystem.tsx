@@ -93,7 +93,7 @@ export const DeviceCardSystem: React.FC<DeviceCardSystemProps> = ({
           <div className="p-4 rounded-xl bg-accent/40 border border-border/50 flex flex-col justify-between">
             <div className="flex items-center gap-2 text-xs text-secondary font-medium">
               <Activity className="w-4 h-4 text-amber-400" />
-              <span>Latência / Ping</span>
+              <span>{t('homeassistant.latency_ping', 'Latência / Ping')}</span>
             </div>
             <div className="mt-2 flex items-baseline gap-1.5">
               <span className="text-2xl font-extrabold text-primary tabular-nums">{ping}</span>

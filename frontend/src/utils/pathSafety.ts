@@ -7,7 +7,7 @@ export interface SafetyInfo {
   description: string;
 }
 
-export function getPathSafetyInfo(path: string): SafetyInfo {
+export function getPathSafetyInfo(path: string, t?: (key: string, def?: any) => string): SafetyInfo {
   const p = path.toLowerCase();
 
   // Critical system paths - NEVER TOUCH
@@ -36,9 +36,13 @@ export function getPathSafetyInfo(path: string): SafetyInfo {
   ) {
     return {
       level: 'critical',
-      tag: 'Crítico do Sistema',
-      description:
-        'NÃO APAGAR manualmente. Essencial para o funcionamento do kernel e do sistema operacional.',
+      tag: t ? t('disk.safety_critical_tag', 'Crítico do Sistema') : 'Crítico do Sistema',
+      description: t
+        ? t(
+            'disk.safety_critical_desc',
+            'NÃO APAGAR manualmente. Essencial para o funcionamento do kernel e do sistema operacional.'
+          )
+        : 'NÃO APAGAR manualmente. Essencial para o funcionamento do kernel e do sistema operacional.',
     };
   }
 
@@ -51,9 +55,13 @@ export function getPathSafetyInfo(path: string): SafetyInfo {
   ) {
     return {
       level: 'warning',
-      tag: 'Cuidado (Revisar)',
-      description:
-        'Pode conter bancos de dados, volumes de containers ou configurações ativas de aplicações.',
+      tag: t ? t('disk.safety_warning_tag', 'Cuidado (Revisar)') : 'Cuidado (Revisar)',
+      description: t
+        ? t(
+            'disk.safety_warning_desc',
+            'Pode conter bancos de dados, volumes de containers ou configurações ativas de aplicações.'
+          )
+        : 'Pode conter bancos de dados, volumes de containers ou configurações ativas de aplicações.',
     };
   }
 
@@ -72,15 +80,21 @@ export function getPathSafetyInfo(path: string): SafetyInfo {
   ) {
     return {
       level: 'safe',
-      tag: 'Seguro para Limpeza',
-      description:
-        'Cache temporário, log rotacionado ou lixeira que pode ser liberado sem afetar o sistema.',
+      tag: t ? t('disk.safety_safe_tag', 'Seguro para Limpeza') : 'Seguro para Limpeza',
+      description: t
+        ? t(
+            'disk.safety_safe_desc',
+            'Cache temporário, log rotacionado ou lixeira que pode ser liberado sem afetar o sistema.'
+          )
+        : 'Cache temporário, log rotacionado ou lixeira que pode ser liberado sem afetar o sistema.',
     };
   }
 
   return {
     level: 'warning',
-    tag: 'Dados de Usuário',
-    description: 'Arquivos e pastas de usuário ou de aplicações.',
+    tag: t ? t('disk.safety_user_tag', 'Dados de Usuário') : 'Dados de Usuário',
+    description: t
+      ? t('disk.safety_user_desc', 'Arquivos e pastas de usuário ou de aplicações.')
+      : 'Arquivos e pastas de usuário ou de aplicações.',
   };
 }

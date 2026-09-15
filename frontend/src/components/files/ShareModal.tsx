@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, 
   Share2, 
@@ -30,6 +31,7 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
+  const { t } = useTranslation();
   const [expiration, setExpiration] = useState<number | null>(86400); // Default 24h
   const [createdShare, setCreatedShare] = useState<ShareLink | null>(null);
   const [existingShares, setExistingShares] = useState<ShareLink[]>([]);
@@ -74,12 +76,12 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
         }),
       });
 
-      if (!res.ok) throw new Error('Erro ao criar link de compartilhamento');
+      if (!res.ok) throw new Error(t('files.error_creating_share_link', 'Erro ao criar link de compartilhamento'));
       const share: ShareLink = await res.json();
       setCreatedShare(share);
       fetchShares();
     } catch (err: any) {
-      setError(err.message || 'Erro ao gerar link');
+      setError(err.message || t('files.error_generating_link', 'Erro ao gerar link'));
     } finally {
       setLoading(false);
     }
@@ -110,10 +112,11 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
   };
 
   const formatExpiry = (expires_at?: string) => {
-    if (!expires_at) return 'Nunca expira';
+    if (!expires_at) return t('files.never_expires', 'Nunca expira');
     try {
       const date = new Date(expires_at);
-      return `Expira em ${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return t('files.expires_at_date', { date: formattedDate, defaultValue: `Expira em ${formattedDate}` });
     } catch {
       return expires_at;
     }
@@ -132,10 +135,10 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
             </div>
             <div>
               <h2 className="text-base font-bold text-primary">
-                Compartilhar Arquivo
+                {t('files.share_file', 'Compartilhar Arquivo')}
               </h2>
               <p className="text-xs text-slate-600 dark:text-secondary truncate max-w-sm font-medium">
-                Gere um link público temporário sem necessidade de login.
+                {t('files.share_modal_desc', 'Gere um link público temporário sem necessidade de login.')}
               </p>
             </div>
           </div>
@@ -158,7 +161,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
             <div className="min-w-0 flex-1">
               <h4 className="text-sm font-semibold text-primary truncate">{file.name}</h4>
               <p className="text-xs text-slate-600 dark:text-secondary font-mono">
-                {file.is_dir ? 'Pasta' : `${(file.size / 1024).toFixed(1)} KB`}
+                {file.is_dir ? t('files.folder', 'Pasta') : `${(file.size / 1024).toFixed(1)} KB`}
               </p>
             </div>
           </div>
@@ -166,14 +169,14 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
           {/* Expiration Presets */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-600 dark:text-secondary uppercase tracking-wider flex items-center gap-1.5">
-              <Clock size={14} /> Validade do Link
+              <Clock size={14} /> {t('files.link_validity', 'Validade do Link')}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { label: '1 Hora', val: 3600 },
-                { label: '24 Horas', val: 86400 },
-                { label: '7 Dias', val: 604800 },
-                { label: '30 Dias', val: 2592000 },
+                { label: t('files.validity_1h', '1 Hora'), val: 3600 },
+                { label: t('files.validity_24h', '24 Horas'), val: 86400 },
+                { label: t('files.validity_7d', '7 Dias'), val: 604800 },
+                { label: t('files.validity_30d', '30 Dias'), val: 2592000 },
               ].map((opt) => (
                 <button
                   key={opt.val}
@@ -204,7 +207,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
             className="w-full py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-[0.99] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25 transition-all disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-            {loading ? 'Gerando Link...' : 'Gerar Novo Link de Compartilhamento'}
+            {loading ? t('files.generating_link', 'Gerando Link...') : t('files.generate_new_link', 'Gerar Novo Link de Compartilhamento')}
           </button>
 
           {/* Newly Created Share */}
@@ -212,7 +215,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                  Link Criado com Sucesso!
+                  {t('files.link_created_success', 'Link Criado com Sucesso!')}
                 </span>
                 <span className="text-[11px] text-slate-600 dark:text-secondary">
                   {formatExpiry(createdShare.expires_at)}
@@ -228,7 +231,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
                 <button
                   onClick={() => handleCopy(createdShare.token)}
                   className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-sm"
-                  title="Copiar Link"
+                  title={t('files.copy_link', 'Copiar Link')}
                 >
                   {copiedToken === createdShare.token ? <Check size={16} /> : <Copy size={16} />}
                 </button>
@@ -239,7 +242,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
           {/* Active Shares List for this file */}
           <div className="space-y-3 pt-2 border-t border-border">
             <h4 className="text-xs font-bold text-slate-600 dark:text-secondary uppercase tracking-wider">
-              Links Ativos ({existingShares.filter(s => s.file_path === file.path).length})
+              {t('files.active_links_count', { count: existingShares.filter(s => s.file_path === file.path).length, defaultValue: `Links Ativos (${existingShares.filter(s => s.file_path === file.path).length})` })}
             </h4>
 
             {loadingList ? (
@@ -248,7 +251,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
               </div>
             ) : existingShares.filter(s => s.file_path === file.path).length === 0 ? (
               <p className="text-xs text-slate-600 dark:text-secondary italic">
-                Nenhum link ativo gerado para este item.
+                {t('files.no_active_links', 'Nenhum link ativo gerado para este item.')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -269,7 +272,7 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
                             target="_blank"
                             rel="noreferrer"
                             className="text-slate-600 dark:text-secondary hover:text-violet-600 dark:hover:text-violet-400"
-                            title="Abrir link"
+                            title={t('files.open_link', 'Abrir link')}
                           >
                             <ExternalLink size={12} />
                           </a>
@@ -283,14 +286,14 @@ export function ShareModal({ file, isOpen, onClose }: ShareModalProps) {
                         <button
                           onClick={() => handleCopy(share.token)}
                           className="p-1.5 rounded-lg bg-accent/60 hover:bg-accent text-slate-700 dark:text-secondary hover:text-primary transition-colors border border-border"
-                          title="Copiar Link"
+                          title={t('files.copy_link', 'Copiar Link')}
                         >
                           {copiedToken === share.token ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                         </button>
                         <button
                           onClick={() => handleDeleteShare(share.token)}
                           className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 transition-colors"
-                          title="Revogar Link"
+                          title={t('files.revoke_link', 'Revogar Link')}
                         >
                           <Trash2 size={14} />
                         </button>

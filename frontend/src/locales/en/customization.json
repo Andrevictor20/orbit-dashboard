@@ -1,0 +1,22 @@
+{
+  "avatar_title": "User Icon / Avatar",
+  "avatar_desc": "Customize your profile icon with a local image or URL.",
+  "upload_image": "Upload Image",
+  "avatar_updated": "Profile icon updated successfully!",
+  "avatar_reset": "Icon reset to default!",
+  "wallpaper_title": "Background Wallpaper",
+  "wallpaper_desc": "Add a custom wallpaper with adaptive frosted glass contrast veil.",
+  "upload_wallpaper": "Upload Photo",
+  "wallpaper_updated": "Background wallpaper updated successfully!",
+  "wallpaper_removed": "Background wallpaper removed!",
+  "presets": "Theme Gallery",
+  "adjustments": "Legibility Adjustments",
+  "dimmer": "Veil Dimmer Opacity",
+  "dimmer_hint": "Dimmens the background to ensure high contrast and readability over cards.",
+  "blur": "Background Blur",
+  "blur_hint": "Smooths fine photo details to emphasize foreground card content.",
+  "preset_space_nebula": "Space Nebula",
+  "preset_cosmic_mountain": "Cosmic Mountain",
+  "preset_cyberpunk_lines": "Cyberpunk Lines",
+  "preset_minimalist_gradient": "Minimalist Gradient"
+}

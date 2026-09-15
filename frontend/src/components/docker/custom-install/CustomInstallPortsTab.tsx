@@ -43,10 +43,10 @@ export function CustomInstallPortsTab({
             onClick={() => onCheckConflicts(ports)}
             disabled={checkingPorts}
             className="text-xs flex items-center gap-1.5 bg-accent/60 hover:bg-accent text-secondary hover:text-primary border border-border px-2.5 py-1.5 rounded-xl transition-colors"
-            title="Verificar conflitos de portas com o host"
+            title={t('custom_install.check_conflicts_tooltip', 'Verificar conflitos de portas com o host')}
           >
             <RefreshCw className={`w-3 h-3 text-orbit-500 ${checkingPorts ? 'animate-spin' : ''}`} />
-            <span>{checkingPorts ? 'Checando...' : 'Checar Conflitos'}</span>
+            <span>{checkingPorts ? t('custom_install.checking', 'Checando...') : t('custom_install.check_conflicts', 'Checar Conflitos')}</span>
           </button>
           <button 
             type="button"
@@ -124,7 +124,7 @@ export function CustomInstallPortsTab({
                   type="button" 
                   onClick={() => setPorts(ports.filter((_, i) => i !== idx))}
                   className="p-2 text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                  title="Remover"
+                  title={t('common.remove', 'Remover')}
                 >
                   <X className="w-4 h-4" />
                 </button>

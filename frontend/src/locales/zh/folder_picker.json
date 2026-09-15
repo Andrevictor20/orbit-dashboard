@@ -1,0 +1,17 @@
+{
+  "title": "选择服务器文件夹",
+  "subtitle": "浏览主机文件夹以映射存储卷。",
+  "roots": "磁盘",
+  "up_dir": "上升一级",
+  "new_folder": "新建文件夹",
+  "folder_name_placeholder": "新文件夹名称...",
+  "folder_created": "文件夹创建成功！",
+  "empty_folder": "在此目录中找不到子文件夹。",
+  "return_to_root": "返回根目录（/）？",
+  "selected": "路径",
+  "select_this_folder": "选择该文件夹",
+  "load_error": "无法访问该目录",
+  "browse": "选择服务器上的文件夹",
+  "root": "根",
+  "root_dir": "根 (/)"
+}

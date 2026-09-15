@@ -383,6 +383,8 @@ pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             .unwrap_or_default()
             .as_millis() as u64;
 
+        let gpu = crate::system::gpu::collect_gpu_telemetry();
+
         let stats = SystemStats {
             timestamp: now_millis,
             cpu_usage: sys_cpu,
@@ -393,6 +395,11 @@ pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             network_rx: host_rate_rx,
             network_interface: current_iface_info.as_ref().map(|i| i.name.clone()),
             network_interface_type: current_iface_info.as_ref().map(|i| i.kind.clone()),
+            gpu_usage: if gpu.is_available { Some(gpu.usage_percent) } else { None },
+            gpu_memory_used: if gpu.is_available { Some(gpu.memory_used_bytes) } else { None },
+            gpu_memory_total: if gpu.is_available { Some(gpu.memory_total_bytes) } else { None },
+            gpu_name: if gpu.is_available { Some(gpu.name) } else { None },
+            gpu_temperature: gpu.temperature_c,
             temperature,
             docker_cpu: cached_docker_cpu,
             docker_memory: cached_docker_mem,

@@ -1,0 +1,17 @@
+{
+  "title": "Seleziona la cartella del server",
+  "subtitle": "Sfoglia le cartelle host per mappare i volumi di archiviazione.",
+  "roots": "Dischi",
+  "up_dir": "Su di un livello",
+  "new_folder": "Nuova cartella",
+  "folder_name_placeholder": "Nuovo nome della cartella...",
+  "folder_created": "Cartella creata con successo!",
+  "empty_folder": "Nessuna sottocartella trovata in questa directory.",
+  "return_to_root": "Ritornare alla radice (/)?",
+  "selected": "Percorso",
+  "select_this_folder": "Seleziona questa cartella",
+  "load_error": "Impossibile accedere a questa directory",
+  "browse": "Seleziona la cartella sul server",
+  "root": "Radice",
+  "root_dir": "Radice (/)"
+}

@@ -67,11 +67,11 @@ export function Volumes() {
     if (unusedVolumes.length === 0) {
       setConfirmAction({
         isOpen: true,
-        title: 'Nenhum Volume Não Utilizado',
-        message: 'Todos os volumes listados estão em uso por containers ativos. Nenhum volume será removido.',
+        title: t('volumes.no_unused_title', 'Nenhum Volume Não Utilizado'),
+        message: t('volumes.no_unused_msg', 'Todos os volumes listados estão em uso por containers ativos. Nenhum volume será removido.'),
         children: (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
-            Dica: Para remover um volume, pare e remova o container associado a ele primeiro.
+            {t('volumes.no_unused_tip', 'Dica: Para remover um volume, pare e remova o container associado a ele primeiro.')}
           </div>
         ),
         onConfirm: () => {}
@@ -81,13 +81,13 @@ export function Volumes() {
 
     setConfirmAction({
       isOpen: true,
-      title: 'Limpar Volumes Não Utilizados',
-      message: `Tem certeza que deseja remover permanentemente os ${unusedVolumes.length} volumes não utilizados? Esta ação liberará espaço em disco.`,
+      title: t('volumes.prune_modal_title', 'Limpar Volumes Não Utilizados'),
+      message: t('volumes.prune_modal_msg', { count: unusedVolumes.length, defaultValue: `Tem certeza que deseja remover permanentemente os ${unusedVolumes.length} volumes não utilizados? Esta ação liberará espaço em disco.` }),
       children: (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-secondary font-medium">
-            <span>Volumes que serão excluídos:</span>
-            <span className="font-bold text-rose-400">{unusedVolumes.length} volume(s)</span>
+            <span>{t('volumes.volumes_to_delete', 'Volumes que serão excluídos:')}</span>
+            <span className="font-bold text-rose-400">{t('volumes.volumes_count', { count: unusedVolumes.length, defaultValue: `${unusedVolumes.length} volume(s)` })}</span>
           </div>
           <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
             {unusedVolumes.map(v => (
@@ -103,11 +103,11 @@ export function Volumes() {
       onConfirm: () => {
         startTask({
           type: 'prune_volumes',
-          title: 'Limpeza de Volumes Docker',
+          title: t('volumes.prune_task_title', 'Limpeza de Volumes Docker'),
           destinationUrl: '/volumes',
           initialLogs: [
-            `[INFO] Iniciando limpeza de ${unusedVolumes.length} volume(s) não utilizado(s)...`,
-            ...unusedVolumes.map(v => `[PRUNE] Marcado para remoção: ${v.name}`)
+            t('volumes.prune_starting_log', { count: unusedVolumes.length, defaultValue: `[INFO] Iniciando limpeza de ${unusedVolumes.length} volume(s) não utilizado(s)...` }),
+            ...unusedVolumes.map(v => t('volumes.marked_for_removal', { target: v.name, defaultValue: `[PRUNE] Marcado para remoção: ${v.name}` }))
           ],
           runner: async (helpers) => {
             helpers.setProgress(20);
@@ -120,22 +120,22 @@ export function Volumes() {
             helpers.setProgress(75);
             if (!res.ok) {
               const err = await res.text();
-              throw new Error(err || 'Falha ao remover volumes no Docker daemon');
+              throw new Error(err || t('volumes.prune_docker_err', 'Falha ao remover volumes no Docker daemon'));
             }
             const data = typeof res.json === 'function' ? await res.json().catch(() => null) : null;
             const deleted: string[] = data?.deleted || [];
             const spaceReclaimed: number = data?.space_reclaimed || 0;
             
-            helpers.addLog(`[INFO] Volumes removidos pelo Docker: ${deleted.length}`);
-            deleted.forEach(name => helpers.addLog(`[SUCCESS] Volume removido: ${name}`));
+            helpers.addLog(t('volumes.prune_docker_removed_log', { count: deleted.length, defaultValue: `[INFO] Volumes removidos pelo Docker: ${deleted.length}` }));
+            deleted.forEach(name => helpers.addLog(t('volumes.prune_removed_log', { name, defaultValue: `[SUCCESS] Volume removido: ${name}` })));
             if (spaceReclaimed > 0) {
-              helpers.addLog(`[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}`);
+              helpers.addLog(t('volumes.prune_reclaimed_log', { size: formatBytes(spaceReclaimed), defaultValue: `[INFO] Espaço recuperado em disco: ${formatBytes(spaceReclaimed)}` }));
             }
-            helpers.setDone(`Limpeza concluída! ${deleted.length} volume(s) removido(s).`);
+            helpers.setDone(t('volumes.prune_done_log', { count: deleted.length, defaultValue: `Limpeza concluída! ${deleted.length} volume(s) removido(s).` }));
             if (deleted.length > 0) {
-              toast.success('Volumes não utilizados removidos com sucesso!');
+              toast.success(t('volumes.prune_success', 'Volumes não utilizados removidos com sucesso!'));
             } else {
-              toast('Nenhum volume removido pelo Docker.', { icon: 'ℹ️' });
+              toast(t('volumes.none_pruned', 'Nenhum volume removido pelo Docker.'), { icon: 'ℹ️' });
             }
             fetchVolumes();
           }
@@ -147,10 +147,10 @@ export function Volumes() {
   const confirmDelete = (name: string) => {
     setConfirmAction({
       isOpen: true,
-      title: 'Excluir Volume',
-      message: `Tem certeza que deseja excluir o volume ${name}? Dados contidos nele serão perdidos permanentemente.`,
+      title: t('volumes.delete_volume_title', 'Excluir Volume'),
+      message: t('volumes.delete_volume_msg', { name, defaultValue: `Tem certeza que deseja excluir o volume ${name}? Dados contidos nele serão perdidos permanentemente.` }),
       onConfirm: async () => {
-        const loadingToast = toast.loading('Excluindo volume...');
+        const loadingToast = toast.loading(t('volumes.deleting_volume', 'Excluindo volume...'));
         try {
           const token = localStorage.getItem('orbit_token');
           const res = await fetch(`/api/docker/volumes/${name}`, { 
@@ -158,15 +158,15 @@ export function Volumes() {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
-            toast.success('Volume excluído com sucesso!', { id: loadingToast });
+            toast.success(t('volumes.delete_volume_success', 'Volume excluído com sucesso!'), { id: loadingToast });
             fetchVolumes();
           } else {
             const err = await res.text();
-            toast.error(`Erro ao excluir: ${err || 'Volume em uso'}`, { id: loadingToast });
+            toast.error(t('volumes.delete_volume_error', { error: err || t('volumes.delete_volume_error_in_use', 'Volume em uso'), defaultValue: `Erro ao excluir: ${err || 'Volume em uso'}` }), { id: loadingToast });
           }
         } catch (e) {
           console.error(e);
-          toast.error('Erro de conexão.', { id: loadingToast });
+          toast.error(t('common.conn_error', 'Erro de conexão.'), { id: loadingToast });
         }
       }
     });
@@ -267,12 +267,12 @@ export function Volumes() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              aria-label="Ordenar volumes por"
+              aria-label={t('volumes.sort_by', 'Ordenar volumes por')}
               className="bg-transparent text-primary focus:outline-none cursor-pointer text-xs w-full"
             >
-              <option value="status" className="bg-card text-primary">Em uso primeiro</option>
-              <option value="name" className="bg-card text-primary">Nome (A-Z)</option>
-              <option value="driver" className="bg-card text-primary">Driver</option>
+              <option value="status" className="bg-card text-primary">{t('volumes.sort_status', 'Em uso primeiro')}</option>
+              <option value="name" className="bg-card text-primary">{t('volumes.sort_name', 'Nome (A-Z)')}</option>
+              <option value="driver" className="bg-card text-primary">{t('volumes.sort_driver', 'Driver')}</option>
             </select>
           </div>
         </div>
@@ -283,11 +283,11 @@ export function Volumes() {
         {loading ? (
           <div className="p-8 sm:p-12 text-center text-secondary flex flex-col items-center justify-center gap-2">
             <HardDrive className="w-8 h-8 animate-pulse text-orbit-500" />
-            <span>Carregando volumes...</span>
+            <span>{t('volumes.loading', 'Carregando volumes...')}</span>
           </div>
         ) : filteredAndSortedVolumes.length === 0 ? (
           <div className="p-8 sm:p-12 text-center text-secondary">
-            Nenhum volume encontrado com os filtros selecionados.
+            {t('volumes.no_volumes_match', 'Nenhum volume encontrado com os filtros selecionados.')}
           </div>
         ) : (
           <>
@@ -307,12 +307,12 @@ export function Volumes() {
                     {vol.in_use ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                        Em uso {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
+                        {t('volumes.in_use', 'Em uso')} {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border shrink-0">
                         <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                        Não utilizado
+                        {t('volumes.unused', 'Não utilizado')}
                       </span>
                     )}
                   </div>
@@ -325,7 +325,7 @@ export function Volumes() {
                       </span>
                     </div>
                     <div className="space-y-0.5">
-                      <span className="text-secondary/70 block text-[10px]">Ponto de Montagem:</span>
+                      <span className="text-secondary/70 block text-[10px]">{t('volumes.mountpoint_label', 'Ponto de Montagem:')}</span>
                       <span className="font-mono text-primary text-[11px] break-all block">
                         {vol.mountpoint}
                       </span>
@@ -336,10 +336,10 @@ export function Volumes() {
                     <button 
                       onClick={() => confirmDelete(vol.name)}
                       className="w-full py-2.5 px-3 rounded-xl border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-medium transition-colors flex items-center justify-center gap-2 min-h-[40px]"
-                      aria-label={`Excluir Volume ${vol.name}`}
+                      aria-label={`${t('volumes.delete_volume', 'Excluir Volume')} ${vol.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      <span>Excluir Volume</span>
+                      <span>{t('volumes.delete_volume', 'Excluir Volume')}</span>
                     </button>
                   </div>
                 </div>
@@ -351,11 +351,11 @@ export function Volumes() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border bg-white/5 text-secondary text-xs uppercase tracking-wider">
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium">Nome do Volume</th>
-                    <th className="p-4 font-medium">Driver</th>
-                    <th className="p-4 font-medium">Ponto de Montagem</th>
-                    <th className="p-4 font-medium text-right">Ações</th>
+                    <th className="p-4 font-medium">{t('volumes.status_col', 'Status')}</th>
+                    <th className="p-4 font-medium">{t('volumes.name_col', 'Nome do Volume')}</th>
+                    <th className="p-4 font-medium">{t('volumes.driver_col', 'Driver')}</th>
+                    <th className="p-4 font-medium">{t('volumes.mountpoint_col', 'Ponto de Montagem')}</th>
+                    <th className="p-4 font-medium text-right">{t('common.actions', 'Ações')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -365,12 +365,12 @@ export function Volumes() {
                         {vol.in_use ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            Em uso {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
+                            {t('volumes.in_use', 'Em uso')} {vol.containers_count && vol.containers_count > 1 ? `(${vol.containers_count})` : ''}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-accent text-slate-700 dark:text-zinc-300 border border-border">
                             <AlertCircle className="w-3 h-3 text-slate-600 dark:text-zinc-400" />
-                            Não utilizado
+                            {t('volumes.unused', 'Não utilizado')}
                           </span>
                         )}
                       </td>
@@ -396,8 +396,8 @@ export function Volumes() {
                         <button 
                           onClick={() => confirmDelete(vol.name)}
                           className="p-2 text-secondary hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                          title="Excluir Volume"
-                          aria-label={`Excluir Volume ${vol.name}`}
+                          title={t('volumes.delete_volume', 'Excluir Volume')}
+                          aria-label={`${t('volumes.delete_volume', 'Excluir Volume')} ${vol.name}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -418,7 +418,7 @@ export function Volumes() {
         message={confirmAction.message}
         onConfirm={confirmAction.onConfirm}
         isDestructive={true}
-        confirmText="Sim, excluir"
+        confirmText={t('common.confirm_delete', 'Sim, excluir')}
         children={confirmAction.children}
       />
     </div>

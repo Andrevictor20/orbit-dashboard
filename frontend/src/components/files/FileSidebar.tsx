@@ -283,9 +283,9 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
         >
           <div className="flex items-center gap-2">
             {showHiddenFiles ? <Eye className="w-3.5 h-3.5 text-orbit-400" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span>Arquivos ocultos</span>
+            <span>{t('files.hidden_files', 'Arquivos ocultos')}</span>
           </div>
-          <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? 'Visíveis' : 'Ocultos'}</span>
+          <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? t('files.visible', 'Visíveis') : t('files.hidden', 'Ocultos')}</span>
         </button>
         
         <button
@@ -293,7 +293,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-secondary hover:text-primary hover:bg-accent transition-colors font-medium"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Atualizar lista</span>
+          <span>{t('files.refresh_list', 'Atualizar lista')}</span>
         </button>
       </div>
     </aside>

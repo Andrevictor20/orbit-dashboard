@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use std::fs;
 use std::path::PathBuf;
 use tokio::process::Command;
-use tracing::{error, info};
+use tracing::info;
 
 use super::models::{BackupItem, BackupScheduleConfig};
 
@@ -62,6 +62,31 @@ pub fn save_schedule_config_internal(config: &BackupScheduleConfig) {
     }
 }
 
+pub const CONFIG_FILES: &[&str] = &[
+    "orbit_auth.json",
+    "custom_links.json",
+    "settings.json",
+    "pihole.json",
+    "cloudflare.json",
+    "jwt.secret",
+    "config/samba.json",
+    "backups/schedule.json",
+];
+
+pub(crate) fn copy_dir_all(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(&entry.path(), &dst.join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn prune_retention(items: &mut Vec<BackupItem>, app_id: &str, retention: usize) {
     if retention == 0 {
         return;
@@ -85,23 +110,37 @@ pub fn prune_retention(items: &mut Vec<BackupItem>, app_id: &str, retention: usi
     });
 }
 
+pub async fn create_backup_dispatch(
+    target_type_raw: &str,
+    app_id_raw: &str,
+    stop: bool,
+    backup_type: &str,
+) -> Result<BackupItem, (StatusCode, String)> {
+    let target = if !target_type_raw.is_empty() {
+        target_type_raw
+    } else if !app_id_raw.is_empty() {
+        app_id_raw
+    } else {
+        "system_full"
+    };
+
+    match target {
+        "system_full" => create_full_system_backup_internal(stop, backup_type).await,
+        "orbit_configs" => create_orbit_configs_backup_internal(backup_type).await,
+        "all_containers" => create_all_containers_backup_internal(stop, backup_type).await,
+        other => create_single_app_backup_internal(other, stop, backup_type).await,
+    }
+}
+
 pub async fn create_backup_internal(
     app_id_raw: &str,
     stop: bool,
     backup_type: &str,
 ) -> Result<BackupItem, (StatusCode, String)> {
-    let _lock = BACKUP_MUTEX.lock().await;
+    create_backup_dispatch("", app_id_raw, stop, backup_type).await
+}
 
-    let app_id = app_id_raw.trim().replace("..", "").replace('/', "-");
-    let app_dir = PathBuf::from("data/apps").join(&app_id);
-
-    if !app_dir.exists() {
-        return Err((
-            StatusCode::NOT_FOUND,
-            "Pasta do aplicativo não encontrada".to_string(),
-        ));
-    }
-
+fn get_timestamp_and_suffix() -> (String, String) {
     let now = time::OffsetDateTime::now_utc();
     let timestamp_str = now
         .format(&time::format_description::well_known::Rfc3339)
@@ -111,47 +150,262 @@ pub async fn create_backup_internal(
             "[year][month][day]_[hour][minute][second]"
         ))
         .unwrap_or_else(|_| "backup".to_string());
+    (timestamp_str, file_suffix)
+}
 
-    let filename = format!("backup_{}_{}.tar.gz", app_id, file_suffix);
-    let backup_dir = get_backups_dir();
-    let backup_path = backup_dir.join(&filename);
+fn copy_system_configs_to_staging(configs_staging: &std::path::Path) {
+    let _ = fs::create_dir_all(configs_staging);
+    for file in CONFIG_FILES {
+        let src = PathBuf::from("data").join(file);
+        if src.exists() {
+            let filename = src.file_name().unwrap_or_default();
+            let _ = fs::copy(&src, configs_staging.join(filename));
+        }
+    }
+}
 
-    info!(
-        "Iniciando criação de backup para {} em {}",
-        app_id,
-        backup_path.display()
-    );
+fn dump_containers_manifest_to_staging(staging_dir: &std::path::Path) {
+    let manifest_path = staging_dir.join("containers_manifest.json");
+    if let Ok(output) = std::process::Command::new("docker")
+        .args(["ps", "-a", "--format", "{{json .}}"])
+        .output()
+    {
+        if output.status.success() {
+            let _ = fs::write(manifest_path, output.stdout);
+            return;
+        }
+    }
+    let _ = fs::write(manifest_path, "[]");
+}
 
-    // 1. Parada temporária se solicitada para consistência
-    if stop {
-        let _ = Command::new("docker")
-            .arg("compose")
-            .arg("stop")
-            .current_dir(&app_dir)
-            .output()
-            .await;
+pub async fn create_full_system_backup_internal(
+    stop: bool,
+    backup_type: &str,
+) -> Result<BackupItem, (StatusCode, String)> {
+    let _lock = BACKUP_MUTEX.lock().await;
+    let (timestamp_str, file_suffix) = get_timestamp_and_suffix();
+    let filename = format!("backup_system_full_{}.tar.gz", file_suffix);
+    let backup_path = get_backups_dir().join(&filename);
+    let staging_id = uuid::Uuid::new_v4().to_string();
+    let staging_dir = get_backups_dir().join(format!(".tmp_full_{}", staging_id));
+    let _ = fs::create_dir_all(&staging_dir);
+
+    // 1. Manifest
+    let manifest = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "target_type": "system_full",
+        "app_id": "system_full",
+        "app_name": "Sistema Completo (Orbit + Containers)",
+        "created_at": timestamp_str,
+        "includes_apps": true,
+        "includes_configs": true,
+        "description": "Backup completo das configurações do Orbit, integrações e todos os contêineres e volumes"
+    });
+    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+
+    // 2. Configs & Containers Manifest
+    copy_system_configs_to_staging(&staging_dir.join("configs"));
+    dump_containers_manifest_to_staging(&staging_dir);
+
+    // 3. Apps & Containers Data
+    let apps_source = PathBuf::from("data/apps");
+    if apps_source.exists() {
+        if stop {
+            let _ = Command::new("docker").args(["compose", "stop"]).current_dir(&apps_source).output().await;
+        }
+        let _ = copy_dir_all(&apps_source, &staging_dir.join("apps"));
+        if stop {
+            let _ = Command::new("docker").args(["compose", "start"]).current_dir(&apps_source).output().await;
+        }
     }
 
-    // 2. Compactação tar.gz da pasta do app
+    // 4. Compactação Tar
     let tar_result = Command::new("tar")
-        .args([
-            "-czf",
-            backup_path.to_str().unwrap_or(""),
-            "-C",
-            "data/apps",
-            &app_id,
-        ])
+        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", staging_dir.to_str().unwrap_or(""), "."])
         .output()
         .await;
 
-    // 3. Reiniciar stack se foi parada
+    let _ = fs::remove_dir_all(&staging_dir);
+
+    match tar_result {
+        Ok(output) if output.status.success() => {
+            let size = backup_path.metadata().map(|m| m.len()).unwrap_or(0);
+            let backup_item = BackupItem {
+                id: uuid::Uuid::new_v4().to_string(),
+                app_id: "system_full".to_string(),
+                app_name: "Sistema Completo (Orbit + Containers)".to_string(),
+                filename: filename.clone(),
+                size_bytes: size,
+                created_at: timestamp_str,
+                status: "completed".to_string(),
+                backup_type: backup_type.to_string(),
+                target_type: "system_full".to_string(),
+                description: Some("Backup completo das configurações do Orbit, integrações e contêineres".to_string()),
+            };
+            let mut current = load_backup_index();
+            current.insert(0, backup_item.clone());
+            save_backup_index(&current);
+            info!("Backup completo criado com sucesso: {} bytes", size);
+            Ok(backup_item)
+        }
+        Ok(out) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Falha no tar: {}", String::from_utf8_lossy(&out.stderr)))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Erro ao executar tar: {}", e))),
+    }
+}
+
+pub async fn create_orbit_configs_backup_internal(
+    backup_type: &str,
+) -> Result<BackupItem, (StatusCode, String)> {
+    let _lock = BACKUP_MUTEX.lock().await;
+    let (timestamp_str, file_suffix) = get_timestamp_and_suffix();
+    let filename = format!("backup_orbit_configs_{}.tar.gz", file_suffix);
+    let backup_path = get_backups_dir().join(&filename);
+    let staging_id = uuid::Uuid::new_v4().to_string();
+    let staging_dir = get_backups_dir().join(format!(".tmp_cfg_{}", staging_id));
+    let _ = fs::create_dir_all(&staging_dir);
+
+    let manifest = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "target_type": "orbit_configs",
+        "app_id": "orbit_configs",
+        "app_name": "Configurações Orbit & Integrações",
+        "created_at": timestamp_str,
+        "includes_apps": false,
+        "includes_configs": true,
+        "description": "Autenticação, usuários, credenciais, integrações (HA, Cloudflare, Pi-hole, Samba) e preferências"
+    });
+    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+    copy_system_configs_to_staging(&staging_dir.join("configs"));
+
+    let tar_result = Command::new("tar")
+        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", staging_dir.to_str().unwrap_or(""), "."])
+        .output()
+        .await;
+
+    let _ = fs::remove_dir_all(&staging_dir);
+
+    match tar_result {
+        Ok(output) if output.status.success() => {
+            let size = backup_path.metadata().map(|m| m.len()).unwrap_or(0);
+            let backup_item = BackupItem {
+                id: uuid::Uuid::new_v4().to_string(),
+                app_id: "orbit_configs".to_string(),
+                app_name: "Configurações Orbit & Integrações".to_string(),
+                filename: filename.clone(),
+                size_bytes: size,
+                created_at: timestamp_str,
+                status: "completed".to_string(),
+                backup_type: backup_type.to_string(),
+                target_type: "orbit_configs".to_string(),
+                description: Some("Configurações, credenciais e integrações do Orbit".to_string()),
+            };
+            let mut current = load_backup_index();
+            current.insert(0, backup_item.clone());
+            save_backup_index(&current);
+            Ok(backup_item)
+        }
+        Ok(out) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Falha no tar: {}", String::from_utf8_lossy(&out.stderr)))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Erro ao executar tar: {}", e))),
+    }
+}
+
+pub async fn create_all_containers_backup_internal(
+    stop: bool,
+    backup_type: &str,
+) -> Result<BackupItem, (StatusCode, String)> {
+    let _lock = BACKUP_MUTEX.lock().await;
+    let (timestamp_str, file_suffix) = get_timestamp_and_suffix();
+    let filename = format!("backup_all_containers_{}.tar.gz", file_suffix);
+    let backup_path = get_backups_dir().join(&filename);
+    let staging_id = uuid::Uuid::new_v4().to_string();
+    let staging_dir = get_backups_dir().join(format!(".tmp_apps_{}", staging_id));
+    let _ = fs::create_dir_all(&staging_dir);
+
+    let manifest = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "target_type": "all_containers",
+        "app_id": "all_containers",
+        "app_name": "Todos os Contêineres & Stacks",
+        "created_at": timestamp_str,
+        "includes_apps": true,
+        "includes_configs": false
+    });
+    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+    dump_containers_manifest_to_staging(&staging_dir);
+
+    let apps_source = PathBuf::from("data/apps");
+    if apps_source.exists() {
+        if stop {
+            let _ = Command::new("docker").args(["compose", "stop"]).current_dir(&apps_source).output().await;
+        }
+        let _ = copy_dir_all(&apps_source, &staging_dir.join("apps"));
+        if stop {
+            let _ = Command::new("docker").args(["compose", "start"]).current_dir(&apps_source).output().await;
+        }
+    }
+
+    let tar_result = Command::new("tar")
+        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", staging_dir.to_str().unwrap_or(""), "."])
+        .output()
+        .await;
+
+    let _ = fs::remove_dir_all(&staging_dir);
+
+    match tar_result {
+        Ok(output) if output.status.success() => {
+            let size = backup_path.metadata().map(|m| m.len()).unwrap_or(0);
+            let backup_item = BackupItem {
+                id: uuid::Uuid::new_v4().to_string(),
+                app_id: "all_containers".to_string(),
+                app_name: "Todos os Contêineres & Stacks".to_string(),
+                filename: filename.clone(),
+                size_bytes: size,
+                created_at: timestamp_str,
+                status: "completed".to_string(),
+                backup_type: backup_type.to_string(),
+                target_type: "all_containers".to_string(),
+                description: Some("Todos os contêineres gerenciados e dados persistidos".to_string()),
+            };
+            let mut current = load_backup_index();
+            current.insert(0, backup_item.clone());
+            save_backup_index(&current);
+            Ok(backup_item)
+        }
+        Ok(out) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Falha no tar: {}", String::from_utf8_lossy(&out.stderr)))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Erro ao executar tar: {}", e))),
+    }
+}
+
+pub async fn create_single_app_backup_internal(
+    app_id_raw: &str,
+    stop: bool,
+    backup_type: &str,
+) -> Result<BackupItem, (StatusCode, String)> {
+    let _lock = BACKUP_MUTEX.lock().await;
+    let app_id = app_id_raw.trim().replace("..", "").replace('/', "-");
+    let app_dir = PathBuf::from("data/apps").join(&app_id);
+
+    if !app_dir.exists() {
+        return Err((StatusCode::NOT_FOUND, "Pasta do aplicativo não encontrada".to_string()));
+    }
+
+    let (timestamp_str, file_suffix) = get_timestamp_and_suffix();
+    let filename = format!("backup_{}_{}.tar.gz", app_id, file_suffix);
+    let backup_path = get_backups_dir().join(&filename);
+
+    info!("Iniciando backup para aplicativo {} em {}", app_id, backup_path.display());
+
     if stop {
-        let _ = Command::new("docker")
-            .arg("compose")
-            .arg("start")
-            .current_dir(&app_dir)
-            .output()
-            .await;
+        let _ = Command::new("docker").args(["compose", "stop"]).current_dir(&app_dir).output().await;
+    }
+
+    let tar_result = Command::new("tar")
+        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", "data/apps", &app_id])
+        .output()
+        .await;
+
+    if stop {
+        let _ = Command::new("docker").args(["compose", "start"]).current_dir(&app_dir).output().await;
     }
 
     match tar_result {
@@ -166,102 +420,19 @@ pub async fn create_backup_internal(
                 created_at: timestamp_str,
                 status: "completed".to_string(),
                 backup_type: backup_type.to_string(),
+                target_type: "single_app".to_string(),
+                description: Some(format!("Backup do aplicativo {}", app_id)),
             };
 
             let mut current = load_backup_index();
             current.insert(0, backup_item.clone());
-
-            // Enforce retention policy
             let config = load_schedule_config();
             prune_retention(&mut current, &app_id, config.retention_count);
             save_backup_index(&current);
-
-            info!("Backup concluído com sucesso para {}: {} bytes", app_id, size);
             Ok(backup_item)
         }
-        Ok(output) => {
-            let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
-            error!("Falha ao gerar arquivo tar: {}", err_msg);
-            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Falha no tar: {}", err_msg)))
-        }
-        Err(e) => {
-            error!("Erro ao executar comando tar: {}", e);
-            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Erro ao executar tar: {}", e)))
-        }
+        Ok(out) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Falha no tar: {}", String::from_utf8_lossy(&out.stderr)))),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Erro ao executar tar: {}", e))),
     }
 }
 
-pub async fn restore_backup_internal(id: &str) -> Result<(String, bool), (StatusCode, String)> {
-    let _lock = BACKUP_MUTEX.lock().await;
-
-    let items = load_backup_index();
-    let backup = match items.into_iter().find(|b| b.id == id) {
-        Some(b) => b,
-        None => return Err((StatusCode::NOT_FOUND, "Backup não encontrado".to_string())),
-    };
-
-    let backup_path = get_backups_dir().join(&backup.filename);
-    if !backup_path.exists() {
-        return Err((
-            StatusCode::NOT_FOUND,
-            "Arquivo físico de backup ausente".to_string(),
-        ));
-    }
-
-    let app_dir = PathBuf::from("data/apps").join(&backup.app_id);
-
-    info!(
-        "Restaurando backup {} para aplicativo {}",
-        backup.filename, backup.app_id
-    );
-
-    // 1. Parar e descer contêineres se a pasta existir
-    if app_dir.exists() {
-        let _ = Command::new("docker")
-            .arg("compose")
-            .arg("down")
-            .current_dir(&app_dir)
-            .output()
-            .await;
-    }
-
-    // 2. Descompactar tar.gz sobre data/apps
-    let extract_output = Command::new("tar")
-        .args(["-xzf", backup_path.to_str().unwrap_or(""), "-C", "data/apps"])
-        .output()
-        .await;
-
-    match extract_output {
-        Ok(out) if out.status.success() => {
-            // 3. Subir a stack restaurada
-            let up_output = Command::new("docker")
-                .args(["compose", "up", "-d"])
-                .current_dir(&app_dir)
-                .output()
-                .await;
-
-            let up_status = up_output.map(|o| o.status.success()).unwrap_or(false);
-            info!(
-                "Restauração do app {} concluída. docker compose up: {}",
-                backup.app_id, up_status
-            );
-
-            Ok((backup.app_id, up_status))
-        }
-        Ok(out) => {
-            let err = String::from_utf8_lossy(&out.stderr);
-            error!("Erro ao extrair tar no restore: {}", err);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Falha ao extrair backup: {}", err),
-            ))
-        }
-        Err(e) => {
-            error!("Erro ao chamar tar no restore: {}", e);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Erro ao executar tar: {}", e),
-            ))
-        }
-    }
-}

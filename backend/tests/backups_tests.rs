@@ -115,3 +115,65 @@ async fn test_backup_crud_and_schedule() {
     // Clean up dummy dir
     let _ = fs::remove_dir_all(&dummy_app_dir);
 }
+
+#[tokio::test]
+async fn test_full_system_and_configs_backup() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let server = TestServer::new(app());
+    let auth_cookie = get_test_cookie();
+
+    // 1. Setup dummy app directory and dummy config
+    let dummy_app_dir = PathBuf::from("data/apps/test-full-sys-app");
+    let _ = fs::create_dir_all(&dummy_app_dir);
+    let _ = fs::write(dummy_app_dir.join("docker-compose.yml"), "version: '3'\nservices:\n  web:\n    image: nginx:alpine\n");
+    let _ = fs::write(dummy_app_dir.join("app_state.json"), r#"{"status":"running"}"#);
+
+    // 2. Create Full System Backup
+    let full_res = server
+        .post("/api/backups/create")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "target_type": "system_full",
+            "stop_container": false
+        }))
+        .await;
+
+    full_res.assert_status_ok();
+    let full_item: serde_json::Value = full_res.json();
+    let full_id = full_item.get("id").expect("id exists").as_str().unwrap().to_string();
+    assert_eq!(full_item.get("target_type").and_then(|v| v.as_str()), Some("system_full"));
+    assert_eq!(full_item.get("app_id").and_then(|v| v.as_str()), Some("system_full"));
+
+    // 3. Create Orbit Configs Backup
+    let config_res = server
+        .post("/api/backups/create")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "target_type": "orbit_configs",
+            "stop_container": false
+        }))
+        .await;
+
+    config_res.assert_status_ok();
+    let config_item: serde_json::Value = config_res.json();
+    let config_id = config_item.get("id").expect("id exists").as_str().unwrap().to_string();
+    assert_eq!(config_item.get("target_type").and_then(|v| v.as_str()), Some("orbit_configs"));
+
+    // 4. Test Restore of full system backup via POST /api/backups/restore/{id}
+    // Modify the app file to see if restore restores original
+    let _ = fs::write(dummy_app_dir.join("app_state.json"), r#"{"status":"corrupted"}"#);
+    let restore_res = server
+        .post(&format!("/api/backups/restore/{}", full_id))
+        .add_cookie(auth_cookie.clone())
+        .await;
+    restore_res.assert_status_ok();
+
+    let restored_content = fs::read_to_string(dummy_app_dir.join("app_state.json")).unwrap();
+    assert_eq!(restored_content, r#"{"status":"running"}"#);
+
+    // 5. Cleanup
+    let _ = server.delete(&format!("/api/backups/{}", full_id)).add_cookie(auth_cookie.clone()).await;
+    let _ = server.delete(&format!("/api/backups/{}", config_id)).add_cookie(auth_cookie.clone()).await;
+    let _ = fs::remove_dir_all(&dummy_app_dir);
+}
+

@@ -1,0 +1,8 @@
+{
+  "microsd_card": "Carte microSD",
+  "external_hd_named": "Disque externe ({{name}})",
+  "external_storage": "Stockage externe",
+  "primary_disk": "SSD/disque principal",
+  "usb_drive": "Clé USB/clé USB",
+  "system_storage": "Stockage système"
+}

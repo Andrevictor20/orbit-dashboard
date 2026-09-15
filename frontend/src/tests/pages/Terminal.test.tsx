@@ -22,13 +22,13 @@ const mockXTerm = {
 };
 
 vi.mock('@xterm/xterm', () => ({
-  Terminal: vi.fn().mockImplementation(() => mockXTerm),
+  Terminal: vi.fn().mockImplementation(function () { return mockXTerm; }),
 }));
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn().mockImplementation(() => ({
-    fit: vi.fn(),
-  })),
+  FitAddon: vi.fn().mockImplementation(function () {
+    return { fit: vi.fn() };
+  }),
 }));
 
 describe('Terminal Page', () => {

@@ -17,6 +17,11 @@ export interface SystemStats {
   orbit_memory: number;
   network_interface?: string;
   network_interface_type?: 'ethernet' | 'wifi' | string;
+  gpu_usage?: number;
+  gpu_memory_used?: number;
+  gpu_memory_total?: number;
+  gpu_name?: string;
+  gpu_temperature?: number;
 }
 
 const MAX_RECONNECT_DELAY_MS = 30_000;

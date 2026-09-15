@@ -46,12 +46,12 @@ export function ContainerTableView({
       <table className="w-full text-sm text-left">
         <thead className="text-xs text-secondary uppercase bg-white/5 border-b border-border">
           <tr>
-            <th className="px-4 py-4 font-medium">Nome</th>
-            <th className="px-4 py-4 font-medium">Estado</th>
-            <th className="px-4 py-4 font-medium">CPU</th>
-            <th className="px-4 py-4 font-medium">RAM</th>
-            <th className="px-4 py-4 font-medium">Disco</th>
-            <th className="px-4 py-4 font-medium text-right">Ações</th>
+            <th className="px-4 py-4 font-medium">{t('docker.name', 'Nome')}</th>
+            <th className="px-4 py-4 font-medium">{t('docker.state', 'Estado')}</th>
+            <th className="px-4 py-4 font-medium">{t('docker.cpu', 'CPU')}</th>
+            <th className="px-4 py-4 font-medium">{t('docker.ram', 'RAM')}</th>
+            <th className="px-4 py-4 font-medium">{t('docker.disk', 'Disco')}</th>
+            <th className="px-4 py-4 font-medium text-right">{t('docker.actions', 'Ações')}</th>
           </tr>
         </thead>
         <tbody>
@@ -94,13 +94,13 @@ export function ContainerTableView({
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary leading-tight">{group.name}</span>
                           <span className="px-2 py-0.5 rounded bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 text-[10px] font-bold border border-orbit-500/30">
-                            Stack ({group.totalCount} containers)
+                            Stack ({t('docker.containers_count', { count: group.totalCount, defaultValue: `${group.totalCount} containers` })})
                           </span>
                           {(() => {
                             const groupUpdates = group.containers.filter(c => updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update).length;
                             return groupUpdates > 0 ? (
                               <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
-                                Atualização ({groupUpdates})
+                                {t('docker.update', 'Atualização')} ({groupUpdates})
                               </span>
                             ) : null;
                           })()}
@@ -114,7 +114,7 @@ export function ContainerTableView({
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${group.allRunning ? 'bg-emerald-500' : group.anyRunning ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                        <span className="text-secondary font-medium">{group.runningCount}/{group.totalCount} ativos</span>
+                        <span className="text-secondary font-medium">{group.runningCount}/{group.totalCount} {t('docker.active', 'ativos')}</span>
                       </div>
                     </td>
 
@@ -135,17 +135,17 @@ export function ContainerTableView({
                         <button
                           onClick={() => onOpenGroupModal(group)}
                           className="p-1.5 rounded glass-button text-orbit-700 dark:text-orbit-300 hover:text-orbit-900 dark:hover:text-white bg-orbit-500/15 border border-orbit-500/40 font-medium transition-colors text-xs flex items-center gap-1"
-                          title="Ver sub-containers"
+                          title={t('docker.view_subcontainers', 'Ver sub-containers')}
                         >
                           <Layers className="w-3.5 h-3.5" />
-                          <span>Sub-containers</span>
+                          <span>{t('docker.subcontainers', 'Sub-containers')}</span>
                         </button>
 
                         <button
                           onClick={(e) => onGroupAction(e, group, 'restart')}
                           disabled={Boolean(actionLoading)}
                           className="p-1.5 rounded glass-button hover:text-cyan-400 transition-colors"
-                          title="Reiniciar Stack"
+                          title={t('docker.restart_stack', 'Reiniciar Stack')}
                         >
                           {isGroupActionLoading('restart') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
                         </button>
@@ -155,7 +155,7 @@ export function ContainerTableView({
                             onClick={(e) => onGroupAction(e, group, 'stop')}
                             disabled={Boolean(actionLoading)}
                             className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors"
-                            title="Parar Stack"
+                            title={t('docker.stop_stack', 'Parar Stack')}
                           >
                             {isGroupActionLoading('stop') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
                           </button>
@@ -164,7 +164,7 @@ export function ContainerTableView({
                             onClick={(e) => onGroupAction(e, group, 'start')}
                             disabled={Boolean(actionLoading)}
                             className="p-1.5 rounded glass-button text-emerald-500 hover:text-emerald-400 transition-colors"
-                            title="Iniciar Stack"
+                            title={t('docker.start_stack', 'Iniciar Stack')}
                           >
                             {isGroupActionLoading('start') ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                           </button>
@@ -192,7 +192,7 @@ export function ContainerTableView({
                             <span className="font-medium text-primary">{c.name}</span>
                             {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
                               <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
-                                Atualização
+                                {t('docker.update', 'Atualização')}
                               </span>
                             )}
                           </div>
@@ -223,15 +223,15 @@ export function ContainerTableView({
                         <div className="flex justify-end gap-1.5 items-center">
                           {c.state === 'running' ? (
                             <>
-                              <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title="Parar">
+                              <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title={t('docker.stop_container', 'Parar')}>
                                 <Square className="w-3 h-3" />
                               </button>
-                              <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400" title="Reiniciar">
+                              <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400" title={t('docker.restart_container', 'Reiniciar')}>
                                 <RotateCw className="w-3 h-3" />
                               </button>
                             </>
                           ) : (
-                            <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-700 dark:text-emerald-400 font-semibold" title="Iniciar">
+                            <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-700 dark:text-emerald-400 font-semibold" title={t('docker.start_container', 'Iniciar')}>
                               <Play className="w-3 h-3" />
                             </button>
                           )}
@@ -258,7 +258,7 @@ export function ContainerTableView({
                       <span className="font-medium text-primary leading-tight">{c.name}</span>
                       {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
                         <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
-                          Atualização
+                          {t('docker.update', 'Atualização')}
                         </span>
                       )}
                     </div>
@@ -290,7 +290,7 @@ export function ContainerTableView({
                           <button 
                             onClick={(e) => { e.stopPropagation(); window.open(webLink, '_blank'); }}
                             className="px-2 py-1 rounded glass-button text-orbit-600 dark:text-orbit-400 hover:text-orbit-700 dark:hover:text-orbit-300 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1 font-semibold" 
-                            title={`Abrir ${c.name} (${webLink})`}
+                            title={t('docker.open_app_target', { name: c.name, link: webLink, defaultValue: `Abrir ${c.name} (${webLink})` })}
                           >
                             <Globe className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
                             <span className="hidden xl:inline">{t('containers.open_app')}</span>
@@ -306,7 +306,7 @@ export function ContainerTableView({
                         onSetCustomLink(e, c.id);
                       }}
                       className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" 
-                      title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
+                      title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : t('docker.edit_link', 'Configurar Link')}
                     >
                       <Settings2 className="w-3.5 h-3.5" />
                     </button>
@@ -317,7 +317,7 @@ export function ContainerTableView({
                       <button 
                         onClick={(e) => onUpdateContainer(e, c.id)}
                         className="p-1.5 rounded glass-button text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-white bg-violet-500/20 border border-violet-500/30 transition-colors text-xs flex items-center gap-1 font-semibold" 
-                        title="Atualizar container"
+                        title={t('docker.update_container', 'Atualizar container')}
                       >
                         <DownloadCloud className="w-3.5 h-3.5" />
                       </button>
@@ -325,27 +325,27 @@ export function ContainerTableView({
 
                     {c.state?.toLowerCase() === 'running' ? (
                       <>
-                        <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
+                        <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title={t('docker.stop_container', 'Parar')}>
                           <Square className="w-4 h-4" />
                         </button>
-                        <button onClick={(e) => onAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-amber-400 transition-colors" title="Pausar">
+                        <button onClick={(e) => onAction(e, c.id, 'pause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-amber-400 transition-colors" title={t('docker.pause_container', 'Pausar')}>
                           <Pause className="w-4 h-4" />
                         </button>
-                        <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="Reiniciar">
+                        <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title={t('docker.restart_container', 'Reiniciar')}>
                           <RotateCw className={`w-4 h-4 ${actionLoading === c.id ? 'animate-spin' : ''}`} />
                         </button>
                       </>
                     ) : c.state?.toLowerCase() === 'paused' ? (
                       <>
-                        <button onClick={(e) => onAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="Retomar">
+                        <button onClick={(e) => onAction(e, c.id, 'unpause')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title={t('docker.unpause_container', 'Retomar')}>
                           <PlayCircle className="w-4 h-4" />
                         </button>
-                        <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title="Parar">
+                        <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button hover:text-rose-400 transition-colors" title={t('docker.stop_container', 'Parar')}>
                           <Square className="w-4 h-4" />
                         </button>
                       </>
                     ) : (
-                      <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 font-semibold transition-colors" title="Iniciar">
+                      <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1.5 rounded glass-button text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 font-semibold transition-colors" title={t('docker.start_container', 'Iniciar')}>
                         <Play className="w-4 h-4" />
                       </button>
                     )}

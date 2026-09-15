@@ -67,7 +67,7 @@ describe('AppStore', () => {
     expect(exploreLinks.length).toBeGreaterThan(0);
     
     // Check if install buttons exist
-    const installButtons = screen.getAllByRole('button', { name: /install/i });
+    const installButtons = screen.getAllByRole('button', { name: /install|instalar/i });
     expect(installButtons.length).toBeGreaterThan(0);
   });
 

@@ -113,7 +113,7 @@ export function AppStoreSidebar({
         >
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-orbit-500" />
-            <span>Categorias ({selectedCategory === 'All' ? 'Todas' : selectedCategory})</span>
+            <span>{t('store.categories', 'Categorias')} ({selectedCategory === 'All' ? t('common.all', 'Todas') : selectedCategory})</span>
           </div>
           <ChevronRight
             className={`w-4 h-4 transition-transform duration-200 ${
@@ -129,7 +129,7 @@ export function AppStoreSidebar({
         <div className="space-y-1.5 shrink-0">
           <div className="flex items-center justify-between px-1">
             <label className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-              Origem do Catálogo
+              {t('store.catalog_source', 'Origem do Catálogo')}
             </label>
             <SlidersHorizontal className="w-3 h-3 text-secondary/70" />
           </div>

@@ -1,0 +1,18 @@
+{
+  "success_log": "¡Actualizado y reiniciado exitosamente!",
+  "update_failed": "La actualización falló",
+  "conn_error": "Error de conexión",
+  "cancelled": "Cancelado",
+  "gateway_timeout": "Se agotó el tiempo de espera de la conexión (Tiempo de espera de la puerta de enlace)",
+  "cloudflare_524": "Tiempo de espera en proxy/Cloudflare (Error 524). La operación continuará en segundo plano.",
+  "bad_gateway_502": "Fallo temporal de comunicación con gateway/túnel (HTTP 502).",
+  "gateway_timeout_504": "Se agotó el tiempo de espera de la conexión por parte del proxy (Gateway Timeout 504).",
+  "firewall_blocked_403": "Acceso bloqueado por reglas de firewall o proxy (HTTP 403).",
+  "proxy_error": "Error de proxy/red: {{error}}",
+  "proxy_http_error": "Error HTTP {{status}} devuelto por el proxy o la red.",
+  "max_timeout_exceeded": "Se superó el tiempo de espera global máximo (minutos {{minutes}}).",
+  "server_unreachable_retries": "Servidor inalcanzable después de intentos {{retries}} (HTTP {{status}})",
+  "task_not_found_idle": "Tarea no encontrada o no finalizada en el servidor (estado inactivo).",
+  "network_oscillating_wait": "Conexión oscilante. Esperando la estabilización del proxy/red...",
+  "persistent_comm_failure": "Fallo de comunicación persistente con el servidor."
+}

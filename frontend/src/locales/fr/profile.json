@@ -1,0 +1,15 @@
+{
+  "title": "Mon compte",
+  "admin_user": "Administrateur",
+  "tab_account": "Compte et sécurité",
+  "tab_integrations": "Intégrations",
+  "tab_system": "Serveur et ports",
+  "tab_customization": "Apparence et arrière-plan",
+  "current_password": "Mot de passe actuel",
+  "new_password": "Nouveau mot de passe",
+  "confirm_password": "Confirmer le nouveau mot de passe",
+  "change_password": "Changer le mot de passe",
+  "password_updated": "Mot de passe mis à jour avec succès !",
+  "password_error": "Mot de passe actuel invalide ou erreur de serveur.",
+  "invalid_current_password": "Mot de passe actuel incorrect ou erreur de serveur."
+}

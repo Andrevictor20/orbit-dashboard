@@ -1,0 +1,22 @@
+{
+  "avatar_title": "Icona utente/avatar",
+  "avatar_desc": "Personalizza l'icona del tuo profilo con un'immagine locale o un URL.",
+  "upload_image": "Carica immagine",
+  "avatar_updated": "Icona del profilo aggiornata con successo!",
+  "avatar_reset": "Icona ripristinata ai valori predefiniti!",
+  "wallpaper_title": "Sfondo",
+  "wallpaper_desc": "Aggiungi uno sfondo personalizzato con velo di contrasto in vetro smerigliato adattivo.",
+  "upload_wallpaper": "Carica foto",
+  "wallpaper_updated": "Sfondo aggiornato con successo!",
+  "wallpaper_removed": "Sfondo rimosso!",
+  "presets": "Galleria a tema",
+  "adjustments": "Aggiustamenti di leggibilità",
+  "dimmer": "Opacità del dimmer velo",
+  "dimmer_hint": "Attenua lo sfondo per garantire contrasto e leggibilità elevati sulle carte.",
+  "blur": "Sfocatura dello sfondo",
+  "blur_hint": "Leviga i dettagli più fini della foto per enfatizzare il contenuto della carta in primo piano.",
+  "preset_space_nebula": "Nebulosa spaziale",
+  "preset_cosmic_mountain": "Montagna Cosmica",
+  "preset_cyberpunk_lines": "Linee Cyberpunk",
+  "preset_minimalist_gradient": "Gradiente minimalista"
+}

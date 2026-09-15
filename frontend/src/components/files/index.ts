@@ -15,3 +15,7 @@ export * from './TextEditorModal';
 export * from './VideoPlayerModal';
 export * from './SambaModal';
 export * from './UploadProgressDrawer';
+export * from './FileModalsContainer';
+export * from './FileContentArea';
+export * from './useFileManagerOperations';
+export * from './useFileManagerNavigation';

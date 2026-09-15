@@ -1,0 +1,14 @@
+{
+  "title": "Editor di installazione e composizione personalizzato",
+  "subtitle": "Configura stack personalizzati con linting, modelli e controllo delle porte o esegui i comandi Docker Run.",
+  "tab_editor": "Editor di composizione Docker",
+  "tab_dockerrun": "Esegui Docker (veloce)",
+  "template_placeholder": "Carica modello preconfigurato...",
+  "ports_warning": "Avvertenza: porte in uso sull'host: {{ports}}.",
+  "valid_yaml": "Sintassi YAML valida e nessun conflitto.",
+  "validating_ports": "(verifica delle porte...)",
+  "env_title": ".env (Variabili)",
+  "name_required": "Inserisci un nome di stack valido",
+  "load_failed": "Impossibile caricare il contenuto dello stack",
+  "overwrite_confirm": "Sostituire il contenuto corrente con il modello selezionato?"
+}

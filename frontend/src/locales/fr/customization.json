@@ -1,0 +1,22 @@
+{
+  "avatar_title": "Icône utilisateur / Avatar",
+  "avatar_desc": "Personnalisez votre icône de profil avec une image locale ou une URL.",
+  "upload_image": "Télécharger une image",
+  "avatar_updated": "Icône de profil mise à jour avec succès !",
+  "avatar_reset": "Icône réinitialisée par défaut !",
+  "wallpaper_title": "Fond d'écran",
+  "wallpaper_desc": "Ajoutez un papier peint personnalisé avec un voile de contraste en verre dépoli adaptatif.",
+  "upload_wallpaper": "Télécharger une photo",
+  "wallpaper_updated": "Fond d'écran mis à jour avec succès !",
+  "wallpaper_removed": "Fond d'écran supprimé !",
+  "presets": "Galerie de thèmes",
+  "adjustments": "Ajustements de lisibilité",
+  "dimmer": "Opacité du gradateur de voile",
+  "dimmer_hint": "Atténue l'arrière-plan pour garantir un contraste et une lisibilité élevés sur les cartes.",
+  "blur": "Flou d'arrière-plan",
+  "blur_hint": "Lisse les détails fins de la photo pour mettre en valeur le contenu de la carte au premier plan.",
+  "preset_space_nebula": "Nébuleuse spatiale",
+  "preset_cosmic_mountain": "Montagne cosmique",
+  "preset_cyberpunk_lines": "Lignes Cyberpunk",
+  "preset_minimalist_gradient": "Dégradé minimaliste"
+}

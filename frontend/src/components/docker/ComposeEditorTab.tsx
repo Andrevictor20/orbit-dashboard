@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { yaml } from '@codemirror/lang-yaml';
 import { 
@@ -51,6 +52,7 @@ export function ComposeEditorTab({
   checkingPorts,
   onSelectTemplate
 }: ComposeEditorTabProps) {
+  const { t } = useTranslation();
   const [editorSubTab, setEditorSubTab] = useState<'yaml' | 'env'>('yaml');
 
   return (
@@ -60,7 +62,7 @@ export function ComposeEditorTab({
         {/* Stack ID */}
         <div>
           <label className="block text-[11px] font-semibold text-secondary uppercase tracking-wider mb-1">
-            Nome da Stack (ID)
+            {t('docker.stack_name_id', 'Nome da Stack (ID)')}
           </label>
           <input
             type="text"
@@ -75,14 +77,14 @@ export function ComposeEditorTab({
         <div>
           <label className="block text-[11px] font-semibold text-secondary uppercase tracking-wider mb-1 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-orbit-500" />
-            <span>Templates Prontos</span>
+            <span>{t('docker.ready_templates', 'Templates Prontos')}</span>
           </label>
           <select
             onChange={(e) => onSelectTemplate(e.target.value)}
             defaultValue=""
             className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
           >
-            <option value="" disabled>Carregar modelo pré-configurado...</option>
+            <option value="" disabled>{t('docker.load_preconfigured_template', 'Carregar modelo pré-configurado...')}</option>
             {COMPOSE_TEMPLATES.map((tmpl) => (
               <option key={tmpl.id} value={tmpl.id}>
                 {tmpl.name} ({tmpl.category})
@@ -96,7 +98,7 @@ export function ComposeEditorTab({
           <label className="block text-[11px] font-semibold text-secondary uppercase tracking-wider mb-1 flex items-center justify-between">
             <span className="flex items-center gap-1">
               <FolderOpen className="w-3 h-3 text-secondary" />
-              <span>Stacks Salvas</span>
+              <span>{t('docker.saved_stacks', 'Stacks Salvas')}</span>
             </span>
             <button
               type="button"
@@ -104,7 +106,7 @@ export function ComposeEditorTab({
               className="text-[10px] text-orbit-500 hover:underline flex items-center gap-1"
             >
               <RefreshCw className={`w-2.5 h-2.5 ${loadingStacks ? 'animate-spin' : ''}`} />
-              <span>Recarregar</span>
+              <span>{t('common.reload', 'Recarregar')}</span>
             </button>
           </label>
           <select
@@ -112,10 +114,10 @@ export function ComposeEditorTab({
             value={stackName}
             className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs font-mono text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
           >
-            <option value="">-- Selecionar stack existente --</option>
+            <option value="">{t('docker.select_existing_stack', '-- Selecionar stack existente --')}</option>
             {existingStacks.map((s) => (
               <option key={s.name} value={s.name}>
-                {s.name} {s.has_compose ? '' : '(sem compose)'}
+                {s.name} {s.has_compose ? '' : t('docker.no_compose_suffix', '(sem compose)')}
               </option>
             ))}
           </select>
@@ -135,7 +137,7 @@ export function ComposeEditorTab({
           <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-500 flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
             <span>
-              <strong>Atenção:</strong> Porta(s) em uso no host: <span className="font-mono font-bold">{conflictingPorts.join(', ')}</span>.
+              <strong>{t('common.attention', 'Atenção')}:</strong> {t('docker.ports_in_use_host', 'Porta(s) em uso no host:')} <span className="font-mono font-bold">{conflictingPorts.join(', ')}</span>.
             </span>
           </div>
         )}
@@ -143,7 +145,7 @@ export function ComposeEditorTab({
         {validation.valid && conflictingPorts.length === 0 && (
           <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-500 flex items-center gap-2">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-            <span>Sintaxe YAML válida {checkingPorts ? '(verificando portas...)' : 'e sem conflitos.'}</span>
+            <span>{t('docker.valid_yaml_syntax', 'Sintaxe YAML válida')} {checkingPorts ? t('docker.checking_ports_paren', '(verificando portas...)') : t('docker.no_conflicts_paren', 'e sem conflitos.')}</span>
           </div>
         )}
       </div>
@@ -175,7 +177,7 @@ export function ComposeEditorTab({
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>.env (Variáveis)</span>
+              <span>.env ({t('docker.variables_short', 'Variáveis')})</span>
             </button>
           </div>
 

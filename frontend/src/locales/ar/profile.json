@@ -1,0 +1,15 @@
+{
+  "title": "حسابي",
+  "admin_user": "المسؤول",
+  "tab_account": "الحساب والأمن",
+  "tab_integrations": "التكامل",
+  "tab_system": "الخادم والميناء",
+  "tab_customization": "المظهر والخلفية",
+  "current_password": "كلمة المرور الحالية",
+  "new_password": "كلمة المرور الجديدة",
+  "confirm_password": "تأكيد كلمة المرور الجديدة",
+  "change_password": "تغيير كلمة المرور",
+  "password_updated": "تم تحديث كلمة المرور بنجاح!",
+  "password_error": "كلمة المرور الحالية غير صالحة أو خطأ في الخادم.",
+  "invalid_current_password": "كلمة المرور الحالية غير صحيحة أو خطأ في الخادم."
+}
