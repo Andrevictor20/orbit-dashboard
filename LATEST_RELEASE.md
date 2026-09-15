@@ -1,4 +1,19 @@
-# Orbit Dashboard v3.6.1
+# Orbit Dashboard v3.6.2
+
+### Novidades, Correções e Melhorias na Versão 3.6.2 (Patch)
+
+- **Cloudflare Tunnels — Associação Port-First & Guarda contra Conflitos de Porta:**
+  - Prioridade primária por portas (`public_ports` e portas internas) na vinculação de rotas Ingress a contêineres Docker, resolvendo casos onde subdomínios divergiam ou eram curtos (ex: `ha.rasppi.cloud:8123`, `books.rasppi.cloud:5000`, `pdi.rasppi.cloud:83`).
+  - Guarda estrita contra conflitos de porta: contêineres que não escutam na porta configurada na rota são proibidos de serem vinculados por heurísticas de subdomínio (ex: `home.rasppi.cloud:5172` não associa mais falsamente o contêiner `homeassistant:8123`).
+  - Sincronização bidirecional completa com `custom_links.json` (ajustes manuais têm prioridade máxima absoluta).
+  - Modal interativo na tabela do Cloudflare (`LinkRouteContainerModal`) permitindo vincular, alterar ou desvincular qualquer contêiner Docker diretamente na tela do Cloudflare sem necessidade de navegar até a página de contêineres.
+- **Dashboard — Visualização In-Card Top 5 (CPU e RAM) & Mapeamento de Aplicativos:**
+  - Alternância de visualização interna ("In-Card View") diretamente dentro dos cards de CPU e RAM com botão de alternância e retorno suave, eliminando popovers flutuantes que sobrepunham outros elementos e a dock.
+  - Resolução inteligente de processos (`processAppResolver`): processos com nomes de binários genéricos (ex: `python3`, `java`, `node`, `cron.php`) agora exibem o nome do aplicativo correspondente e seu ícone oficial (ex: **Home Assistant**, **Kavita**, **Stirling PDF**, **Moodle**) cruzando dados com contêineres Docker ativos e catálogo canônico.
+- **Tema Preto OLED / Preto Piano (Full Black):**
+  - Novo esquema de cores OLED com fundo preto absoluto `#000000` (pixels 100% desligados em telas OLED/AMOLED), cartões translúcidos piano profundo (`rgba(10, 10, 10, 0.78)`) e bordas em corte de diamante, substituindo o tema One Dark com compatibilidade retroativa e paleta monocromática do OrbitLogo dedicada.
+- **Backend & Compilador — Resolução de Diagnósticos do Rust-Analyzer:**
+  - Ajustes idiomáticos em `matching.rs` e `cloudflare_tests.rs` com coerção nativa de fatias, blocos de match explícitos e leitura segura de JSON.
 
 ### Correções e Melhorias na Versão 3.6.1 (Patch)
 
