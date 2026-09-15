@@ -1,4 +1,21 @@
-# Orbit Dashboard v3.6.2
+# Orbit Dashboard v3.6.3
+
+### Novidades, Correções e Melhorias na Versão 3.6.3 (Patch)
+
+- **Streaming de Vídeo de Alto Desempenho (Direct Play sem Engasgos):**
+  - Removido o teto artificial de chunk de 4MB em requisições de range contínuo (`bytes=X-`), permitindo que a transmissão flua continuamente governada pela janela de TCP do host e pelo buffer nativo do reprodutor do navegador.
+  - Buffer assíncrono de I/O de 64KB (`IO_BUFFER_CAPACITY`) via `ReaderStream` reduzindo em até 16x o número de syscalls no kernel Linux e preservando a CPU em dispositivos compactos (Raspberry Pi e Celeron).
+- **Pipeline Expandido de Legendas & Prevenção de I/O Thrashing:**
+  - Suporte expandido a múltiplos formatos de legenda: `.srt`, `.vtt`, `.ass`, `.ssa`, `.sub`, `.sbv` (YouTube) e `.smi`.
+  - Conversão dinâmica e em cache para WebVTT com compatibilidade total com o reprodutor nativo HTML5.
+  - Filtro estrito no `ffprobe` aceitando exclusivamente codecs textuais e descartando faixas bitmap pesadas (como PGS e VobSub) que causavam travamentos no FFmpeg.
+  - Bloqueio de extração singleflight (`EXTRACTION_MUTEX`) e limitação a `-threads 1` no FFmpeg, eliminando a concorrência excessiva de disco e CPU.
+- **Frontend — Injeção Lazy de Legendas & Atalho de Streaming Externo (VLC):**
+  - Injeção sob demanda (`lazy track`): apenas a faixa de legenda ativa é renderizada no DOM, prevenindo que o navegador dispare requisições simultâneas para todas as faixas embutidas no carregamento inicial do vídeo.
+  - Botão dedicado no cabeçalho do player de vídeo para cópia imediata da URL de streaming direto (`Stream / VLC`), facilitando a reprodução direta em tocadores externos (VLC, MPV, IINA) quando o arquivo utiliza formatos de áudio não suportados pelo navegador (ex: AC3/DTS).
+  - Tipografia de legendas otimizada via CSS `::cue` com fundo semitransparente escuro e contraste nítido em qualquer cena.
+- **Backend & Compilador — Resolução de Diagnósticos:**
+  - Ajustes de tipo e inferência de fatias em `files_tests.rs` e `streaming.rs` eliminando warnings do rust-analyzer e mantendo conformidade com a regra No God Files (< 500 linhas).
 
 ### Novidades, Correções e Melhorias na Versão 3.6.2 (Patch)
 
