@@ -9,10 +9,12 @@ import {
   Sparkles,
   Sliders,
   Boxes,
-  HardDrive
+  HardDrive,
+  RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CreateBackupModal } from '../components/backups/CreateBackupModal';
+import { ApplyBackupModal } from '../components/backups/ApplyBackupModal';
 import { RestoreConfirmModal } from '../components/backups/RestoreConfirmModal';
 import { ScheduleModal, type BackupScheduleConfig } from '../components/backups/ScheduleModal';
 import { BackupKpiCards } from '../components/backups/BackupKpiCards';
@@ -39,6 +41,7 @@ export default function Backups() {
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [backupToRestore, setBackupToRestore] = useState<BackupItem | null>(null);
 
@@ -321,6 +324,15 @@ export default function Backups() {
           </button>
 
           <button
+            onClick={() => setShowApplyModal(true)}
+            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold border border-rose-500/30 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+            title={t('backups.apply_backup_tooltip', 'Restaurar configurações, temas, integrações e contêineres')}
+          >
+            <RotateCcw className="w-4 h-4 text-rose-500" />
+            <span>{t('backups.apply_backup', 'Restaurar / Aplicar Backup')}</span>
+          </button>
+
+          <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-95 flex items-center gap-2"
           >
@@ -400,6 +412,16 @@ export default function Backups() {
           apps={apps}
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateBackup}
+        />
+      )}
+
+      {showApplyModal && (
+        <ApplyBackupModal
+          backups={backups}
+          getItemVisuals={getItemVisuals}
+          formatBytes={formatBytes}
+          onClose={() => setShowApplyModal(false)}
+          onSuccess={loadData}
         />
       )}
 

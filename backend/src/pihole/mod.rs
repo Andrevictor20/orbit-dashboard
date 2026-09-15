@@ -46,6 +46,19 @@ pub fn invalidate_pihole_stats_cache() {
     }
 }
 
+pub fn reload_pihole_config_from_disk() {
+    let path = get_config_path();
+    let loaded = if let Ok(data) = fs::read_to_string(&path) {
+        serde_json::from_str::<PiHoleConfig>(&data).ok()
+    } else {
+        None
+    };
+    if let Ok(mut guard) = PIHOLE_CONFIG_CACHE.write() {
+        *guard = loaded;
+    }
+    invalidate_pihole_stats_cache();
+}
+
 pub fn get_config_path() -> PathBuf {
     crate::system::data_migrator::get_active_data_dir().join("pihole.json")
 }

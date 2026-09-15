@@ -1,7 +1,7 @@
 
 export function ContainerSkeletonGrid({ count = 10 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pb-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 overflow-y-auto pt-3 px-1.5 pb-6 -mt-1.5 -mx-1.5">
       {Array.from({ length: count }).map((_, idx) => (
         <div key={idx} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4 animate-pulse">
           <div className="flex items-start gap-3">

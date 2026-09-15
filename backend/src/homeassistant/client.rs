@@ -69,3 +69,15 @@ pub fn get_current_config() -> Option<HomeAssistantConfig> {
     let guard = HA_CONFIG_CACHE.read().unwrap();
     guard.clone()
 }
+
+pub fn reload_ha_config_from_disk() {
+    let path = get_config_path();
+    let config = if let Ok(data) = fs::read_to_string(&path) {
+        serde_json::from_str::<HomeAssistantConfig>(&data).ok()
+    } else {
+        None
+    };
+    if let Ok(mut guard) = HA_CONFIG_CACHE.write() {
+        *guard = config;
+    }
+}

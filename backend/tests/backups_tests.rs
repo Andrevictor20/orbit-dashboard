@@ -23,7 +23,7 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(b"super_secret"),
+        &EncodingKey::from_secret(b"super_secret".as_slice()),
     ).unwrap();
 
     axum_extra::extract::cookie::Cookie::new("auth_token", token)
@@ -122,11 +122,38 @@ async fn test_full_system_and_configs_backup() {
     let server = TestServer::new(app());
     let auth_cookie = get_test_cookie();
 
-    // 1. Setup dummy app directory and dummy config
+    // 1. Setup dummy app directory, dummy config, and customization
     let dummy_app_dir = PathBuf::from("data/apps/test-full-sys-app");
     let _ = fs::create_dir_all(&dummy_app_dir);
     let _ = fs::write(dummy_app_dir.join("docker-compose.yml"), "version: '3'\nservices:\n  web:\n    image: nginx:alpine\n");
     let _ = fs::write(dummy_app_dir.join("app_state.json"), r#"{"status":"running"}"#);
+
+    // Save customization via API
+    let custom_res = server
+        .post("/api/system/customization")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "theme": "oled",
+            "color": "dracula",
+            "wallpaper_url": "https://example.com/wp.jpg",
+            "wallpaper_opacity": 0.85,
+            "wallpaper_blur": 10
+        }))
+        .await;
+    custom_res.assert_status_ok();
+
+    // Verify GET customization
+    let get_custom = server
+        .get("/api/system/customization")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    get_custom.assert_status_ok();
+    let custom_val: serde_json::Value = get_custom.json();
+    assert_eq!(custom_val.get("color").and_then(|c| c.as_str()), Some("dracula"));
+
+    // Write dummy homeassistant config
+    let _ = fs::create_dir_all("data");
+    let _ = fs::write("data/homeassistant.json", r#"{"url":"http://ha.local:8123","token":"ha_token_secret"}"#);
 
     // 2. Create Full System Backup
     let full_res = server
@@ -159,21 +186,44 @@ async fn test_full_system_and_configs_backup() {
     let config_id = config_item.get("id").expect("id exists").as_str().unwrap().to_string();
     assert_eq!(config_item.get("target_type").and_then(|v| v.as_str()), Some("orbit_configs"));
 
-    // 4. Test Restore of full system backup via POST /api/backups/restore/{id}
-    // Modify the app file to see if restore restores original
+    // 4. Corrupt state before restore
     let _ = fs::write(dummy_app_dir.join("app_state.json"), r#"{"status":"corrupted"}"#);
+    let _ = fs::write("data/homeassistant.json", r#"{"url":"http://ha.local:8123","token":"corrupted"}"#);
+    let _ = server
+        .post("/api/system/customization")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({ "theme": "light", "color": "zinc" }))
+        .await;
+
+    // Test Restore of full system backup via POST /api/backups/restore/{id}
     let restore_res = server
         .post(&format!("/api/backups/restore/{}", full_id))
         .add_cookie(auth_cookie.clone())
         .await;
     restore_res.assert_status_ok();
 
+    // Verify restored app files
     let restored_content = fs::read_to_string(dummy_app_dir.join("app_state.json")).unwrap();
     assert_eq!(restored_content, r#"{"status":"running"}"#);
+
+    // Verify restored homeassistant config
+    let restored_ha = fs::read_to_string("data/homeassistant.json").unwrap();
+    assert!(restored_ha.contains("ha_token_secret"));
+
+    // Verify restored customization
+    let restored_custom_res = server
+        .get("/api/system/customization")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    restored_custom_res.assert_status_ok();
+    let restored_custom: serde_json::Value = restored_custom_res.json();
+    assert_eq!(restored_custom.get("color").and_then(|c| c.as_str()), Some("dracula"));
 
     // 5. Cleanup
     let _ = server.delete(&format!("/api/backups/{}", full_id)).add_cookie(auth_cookie.clone()).await;
     let _ = server.delete(&format!("/api/backups/{}", config_id)).add_cookie(auth_cookie.clone()).await;
     let _ = fs::remove_dir_all(&dummy_app_dir);
+    let _ = fs::remove_file("data/homeassistant.json");
+    let _ = fs::remove_file("data/customization.json");
 }
 

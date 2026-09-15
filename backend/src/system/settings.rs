@@ -134,6 +134,13 @@ pub fn get_current_settings() -> SystemSettings {
     guard.clone()
 }
 
+pub fn reload_settings_from_disk() {
+    let loaded = load_settings_from_disk();
+    if let Ok(mut guard) = SETTINGS_CACHE.write() {
+        *guard = loaded;
+    }
+}
+
 pub async fn get_settings_handler() -> impl IntoResponse {
     let current = get_current_settings();
     (StatusCode::OK, Json(current)).into_response()

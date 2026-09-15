@@ -50,6 +50,17 @@ pub fn get_all_links() -> HashMap<String, String> {
     LINKS_CACHE.lock().map(|g| g.clone()).unwrap_or_default()
 }
 
+pub fn reload_links_cache() {
+    let path = get_links_path();
+    if let Ok(data) = fs::read_to_string(&path) {
+        if let Ok(links) = serde_json::from_str::<HashMap<String, String>>(&data) {
+            if let Ok(mut guard) = LINKS_CACHE.lock() {
+                *guard = links;
+            }
+        }
+    }
+}
+
 pub async fn get_links() -> impl IntoResponse {
     let links = get_all_links();
     (StatusCode::OK, Json(links))

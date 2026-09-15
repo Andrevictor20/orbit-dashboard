@@ -35,6 +35,7 @@ function ThemeConsumer() {
       <button onClick={() => setColor('dracula')}>Set Dracula</button>
       <button onClick={() => setColor('oled')}>Set Preto OLED</button>
       <button onClick={() => setColor('synthwave')}>Set Synthwave</button>
+      <button onClick={() => setColor('wallpaper')}>Set Wallpaper Theme</button>
 
       <button onClick={() => setCustomAvatar('data:image/webp;base64,sample')}>Set Avatar</button>
       <button onClick={() => setCustomAvatar(null)}>Clear Avatar</button>
@@ -85,6 +86,11 @@ describe('Visual Customization & Developer Themes', () => {
     fireEvent.click(screen.getByText('Set Synthwave'));
     expect(screen.getByTestId('current-color').textContent).toBe('synthwave');
     expect(document.documentElement.classList.contains('theme-synthwave')).toBe(true);
+
+    // Wallpaper
+    fireEvent.click(screen.getByText('Set Wallpaper Theme'));
+    expect(screen.getByTestId('current-color').textContent).toBe('wallpaper');
+    expect(document.documentElement.classList.contains('theme-wallpaper')).toBe(true);
   });
 
   it('manages custom avatar and persists in localStorage', () => {
@@ -158,7 +164,7 @@ describe('Visual Customization & Developer Themes', () => {
     expect(img.getAttribute('src')).toBe('https://example.com/my-avatar.png');
   });
 
-  it('renders MobilePreferencesDropdown with 11 themes and triggers onColorChange', () => {
+  it('renders MobilePreferencesDropdown with 12 themes and triggers onColorChange', () => {
     const onColorChange = vi.fn();
     render(
       <MobilePreferencesDropdown
@@ -174,13 +180,14 @@ describe('Visual Customization & Developer Themes', () => {
     const toggleBtn = screen.getByLabelText('Preferências (Tema e Idioma)');
     fireEvent.click(toggleBtn);
 
-    // Verify all 11 themes in the list
-    expect(COLOR_THEMES_LIST.length).toBe(11);
+    // Verify all 12 themes in the list
+    expect(COLOR_THEMES_LIST.length).toBe(12);
     expect(screen.getByText('Gruvbox')).toBeTruthy();
     expect(screen.getByText('Nord')).toBeTruthy();
     expect(screen.getByText('Dracula')).toBeTruthy();
     expect(screen.getByText('Preto OLED')).toBeTruthy();
     expect(screen.getByText('Synthwave')).toBeTruthy();
+    expect(screen.getByText('Cores do Wallpaper')).toBeTruthy();
 
     // Click Gruvbox
     fireEvent.click(screen.getByText('Gruvbox'));

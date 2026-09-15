@@ -83,6 +83,12 @@ pub async fn restore_backup_internal(id_or_filename: &str) -> Result<(String, bo
                     restored_configs = true;
                 }
             }
+            crate::links::reload_links_cache();
+            crate::homeassistant::client::reload_ha_config_from_disk();
+            crate::system::customization::reload_customization_from_disk();
+            crate::cloudflare::client::reload_cloudflare_config_from_disk();
+            crate::pihole::reload_pihole_config_from_disk();
+            crate::system::settings::reload_settings_from_disk();
         }
 
         if resolved_target == "system_full" || resolved_target == "all_containers" {
@@ -91,6 +97,25 @@ pub async fn restore_backup_internal(id_or_filename: &str) -> Result<(String, bo
                 let _ = fs::create_dir_all("data/apps");
                 let _ = copy_dir_all(&apps_dir, &PathBuf::from("data/apps"));
                 restored_apps = true;
+
+                // Baixar imagens ausentes e iniciar todos os aplicativos que possuem docker-compose
+                if let Ok(entries) = fs::read_dir("data/apps") {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            let has_compose = path.join("docker-compose.yml").exists()
+                                || path.join("docker-compose.yaml").exists();
+                            if has_compose {
+                                info!("Iniciando contêineres restaurados em: {:?}", path);
+                                let _ = Command::new("docker")
+                                    .args(["compose", "up", "-d"])
+                                    .current_dir(&path)
+                                    .output()
+                                    .await;
+                            }
+                        }
+                    }
+                }
             }
         }
 

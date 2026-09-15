@@ -5,8 +5,8 @@ export interface OrbitLogoProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
   variant?: 'auto' | 'light' | 'dark';
   mode?: 'auto' | 'light' | 'dark';
-  colorOverride?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled';
-  theme?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled';
+  colorOverride?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled' | 'wallpaper' | string;
+  theme?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled' | 'wallpaper' | string;
   className?: string;
   withBackground?: boolean;
 }
@@ -23,6 +23,28 @@ interface ThemePalette {
 }
 
 const PALETTES: Record<string, { light: ThemePalette; dark: ThemePalette }> = {
+  wallpaper: {
+    light: {
+      bg: '#ffffff',
+      coreStart: '#8b5cf6',
+      coreEnd: '#ec4899',
+      ring1: '#06b6d4',
+      ring2: '#a855f7',
+      planet: '#8b5cf6',
+      accent: '#ec4899',
+      shadow: 'rgba(139, 92, 246, 0.35)',
+    },
+    dark: {
+      bg: '#090a0f',
+      coreStart: '#a78bfa',
+      coreEnd: '#f472b6',
+      ring1: '#22d3ee',
+      ring2: '#c084fc',
+      planet: '#a78bfa',
+      accent: '#f472b6',
+      shadow: 'rgba(167, 139, 250, 0.5)',
+    },
+  },
   oled: {
     light: {
       bg: '#ffffff',

@@ -68,6 +68,8 @@ pub const CONFIG_FILES: &[&str] = &[
     "settings.json",
     "pihole.json",
     "cloudflare.json",
+    "homeassistant.json",
+    "customization.json",
     "jwt.secret",
     "config/samba.json",
     "backups/schedule.json",

@@ -28,6 +28,7 @@ export const COLOR_THEMES_LIST = [
   { value: 'dracula', label: 'Dracula', dot: 'bg-fuchsia-500' },
   { value: 'oled', label: 'Preto OLED', dot: 'bg-black border border-white/40 shadow-sm ring-1 ring-white/10' },
   { value: 'synthwave', label: 'Synthwave', dot: 'bg-pink-500' },
+  { value: 'wallpaper', label: 'Cores do Wallpaper', dot: 'bg-gradient-to-tr from-violet-500 via-pink-500 to-cyan-400 border border-white/20 shadow-sm' },
 ];
 
 export function MobilePreferencesDropdown({

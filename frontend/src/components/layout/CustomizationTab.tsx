@@ -43,6 +43,9 @@ export function CustomizationTab() {
     setWallpaperOpacity,
     wallpaperBlur,
     setWallpaperBlur,
+    color,
+    setColor,
+    wallpaperPalette,
   } = useTheme();
 
   const [avatarUrlInput, setAvatarUrlInput] = useState('');
@@ -334,6 +337,51 @@ export function CustomizationTab() {
             ))}
           </div>
         </div>
+
+        {/* Adaptive Wallpaper Theme Card */}
+        {wallpaperUrl && (
+          <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-1.5 shrink-0">
+                <span
+                  className="w-5 h-5 rounded-full border border-white/20 shadow-sm"
+                  style={{ backgroundColor: wallpaperPalette?.primary || '#818cf8' }}
+                  title="Cor Primária"
+                />
+                <span
+                  className="w-5 h-5 rounded-full border border-white/20 shadow-sm"
+                  style={{ backgroundColor: wallpaperPalette?.secondaryHex || '#c084fc' }}
+                  title="Cor Secundária"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-primary">Tema Adaptativo às Cores do Wallpaper</p>
+                <p className="text-[11px] text-secondary">Ajusta botões, badges e destaques pelas cores da sua imagem.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setColor('wallpaper');
+                toast.success('Tema adaptado às cores do wallpaper ativado!');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                color === 'wallpaper'
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-semibold'
+                  : 'bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm'
+              }`}
+            >
+              {color === 'wallpaper' ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Ativo</span>
+                </>
+              ) : (
+                <span>Aplicar Cores</span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Sliders: Dimmer Opacity and Blur */}
         {wallpaperUrl && (

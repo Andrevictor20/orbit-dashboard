@@ -30,6 +30,18 @@ pub fn get_config() -> Option<CloudflareConfig> {
     CLOUDFLARE_CONFIG_CACHE.read().ok().and_then(|guard| guard.clone())
 }
 
+pub fn reload_cloudflare_config_from_disk() {
+    let path = get_config_path();
+    let loaded = if let Ok(data) = fs::read_to_string(&path) {
+        serde_json::from_str::<CloudflareConfig>(&data).ok()
+    } else {
+        None
+    };
+    if let Ok(mut guard) = CLOUDFLARE_CONFIG_CACHE.write() {
+        *guard = loaded;
+    }
+}
+
 pub fn save_config(new_config: Option<CloudflareConfig>) {
     let path = get_config_path();
     if let Some(parent) = path.parent() {

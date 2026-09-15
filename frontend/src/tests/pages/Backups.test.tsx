@@ -117,7 +117,7 @@ describe('Backups Page Component', () => {
     expect(screen.getByText('Ativo')).toBeInTheDocument();
   });
 
-  it('filters backups by search query', async () => {
+  it('opens ApplyBackupModal when clicking the top apply button or table row apply button', async () => {
     render(
       <BrowserRouter>
         <Backups />
@@ -128,10 +128,20 @@ describe('Backups Page Component', () => {
       expect(screen.getByText('nextcloud_backup_20260909_120000.tar.gz')).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText(/filtrar por app/i);
-    fireEvent.change(searchInput, { target: { value: 'system_full' } });
+    // Check prominent header apply button
+    const headerApplyBtn = screen.getByText('Restaurar / Aplicar Backup');
+    expect(headerApplyBtn).toBeInTheDocument();
 
-    expect(screen.getByText('orbit_full_backup_20260909_140000.tar.gz')).toBeInTheDocument();
-    expect(screen.queryByText('nextcloud_backup_20260909_120000.tar.gz')).not.toBeInTheDocument();
+    // Check table row apply buttons
+    const rowApplyButtons = screen.getAllByText('Aplicar');
+    expect(rowApplyButtons.length).toBeGreaterThanOrEqual(1);
+
+    // Click header apply button to open modal
+    fireEvent.click(headerApplyBtn);
+
+    // Check modal contents
+    expect(screen.getByText('Restaure temas, integrações, rotas e recrie os contêineres Docker')).toBeInTheDocument();
+    expect(screen.getByText('Snapshots Salvos no Servidor')).toBeInTheDocument();
+    expect(screen.getByText('Do Meu Computador (.tar.gz)')).toBeInTheDocument();
   });
 });

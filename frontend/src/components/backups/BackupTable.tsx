@@ -76,10 +76,11 @@ export const BackupTable: React.FC<BackupTableProps> = ({
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => onRestore(b)}
-                        className="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-xl transition-colors border border-rose-500/20"
+                        className="px-2.5 py-1.5 text-rose-500 hover:text-white hover:bg-rose-600 bg-rose-500/10 rounded-xl transition-all border border-rose-500/25 flex items-center gap-1.5 font-medium text-xs shadow-sm hover:shadow-rose-500/20 active:scale-95"
                         title={t('backups.restore_tooltip', 'Restaurar este snapshot (1-Clique)')}
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{t('backups.apply_button', 'Aplicar')}</span>
                       </button>
                       <a
                         href={`/api/backups/download/${encodeURIComponent(b.filename)}`}

@@ -1,4 +1,9 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { 
+  type WallpaperThemePalette, 
+  extractPaletteFromImage, 
+  DEFAULT_WALLPAPER_PALETTE 
+} from "../utils/wallpaperPalette";
 
 export type Theme = "dark" | "light" | "system";
 export type ColorVariant = 
@@ -12,7 +17,8 @@ export type ColorVariant =
   | "nord"
   | "dracula"
   | "oled"
-  | "synthwave";
+  | "synthwave"
+  | "wallpaper";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -39,6 +45,7 @@ export type ThemeProviderState = {
   setWallpaperOpacity: (opacity: number) => void;
   wallpaperBlur: number;
   setWallpaperBlur: (blur: number) => void;
+  wallpaperPalette: WallpaperThemePalette | null;
 };
 
 const initialState: ThemeProviderState = {
@@ -54,6 +61,7 @@ const initialState: ThemeProviderState = {
   setWallpaperOpacity: () => null,
   wallpaperBlur: 0,
   setWallpaperBlur: () => null,
+  wallpaperPalette: null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
@@ -97,6 +105,51 @@ export function ThemeProvider({
     const saved = localStorage.getItem(wallpaperBlurKey);
     return saved !== null ? parseFloat(saved) : 0;
   });
+
+  const [wallpaperPalette, setWallpaperPalette] = useState<WallpaperThemePalette | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const root = window.document.documentElement;
+
+    if (color !== 'wallpaper') {
+      root.style.removeProperty('--orbit-500');
+      root.style.removeProperty('--orbit-600');
+      root.style.removeProperty('--color-orbit-500');
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--glass-shadow');
+      return;
+    }
+
+    const isDark = theme === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : theme === 'dark';
+
+    if (!wallpaperUrl) {
+      const def = DEFAULT_WALLPAPER_PALETTE;
+      setWallpaperPalette(def);
+      root.style.setProperty('--orbit-500', def.primary);
+      root.style.setProperty('--orbit-600', def.primaryHover);
+      root.style.setProperty('--color-orbit-500', def.primary);
+      root.style.setProperty('--accent', def.accent);
+      root.style.setProperty('--glass-shadow', def.glassShadow);
+      return;
+    }
+
+    extractPaletteFromImage(wallpaperUrl, isDark).then((pal) => {
+      if (!active) return;
+      setWallpaperPalette(pal);
+      root.style.setProperty('--orbit-500', pal.primary);
+      root.style.setProperty('--orbit-600', pal.primaryHover);
+      root.style.setProperty('--color-orbit-500', pal.primary);
+      root.style.setProperty('--accent', pal.accent);
+      root.style.setProperty('--glass-shadow', pal.glassShadow);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [color, wallpaperUrl, theme]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -157,16 +210,78 @@ export function ThemeProvider({
     }
   }, [theme, color]);
 
+  useEffect(() => {
+    fetch('/api/system/customization')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          if (data.theme) {
+            setTheme(data.theme);
+            localStorage.setItem(storageKey, data.theme);
+          }
+          if (data.color) {
+            const finalColor = data.color === 'onedark' ? 'oled' : data.color;
+            setColor(finalColor);
+            localStorage.setItem(colorStorageKey, finalColor);
+          }
+          if (data.custom_avatar !== undefined) {
+            setCustomAvatar(data.custom_avatar);
+            if (data.custom_avatar) localStorage.setItem(avatarStorageKey, data.custom_avatar);
+            else localStorage.removeItem(avatarStorageKey);
+          }
+          if (data.wallpaper_url !== undefined) {
+            setWallpaperUrl(data.wallpaper_url);
+            if (data.wallpaper_url) localStorage.setItem(wallpaperStorageKey, data.wallpaper_url);
+            else localStorage.removeItem(wallpaperStorageKey);
+          }
+          if (data.wallpaper_opacity !== undefined) {
+            setWallpaperOpacity(data.wallpaper_opacity);
+            localStorage.setItem(wallpaperOpacityKey, data.wallpaper_opacity.toString());
+          }
+          if (data.wallpaper_blur !== undefined) {
+            setWallpaperBlur(data.wallpaper_blur);
+            localStorage.setItem(wallpaperBlurKey, data.wallpaper_blur.toString());
+          }
+        }
+      })
+      .catch(() => {});
+  }, [storageKey, colorStorageKey, avatarStorageKey, wallpaperStorageKey, wallpaperOpacityKey, wallpaperBlurKey]);
+
+  const syncToBackend = (partial: {
+    theme?: Theme;
+    color?: ColorVariant;
+    custom_avatar?: string | null;
+    wallpaper_url?: string | null;
+    wallpaper_opacity?: number;
+    wallpaper_blur?: number;
+  }) => {
+    const payload = {
+      theme: partial.theme ?? theme,
+      color: partial.color ?? color,
+      custom_avatar: partial.custom_avatar !== undefined ? partial.custom_avatar : customAvatar,
+      wallpaper_url: partial.wallpaper_url !== undefined ? partial.wallpaper_url : wallpaperUrl,
+      wallpaper_opacity: partial.wallpaper_opacity ?? wallpaperOpacity,
+      wallpaper_blur: partial.wallpaper_blur ?? wallpaperBlur,
+    };
+    fetch('/api/system/customization', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  };
+
   const value: ThemeProviderState = {
     theme,
     setTheme: (t: Theme) => {
       localStorage.setItem(storageKey, t);
       setTheme(t);
+      syncToBackend({ theme: t });
     },
     color,
     setColor: (c: ColorVariant) => {
       localStorage.setItem(colorStorageKey, c);
       setColor(c);
+      syncToBackend({ color: c });
     },
     customAvatar,
     setCustomAvatar: (avatar: string | null) => {
@@ -176,6 +291,7 @@ export function ThemeProvider({
         localStorage.removeItem(avatarStorageKey);
       }
       setCustomAvatar(avatar);
+      syncToBackend({ custom_avatar: avatar });
     },
     wallpaperUrl,
     setWallpaperUrl: (url: string | null) => {
@@ -185,17 +301,21 @@ export function ThemeProvider({
         localStorage.removeItem(wallpaperStorageKey);
       }
       setWallpaperUrl(url);
+      syncToBackend({ wallpaper_url: url });
     },
     wallpaperOpacity,
     setWallpaperOpacity: (opacity: number) => {
       localStorage.setItem(wallpaperOpacityKey, opacity.toString());
       setWallpaperOpacity(opacity);
+      syncToBackend({ wallpaper_opacity: opacity });
     },
     wallpaperBlur,
     setWallpaperBlur: (blur: number) => {
       localStorage.setItem(wallpaperBlurKey, blur.toString());
       setWallpaperBlur(blur);
+      syncToBackend({ wallpaper_blur: blur });
     },
+    wallpaperPalette,
   };
 
   return (

@@ -1,4 +1,5 @@
 pub mod alerts;
+pub mod customization;
 pub mod data_migrator;
 pub mod gpu;
 pub mod network;
@@ -26,4 +27,5 @@ pub fn router() -> Router<AppState> {
         .route("/api/system/weather", axum::routing::get(weather::get_weather_handler))
         .route("/api/system/settings", axum::routing::get(settings::get_settings_handler).post(settings::update_settings_handler))
         .route("/api/system/settings/check-port", axum::routing::post(settings::check_port_handler))
+        .route("/api/system/customization", axum::routing::get(customization::get_customization_handler).post(customization::update_customization_handler))
 }
