@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use bollard::query_parameters::ListContainersOptions;
 use bollard::Docker;
-use tracing::info;
 
 use super::ingress::RawIngressRule;
 use super::models::{IngressRule, SyncLinksResponse};
@@ -11,6 +10,7 @@ pub struct ContainerSummaryInfo {
     pub id: String,
     pub name: String,
     pub ports: Vec<u16>,
+    pub public_ports: Vec<u16>,
     pub service_name: Option<String>,
     pub project_name: Option<String>,
     pub image_name: Option<String>,
@@ -21,11 +21,17 @@ impl ContainerSummaryInfo {
         Self {
             id: id.into(),
             name: name.into(),
+            public_ports: ports.clone(),
             ports,
             service_name: None,
             project_name: None,
             image_name: None,
         }
+    }
+
+    pub fn with_public_ports(mut self, public_ports: Vec<u16>) -> Self {
+        self.public_ports = public_ports;
+        self
     }
 
     pub fn with_service_name(mut self, service_name: Option<String>) -> Self {
@@ -58,62 +64,35 @@ pub fn is_loopback_or_host(host: &str) -> bool {
 
 /// Strips common community wrapper prefixes from container names
 pub fn strip_known_prefixes(name: &str) -> &str {
-    let mut s = name;
     let prefixes = [
-        "linuxserver-", "linuxserver_",
-        "big-bear-", "big_bear_",
-        "docker-", "docker_",
-        "site-", "site_",
-        "app-", "app_",
+        "linuxserver-", "linuxserver_", "big-bear-", "big_bear_", "docker-", "docker_", "site-", "site_", "app-", "app_",
     ];
-    for p in prefixes {
-        if s.starts_with(p) {
-            s = &s[p.len()..];
-            break;
-        }
-    }
-    s
+    prefixes.into_iter().find_map(|p| name.strip_prefix(p)).unwrap_or(name)
 }
 
 /// Strips common role, replica, or framework suffixes
 pub fn strip_known_suffixes(name: &str) -> &str {
-    let mut s = name;
     let suffixes = [
-        "-app-1", "_app_1", "-app_1", "_app-1",
-        "-app", "_app",
-        "-1", "_1", "-2", "_2",
-        "-frontend", "_frontend",
-        "-backend", "_backend",
-        "-server", "_server",
-        "-dashboard", "_dashboard",
-        "-harness", "_harness",
-        "-tutorial", "_tutorial",
-        "-ui", "_ui",
-        "-web", "_web",
+        "-app-1", "_app_1", "-app_1", "_app-1", "-app", "_app", "-1", "_1", "-2", "_2",
+        "-frontend", "_frontend", "-backend", "_backend", "-server", "_server",
+        "-dashboard", "_dashboard", "-harness", "_harness", "-tutorial", "_tutorial",
+        "-ui", "_ui", "-web", "_web",
     ];
-    for suf in suffixes {
-        if s.ends_with(suf) {
-            s = &s[..s.len() - suf.len()];
-            break;
-        }
-    }
-    s
+    suffixes.into_iter().find_map(|s| name.strip_suffix(s)).unwrap_or(name)
 }
 
 /// Normalizes container name to its core application identity
 pub fn clean_app_name(name: &str) -> String {
     let lower = name.trim_start_matches('/').to_lowercase();
-    let without_prefix = strip_known_prefixes(&lower);
-    let without_suffix = strip_known_suffixes(without_prefix);
-    without_suffix.to_string()
+    strip_known_suffixes(strip_known_prefixes(&lower)).to_string()
 }
 
 /// Returns true for generic subdomains that should never trigger auto-matching
 pub fn is_generic_subdomain(sub: &str) -> bool {
-    matches!(
-        sub,
-        "cloud" | "local" | "lan" | "tunnel" | "api" | "app" | "web" | "dev" | "test" | "internal" | "hub"
-    )
+    match sub {
+        "cloud" | "local" | "lan" | "tunnel" | "api" | "app" | "web" | "dev" | "test" | "internal" | "hub" => true,
+        _ => false,
+    }
 }
 
 /// Checks if two names have meaningful non-generic token overlap (e.g. "pdf-lan" and "stirling-pdf" share "pdf")
@@ -134,32 +113,73 @@ pub fn has_meaningful_token_overlap(a: &str, b: &str) -> bool {
 
 /// Checks if an IP is private/local/loopback and NOT an external router gateway (.1)
 pub fn is_targetable_private_or_local_ip(ip_str: &str) -> bool {
-    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
-        match ip {
-            std::net::IpAddr::V4(v4) => {
-                if v4.is_loopback() {
-                    return true;
-                }
-                let oct = v4.octets();
-                // Exclude router gateway default addresses ending in .1
-                if oct[3] == 1 {
-                    return false;
-                }
-                // RFC 1918 private ranges & Docker bridge
-                oct[0] == 10 
-                    || (oct[0] == 172 && (16..=31).contains(&oct[1]))
-                    || (oct[0] == 192 && oct[1] == 168)
-            }
-            std::net::IpAddr::V6(v6) => v6.is_loopback(),
+    match ip_str.parse::<std::net::IpAddr>() {
+        Ok(std::net::IpAddr::V4(v4)) => {
+            let o = v4.octets();
+            v4.is_loopback() || (o[3] != 1 && (o[0] == 10 || (o[0] == 172 && (16..=31).contains(&o[1])) || (o[0] == 192 && o[1] == 168)))
         }
-    } else {
-        false
+        Ok(std::net::IpAddr::V6(v6)) => v6.is_loopback(),
+        Err(_) => false,
     }
+}
+
+/// Normalizes link URL by stripping protocol, path, port, and trailing slash to a clean host string
+pub fn normalize_link_url(url: &str) -> String {
+    let s = url.trim();
+    let s = s
+        .strip_prefix("https://")
+        .or_else(|| s.strip_prefix("http://"))
+        .unwrap_or(s);
+    let s = s.split('/').next().unwrap_or(s);
+    let s = s.split(':').next().unwrap_or(s);
+    s.trim().to_lowercase()
+}
+
+/// Finds a container that was explicitly assigned to this hostname in custom_links.json
+fn find_container_by_custom_links<'a>(
+    hostname: &str,
+    containers: &'a [ContainerSummaryInfo],
+    custom_links: &HashMap<String, String>,
+) -> Option<(&'a str, &'a str)> {
+    let target = normalize_link_url(hostname);
+    if custom_links.is_empty() || target.is_empty() {
+        return None;
+    }
+
+    for (key, url) in custom_links {
+        if normalize_link_url(url) == target {
+            let k_low = key.trim_start_matches('/').to_lowercase();
+            let k_clean = clean_app_name(&k_low);
+
+            if let Some(c) = containers.iter().find(|c| {
+                let cn = c.name.trim_start_matches('/').to_lowercase();
+                c.id == *key
+                    || (key.len() >= 12 && c.id.starts_with(key))
+                    || (c.id.len() >= 12 && key.starts_with(&c.id[..12]))
+                    || cn == k_low
+                    || clean_app_name(&c.name) == k_clean
+                    || c.service_name.as_deref().map(|s| s.eq_ignore_ascii_case(&k_low) || clean_app_name(s) == k_clean).unwrap_or(false)
+                    || c.project_name.as_deref().map(|p| p.eq_ignore_ascii_case(&k_low) || clean_app_name(p) == k_clean).unwrap_or(false)
+            }) {
+                return Some((&c.id, &c.name));
+            }
+        }
+    }
+    None
 }
 
 pub fn match_ingress_with_containers(
     raw_rules: Vec<RawIngressRule>,
     containers: &[ContainerSummaryInfo],
+) -> Vec<IngressRule> {
+    let custom_links = crate::links::get_all_links();
+    match_ingress_with_containers_and_links(raw_rules, containers, &custom_links)
+}
+
+pub fn match_ingress_with_containers_and_links(
+    raw_rules: Vec<RawIngressRule>,
+    containers: &[ContainerSummaryInfo],
+    custom_links: &HashMap<String, String>,
 ) -> Vec<IngressRule> {
     let mut results = Vec::new();
 
@@ -183,64 +203,81 @@ pub fn match_ingress_with_containers(
 
         let is_ip = service_host.as_deref().map(is_ip_address).unwrap_or(false);
         let is_loopback = service_host.as_deref().map(is_loopback_or_host).unwrap_or(false);
+        let is_lan_ip = is_ip && service_host.as_deref().map(is_targetable_private_or_local_ip).unwrap_or(false);
 
-        // Matching Pass 1: Exact container name, exact container ID, exact Compose service, or exact Compose project
-        if let Some(ref sh) = service_host {
-            let sh_lower = sh.to_lowercase();
-            if !is_ip && !is_loopback {
-                if let Some(c) = containers.iter().find(|c| {
-                    let cn = c.name.to_lowercase();
-                    cn == sh_lower 
-                        || c.id == *sh 
-                        || (sh.len() >= 12 && c.id.starts_with(sh))
-                        || c.service_name.as_ref().map(|s| s.to_lowercase() == sh_lower).unwrap_or(false)
-                        || c.project_name.as_ref().map(|p| p.to_lowercase() == sh_lower).unwrap_or(false)
-                }) {
-                    matched_id = Some(c.id.clone());
-                    matched_name = Some(c.name.clone());
-                }
-            }
+        // Matching Pass 0: Explicit user custom link override from custom_links.json
+        if let Some((cid, cname)) = find_container_by_custom_links(&hostname, containers, custom_links) {
+            matched_id = Some(cid.to_string());
+            matched_name = Some(cname.to_string());
         }
 
-        // Matching Pass 2: Cleaned container name (without community wrapper prefixes or replica suffixes)
-        if matched_id.is_none() && !is_ip && !is_loopback {
+        // Matching Pass 1: Exact container name, exact container ID, exact Compose service, or exact Compose project
+        if matched_id.is_none() {
             if let Some(ref sh) = service_host {
                 let sh_lower = sh.to_lowercase();
-                let clean_sh = clean_app_name(&sh_lower);
-                if clean_sh.len() >= 3 {
+                if !is_ip && !is_loopback {
                     if let Some(c) = containers.iter().find(|c| {
-                        let clean_cn = clean_app_name(&c.name);
-                        clean_cn == clean_sh 
-                            || clean_cn == sh_lower
-                            || c.service_name.as_ref().map(|s| clean_app_name(s) == clean_sh).unwrap_or(false)
+                        let cn = c.name.to_lowercase();
+                        cn == sh_lower 
+                            || c.id == *sh 
+                            || (sh.len() >= 12 && c.id.starts_with(sh))
+                            || c.service_name.as_ref().map(|s| s.to_lowercase() == sh_lower).unwrap_or(false)
+                            || c.project_name.as_ref().map(|p| p.to_lowercase() == sh_lower).unwrap_or(false)
                     }) {
                         matched_id = Some(c.id.clone());
                         matched_name = Some(c.name.clone());
+                    } else {
+                        let clean_sh = clean_app_name(&sh_lower);
+                        if clean_sh.len() >= 3 {
+                            if let Some(c) = containers.iter().find(|c| {
+                                let clean_cn = clean_app_name(&c.name);
+                                clean_cn == clean_sh 
+                                    || clean_cn == sh_lower
+                                    || c.service_name.as_ref().map(|s| clean_app_name(s) == clean_sh).unwrap_or(false)
+                            }) {
+                                matched_id = Some(c.id.clone());
+                                matched_name = Some(c.name.clone());
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Matching Pass 3: Port matching for loopback OR targetable private LAN IPs (excluding router gateway .1)
-        let is_lan_ip = is_ip && service_host.as_deref().map(is_targetable_private_or_local_ip).unwrap_or(false);
+        // Matching Pass 2: Primary Port Matching for loopback OR targetable private LAN IPs
         if matched_id.is_none() && (is_loopback || is_lan_ip) {
             if let Some(port) = service_port {
-                let candidate_containers: Vec<_> = containers
+                let candidates: Vec<&ContainerSummaryInfo> = containers
                     .iter()
                     .filter(|c| c.ports.contains(&port))
                     .collect();
 
-                if is_loopback {
-                    if candidate_containers.len() == 1 {
-                        let c = candidate_containers[0];
-                        if !is_generic_subdomain(&subdomain) || clean_app_name(&c.name) == subdomain {
-                            matched_id = Some(c.id.clone());
-                            matched_name = Some(c.name.clone());
-                        }
-                    } else if candidate_containers.len() > 1 {
-                        if let Some(c) = candidate_containers.iter().find(|c| {
+                if candidates.len() == 1 {
+                    // Exactly 1 container on this host has this port: authoritative match (unless subdomain is generic like 'cloud' or 'web')
+                    let c = candidates[0];
+                    if !is_generic_subdomain(&subdomain) || clean_app_name(&c.name) == subdomain {
+                        matched_id = Some(c.id.clone());
+                        matched_name = Some(c.name.clone());
+                    }
+                } else if candidates.len() > 1 {
+                    // Disambiguate when multiple containers listen on the same port:
+                    // 1. Try public host port if uniquely one has it mapped
+                    let pub_candidates: Vec<_> = candidates
+                        .iter()
+                        .filter(|c| c.public_ports.contains(&port))
+                        .copied()
+                        .collect();
+
+                    if pub_candidates.len() == 1 && !is_generic_subdomain(&subdomain) {
+                        matched_id = Some(pub_candidates[0].id.clone());
+                        matched_name = Some(pub_candidates[0].name.clone());
+                    } else {
+                        // 2. Disambiguate by subdomain or clean app name
+                        if let Some(c) = candidates.iter().find(|c| {
                             let clean_c = clean_app_name(&c.name);
                             clean_c == subdomain
+                                || c.name.eq_ignore_ascii_case(&subdomain)
+                                || c.service_name.as_ref().map(|s| clean_app_name(s) == subdomain).unwrap_or(false)
                                 || (!is_generic_subdomain(&subdomain) && (
                                     c.name.to_lowercase().contains(&subdomain)
                                     || has_meaningful_token_overlap(&c.name, &subdomain)
@@ -250,26 +287,26 @@ pub fn match_ingress_with_containers(
                             matched_name = Some(c.name.clone());
                         }
                     }
-                } else if is_lan_ip && !candidate_containers.is_empty() {
-                    if let Some(c) = candidate_containers.iter().find(|c| {
-                        let clean_c = clean_app_name(&c.name);
-                        clean_c == subdomain
-                            || (!is_generic_subdomain(&subdomain) && (
-                                c.name.to_lowercase().contains(&subdomain)
-                                || has_meaningful_token_overlap(&c.name, &subdomain)
-                                || c.service_name.as_ref().map(|s| clean_app_name(s) == subdomain).unwrap_or(false)
-                            ))
-                    }) {
-                        matched_id = Some(c.id.clone());
-                        matched_name = Some(c.name.clone());
-                    }
                 }
             }
         }
 
-        // Matching Pass 4: Subdomain semantic matching
+        // Helper: port conflict guard to ensure a container with known ports does NOT match a rule with conflicting port
+        let has_port_conflict = |c: &ContainerSummaryInfo| -> bool {
+            if let Some(port) = service_port {
+                if !c.ports.is_empty() && !c.ports.contains(&port) {
+                    return true;
+                }
+            }
+            false
+        };
+
+        // Matching Pass 3: Subdomain semantic matching (with Port Conflict Guard)
         if matched_id.is_none() && !is_generic_subdomain(&subdomain) && subdomain.len() >= 3 {
             if let Some(c) = containers.iter().find(|c| {
+                if has_port_conflict(c) {
+                    return false;
+                }
                 let clean_cn = clean_app_name(&c.name);
                 clean_cn == subdomain
                     || clean_cn.replace('-', "") == subdomain.replace('-', "")
@@ -282,9 +319,12 @@ pub fn match_ingress_with_containers(
             }
         }
 
-        // Matching Pass 5: Image name matching
+        // Matching Pass 4: Image name matching (with Port Conflict Guard)
         if matched_id.is_none() && !is_generic_subdomain(&subdomain) && subdomain.len() >= 3 {
             if let Some(c) = containers.iter().find(|c| {
+                if has_port_conflict(c) {
+                    return false;
+                }
                 if let Some(ref img) = c.image_name {
                     let img_base = img.split(':').next().unwrap_or("").split('/').last().unwrap_or("");
                     clean_app_name(img_base) == subdomain || img_base.to_lowercase().contains(&subdomain)
@@ -350,11 +390,13 @@ pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<Contai
             .unwrap_or_else(|| id[..12.min(id.len())].to_string());
 
         let mut ports = Vec::new();
+        let mut public_ports = Vec::new();
         if let Some(port_list) = c.ports {
             for p in port_list {
                 ports.push(p.private_port);
                 if let Some(pub_port) = p.public_port {
                     ports.push(pub_port);
+                    public_ports.push(pub_port);
                 }
             }
         }
@@ -377,6 +419,7 @@ pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<Contai
             id,
             name,
             ports,
+            public_ports,
             service_name,
             project_name,
             image_name,
@@ -417,17 +460,16 @@ pub fn sync_ingress_rules_to_links(rules: &[IngressRule]) -> SyncLinksResponse {
             }
         }
 
-        let subdomain = rule.hostname.split('.').next().unwrap_or("").to_lowercase();
-        if subdomain.len() >= 3 && !is_generic_subdomain(&subdomain) {
-            links_to_update.entry(subdomain).or_insert_with(|| rule.public_url.clone());
+        // Only register subdomain if the rule was actually matched to a container
+        if rule.matched_container_id.is_some() || rule.matched_container_name.is_some() {
+            let subdomain = rule.hostname.split('.').next().unwrap_or("").to_lowercase();
+            if subdomain.len() >= 3 && !is_generic_subdomain(&subdomain) {
+                links_to_update.entry(subdomain).or_insert_with(|| rule.public_url.clone());
+            }
         }
     }
 
     let synced_count = crate::links::update_links_batch(&links_to_update);
-    info!(
-        "Synced {} Cloudflare tunnel links to container custom_links.json",
-        synced_count
-    );
 
     SyncLinksResponse {
         synced_count,

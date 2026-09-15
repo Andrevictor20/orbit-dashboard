@@ -343,6 +343,7 @@ export function Cloudflare() {
         onRouteDeleted={handleRouteDeleted}
         copyToClipboard={copyToClipboard}
         copiedHost={copiedHost}
+        onRefresh={() => loadData(false)}
       />
 
       {/* Add Route Modal */}

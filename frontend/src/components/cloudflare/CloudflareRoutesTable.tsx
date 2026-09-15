@@ -9,9 +9,11 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  Link2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { IngressRule, DeleteRouteResponse } from '../../types/cloudflare';
+import { LinkRouteContainerModal } from './LinkRouteContainerModal';
 
 interface CloudflareRoutesTableProps {
   rules: IngressRule[];
@@ -20,6 +22,7 @@ interface CloudflareRoutesTableProps {
   onRouteDeleted: (hostname: string) => void;
   copyToClipboard: (text: string, label: string) => void;
   copiedHost: string | null;
+  onRefresh?: () => void;
 }
 
 export function CloudflareRoutesTable({
@@ -29,11 +32,13 @@ export function CloudflareRoutesTable({
   onRouteDeleted,
   copyToClipboard,
   copiedHost,
+  onRefresh,
 }: CloudflareRoutesTableProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingHost, setDeletingHost] = useState<string | null>(null);
   const [confirmDeleteRule, setConfirmDeleteRule] = useState<IngressRule | null>(null);
+  const [linkingRule, setLinkingRule] = useState<IngressRule | null>(null);
 
   const getAuthHeaders = () => {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
@@ -187,21 +192,32 @@ export function CloudflareRoutesTable({
 
                     {/* Matched Container */}
                     <td className="py-3.5 px-4">
-                      {isMatched ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span className="font-bold text-primary font-mono text-xs">
-                            {rule.matched_container_name}
+                      <div className="flex items-center justify-between gap-2">
+                        {isMatched ? (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="font-bold text-primary font-mono text-xs truncate max-w-[130px]">
+                              {rule.matched_container_name}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                              {t('cloudflare.link_synced', 'Vinculado')}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-secondary/60 text-[11px] italic">
+                            {t('cloudflare.no_container_matched', 'Sem contêiner detectado')}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            {t('cloudflare.link_synced', 'Vinculado')}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-secondary/60 text-[11px] italic">
-                          {t('cloudflare.no_container_matched', 'Sem contêiner detectado')}
-                        </span>
-                      )}
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setLinkingRule(rule)}
+                          className="p-1 rounded-lg border border-border/50 bg-accent/30 hover:bg-accent hover:border-border text-secondary hover:text-primary transition-all shrink-0 ml-1"
+                          title={isMatched ? t('cloudflare.change_container', 'Alterar contêiner vinculado') : t('cloudflare.link_container', 'Vincular contêiner manualmente')}
+                        >
+                          <Link2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
 
                     {/* Actions */}
@@ -288,6 +304,14 @@ export function CloudflareRoutesTable({
           </div>
         </div>
       )}
+
+      {/* Container Link Modal */}
+      <LinkRouteContainerModal
+        isOpen={Boolean(linkingRule)}
+        onClose={() => setLinkingRule(null)}
+        rule={linkingRule}
+        onSuccess={() => onRefresh && onRefresh()}
+      />
     </div>
   );
 }

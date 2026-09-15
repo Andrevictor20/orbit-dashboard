@@ -285,12 +285,12 @@ async fn test_cloudflare_config_lifecycle() {
 
     let body_bytes = res.into_body().collect().await.unwrap().to_bytes();
     let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    assert_eq!(json["configured"], true);
-    assert_eq!(json["account_id"], "test_account_999");
-    assert_eq!(json["tunnel_id"], "test_tunnel_888");
-    assert_eq!(json["has_api_token"], true);
+    assert_eq!(json.get("configured"), Some(&serde_json::Value::Bool(true)));
+    assert_eq!(json.get("account_id").and_then(|v| v.as_str()), Some("test_account_999"));
+    assert_eq!(json.get("tunnel_id").and_then(|v| v.as_str()), Some("test_tunnel_888"));
+    assert_eq!(json.get("has_api_token"), Some(&serde_json::Value::Bool(true)));
     // Token must be masked for security
-    let token_str = json["api_token"].as_str().unwrap();
+    let token_str = json.get("api_token").and_then(|v| v.as_str()).unwrap();
     assert!(token_str.contains("••••"));
 
     // 4. Clean up / DELETE config
@@ -542,7 +542,7 @@ fn test_sync_ingress_rules_populates_short_id_and_container_name() {
         matched_container_name: Some(container_name),
     };
 
-    let sync_res = sync_ingress_rules_to_links(&[rule]);
+    let sync_res = sync_ingress_rules_to_links(&[rule][..]);
 
     assert!(sync_res.synced_links.contains_key(&full_id));
     assert!(sync_res.synced_links.contains_key(&short_id), "Short ID (12 chars) must be synced");
@@ -657,4 +657,99 @@ fn test_real_world_container_matching() {
     assert_eq!(matched[7].matched_container_id, None);
 }
 
+#[test]
+fn test_port_first_matching_resolves_ha_and_avoids_port_conflict() {
+    use backend::cloudflare::client::{match_ingress_with_containers, ContainerSummaryInfo};
+    use backend::cloudflare::ingress::RawIngressRule;
 
+    let raw_rules = vec![
+        // Rule 1: home.rasppi.cloud pointing to 192.168.100.17:5172 (Orbit host port)
+        // Must NOT match homeassistant container, because homeassistant does NOT listen on 5172!
+        RawIngressRule {
+            hostname: Some("home.rasppi.cloud".to_string()),
+            service: "http://192.168.100.17:5172".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // Rule 2: ha.rasppi.cloud pointing to 192.168.100.17:8123 (Home Assistant port)
+        // Must MATCH homeassistant container because port 8123 uniquely belongs to it,
+        // even though the subdomain is "ha" (len 2) and differs from "homeassistant"!
+        RawIngressRule {
+            hostname: Some("ha.rasppi.cloud".to_string()),
+            service: "http://192.168.100.17:8123".to_string(),
+            path: None,
+            origin_request: None,
+        },
+        // Rule 3: books.rasppi.cloud pointing to 192.168.100.17:5000
+        // Must MATCH calibre-web container because port 5000 uniquely belongs to it,
+        // even though the subdomain is "books"!
+        RawIngressRule {
+            hostname: Some("books.rasppi.cloud".to_string()),
+            service: "http://192.168.100.17:5000".to_string(),
+            path: None,
+            origin_request: None,
+        },
+    ];
+
+    let containers = vec![
+        ContainerSummaryInfo::new("cont_ha", "homeassistant", vec![8123]),
+        ContainerSummaryInfo::new("cont_calibre", "calibre-web", vec![5000]),
+    ];
+
+    let matched = match_ingress_with_containers(raw_rules, &containers);
+    assert_eq!(matched.len(), 3);
+
+    // Rule 1: home.rasppi.cloud -> MUST NOT match cont_ha!
+    assert_ne!(
+        matched[0].matched_container_id.as_deref(),
+        Some("cont_ha"),
+        "home.rasppi.cloud on port 5172 must NOT be linked to homeassistant (port 8123)"
+    );
+    assert_eq!(matched[0].matched_container_id, None);
+
+    // Rule 2: ha.rasppi.cloud -> MUST match cont_ha via port 8123!
+    assert_eq!(
+        matched[1].matched_container_id.as_deref(),
+        Some("cont_ha"),
+        "ha.rasppi.cloud on port 8123 MUST match homeassistant container"
+    );
+
+    // Rule 3: books.rasppi.cloud -> MUST match cont_calibre via port 5000!
+    assert_eq!(
+        matched[2].matched_container_id.as_deref(),
+        Some("cont_calibre"),
+        "books.rasppi.cloud on port 5000 MUST match calibre-web container"
+    );
+}
+
+#[test]
+fn test_custom_links_overrides_ingress_matching() {
+    use backend::cloudflare::client::{ContainerSummaryInfo, RawIngressRule};
+    use backend::cloudflare::matching::match_ingress_with_containers_and_links;
+    use std::collections::HashMap;
+
+    let raw_rules = vec![
+        RawIngressRule {
+            hostname: Some("pdi.rasppi.cloud".to_string()),
+            service: "http://192.168.100.17:83".to_string(),
+            path: None,
+            origin_request: None,
+        },
+    ];
+
+    let containers = vec![
+        ContainerSummaryInfo::new("custom_pdi_id_123", "site-corporativo", vec![83]),
+    ];
+
+    let mut custom_links = HashMap::new();
+    // User manually mapped this container to https://pdi.rasppi.cloud in the containers page
+    custom_links.insert("custom_pdi_id_123".to_string(), "https://pdi.rasppi.cloud".to_string());
+
+    let matched = match_ingress_with_containers_and_links(raw_rules, &containers, &custom_links);
+    assert_eq!(matched.len(), 1);
+    assert_eq!(
+        matched[0].matched_container_id.as_deref(),
+        Some("custom_pdi_id_123"),
+        "User custom link must explicitly bind the container to the Cloudflare ingress route"
+    );
+}

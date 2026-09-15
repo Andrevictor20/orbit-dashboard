@@ -46,8 +46,12 @@ fn save_links_to_disk(db: &LinksDb) {
     }
 }
 
+pub fn get_all_links() -> HashMap<String, String> {
+    LINKS_CACHE.lock().map(|g| g.clone()).unwrap_or_default()
+}
+
 pub async fn get_links() -> impl IntoResponse {
-    let links = LINKS_CACHE.lock().unwrap().clone();
+    let links = get_all_links();
     (StatusCode::OK, Json(links))
 }
 
