@@ -1,5 +1,12 @@
 # Orbit Dashboard v3.6.1
 
+### Correções e Melhorias na Versão 3.6.1 (Patch)
+
+- **Segurança:** Atualização de dependências Rust — `rustls 0.23.45` (corrige RUSTSEC-2026-0285: TLS 1.3 handshake boundary) e `chacha20 0.10.2` (crate anterior yanked do crates.io).
+- **UI — Relógio maior:** Tamanho do horário aumentado no Hero Header (`text-sm`, ícone `w-4`) com offset GMT mais legível.
+- **UI — Armazenamento:** Corrigido texto truncado nos nomes de discos (`HD Externo`, `microSD`) — layout agora usa `flex-1` sem `max-w` fixo.
+- **Backend — GPU Raspberry Pi:** Detecção nativa do VideoCore via `vcgencmd` (clock V3D, VRAM split, temperatura), exibindo modelo do Pi no card de GPU.
+
 ### Novidades e Recursos da Versão 3.6.0
 
 - **Sistema Completo de Backups e Restauração Inteligente:**
