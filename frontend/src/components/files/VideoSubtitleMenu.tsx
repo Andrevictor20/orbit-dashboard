@@ -44,12 +44,12 @@ export function VideoSubtitleMenu({
       </select>
       <label
         className="p-1 hover:bg-zinc-700 rounded text-zinc-400 hover:text-white cursor-pointer transition-colors"
-        title={t('files.upload_device_subtitle', 'Carregar legenda do dispositivo (.srt, .vtt, .ass)')}
+        title={t('files.upload_device_subtitle', 'Carregar legenda do dispositivo (.srt, .vtt, .ass, .ssa, .sub, .sbv)')}
       >
-        <span className="text-[10px] font-mono border border-zinc-600 px-1 py-0.5 rounded">.SRT</span>
+        <span className="text-[10px] font-mono border border-zinc-600 px-1 py-0.5 rounded">.CC</span>
         <input
           type="file"
-          accept=".srt,.vtt,.ass"
+          accept=".srt,.vtt,.ass,.ssa,.sub,.sbv"
           onChange={onCustomSubtitleUpload}
           className="hidden"
         />

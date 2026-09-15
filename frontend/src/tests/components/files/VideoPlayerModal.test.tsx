@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { VideoPlayerModal } from '../../../components/files/VideoPlayerModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -68,5 +68,48 @@ describe('VideoPlayerModal Component', () => {
     fireEvent.change(subSelector, { target: { value: '/DATA/movies/movie.en.vtt' } });
     expect(subSelector.value).toBe('/DATA/movies/movie.en.vtt');
   });
+
+  it('renders only the active subtitle track (lazy track injection) and removes track when off', async () => {
+    render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+
+    // Wait for subtitles to load and select default preferred track
+    await screen.findByRole('option', { name: /Português/i });
+
+    // Should only have exactly 1 track element rendered in the video, preventing concurrent ffmpeg calls
+    const initialTracks = document.querySelectorAll('video track');
+    expect(initialTracks.length).toBe(1);
+    expect(initialTracks[0].getAttribute('src')).toContain(encodeURIComponent('/DATA/movies/movie.pt-BR.vtt'));
+
+    // Switch to 'off'
+    const subSelector = await screen.findByTestId('subtitle-selector');
+    fireEvent.change(subSelector, { target: { value: 'off' } });
+
+    // When off, 0 tracks should be mounted in the DOM
+    const updatedTracks = document.querySelectorAll('video track');
+    expect(updatedTracks.length).toBe(0);
+  });
+
+  it('renders VLC / Stream copy button and handles click', async () => {
+    const writeTextMock = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    });
+
+    render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+
+    const copyBtn = screen.getByTitle(/VLC/i);
+    expect(copyBtn).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(writeTextMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/files/stream?path=')
+    );
+  });
 });
+
 

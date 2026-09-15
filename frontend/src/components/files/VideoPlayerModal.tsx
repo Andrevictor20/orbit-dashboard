@@ -7,7 +7,9 @@ import {
   Film, 
   Loader2, 
   Download,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 import { VideoControls } from './VideoControls';
@@ -34,12 +36,21 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [activeSubtitle, setActiveSubtitle] = useState<string>('off');
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const videoSrc = `/api/files/stream?path=${encodeURIComponent(file.path)}`;
+
+  const handleCopyStreamLink = () => {
+    const fullUrl = `${window.location.origin}${videoSrc}`;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   // Fetch companion and embedded subtitles
   useEffect(() => {
@@ -59,18 +70,15 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
   const handleSubtitleChange = (subPath: string) => {
     setActiveSubtitle(subPath);
-    if (videoRef.current && videoRef.current.textTracks) {
+  };
+
+  useEffect(() => {
+    if (videoRef.current && videoRef.current.textTracks && activeSubtitle !== 'off') {
       for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-        const track = videoRef.current.textTracks[i];
-        const sub = subtitlesList[i];
-        if (sub && sub.path === subPath) {
-          track.mode = 'showing';
-        } else {
-          track.mode = 'disabled';
-        }
+        videoRef.current.textTracks[i].mode = 'showing';
       }
     }
-  };
+  }, [activeSubtitle]);
 
   const handleCustomSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileUploaded = e.target.files?.[0];
@@ -97,17 +105,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
       setSubtitlesList(prev => [newSub, ...prev]);
       setActiveSubtitle(blobUrl);
-
-      if (videoRef.current) {
-        const track = document.createElement('track');
-        track.kind = 'subtitles';
-        track.label = newSub.label;
-        track.srclang = 'custom';
-        track.src = blobUrl;
-        track.default = true;
-        videoRef.current.appendChild(track);
-        track.track.mode = 'showing';
-      }
     };
     reader.readAsText(fileUploaded);
   };
@@ -323,13 +320,24 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             </div>
           </div>
 
-          <button
-            data-testid="close-video-modal"
-            onClick={onClose}
-            className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyStreamLink}
+              title={t('files.copy_stream_link', 'Copiar link direto para VLC / player externo')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
+              <span className="hidden sm:inline">{copied ? t('common.copied', 'Copiado!') : 'VLC / Stream'}</span>
+            </button>
+
+            <button
+              data-testid="close-video-modal"
+              onClick={onClose}
+              className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Video Element & Overlays */}
@@ -338,22 +346,27 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             ref={videoRef}
             data-testid="video-element"
             src={videoSrc}
-            preload="metadata"
+            preload="auto"
             autoPlay
             playsInline
             crossOrigin="anonymous"
             className="w-full h-full object-contain"
           >
-            {subtitlesList.map((sub, idx) => (
-              <track
-                key={idx}
-                kind="subtitles"
-                src={sub.path.startsWith('blob:') ? sub.path : `/api/files/subtitles/vtt?path=${encodeURIComponent(sub.path)}`}
-                srcLang={sub.lang}
-                label={sub.label}
-                default={activeSubtitle === sub.path}
-              />
-            ))}
+            {/* Lazy Subtitle Track Injection: only mount the active track to prevent concurrent extraction processes */}
+            {activeSubtitle !== 'off' && (() => {
+              const currentTrack = subtitlesList.find(s => s.path === activeSubtitle);
+              if (!currentTrack) return null;
+              return (
+                <track
+                  key={currentTrack.path}
+                  kind="subtitles"
+                  src={currentTrack.path.startsWith('blob:') ? currentTrack.path : `/api/files/subtitles/vtt?path=${encodeURIComponent(currentTrack.path)}`}
+                  srcLang={currentTrack.lang}
+                  label={currentTrack.label}
+                  default
+                />
+              );
+            })()}
           </video>
 
           {/* Buffering Spinner */}

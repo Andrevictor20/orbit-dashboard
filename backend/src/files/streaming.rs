@@ -10,12 +10,10 @@ use super::path_utils::{get_mime_type, sanitize_path};
 use super::types::DownloadQuery;
 
 // --- HIGH-PERFORMANCE VIDEO & AUDIO STREAMING ---
-// Optimized for low-power hardware (Raspberry Pi, ARM, Celeron) with 64KB async buffer,
-// adaptive initial burst (2MB) for instant playback TTFB and 4MB sustained chunks.
+// Optimized for low-power hardware (Raspberry Pi, ARM, Celeron) with 64KB async buffer
+// and unconstrained HTTP 206 Range streaming governed by TCP window and client player buffering.
 
 const IO_BUFFER_CAPACITY: usize = 64 * 1024; // 64KB async I/O buffer to reduce syscalls by 16x
-const INITIAL_BURST_CHUNK: u64 = 2 * 1024 * 1024; // 2MB initial burst for instant start
-const SUSTAINED_STREAM_CHUNK: u64 = 4 * 1024 * 1024; // 4MB sustained chunk for low latency seeking
 
 pub async fn stream_media(
     headers: HeaderMap,
@@ -47,13 +45,11 @@ pub async fn stream_media(
             let start: u64 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
             
             let raw_end: Option<u64> = parts.get(1).and_then(|s| s.parse().ok());
-            let end: u64 = match raw_end {
-                Some(e) => e.min(total_size.saturating_sub(1)),
-                None => {
-                    // Adaptive chunk sizing: initial burst for instant moov/header parsing, sustained for playing
-                    let max_chunk = if start == 0 { INITIAL_BURST_CHUNK } else { SUSTAINED_STREAM_CHUNK };
-                    (start + max_chunk - 1).min(total_size.saturating_sub(1))
-                }
+            let end: u64 = if let Some(e) = raw_end {
+                e.min(total_size.saturating_sub(1))
+            } else {
+                // Continuous stream: serve remaining file naturally according to TCP window & player buffer
+                total_size.saturating_sub(1)
             };
 
             if start > end || start >= total_size {

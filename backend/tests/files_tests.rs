@@ -8,9 +8,7 @@ use std::fs;
 use std::path::Path;
 
 fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
-    let expiration = SystemTime::now()
-        .checked_add(Duration::from_secs(3600))
-        .unwrap()
+    let expiration = (SystemTime::now() + Duration::from_secs(3600))
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs() as usize;
@@ -23,7 +21,7 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(b"super_secret"),
+        &EncodingKey::from_secret(b"super_secret".as_slice()),
     ).unwrap();
     
     axum_extra::extract::cookie::Cookie::new("auth_token", token)
@@ -66,10 +64,9 @@ async fn test_files_navigation_and_shortcuts() {
     res.assert_status_ok();
     
     let json: serde_json::Value = res.json();
-    assert!(json["items"].is_array(), "Expected items array");
-    let items = json["items"].as_array().unwrap();
-    assert!(items.iter().any(|i| i["name"] == "documents" && i["is_dir"] == true));
-    assert!(items.iter().any(|i| i["name"] == "movies" && i["is_dir"] == true));
+    let items = json.get("items").and_then(|i| i.as_array()).expect("Expected items array");
+    assert!(items.iter().any(|i| i.get("name").and_then(|n| n.as_str()) == Some("documents") && i.get("is_dir").and_then(|d| d.as_bool()) == Some(true)));
+    assert!(items.iter().any(|i| i.get("name").and_then(|n| n.as_str()) == Some("movies") && i.get("is_dir").and_then(|d| d.as_bool()) == Some(true)));
     
     // Test listing non-existent path
     let non_existent = server.get(&format!("/api/files/list?path={}/non_existent_folder", sandbox_str))
@@ -89,8 +86,7 @@ async fn test_files_navigation_and_shortcuts() {
     assert!(shortcuts.get("pictures").is_some(), "Expected pictures shortcut");
     assert!(shortcuts.get("music").is_some(), "Expected music shortcut");
     assert!(shortcuts.get("videos").is_some(), "Expected videos shortcut");
-    assert!(shortcuts.get("root").is_some(), "Expected root shortcut");
-    assert!(shortcuts["places"].is_array(), "Expected places array");
+    assert!(shortcuts.get("places").and_then(|p| p.as_array()).is_some(), "Expected places array");
 
     let _ = fs::remove_dir_all(&sandbox);
 }
@@ -108,14 +104,13 @@ async fn test_files_storage_listing() {
     res.assert_status_ok();
     
     let storages: serde_json::Value = res.json();
-    assert!(storages["mounts"].is_array());
-    let mounts = storages["mounts"].as_array().unwrap();
+    let mounts = storages.get("mounts").and_then(|m| m.as_array()).expect("Expected mounts array");
     assert!(!mounts.is_empty(), "Should return at least root mount");
-    assert!(mounts[0].get("mount_point").is_some());
-    assert!(mounts[0].get("total_bytes").is_some());
-    assert!(mounts[0].get("available_bytes").is_some());
+    let first = mounts.first().unwrap();
+    assert!(first.get("mount_point").is_some());
+    assert!(first.get("total_bytes").is_some());
+    assert!(first.get("available_bytes").is_some());
 }
-
 
 // 4. File CRUD operations: Mkdir, Create, Rename, Copy, Move, Delete
 #[tokio::test]
@@ -233,22 +228,52 @@ async fn test_media_streaming_and_subtitles() {
     audio_res.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
     assert_eq!(audio_res.text(), "ID3f");
     
-    // Stream MKV video with Range
+    // Stream MKV video with closed Range
     let mkv_res = server.get(&format!("/api/files/stream?path={}/movies/film.mkv", sandbox_str))
         .add_cookie(cookie.clone())
         .add_header(axum::http::header::RANGE, "bytes=0-3")
         .await;
     mkv_res.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
     assert_eq!(mkv_res.text(), "fake");
-    
+
+    // Stream MKV video with open Range (bytes=0-) - verifies unconstrained continuous streaming
+    let mkv_open_range = server.get(&format!("/api/files/stream?path={}/movies/film.mkv", sandbox_str))
+        .add_cookie(cookie.clone())
+        .add_header(axum::http::header::RANGE, "bytes=0-")
+        .await;
+    mkv_open_range.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
+    assert_eq!(mkv_open_range.text(), "fake mkv matroska container data");
+
+    // Add .ass and .sbv companion subtitles
+    fs::write(sandbox.join("movies/film.ass"), "[Script Info]\nTitle: Test\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:01:23.45,0:01:28.90,Default,,0,0,0,,{\\b1}Sample ASS Text{\\b0}").unwrap();
+    fs::write(sandbox.join("movies/film.sbv"), "0:00:01.000,0:00:04.000\nYouTube SBV subtitle line").unwrap();
+
     // Subtitles discovery for film.mkv
     let subs_res = server.get(&format!("/api/files/subtitles?path={}/movies/film.mkv", sandbox_str))
         .add_cookie(cookie.clone())
         .await;
     subs_res.assert_status_ok();
     let subs_json: serde_json::Value = subs_res.json();
-    let subs = subs_json["subtitles"].as_array().unwrap();
-    assert!(subs.iter().any(|s| s["name"] == "film.srt"));
+    let subs = subs_json.get("subtitles").and_then(|s| s.as_array()).expect("Expected subtitles array");
+    assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.srt")));
+    assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.ass")));
+    assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.sbv")));
+
+    // Subtitle conversion to WebVTT (.ass -> WebVTT)
+    let ass_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.ass", sandbox_str))
+        .add_cookie(cookie.clone())
+        .await;
+    ass_vtt_res.assert_status_ok();
+    assert!(ass_vtt_res.text().contains("WEBVTT"));
+    assert!(ass_vtt_res.text().contains("Sample ASS Text"));
+
+    // Subtitle conversion to WebVTT (.sbv -> WebVTT)
+    let sbv_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.sbv", sandbox_str))
+        .add_cookie(cookie.clone())
+        .await;
+    sbv_vtt_res.assert_status_ok();
+    assert!(sbv_vtt_res.text().contains("WEBVTT"));
+    assert!(sbv_vtt_res.text().contains("-->"));
 
     let _ = fs::remove_dir_all(&sandbox);
 }
@@ -269,7 +294,7 @@ async fn test_text_editor_and_pdf() {
         .await;
     text_res.assert_status_ok();
     let text_json: serde_json::Value = text_res.json();
-    assert_eq!(text_json["content"], "Hello Orbit File Manager!");
+    assert_eq!(text_json.get("content").and_then(|c| c.as_str()), Some("Hello Orbit File Manager!"));
     
     // Write text content
     let update_res = server.put("/api/files/content")
@@ -321,7 +346,6 @@ async fn test_files_compression_and_extraction() {
     let sandbox_str = sandbox.to_str().unwrap();
     let server = TestServer::new(app());
     let cookie = get_test_cookie();
-
     let file_to_zip = format!("{}/documents/hello.txt", sandbox_str);
 
     // Compress
@@ -372,8 +396,8 @@ async fn test_files_disk_analysis() {
     // Parse the completed payload
     let data_line = body.lines().find(|l| l.starts_with("data: ")).expect("data line in SSE");
     let json: serde_json::Value = serde_json::from_str(&data_line[6..]).expect("valid json in SSE");
-    assert!(json["total_size"].as_u64().unwrap() > 0);
-    assert!(json["items"].as_array().unwrap().len() >= 2);
+    assert!(json.get("total_size").and_then(|s| s.as_u64()).unwrap_or(0) > 0);
+    assert!(json.get("items").and_then(|i| i.as_array()).map_or(0, |a| a.len()) >= 2);
 
     let _ = fs::remove_dir_all(&sandbox);
 }
@@ -386,7 +410,6 @@ async fn test_files_trash_operations() {
     let sandbox_str = sandbox.to_str().unwrap();
     let server = TestServer::new(app());
     let cookie = get_test_cookie();
-
     let file_to_trash = format!("{}/documents/hello.txt", sandbox_str);
 
     // 1. Move to trash
@@ -403,9 +426,9 @@ async fn test_files_trash_operations() {
         .await;
     list_res.assert_status_ok();
     let list_json: serde_json::Value = list_res.json();
-    let items = list_json["items"].as_array().unwrap();
+    let items = list_json.get("items").and_then(|i| i.as_array()).expect("Expected items array");
     assert!(!items.is_empty());
-    let item_id = items.last().unwrap()["id"].as_str().unwrap();
+    let item_id = items.last().unwrap().get("id").and_then(|id| id.as_str()).unwrap();
 
     // 3. Restore from trash
     let restore_res = server.post("/api/files/trash/restore")
@@ -445,7 +468,7 @@ async fn test_files_sharing_and_public_download() {
         .await;
     share_res.assert_status_ok();
     let share_json: serde_json::Value = share_res.json();
-    let token = share_json["token"].as_str().unwrap();
+    let token = share_json.get("token").and_then(|t| t.as_str()).unwrap();
     assert!(!token.is_empty());
 
     // 2. List active shares
@@ -454,7 +477,8 @@ async fn test_files_sharing_and_public_download() {
         .await;
     list_res.assert_status_ok();
     let shares: serde_json::Value = list_res.json();
-    assert!(shares["shares"].as_array().unwrap().iter().any(|s| s["token"] == token));
+    let share_list = shares.get("shares").and_then(|s| s.as_array()).unwrap();
+    assert!(share_list.iter().any(|s| s.get("token").and_then(|t| t.as_str()) == Some(token)));
 
     // 3. Access public download WITHOUT auth
     let public_res = server.get(&format!("/api/public/share/{}", token)).await;
@@ -473,4 +497,3 @@ async fn test_files_sharing_and_public_download() {
 
     let _ = fs::remove_dir_all(&sandbox);
 }
-

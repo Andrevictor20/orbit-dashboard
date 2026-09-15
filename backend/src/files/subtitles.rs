@@ -18,6 +18,9 @@ static SUBTITLE_VTT_CACHE: LazyLock<RwLock<HashMap<String, String>>> =
 static SUBTITLES_LIST_CACHE: LazyLock<RwLock<HashMap<String, Vec<SubtitleItem>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+static EXTRACTION_MUTEX: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
+
 fn get_subtitle_cache_dir() -> PathBuf {
     let base = if Path::new("/data").is_dir() {
         PathBuf::from("/data/cache/subtitles")
@@ -93,12 +96,23 @@ pub fn srt_or_ass_to_vtt(content: &str) -> String {
         return vtt;
     }
 
-    // Standard SRT processing
+    // Standard SRT, VTT, SBV and generic line processing
     for line in content.lines() {
         if line.contains("-->") {
             let vtt_line = line.replace(',', ".");
             vtt.push_str(&vtt_line);
             vtt.push('\n');
+        } else if line.contains(',') && line.contains(':') && line.chars().all(|c| c.is_ascii_digit() || c == ':' || c == '.' || c == ',') {
+            // YouTube .sbv format (e.g. 0:01:23.450,0:01:25.780)
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() == 2 {
+                let p1 = if parts[0].matches(':').count() == 1 { format!("00:{}", parts[0]) } else { parts[0].to_string() };
+                let p2 = if parts[1].matches(':').count() == 1 { format!("00:{}", parts[1]) } else { parts[1].to_string() };
+                vtt.push_str(&format!("{} --> {}\n", p1, p2));
+            } else {
+                vtt.push_str(line);
+                vtt.push('\n');
+            }
         } else {
             let clean = strip_ass_tags(line);
             vtt.push_str(&clean);
@@ -149,9 +163,27 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
             return Err(StatusCode::NOT_FOUND);
         }
 
-        let output = tokio::process::Command::new("ffmpeg")
+        // Singleflight lock to prevent concurrent ffmpeg processes thrashing disk I/O
+        let _guard = EXTRACTION_MUTEX.lock().await;
+
+        // Re-check cache in case another worker just finished extracting this track
+        if disk_cache_path.exists() {
+            if let Ok(disk_content) = fs::read_to_string(&disk_cache_path) {
+                if let Ok(mut cache) = SUBTITLE_VTT_CACHE.write() {
+                    cache.insert(q.path.clone(), disk_content.clone());
+                }
+                let mut headers = HeaderMap::new();
+                headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
+                headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
+                return Ok((StatusCode::OK, headers, disk_content));
+            }
+        }
+
+        // Limit ffmpeg to 1 thread with timeout to avoid CPU & I/O starvation on low-power hosts
+        let extract_future = tokio::process::Command::new("ffmpeg")
             .args([
                 "-v", "error",
+                "-threads", "1",
                 "-i",
             ])
             .arg(&video_path)
@@ -160,8 +192,11 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
                 "-f", "webvtt",
                 "-",
             ])
-            .output()
+            .output();
+
+        let output = tokio::time::timeout(std::time::Duration::from_secs(15), extract_future)
             .await
+            .map_err(|_| StatusCode::REQUEST_TIMEOUT)?
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let raw_vtt = String::from_utf8_lossy(&output.stdout).to_string();
@@ -233,7 +268,11 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<Subtit
                 let p = entry.path();
                 if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
                     let ext_lower = ext.to_lowercase();
-                    if ext_lower == "srt" || ext_lower == "vtt" || ext_lower == "ass" || ext_lower == "sub" {
+                    let is_supported_sub = match ext_lower.as_str() {
+                        "srt" | "vtt" | "ass" | "ssa" | "sub" | "sbv" | "smi" => true,
+                        _ => false,
+                    };
+                    if is_supported_sub {
                         let name = entry.file_name().to_string_lossy().to_string();
                         let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
                         
@@ -288,6 +327,16 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<Subtit
             if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                 if let Some(streams) = json_val.get("streams").and_then(|s| s.as_array()) {
                     for (stream_order, stream) in streams.iter().enumerate() {
+                        let codec_name = stream.get("codec_name").and_then(|c| c.as_str()).unwrap_or("").to_lowercase();
+                        // Filter out bitmap subtitles (PGS, VobSub, DVB) which fail conversion to WebVTT without OCR
+                        let is_text_codec = match codec_name.as_str() {
+                            "subrip" | "srt" | "ass" | "ssa" | "webvtt" | "mov_text" | "text" => true,
+                            other => other.contains("text") || other.contains("srt") || other.contains("ass"),
+                        };
+                        if !is_text_codec && !codec_name.is_empty() {
+                            continue;
+                        }
+
                         let stream_idx = stream.get("index").and_then(|i| i.as_i64()).unwrap_or(stream_order as i64);
                         let tags = stream.get("tags");
                         let raw_lang = tags.and_then(|t| t.get("language")).and_then(|l| l.as_str()).unwrap_or("und");
