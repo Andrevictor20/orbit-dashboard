@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,8 +14,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { MiniSparkline } from '../metrics/MiniSparkline';
-import { TopProcessesPopover } from './TopProcessesPopover';
+import { TopProcessesCardView } from './TopProcessesCardView';
 import { getFriendlyDiskName, getDiskCategoryInfo, formatStorage } from '../../utils/format';
+import type { ProcessInfo } from '../metrics/ProcessMonitor';
 
 interface TelemetryCardsProps {
   cpuPercent: string;
@@ -63,7 +64,52 @@ export function OverviewTelemetryCards({
   stats,
 }: TelemetryCardsProps) {
   const { t } = useTranslation();
-  const [topProcessesOpen, setTopProcessesOpen] = useState<'cpu' | 'ram' | null>(null);
+  const [cpuView, setCpuView] = useState<'gauge' | 'top5'>('gauge');
+  const [ramView, setRamView] = useState<'gauge' | 'top5'>('gauge');
+
+  const [processes, setProcesses] = useState<ProcessInfo[]>([]);
+  const [loadingProcesses, setLoadingProcesses] = useState(false);
+
+  const isAnyTop5Active = cpuView === 'top5' || ramView === 'top5';
+
+  useEffect(() => {
+    if (!isAnyTop5Active) return;
+
+    let isMounted = true;
+    setLoadingProcesses(true);
+
+    const fetchTop = async () => {
+      try {
+        const res = await fetch('/api/system/processes');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+        setProcesses(data.processes || []);
+      } catch {
+        // graceful
+      } finally {
+        if (isMounted) setLoadingProcesses(false);
+      }
+    };
+
+    fetchTop();
+    const interval = setInterval(fetchTop, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAnyTop5Active]);
+
+  const topCpuProcesses = useMemo(() => {
+    if (cpuView !== 'top5') return [];
+    return [...processes].sort((a, b) => b.cpu_usage - a.cpu_usage).slice(0, 5);
+  }, [processes, cpuView]);
+
+  const topRamProcesses = useMemo(() => {
+    if (ramView !== 'top5') return [];
+    return [...processes].sort((a, b) => b.memory_rss - a.memory_rss).slice(0, 5);
+  }, [processes, ramView]);
 
   const gpuUsageNum = stats?.gpu_usage !== undefined && stats?.gpu_usage !== null ? stats.gpu_usage : 0;
   const gpuUsageStr = gpuUsageNum.toFixed(1);
@@ -71,113 +117,125 @@ export function OverviewTelemetryCards({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-stretch">
       {/* 1. CPU & Temp Card */}
-      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-visible">
-        <Link to="/metrics" className="block space-y-1">
-          <div className="flex items-center justify-between text-secondary">
-            <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setTopProcessesOpen((prev) => (prev === 'cpu' ? null : 'cpu'));
-                }}
-                className="px-2 py-0.5 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 border border-violet-500/30 text-[10px] font-mono font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm"
-                title={t('dashboard.top_processes_cpu', 'Top 5 Processos (CPU)')}
-              >
-                <span>Top 5</span>
-                <Cpu className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
-            <span className="text-xs font-mono text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
-              {tempC}°C
-            </span>
-          </div>
-        </Link>
+      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
+        {cpuView === 'top5' ? (
+          <TopProcessesCardView
+            type="cpu"
+            processes={topCpuProcesses}
+            containers={containers}
+            loading={loadingProcesses}
+            onBack={() => setCpuView('gauge')}
+            isConnected={isConnected}
+          />
+        ) : (
+          <>
+            <Link to="/metrics" className="block space-y-1">
+              <div className="flex items-center justify-between text-secondary">
+                <span className="text-xs font-medium">{t('dashboard.cpu_usage', 'Uso de CPU')}</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCpuView('top5');
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 text-violet-600 dark:text-violet-400 border border-violet-500/30 text-[10px] font-mono font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm cursor-pointer"
+                    title={t('dashboard.top_processes_cpu', 'Top 5 Processos (CPU)')}
+                  >
+                    <span>Top 5</span>
+                    <Cpu className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{cpuPercent}%</span>
+                <span className="text-xs font-mono text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                  {tempC}°C
+                </span>
+              </div>
+            </Link>
 
-        <Link to="/metrics" className="block my-2 py-1">
-          <MiniSparkline data={cpuHistory} color="#8b5cf6" gradientId="overviewSparkCpu" height={42} min={0} max={100} />
-        </Link>
+            <Link to="/metrics" className="block my-2 py-1">
+              <MiniSparkline data={cpuHistory} color="#8b5cf6" gradientId="overviewSparkCpu" height={42} min={0} max={100} />
+            </Link>
 
-        <Link to="/metrics" className="block">
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                parseFloat(cpuPercent) > 80 ? 'bg-rose-500' : parseFloat(cpuPercent) > 50 ? 'bg-amber-500' : 'bg-violet-500'
-              }`}
-              style={{ width: `${Math.min(parseFloat(cpuPercent), 100)}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
-            <span>{runningContainersCount} {t('common.active_plural', 'ativos')}</span>
-            <span>{isConnected ? t('dashboard.realtime', 'Tempo real') : t('dashboard.offline', 'Offline')}</span>
-          </div>
-        </Link>
-
-        {/* Top 5 CPU Popover */}
-        <TopProcessesPopover
-          type="cpu"
-          isOpen={topProcessesOpen === 'cpu'}
-          onClose={() => setTopProcessesOpen(null)}
-        />
+            <Link to="/metrics" className="block">
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    parseFloat(cpuPercent) > 80 ? 'bg-rose-500' : parseFloat(cpuPercent) > 50 ? 'bg-amber-500' : 'bg-violet-500'
+                  }`}
+                  style={{ width: `${Math.min(parseFloat(cpuPercent), 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
+                <span>{runningContainersCount} {t('common.active_plural', 'ativos')}</span>
+                <span>{isConnected ? t('dashboard.realtime', 'Tempo real') : t('dashboard.offline', 'Offline')}</span>
+              </div>
+            </Link>
+          </>
+        )}
       </div>
 
       {/* 2. Memory RAM Card */}
-      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-visible">
-        <Link to="/metrics" className="block space-y-1">
-          <div className="flex items-center justify-between text-secondary">
-            <span className="text-xs font-medium">{t('dashboard.ram_memory', 'Memória RAM')}</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setTopProcessesOpen((prev) => (prev === 'ram' ? null : 'ram'));
-                }}
-                className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm"
-                title={t('dashboard.top_processes_ram', 'Top 5 Processos (RAM)')}
-              >
-                <span>Top 5</span>
-                <Activity className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{memoryUsedGB} GB</span>
-            <span className="text-xs font-mono text-secondary font-medium">/ {memoryTotalGB} GB ({memoryPercent}%)</span>
-          </div>
-        </Link>
+      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
+        {ramView === 'top5' ? (
+          <TopProcessesCardView
+            type="ram"
+            processes={topRamProcesses}
+            containers={containers}
+            loading={loadingProcesses}
+            onBack={() => setRamView('gauge')}
+            isConnected={isConnected}
+          />
+        ) : (
+          <>
+            <Link to="/metrics" className="block space-y-1">
+              <div className="flex items-center justify-between text-secondary">
+                <span className="text-xs font-medium">{t('dashboard.ram_memory', 'Memória RAM')}</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setRamView('top5');
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm cursor-pointer"
+                    title={t('dashboard.top_processes_ram', 'Top 5 Processos (RAM)')}
+                  >
+                    <span>Top 5</span>
+                    <Activity className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-primary tracking-tight">{memoryUsedGB} GB</span>
+                <span className="text-xs font-mono text-secondary font-medium">/ {memoryTotalGB} GB ({memoryPercent}%)</span>
+              </div>
+            </Link>
 
-        <Link to="/metrics" className="block my-2 py-1">
-          <MiniSparkline data={ramHistory} color="#10b981" gradientId="overviewSparkRam" height={42} min={0} max={100} />
-        </Link>
+            <Link to="/metrics" className="block my-2 py-1">
+              <MiniSparkline data={ramHistory} color="#10b981" gradientId="overviewSparkRam" height={42} min={0} max={100} />
+            </Link>
 
-        <Link to="/metrics" className="block">
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                parseFloat(memoryPercent) > 85 ? 'bg-rose-500' : parseFloat(memoryPercent) > 70 ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${Math.min(parseFloat(memoryPercent), 100)}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
-            <span>{Math.max(0, parseFloat(memoryTotalGB) - parseFloat(memoryUsedGB)).toFixed(2)} GB {t('dashboard.free_storage', 'livre')}</span>
-            <span>{memoryPercent}% {t('common.in_use', 'em uso')}</span>
-          </div>
-        </Link>
-
-        {/* Top 5 RAM Popover */}
-        <TopProcessesPopover
-          type="ram"
-          isOpen={topProcessesOpen === 'ram'}
-          onClose={() => setTopProcessesOpen(null)}
-        />
+            <Link to="/metrics" className="block">
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    parseFloat(memoryPercent) > 85 ? 'bg-rose-500' : parseFloat(memoryPercent) > 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min(parseFloat(memoryPercent), 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-secondary font-mono mt-1.5">
+                <span>{Math.max(0, parseFloat(memoryTotalGB) - parseFloat(memoryUsedGB)).toFixed(2)} GB {t('dashboard.free_storage', 'livre')}</span>
+                <span>{memoryPercent}% {t('common.in_use', 'em uso')}</span>
+              </div>
+            </Link>
+          </>
+        )}
       </div>
 
       {/* 3. GPU Usage Card */}
