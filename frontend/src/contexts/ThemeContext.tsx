@@ -11,7 +11,7 @@ export type ColorVariant =
   | "gruvbox"
   | "nord"
   | "dracula"
-  | "onedark"
+  | "oled"
   | "synthwave";
 
 type ThemeProviderProps = {
@@ -74,9 +74,11 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
   
-  const [color, setColor] = useState<ColorVariant>(
-    () => (localStorage.getItem(colorStorageKey) as ColorVariant) || defaultColor
-  );
+  const [color, setColor] = useState<ColorVariant>(() => {
+    const saved = localStorage.getItem(colorStorageKey);
+    if (saved === 'onedark') return 'oled';
+    return (saved as ColorVariant) || defaultColor;
+  });
 
   const [customAvatar, setCustomAvatar] = useState<string | null>(
     () => localStorage.getItem(avatarStorageKey) || null

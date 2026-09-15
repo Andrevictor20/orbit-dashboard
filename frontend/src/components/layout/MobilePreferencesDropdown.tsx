@@ -26,7 +26,7 @@ export const COLOR_THEMES_LIST = [
   { value: 'gruvbox', label: 'Gruvbox', dot: 'bg-amber-600' },
   { value: 'nord', label: 'Nord', dot: 'bg-sky-400' },
   { value: 'dracula', label: 'Dracula', dot: 'bg-fuchsia-500' },
-  { value: 'onedark', label: 'One Dark', dot: 'bg-blue-600' },
+  { value: 'oled', label: 'Preto OLED', dot: 'bg-black border border-white/40 shadow-sm ring-1 ring-white/10' },
   { value: 'synthwave', label: 'Synthwave', dot: 'bg-pink-500' },
 ];
 

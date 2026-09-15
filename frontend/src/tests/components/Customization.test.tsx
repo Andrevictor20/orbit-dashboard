@@ -33,7 +33,7 @@ function ThemeConsumer() {
       <button onClick={() => setColor('gruvbox')}>Set Gruvbox</button>
       <button onClick={() => setColor('nord')}>Set Nord</button>
       <button onClick={() => setColor('dracula')}>Set Dracula</button>
-      <button onClick={() => setColor('onedark')}>Set One Dark</button>
+      <button onClick={() => setColor('oled')}>Set Preto OLED</button>
       <button onClick={() => setColor('synthwave')}>Set Synthwave</button>
 
       <button onClick={() => setCustomAvatar('data:image/webp;base64,sample')}>Set Avatar</button>
@@ -53,7 +53,7 @@ describe('Visual Customization & Developer Themes', () => {
     document.documentElement.className = '';
   });
 
-  it('supports developer themes: gruvbox, nord, dracula, onedark, synthwave', () => {
+  it('supports developer themes: gruvbox, nord, dracula, oled, synthwave', () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
@@ -76,10 +76,10 @@ describe('Visual Customization & Developer Themes', () => {
     expect(screen.getByTestId('current-color').textContent).toBe('dracula');
     expect(document.documentElement.classList.contains('theme-dracula')).toBe(true);
 
-    // One Dark
-    fireEvent.click(screen.getByText('Set One Dark'));
-    expect(screen.getByTestId('current-color').textContent).toBe('onedark');
-    expect(document.documentElement.classList.contains('theme-onedark')).toBe(true);
+    // Preto OLED
+    fireEvent.click(screen.getByText('Set Preto OLED'));
+    expect(screen.getByTestId('current-color').textContent).toBe('oled');
+    expect(document.documentElement.classList.contains('theme-oled')).toBe(true);
 
     // Synthwave
     fireEvent.click(screen.getByText('Set Synthwave'));
@@ -179,7 +179,7 @@ describe('Visual Customization & Developer Themes', () => {
     expect(screen.getByText('Gruvbox')).toBeTruthy();
     expect(screen.getByText('Nord')).toBeTruthy();
     expect(screen.getByText('Dracula')).toBeTruthy();
-    expect(screen.getByText('One Dark')).toBeTruthy();
+    expect(screen.getByText('Preto OLED')).toBeTruthy();
     expect(screen.getByText('Synthwave')).toBeTruthy();
 
     // Click Gruvbox

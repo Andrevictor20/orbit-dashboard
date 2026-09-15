@@ -5,8 +5,8 @@ export interface OrbitLogoProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
   variant?: 'auto' | 'light' | 'dark';
   mode?: 'auto' | 'light' | 'dark';
-  colorOverride?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight';
-  theme?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight';
+  colorOverride?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled';
+  theme?: 'zinc' | 'rose' | 'blue' | 'green' | 'catppuccin' | 'tokyonight' | 'oled';
   className?: string;
   withBackground?: boolean;
 }
@@ -23,6 +23,28 @@ interface ThemePalette {
 }
 
 const PALETTES: Record<string, { light: ThemePalette; dark: ThemePalette }> = {
+  oled: {
+    light: {
+      bg: '#ffffff',
+      coreStart: '#18181b',
+      coreEnd: '#09090b',
+      ring1: '#27272a',
+      ring2: '#52525b',
+      planet: '#09090b',
+      accent: '#71717a',
+      shadow: 'rgba(0, 0, 0, 0.25)',
+    },
+    dark: {
+      bg: '#000000',
+      coreStart: '#ffffff',
+      coreEnd: '#d4d4d8',
+      ring1: '#e4e4e7',
+      ring2: '#a1a1aa',
+      planet: '#ffffff',
+      accent: '#f4f4f5',
+      shadow: 'rgba(255, 255, 255, 0.35)',
+    },
+  },
   zinc: {
     light: {
       bg: '#ffffff',
