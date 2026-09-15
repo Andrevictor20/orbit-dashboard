@@ -177,15 +177,15 @@ export function Overview() {
             <h1 className="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">
               {t('dashboard.welcome', 'Boas-vindas')}
             </h1>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-accent/60 border border-border text-primary shadow-inner">
-              <Clock className="w-3.5 h-3.5 text-orbit-500" />
-              <span>{formattedTime}</span>
-              <span className="text-[10px] text-secondary">({timezoneOffsetStr})</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-semibold bg-accent/60 border border-border text-primary shadow-inner">
+              <Clock className="w-4 h-4 text-orbit-500" />
+              <span className="tracking-tight">{formattedTime}</span>
+              <span className="text-xs text-secondary font-normal">({timezoneOffsetStr})</span>
               <button
                 type="button"
                 onClick={toggleTimeFormat}
                 title={t('dashboard.time_format_toggle', 'Alternar formato 12h/24h')}
-                className="ml-1 px-1.5 py-0.2 rounded bg-card hover:bg-accent border border-border/80 text-[9px] font-bold text-secondary hover:text-primary transition-all active:scale-95 cursor-pointer"
+                className="ml-1 px-1.5 py-0.5 rounded bg-card hover:bg-accent border border-border/80 text-[10px] font-bold text-secondary hover:text-primary transition-all active:scale-95 cursor-pointer"
               >
                 {timeFormat}
               </button>

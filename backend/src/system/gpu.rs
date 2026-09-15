@@ -14,7 +14,7 @@ pub struct GpuTelemetry {
     pub is_available: bool,
 }
 
-/// Discovers and collects real-time GPU telemetry across AMD, NVIDIA, Intel, or DRM cards.
+/// Discovers and collects real-time GPU telemetry across AMD, NVIDIA, Intel, Raspberry Pi VideoCore, or DRM cards.
 pub fn collect_gpu_telemetry() -> GpuTelemetry {
     // 1. Try AMD GPU via sysfs (native Linux DRM kernel interface)
     if let Some(amd) = collect_amd_gpu() {
@@ -31,7 +31,12 @@ pub fn collect_gpu_telemetry() -> GpuTelemetry {
         return intel;
     }
 
-    // 4. Generic DRM fallback
+    // 4. Try Raspberry Pi VideoCore GPU via vcgencmd
+    if let Some(rpi) = collect_rpi_gpu() {
+        return rpi;
+    }
+
+    // 5. Generic DRM fallback
     if let Some(generic) = collect_generic_drm_gpu() {
         return generic;
     }
@@ -245,6 +250,96 @@ fn collect_generic_drm_gpu() -> Option<GpuTelemetry> {
     }
 
     None
+}
+
+/// Collects Raspberry Pi VideoCore GPU telemetry using vcgencmd.
+/// Works on Pi 2/3/4/5 and Zero W with the firmware tools installed.
+fn collect_rpi_gpu() -> Option<GpuTelemetry> {
+    // Check if vcgencmd is available
+    let probe = Command::new("vcgencmd")
+        .arg("version")
+        .output();
+    if probe.is_err() || !probe.unwrap().status.success() {
+        return None;
+    }
+
+    // Get V3D clock frequency to estimate GPU activity (Hz)
+    let v3d_clock_hz: u64 = Command::new("vcgencmd")
+        .args(["measure_clock", "v3d"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| {
+            // Format: "frequency(46)=250000000"
+            s.split('=').nth(1).and_then(|v| v.trim().parse().ok())
+        })
+        .unwrap_or(0);
+
+    // Get core clock (nominal max) for usage percentage
+    let core_clock_hz: u64 = Command::new("vcgencmd")
+        .args(["measure_clock", "core"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| s.split('=').nth(1).and_then(|v| v.trim().parse().ok()))
+        .unwrap_or(1);
+
+    // Estimate GPU usage as v3d_clock / core_clock (rough proxy)
+    let usage_percent = if core_clock_hz > 0 {
+        ((v3d_clock_hz as f32 / core_clock_hz as f32) * 100.0).clamp(0.0, 100.0)
+    } else {
+        0.0
+    };
+
+    // Get GPU memory split (in MB)
+    let gpu_mem_mb: u64 = Command::new("vcgencmd")
+        .args(["get_mem", "gpu"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| {
+            // Format: "gpu=128M"
+            s.split('=')
+                .nth(1)
+                .and_then(|v| v.trim().trim_end_matches('M').parse::<u64>().ok())
+        })
+        .unwrap_or(0);
+
+    // Get GPU temperature
+    let temp_c: Option<f32> = Command::new("vcgencmd")
+        .args(["measure_temp"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| {
+            // Format: "temp=54.3'C"
+            s.split('=')
+                .nth(1)
+                .and_then(|v| v.trim().trim_end_matches("'C").parse::<f32>().ok())
+        });
+
+    // Detect Pi model name from /proc/cpuinfo
+    let model = std::fs::read_to_string("/proc/cpuinfo")
+        .ok()
+        .and_then(|s| {
+            s.lines()
+                .find(|l| l.starts_with("Model"))
+                .and_then(|l| l.split(':').nth(1))
+                .map(|s| s.trim().to_string())
+        })
+        .unwrap_or_else(|| "Raspberry Pi".to_string());
+
+    let gpu_name = format!("{} VideoCore", model);
+
+    Some(GpuTelemetry {
+        name: gpu_name,
+        vendor: "Broadcom".to_string(),
+        usage_percent,
+        memory_used_bytes: 0, // VideoCore doesn't expose used VRAM separately
+        memory_total_bytes: gpu_mem_mb * 1024 * 1024,
+        temperature_c: temp_c,
+        is_available: true,
+    })
 }
 
 pub async fn get_gpu_handler() -> impl axum::response::IntoResponse {

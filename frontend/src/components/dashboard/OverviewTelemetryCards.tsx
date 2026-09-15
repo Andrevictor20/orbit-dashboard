@@ -296,7 +296,7 @@ export function OverviewTelemetryCards({
               return (
                 <div key={d.name || idx} className="pt-2 first:pt-0 border-t border-border/40 first:border-t-0">
                   <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {info.category === 'sdcard' ? (
                         <CreditCard className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                       ) : info.category === 'nvme' ? (
@@ -306,16 +306,17 @@ export function OverviewTelemetryCards({
                       ) : (
                         <HardDrive className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
                       )}
-                      <span className="text-xs font-semibold text-primary truncate max-w-[125px] sm:max-w-[145px]" title={info.friendlyName}>
+                      <span className="text-xs font-semibold text-primary truncate" title={info.friendlyName}>
                         {info.friendlyName}
                       </span>
-                      <span className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 font-semibold border border-border/50 shrink-0">
+                      <span className="hidden xl:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-accent text-slate-700 dark:text-zinc-300 font-semibold border border-border/50 shrink-0">
                         {info.typeLabel}
                       </span>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 ml-1">
                       <span className="text-xs font-mono font-bold text-primary">{usedFmt}</span>
-                      <span className="text-[10px] font-mono text-slate-600 dark:text-secondary ml-1 font-medium">/ {totalFmt} ({percent}%)</span>
+                      <span className="text-[10px] font-mono text-slate-600 dark:text-secondary ml-1 font-medium">/ {totalFmt}</span>
+                      <span className="block text-[10px] font-mono text-secondary">({percent}%)</span>
                     </div>
                   </div>
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
