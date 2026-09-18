@@ -64,7 +64,6 @@ pub fn save_schedule_config_internal(config: &BackupScheduleConfig) {
 
 pub const CONFIG_FILES: &[&str] = &[
     "saturn_auth.json",
-    "saturn_auth.json",
     "stores.json",
     "custom_links.json",
     "settings.json",

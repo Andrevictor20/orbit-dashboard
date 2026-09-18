@@ -1,3 +1,5 @@
+static TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 use axum_test::TestServer;
 use backend::app;
 use jsonwebtoken::{encode, Header, EncodingKey};
@@ -31,6 +33,7 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
 
 #[tokio::test]
 async fn test_backup_crud_and_schedule() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let server = TestServer::new(app());
     let auth_cookie = get_test_cookie();
@@ -118,6 +121,7 @@ async fn test_backup_crud_and_schedule() {
 
 #[tokio::test]
 async fn test_full_system_and_configs_backup() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let server = TestServer::new(app());
     let auth_cookie = get_test_cookie();
@@ -230,6 +234,7 @@ async fn test_full_system_and_configs_backup() {
 
 #[tokio::test]
 async fn test_restore_from_uploaded_backup_with_generic_name() {
+    let _lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
     let server = TestServer::new(app());
     let auth_cookie = get_test_cookie();
