@@ -228,6 +228,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
     }
 
     setUpdating(true);
+    localStorage.setItem('saturn_updating', 'true');
+    if (updateInfo?.latest_version) {
+      localStorage.setItem('saturn_target_version', updateInfo.latest_version);
+    }
+
     setTaskState({
       status: 'pulling',
       progress: 5,
@@ -253,6 +258,12 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         ...prev,
         logs: [...prev.logs, `[Task ID: ${data.task_id}] Processo iniciado com sucesso.`]
       }));
+
+      // No navegador, transiciona fluidamente para a página dedicada de atualização
+      if (typeof window !== 'undefined' && typeof window.location?.assign === 'function') {
+        const targetUrl = `/updating${updateInfo?.latest_version ? `?version=${encodeURIComponent(updateInfo.latest_version)}` : ''}`;
+        window.location.assign(targetUrl);
+      }
     } catch (e: any) {
       setTaskState(prev => ({
         ...prev,

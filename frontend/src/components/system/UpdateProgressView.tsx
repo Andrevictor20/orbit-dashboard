@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, Download, Terminal, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Download, Terminal, AlertTriangle, ExternalLink } from 'lucide-react';
 
 export interface UpdateTaskState {
   status: 'idle' | 'pulling' | 'recreating' | 'done' | 'error';
@@ -56,6 +56,19 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
               </span>
             </div>
           )}
+
+          <div className="pt-2 border-t border-border/40 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/updating';
+              }}
+              className="text-xs text-saturn-500 hover:text-saturn-400 font-medium flex items-center gap-1.5 transition-colors"
+            >
+              <span>{t('system.open_dedicated_updating_page', 'Acompanhar em tela cheia')}</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Console Log Terminal */}

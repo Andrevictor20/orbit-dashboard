@@ -150,7 +150,7 @@ export const pt = {
     "close_preferences": "Fechar preferências"
   },
   "dashboard": {
-    "title": "Saturn Dashboard",
+    "title": "Saturn",
     "subtitle": "Monitore o desempenho do sistema e containers em tempo real",
     "connected": "Conectado",
     "disconnected": "Desconectado",

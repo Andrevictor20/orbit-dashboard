@@ -117,6 +117,7 @@ pub fn app() -> Router {
         }))
         .merge(auth::public_router())
         .merge(files::public_router())
+        .merge(system::public_router())
         .merge(protected_routes)
         .layer(
             CorsLayer::new()

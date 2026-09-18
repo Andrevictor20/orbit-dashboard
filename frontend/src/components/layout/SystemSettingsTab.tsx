@@ -77,7 +77,7 @@ export function SystemSettingsTab() {
     try {
       setIsSaving(true);
       await updateSettings({
-        server_name: serverName.trim() || 'Saturn Dashboard',
+        server_name: serverName.trim() || 'Saturn',
         port,
         default_page: defaultPage,
         metrics_refresh_rate: refreshRate,

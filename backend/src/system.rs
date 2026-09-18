@@ -17,7 +17,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/system/version", axum::routing::get(get_system_version_handler))
         .route("/api/system/update/check", axum::routing::get(check_update_handler))
-        .route("/api/system/update/status", axum::routing::get(get_update_status_handler))
         .route("/api/system/update", axum::routing::post(perform_system_update))
         .route("/api/system/update/cleanup", axum::routing::post(cleanup_old_saturn_images_handler))
         .route("/api/system/processes", axum::routing::get(processes::get_processes_handler))
@@ -28,4 +27,9 @@ pub fn router() -> Router<AppState> {
         .route("/api/system/settings", axum::routing::get(settings::get_settings_handler).post(settings::update_settings_handler))
         .route("/api/system/settings/check-port", axum::routing::post(settings::check_port_handler))
         .route("/api/system/customization", axum::routing::get(customization::get_customization_handler).post(customization::update_customization_handler))
+}
+
+pub fn public_router() -> Router {
+    Router::new()
+        .route("/api/system/update/status", axum::routing::get(get_update_status_handler))
 }

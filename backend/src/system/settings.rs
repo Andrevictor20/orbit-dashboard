@@ -54,7 +54,7 @@ pub struct SystemSettings {
 }
 
 fn default_server_name() -> String {
-    "Saturn Dashboard".to_string()
+    "Saturn".to_string()
 }
 
 fn default_port() -> u16 {

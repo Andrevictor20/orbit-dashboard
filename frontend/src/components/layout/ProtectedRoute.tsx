@@ -13,6 +13,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (localStorage.getItem('saturn_updating') === 'true') {
+    return <Navigate to="/updating" replace />;
+  }
+
   if (needsSetup) {
     return <Navigate to="/setup" replace />;
   }

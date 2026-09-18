@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { SystemSettings, PortConflictInfo } from '../types/settings';
 
 const DEFAULT_SETTINGS: SystemSettings = {
-  server_name: 'Saturn Dashboard',
+  server_name: 'Saturn',
   port: 5172,
   default_page: '/',
   metrics_refresh_rate: 5,

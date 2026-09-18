@@ -120,8 +120,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2.5 overflow-hidden">
             <SaturnLogo size={28} className="shrink-0" />
             <div className={`flex flex-col ${(isSidebarOpen || isMobileMenuOpen) ? 'block' : 'hidden md:hidden'}`}>
-              <span className="text-sm font-bold tracking-tight text-primary leading-tight truncate">{settings.server_name || 'Saturn'}</span>
-              <span className="text-[10px] text-secondary font-medium leading-tight">Admin Dashboard</span>
+              <span className="text-sm font-bold tracking-tight text-primary leading-tight truncate">{(!settings.server_name || settings.server_name.toLowerCase().includes('saturn dashboard')) ? 'Saturn' : settings.server_name}</span>
+              <span className="text-[10px] text-secondary font-medium leading-tight">Admin</span>
             </div>
           </div>
           <button

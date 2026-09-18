@@ -35,6 +35,7 @@ const Cloudflare = lazy(() => import('./pages/Cloudflare').then(m => ({ default:
 const Backups = lazy(() => import('./pages/Backups'));
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Setup = lazy(() => import('./pages/Setup').then(m => ({ default: m.Setup })));
+const SystemUpdating = lazy(() => import('./pages/SystemUpdating').then(m => ({ default: m.SystemUpdating })));
 
 function PageFallback() {
   return (
@@ -82,6 +83,7 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/setup" element={<Setup />} />
+                <Route path="/updating" element={<SystemUpdating />} />
                 
                 {/* Protected Dashboard Routes */}
                 <Route 

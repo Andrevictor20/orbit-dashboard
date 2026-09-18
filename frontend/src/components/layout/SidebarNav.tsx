@@ -16,11 +16,11 @@ interface SidebarNavProps {
   onToggle: () => void;
 }
 
-function SidebarSection({ title, children, isCollapsed }: { title: string; children: React.ReactNode; isCollapsed?: boolean }) {
+function SidebarSection({ title, children, isCollapsed }: { title?: string; children: React.ReactNode; isCollapsed?: boolean }) {
   if (isCollapsed) return <div className="mb-6 space-y-1">{children}</div>;
   return (
     <div className="mb-6">
-      <h3 className="px-4 text-xs font-semibold text-secondary tracking-wider uppercase mb-2">{title}</h3>
+      {title && <h3 className="px-4 text-xs font-semibold text-secondary tracking-wider uppercase mb-2">{title}</h3>}
       <div className="space-y-1">{children}</div>
     </div>
   );
@@ -57,23 +57,20 @@ export function SidebarNav({ isSidebarOpen, isMobileMenuOpen, onClose }: Sidebar
   return (
     <>
       <div className="flex-1 overflow-y-auto py-6 px-2">
-        <SidebarSection title={t('sidebar.dashboards')} isCollapsed={isCollapsed}>
+        <div className="mb-6 space-y-1">
           <SidebarItem icon={LayoutDashboard} label={t('sidebar.overview')} to="/" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={FolderOpen} label={t('sidebar.files')} to="/files" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={PieChart} label={t('sidebar.disk_analyzer')} to="/disk-analyzer" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={FileText} label={t('sidebar.logs')} to="/logs" isCollapsed={isCollapsed} onClick={onClose} />
-        </SidebarSection>
-
-        <SidebarSection title={t('sidebar.docker')} isCollapsed={isCollapsed}>
           <SidebarItem icon={Package} label={t('sidebar.store')} to="/store" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={Box} label={t('sidebar.containers')} to="/containers" isCollapsed={isCollapsed} onClick={onClose} />
+          <SidebarItem icon={FolderOpen} label={t('sidebar.files')} to="/files" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={isCollapsed} onClick={onClose} />
+          <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={isCollapsed} onClick={onClose} />
+          <SidebarItem icon={PieChart} label={t('sidebar.disk_analyzer')} to="/disk-analyzer" isCollapsed={isCollapsed} onClick={onClose} />
+          <SidebarItem icon={FileText} label={t('sidebar.logs')} to="/logs" isCollapsed={isCollapsed} onClick={onClose} />
+          <SidebarItem icon={Archive} label={t('sidebar.backups')} to="/backups" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={Network} label={t('sidebar.networks')} to="/networks" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={HardDrive} label={t('sidebar.volumes')} to="/volumes" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={Archive} label={t('sidebar.backups')} to="/backups" isCollapsed={isCollapsed} onClick={onClose} />
-        </SidebarSection>
+        </div>
 
         {(settings.integrations.homeassistant || settings.integrations.pihole || (settings.integrations.cloudflare ?? true)) && (
           <SidebarSection title={t('sidebar.integrations')} isCollapsed={isCollapsed}>
