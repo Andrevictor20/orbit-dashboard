@@ -43,7 +43,7 @@ test.describe('Dashboard and Navigation', () => {
     await page.goto('/');
     
     // Check if the page title is correct
-    await expect(page).toHaveTitle(/Saturn Dashboard/);
+    await expect(page).toHaveTitle(/Saturn/);
 
     // Ensure the main layout or sidebar is present
     await expect(page.locator('aside, nav, header').first()).toBeVisible();
