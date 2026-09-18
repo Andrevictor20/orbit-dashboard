@@ -57,8 +57,10 @@ fn load_local_catalog() -> Option<Vec<AppStoreItem>> {
         "saturn-apps/catalog.min.json",
         "../saturn-apps/catalog.json",
         "../saturn-apps/catalog.min.json",
+        "../../saturn-apps/catalog.json",
+        "../../saturn-apps/catalog.min.json",
         "/app/saturn-apps/catalog.json",
-            ];
+    ];
 
     for path in candidate_paths {
         if let Ok(content) = fs::read_to_string(path) {
