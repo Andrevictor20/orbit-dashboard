@@ -124,7 +124,7 @@ struct MediaStreamInfo {
 
 async fn probe_media_stream_info(path: &std::path::Path) -> MediaStreamInfo {
     let output = tokio::time::timeout(
-        std::time::Duration::from_secs(3),
+        std::time::Duration::from_secs(8),
         tokio::process::Command::new("ffprobe")
             .args([
                 "-v", "error",
@@ -178,18 +178,19 @@ pub async fn stream_transcode_media(
 
     let mut cmd = tokio::process::Command::new("ffmpeg");
     cmd.args(["-v", "error"]);
+    cmd.args(["-fflags", "+genpts+nobuffer", "-flags", "low_delay"]);
 
     if let Some(ss) = q.start {
         if ss > 0.0 {
             // Fast input seek before -i using keyframes for instant seeking
-            cmd.args(["-ss", &format!("{:.2}", ss)]);
+            cmd.args(["-noaccurate_seek", "-ss", &format!("{:.2}", ss)]);
         }
     }
 
     cmd.arg("-i").arg(&path);
 
-    // Map first video and first audio stream (prevent subtitle/attachment streams from crashing MP4 muxer)
-    cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
+    // Map first video and first audio stream (exclude attachment fonts, cover arts, and extra subtitles)
+    cmd.args(["-map", "0:V:0", "-map", "0:a:0?"]);
 
     if stream_info.can_copy_video {
         cmd.args(["-c:v", "copy"]);
@@ -200,22 +201,26 @@ pub async fn stream_transcode_media(
             "-tune", "zerolatency",
             "-pix_fmt", "yuv420p",
             "-crf", "23",
+            "-threads", "0",
         ]);
     }
 
     if stream_info.can_copy_audio {
         cmd.args(["-c:a", "copy"]);
     } else {
-        cmd.args(["-c:a", "aac", "-b:a", "192k"]);
+        // Universal web audio: 2-channel stereo AAC at 48kHz (handles Opus 5.1/7.1 downmixing cleanly)
+        cmd.args(["-c:a", "aac", "-b:a", "192k", "-ac", "2", "-ar", "48000"]);
     }
 
     cmd.args([
         "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+        "-flush_packets", "1",
         "-f", "mp4",
         "-",
     ])
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::null());
+
 
     let mut child = cmd.spawn().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let stdout = child.stdout.take().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;

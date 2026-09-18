@@ -8,11 +8,17 @@ use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::Hasher;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use tokio_util::io::ReaderStream;
 use super::path_utils::{get_mime_type, sanitize_path};
 use super::types::DownloadQuery;
 
 const IO_BUFFER_CAPACITY: usize = 32 * 1024;
+
+// Global semaphore to throttle concurrent thumbnail extractions
+// Prevents I/O queue thrashing on external USB and mechanical hard drives
+static THUMBNAIL_SEMAPHORE: LazyLock<tokio::sync::Semaphore> =
+    LazyLock::new(|| tokio::sync::Semaphore::new(2));
 
 fn get_thumbnail_cache_dir() -> PathBuf {
     let base = if Path::new("/data").is_dir() {
@@ -64,7 +70,18 @@ pub async fn get_file_thumbnail(
         return serve_thumbnail_file(&cache_file).await;
     }
 
-    // 2. Generate thumbnail according to file type
+    // 2. Throttle generation concurrency to protect mechanical HDDs from I/O starvation
+    let _permit = THUMBNAIL_SEMAPHORE
+        .acquire()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Double-check cache in case another worker just finished generating it while waiting
+    if cache_file.exists() {
+        return serve_thumbnail_file(&cache_file).await;
+    }
+
+    // 3. Generate thumbnail according to file type
     let is_image = matches!(
         ext.as_str(),
         "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "ico" | "avif" | "svg"
@@ -195,7 +212,7 @@ async fn serve_file_directly(file_path: &Path, content_type: &'static str) -> Re
 
 async fn get_video_duration(path: &Path) -> Option<f64> {
     let output = tokio::time::timeout(
-        std::time::Duration::from_millis(1500),
+        std::time::Duration::from_secs(6),
         tokio::process::Command::new("ffprobe")
             .args([
                 "-v", "error",
@@ -227,7 +244,7 @@ async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
         if dur >= 60.0 {
             // For longer videos (anime/series/movies), sample ~12% into the video
             // e.g. 24min episode (1440s) -> ~172s (~2m52s) - well past OP and intro cards!
-            let scene_sec = (dur * 0.12).clamp(15.0, 300.0);
+            let scene_sec = (dur * 0.12).clamp(15.0, 180.0);
             seek_points.push(format!("{:.1}", scene_sec));
             // Secondary fallback: 10s into the video (past initial bumper)
             if dur > 30.0 {
@@ -240,10 +257,8 @@ async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
             seek_points.push("1.0".to_string());
         }
     } else {
-        // Duration unknown (ffprobe timeout or unsupported container): try 60s, then 15s, then 2s
-        seek_points.push("60.0".to_string());
         seek_points.push("15.0".to_string());
-        seek_points.push("2.0".to_string());
+        seek_points.push("3.0".to_string());
     }
 
     // Always keep 1s and 0s as last resorts
@@ -252,17 +267,22 @@ async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
 
     for seek in seek_points {
         let ok = tokio::time::timeout(
-            std::time::Duration::from_secs(3),
+            std::time::Duration::from_secs(8),
             tokio::process::Command::new("ffmpeg")
                 .args([
                     "-v", "error",
                     "-y",
+                    "-noaccurate_seek",
                     "-ss", &seek,
                     "-i",
                 ])
                 .arg(path)
                 .args([
+                    "-map", "0:V:0",
                     "-vframes", "1",
+                    "-an",
+                    "-sn",
+                    "-threads", "1",
                     "-vf", "scale=256:-1",
                     "-q:v", "3",
                     "-update", "1",
@@ -281,4 +301,5 @@ async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
 
     false
 }
+
 

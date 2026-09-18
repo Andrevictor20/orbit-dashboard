@@ -310,9 +310,9 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
     }
 
     // 3. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe
-    // Use 10s timeout to allow waking up sleeping external hard drives
+    // Use 15s timeout to allow waking up sleeping external hard drives under load
     let ffprobe_result = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
+        std::time::Duration::from_secs(15),
         tokio::process::Command::new("ffprobe")
             .args([
                 "-v", "error",
@@ -403,17 +403,13 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
         }
     }
 
-    // Only cache if ffprobe succeeded or if subtitles were found
-    // Never permanently cache an empty list caused by external HDD spin-up timeouts
-    let probe_succeeded = match &ffprobe_result {
-        Ok(Ok(output)) => output.status.success(),
-        _ => false,
-    };
-    if probe_succeeded || !subtitles.is_empty() {
+    // Only cache if subtitles were actually found, avoiding sticky empty caches on busy external HDDs
+    if !subtitles.is_empty() {
         if let Ok(mut cache) = SUBTITLES_LIST_CACHE.write() {
             cache.insert(q.path.clone(), subtitles.clone());
         }
     }
+
 
     Ok((cors_headers, Json(SubtitlesResponse { subtitles })))
 }

@@ -33,10 +33,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [showControls, setShowControls] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const isDirectSupported = (ext: string) => {
-    const e = ext.toLowerCase();
-    return e === 'mp4' || e === 'webm';
-  };
+  const isDirectSupported = (ext: string) => ['mp4', 'webm'].includes(ext.toLowerCase());
 
   const [isTranscodeMode, setIsTranscodeMode] = useState(() => !isDirectSupported(file.extension));
   const [transcodeSeekTime, setTranscodeSeekTime] = useState<number | null>(null);
@@ -44,19 +41,14 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [currentCueText, setCurrentCueText] = useState<string>('');
 
   const isTranscodeModeRef = useRef(isTranscodeMode);
-  useEffect(() => {
-    isTranscodeModeRef.current = isTranscodeMode;
-  }, [isTranscodeMode]);
+  isTranscodeModeRef.current = isTranscodeMode;
 
   const cuesRef = useRef<SubtitleCue[]>([]);
-  useEffect(() => {
-    cuesRef.current = cues;
-  }, [cues]);
+  cuesRef.current = cues;
 
   const transcodeSeekRef = useRef(transcodeSeekTime);
-  useEffect(() => {
-    transcodeSeekRef.current = transcodeSeekTime;
-  }, [transcodeSeekTime]);
+  transcodeSeekRef.current = transcodeSeekTime;
+
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -72,12 +64,12 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const videoSrc = `${baseStreamUrl}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
   const handleCopyStreamLink = () => {
-    const fullUrl = `${window.location.origin}${videoSrc}`;
-    navigator.clipboard.writeText(fullUrl).then(() => {
+    navigator.clipboard.writeText(`${window.location.origin}${videoSrc}`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
   };
+
 
   // Fetch available companion and embedded subtitle tracks
   useEffect(() => {

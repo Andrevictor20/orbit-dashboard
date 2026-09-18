@@ -25,8 +25,11 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
   const [videoThumbError, setVideoThumbError] = useState(false);
   const [pdfThumbError, setPdfThumbError] = useState(false);
 
+  const handleVideoError = () => setVideoThumbError(true);
+  const handleImgError = () => setImgError(true);
+
   const token = typeof window !== 'undefined'
-    ? (localStorage.getItem('saturn_token') || localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
+    ? (localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
     : '';
 
   if (item.is_dir) {
@@ -57,7 +60,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
             alt={item.name}
             className="w-full h-full object-cover"
             loading="lazy"
-            onError={() => setImgError(true)}
+            onError={handleImgError}
           />
           <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 backdrop-blur-sm rounded text-[9px] font-bold text-violet-300 uppercase">
             {ext}
@@ -95,7 +98,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
             alt={item.name}
             className="w-full h-full object-cover"
             loading="lazy"
-            onError={() => setVideoThumbError(true)}
+            onError={handleVideoError}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/10 transition-colors pointer-events-none">
             <div className="p-1 rounded-full bg-black/60 backdrop-blur-sm text-white/90 shadow-sm">
@@ -108,6 +111,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
         </div>
       );
     }
+
 
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-orange-600/30 to-black border border-rose-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
