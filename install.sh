@@ -62,7 +62,15 @@ read_tty() {
 detect_install_dir() {
   if [ -d "/DATA/saturn" ]; then
     INSTALL_DIR="/DATA/saturn"
-fi
+  elif [ -d "/DATA" ] && [ -w "/DATA" ]; then
+    INSTALL_DIR="/DATA/saturn"
+  elif [ -d "${HOME:-/root}/saturn" ]; then
+    INSTALL_DIR="${HOME:-/root}/saturn"
+  elif [ -d "/opt/saturn" ]; then
+    INSTALL_DIR="/opt/saturn"
+  else
+    INSTALL_DIR="${HOME:-/root}/saturn"
+  fi
 }
 detect_install_dir
 
@@ -145,7 +153,7 @@ apply_storage_policy() {
 
   if [ -d /etc/systemd/journald.conf.d ]; then
     echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | $SUDO tee /etc/systemd/journald.conf.d/00-saturn.conf > /dev/null
-    $SUDO rm -f /etc/systemd/journald.conf.d/00-saturn.conf 2>/dev/null || true
+    $SUDO rm -f /etc/systemd/journald.conf.d/00-orbit.conf 2>/dev/null || true
     $SUDO systemctl restart systemd-journald 2>/dev/null || true
     $SUDO journalctl --vacuum-size=50M 2>/dev/null || true
   fi
@@ -195,17 +203,19 @@ detect_local_ip() {
 
 # ── Status Check ─────────────────────────────────────────────────────────────
 is_saturn_installed() {
-  if $SUDO docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Eq '^(saturn|saturn-dashboard|saturn_old_dummy)$'; then
+  local names=""
+  names="$(docker ps -a --format '{{.Names}}' 2>/dev/null || $SUDO docker ps -a --format '{{.Names}}' 2>/dev/null || true)"
+  if echo "$names" | grep -Eq '^(saturn|saturn-dashboard|saturn_old_dummy)$'; then
     return 0
   fi
-  if [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
+  if [ -n "${INSTALL_DIR:-}" ] && [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
     return 0
   fi
   return 1
 }
 
 # Legacy alias
-is_saturn_installed() {
+is_orbit_installed() {
   is_saturn_installed
 }
 
