@@ -1,0 +1,13 @@
+id: tp-link-omada-controller-bigbear
+name: TP-Link Omada Controller
+tagline: TP-Link Omada Controller
+description: Docker image for TP-Link Omada Controller to control TP-Link Omada Hardware
+category: Developer
+version: 1.0.0
+developer: mbentley
+store: bigbear
+icon: icon.png
+port: 8088
+architectures:
+- amd64
+- arm64

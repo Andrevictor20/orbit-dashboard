@@ -1,0 +1,15 @@
+id: qinglong-play
+name: QingLong
+tagline: Task management platform for Python, JavaScript, Shell, and Typescript scripts.
+description: QingLong is a platform for managing and executing scheduled tasks for
+  Python3, JavaScript, Shell, and Typescript scripts.
+category: Productivity
+version: 1.0.0
+developer: whyour
+store: play
+icon: icon.png
+port: 5700
+architectures:
+- amd64
+- arm
+- arm64

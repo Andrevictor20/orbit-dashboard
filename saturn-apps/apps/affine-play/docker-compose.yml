@@ -1,0 +1,80 @@
+name: affine
+services:
+  affine:
+    image: ghcr.io/toeverything/affine-graphql:stable
+    container_name: affine-app
+    command:
+    - sh
+    - -c
+    - node ./scripts/self-host-predeploy && node ./dist/index.js
+    ports:
+    - 3010:3010
+    - 5555:5555
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+    - /DATA/AppData/affine/config:/root/.affine/config
+    - /DATA/AppData/affine/storage:/root/.affine/storage
+    logging:
+      driver: json-file
+      options:
+        max-size: 1000m
+    restart: unless-stopped
+    environment:
+    - NODE_OPTIONS="--import=./scripts/register.js"
+    - AFFINE_CONFIG_PATH=/root/.affine/config
+    - REDIS_SERVER_HOST=redis
+    - DATABASE_URL=postgres://affine:affine@postgres:5432/affine
+    - NODE_ENV=production
+    - AFFINE_ADMIN_EMAIL=affine@acme.sh
+    - AFFINE_ADMIN_PASSWORD=affine
+    deploy:
+      resources:
+        reservations:
+          memory: 1024M
+    networks:
+    - affine
+  redis:
+    image: redis:latest
+    container_name: affine-redis
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/affine/redis:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - --raw
+      - incr
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+    - affine
+  postgres:
+    image: postgres:latest
+    container_name: affine-postgres
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/affine/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U affine
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: affine
+      POSTGRES_PASSWORD: affine
+      POSTGRES_DB: affine
+      PGDATA: /var/lib/postgresql/data/pgdata
+    networks:
+    - affine
+networks:
+  affine:
+    name: affine

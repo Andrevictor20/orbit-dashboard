@@ -1,0 +1,16 @@
+id: poste-io-bigbear
+name: Poste.io
+tagline: Free version of full mail server solution. POP3, SMTP, IMAP, Spamassassin,
+  WebMail, WebAdmin
+description: Full stack mail server solution with SSL TLS support. POP3s, SMTP(s),
+  IMAPs, RSPAMD, Clamav, Roundcube(HTTPS), SPF, DKIM with easy installation and web
+  administration.
+category: Others
+version: 1.0.0
+developer: analogic
+store: bigbear
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

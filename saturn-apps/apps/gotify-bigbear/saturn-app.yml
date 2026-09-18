@@ -1,0 +1,12 @@
+id: gotify-bigbear
+name: Gotify
+tagline: Gotify
+description: a simple server for sending and receiving messages
+category: Social
+version: 1.0.0
+developer: gotify
+store: bigbear
+icon: icon.png
+port: 8091
+architectures:
+- amd64

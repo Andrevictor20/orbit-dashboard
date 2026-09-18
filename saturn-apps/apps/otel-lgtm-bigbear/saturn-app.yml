@@ -1,0 +1,13 @@
+id: otel-lgtm-bigbear
+name: OTEL LGTM
+tagline: OpenTelemetry Backend
+description: An OpenTelemetry Backend in a Docker Image.
+category: Developer
+version: 1.0.0
+developer: Grafana Labs
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,15 @@
+id: pyload
+name: PyLoad
+tagline: Free Downloader Manager.
+description: pyLoad is a Free and Open Source download manager written in Python and
+  designed to be extremely lightweight, easily extensible and fully manageable via
+  web.
+category: Media
+version: 1.0.0
+developer: linuxserver
+store: official
+icon: icon.png
+port: 8000
+architectures:
+- amd64
+- arm64

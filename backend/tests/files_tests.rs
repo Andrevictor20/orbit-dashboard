@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::fs;
 use std::path::Path;
 
-fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
+fn get_test_token() -> String {
     let expiration = (SystemTime::now() + Duration::from_secs(3600))
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -18,17 +18,19 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
         exp: expiration,
     };
     
-    let token = encode(
+    encode(
         &Header::default(),
         &claims,
         &EncodingKey::from_secret(b"super_secret".as_slice()),
-    ).unwrap();
-    
-    axum_extra::extract::cookie::Cookie::new("auth_token", token)
+    ).unwrap()
+}
+
+fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
+    axum_extra::extract::cookie::Cookie::new("auth_token", get_test_token())
 }
 
 fn setup_test_sandbox() -> std::path::PathBuf {
-    let sandbox = std::env::temp_dir().join(format!("orbit_test_fs_{}", uuid::Uuid::new_v4()));
+    let sandbox = std::env::temp_dir().join(format!("saturn_test_fs_{}", uuid::Uuid::new_v4()));
     fs::create_dir_all(&sandbox).unwrap();
     
     // Create some test structure
@@ -36,8 +38,8 @@ fn setup_test_sandbox() -> std::path::PathBuf {
     fs::create_dir_all(sandbox.join("movies")).unwrap();
     fs::create_dir_all(sandbox.join("music")).unwrap();
     
-    fs::write(sandbox.join("documents/hello.txt"), "Hello Orbit File Manager!").unwrap();
-    fs::write(sandbox.join("documents/config.json"), r#"{"app":"orbit","version":"1.0"}"#).unwrap();
+    fs::write(sandbox.join("documents/hello.txt"), "Hello Saturn File Manager!").unwrap();
+    fs::write(sandbox.join("documents/config.json"), r#"{"app":"saturn","version":"1.0"}"#).unwrap();
     fs::write(sandbox.join("documents/manual.pdf"), "%PDF-1.4 sample pdf content").unwrap();
     fs::write(sandbox.join("music/track.mp3"), "ID3fake audio binary data").unwrap();
     fs::write(sandbox.join("movies/clip.mp4"), "fake mp4 video data").unwrap();
@@ -197,7 +199,7 @@ async fn test_files_download_and_archive() {
         .add_cookie(cookie.clone())
         .await;
     download_res.assert_status_ok();
-    assert_eq!(download_res.text(), "Hello Orbit File Manager!");
+    assert_eq!(download_res.text(), "Hello Saturn File Manager!");
     
     // Archive folder as zip
     let archive_res = server.get(&format!("/api/files/archive?path={}/documents", sandbox_str))
@@ -244,34 +246,52 @@ async fn test_media_streaming_and_subtitles() {
     mkv_open_range.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
     assert_eq!(mkv_open_range.text(), "fake mkv matroska container data");
 
+    // Stream with RFC 7233 suffix Range (bytes=-4) -> last 4 bytes of "fake mkv matroska container data" is "data"
+    let mkv_suffix_range = server.get(&format!("/api/files/stream?path={}/movies/film.mkv", sandbox_str))
+        .add_cookie(cookie.clone())
+        .add_header(axum::http::header::RANGE, "bytes=-4")
+        .await;
+    mkv_suffix_range.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
+    assert_eq!(mkv_suffix_range.text(), "data");
+    assert_eq!(mkv_suffix_range.header("content-range"), "bytes 28-31/32");
+    assert_eq!(mkv_suffix_range.header("access-control-allow-origin"), "*");
+
+    // Stream with ?token= query parameter (WITHOUT cookie or Authorization header)
+    let token = get_test_token();
+    let stream_token_res = server.get(&format!("/api/files/stream?path={}/movies/film.mkv&token={}", sandbox_str, token))
+        .add_header(axum::http::header::RANGE, "bytes=0-3")
+        .await;
+    stream_token_res.assert_status(axum::http::StatusCode::PARTIAL_CONTENT);
+    assert_eq!(stream_token_res.text(), "fake");
+
     // Add .ass and .sbv companion subtitles
     fs::write(sandbox.join("movies/film.ass"), "[Script Info]\nTitle: Test\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:01:23.45,0:01:28.90,Default,,0,0,0,,{\\b1}Sample ASS Text{\\b0}").unwrap();
     fs::write(sandbox.join("movies/film.sbv"), "0:00:01.000,0:00:04.000\nYouTube SBV subtitle line").unwrap();
 
-    // Subtitles discovery for film.mkv
-    let subs_res = server.get(&format!("/api/files/subtitles?path={}/movies/film.mkv", sandbox_str))
-        .add_cookie(cookie.clone())
+    // Subtitles discovery for film.mkv with ?token=
+    let subs_res = server.get(&format!("/api/files/subtitles?path={}/movies/film.mkv&token={}", sandbox_str, token))
         .await;
     subs_res.assert_status_ok();
+    assert_eq!(subs_res.header("access-control-allow-origin"), "*");
     let subs_json: serde_json::Value = subs_res.json();
     let subs = subs_json.get("subtitles").and_then(|s| s.as_array()).expect("Expected subtitles array");
     assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.srt")));
     assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.ass")));
     assert!(subs.iter().any(|s| s.get("name").and_then(|n| n.as_str()) == Some("film.sbv")));
 
-    // Subtitle conversion to WebVTT (.ass -> WebVTT)
-    let ass_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.ass", sandbox_str))
-        .add_cookie(cookie.clone())
+    // Subtitle conversion to WebVTT (.ass -> WebVTT) with ?token= and CORS
+    let ass_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.ass&token={}", sandbox_str, token))
         .await;
     ass_vtt_res.assert_status_ok();
+    assert_eq!(ass_vtt_res.header("access-control-allow-origin"), "*");
     assert!(ass_vtt_res.text().contains("WEBVTT"));
     assert!(ass_vtt_res.text().contains("Sample ASS Text"));
 
     // Subtitle conversion to WebVTT (.sbv -> WebVTT)
-    let sbv_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.sbv", sandbox_str))
-        .add_cookie(cookie.clone())
+    let sbv_vtt_res = server.get(&format!("/api/files/subtitles/vtt?path={}/movies/film.sbv&token={}", sandbox_str, token))
         .await;
     sbv_vtt_res.assert_status_ok();
+    assert_eq!(sbv_vtt_res.header("access-control-allow-origin"), "*");
     assert!(sbv_vtt_res.text().contains("WEBVTT"));
     assert!(sbv_vtt_res.text().contains("-->"));
 
@@ -294,7 +314,7 @@ async fn test_text_editor_and_pdf() {
         .await;
     text_res.assert_status_ok();
     let text_json: serde_json::Value = text_res.json();
-    assert_eq!(text_json.get("content").and_then(|c| c.as_str()), Some("Hello Orbit File Manager!"));
+    assert_eq!(text_json.get("content").and_then(|c| c.as_str()), Some("Hello Saturn File Manager!"));
     
     // Write text content
     let update_res = server.put("/api/files/content")
@@ -332,7 +352,7 @@ async fn test_files_security_and_auth() {
     let cookie = get_test_cookie();
     
     // 2. Reject access to non-existent path safely
-    let traversal_res = server.get("/api/files/list?path=/etc/orbit_non_existent_security_test")
+    let traversal_res = server.get("/api/files/list?path=/etc/saturn_non_existent_security_test")
         .add_cookie(cookie.clone())
         .await;
     traversal_res.assert_status(axum::http::StatusCode::NOT_FOUND);
@@ -483,7 +503,7 @@ async fn test_files_sharing_and_public_download() {
     // 3. Access public download WITHOUT auth
     let public_res = server.get(&format!("/api/public/share/{}", token)).await;
     public_res.assert_status_ok();
-    assert_eq!(public_res.text(), "Hello Orbit File Manager!");
+    assert_eq!(public_res.text(), "Hello Saturn File Manager!");
 
     // 4. Delete share
     let del_res = server.delete(&format!("/api/files/share/{}", token))
@@ -494,6 +514,39 @@ async fn test_files_sharing_and_public_download() {
     // 5. Accessing deleted share should now return 404
     let public_del_res = server.get(&format!("/api/public/share/{}", token)).await;
     public_del_res.assert_status_not_found();
+
+    let _ = fs::remove_dir_all(&sandbox);
+}
+
+// 13. File Thumbnails (Images, Videos, PDFs)
+#[tokio::test]
+async fn test_files_thumbnails() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let token = get_test_token();
+
+    // 1. SVG image thumbnail returns direct SVG
+    let svg_path = sandbox.join("documents/test.svg");
+    fs::write(&svg_path, "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"10\" height=\"10\"/></svg>").unwrap();
+
+    let svg_res = server.get(&format!("/api/files/thumbnail?path={}&token={}", svg_path.to_str().unwrap(), token))
+        .await;
+    svg_res.assert_status_ok();
+    assert_eq!(svg_res.header("content-type"), "image/svg+xml");
+    assert_eq!(svg_res.header("access-control-allow-origin"), "*");
+
+    // 2. Unsupported file type (e.g. .txt) returns 404
+    let txt_path = sandbox.join("documents/hello.txt");
+    let txt_res = server.get(&format!("/api/files/thumbnail?path={}&token={}", txt_path.to_str().unwrap(), token))
+        .await;
+    txt_res.assert_status_not_found();
+
+    // 3. Non-existent file returns 404
+    let not_found_res = server.get(&format!("/api/files/thumbnail?path={}/not_found.png&token={}", sandbox_str, token))
+        .await;
+    not_found_res.assert_status_not_found();
 
     let _ = fs::remove_dir_all(&sandbox);
 }

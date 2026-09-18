@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { SystemSettings, PortConflictInfo } from '../types/settings';
 
 const DEFAULT_SETTINGS: SystemSettings = {
-  server_name: 'Orbit Dashboard',
+  server_name: 'Saturn Dashboard',
   port: 5172,
   default_page: '/',
   metrics_refresh_rate: 5,
@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   },
 };
 
-const STORAGE_KEY = 'orbit_system_settings';
+const SATURN_STORAGE_KEY = 'saturn_system_settings';
 
 interface SettingsContextValue {
   settings: SystemSettings;
@@ -40,7 +40,7 @@ const SettingsContext = createContext<SettingsContextValue>({
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SystemSettings>(() => {
     try {
-      const cached = localStorage.getItem(STORAGE_KEY);
+      const cached = localStorage.getItem(SATURN_STORAGE_KEY);
       if (cached) {
         return { ...DEFAULT_SETTINGS, ...JSON.parse(cached) };
       }
@@ -58,8 +58,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data: SystemSettings = await res.json();
         setSettings(data);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      }
+        localStorage.setItem(SATURN_STORAGE_KEY, JSON.stringify(data));
+              }
     } catch {
       // offline / network error fallback to cached/default
     } finally {
@@ -83,8 +83,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     // Optimistic update
     setSettings(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-
+    localStorage.setItem(SATURN_STORAGE_KEY, JSON.stringify(updated));
+    
     try {
       const res = await fetch('/api/system/settings', {
         method: 'POST',
@@ -99,8 +99,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       const saved: SystemSettings = await res.json();
       setSettings(saved);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-      return saved;
+      localStorage.setItem(SATURN_STORAGE_KEY, JSON.stringify(saved));
+            return saved;
     } catch (err) {
       // Revert if API failed
       fetchSettings();

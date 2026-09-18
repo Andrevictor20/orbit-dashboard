@@ -1,0 +1,15 @@
+id: synclounge-linuxserver-io-linuxserver
+name: Synclounge (LinuxServer.io)
+tagline: A third party tool that allows you to watch Plex in sync with your friends/family,
+  wherever you are.
+description: Synclounge is a third party tool that allows you to watch Plex in sync
+  with your friends/family, wherever you are.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8088
+architectures:
+- amd64
+- arm64

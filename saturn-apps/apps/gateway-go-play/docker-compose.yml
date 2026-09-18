@@ -1,0 +1,15 @@
+name: gateway-go
+services:
+  gateway-go:
+    image: openiothub/gateway-go:latest
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          memory: 32M
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/gateway-go/config:/root
+    ports:
+    - 34323:34323
+    container_name: gateway-go

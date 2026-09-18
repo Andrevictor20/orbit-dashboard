@@ -22,21 +22,21 @@ const mockBackups = [
     target_type: 'single_app',
   },
   {
-    filename: 'orbit_full_backup_20260909_140000.tar.gz',
-    app_name: 'orbit_system_full',
+    filename: 'saturn_full_backup_20260909_140000.tar.gz',
+    app_name: 'saturn_system_full',
     size_bytes: 52428800, // 50MB
     created_at: '2026-09-09 14:00:00 UTC',
     app_dir_exists: false,
     target_type: 'system_full',
-    description: 'Sistema Completo Orbit',
+    description: 'Sistema Completo Saturn',
   },
   {
-    filename: 'orbit_configs_backup_20260909_150000.tar.gz',
-    app_name: 'orbit_configs',
+    filename: 'saturn_configs_backup_20260909_150000.tar.gz',
+    app_name: 'saturn_configs',
     size_bytes: 1048576, // 1MB
     created_at: '2026-09-09 15:00:00 UTC',
     app_dir_exists: false,
-    target_type: 'orbit_configs',
+    target_type: 'saturn_configs',
     description: 'Configurações e integrações',
   },
 ];
@@ -101,8 +101,8 @@ describe('Backups Page Component', () => {
     // Check that backups are rendered
     await waitFor(() => {
       expect(screen.getByText('nextcloud_backup_20260909_120000.tar.gz')).toBeInTheDocument();
-      expect(screen.getByText('orbit_full_backup_20260909_140000.tar.gz')).toBeInTheDocument();
-      expect(screen.getByText('orbit_configs_backup_20260909_150000.tar.gz')).toBeInTheDocument();
+      expect(screen.getByText('saturn_full_backup_20260909_140000.tar.gz')).toBeInTheDocument();
+      expect(screen.getByText('saturn_configs_backup_20260909_150000.tar.gz')).toBeInTheDocument();
     });
 
     // Check formatted sizes

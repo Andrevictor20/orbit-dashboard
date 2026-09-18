@@ -1,0 +1,21 @@
+id: grocy-linuxserver-io-linuxserver
+name: Grocy (LinuxServer.io)
+tagline: 'An ERP system for your kitchen. Cut down on food waste, and manage your
+  chores with this brilliant utility. Keep track of your purchases, how much food
+  you are wasting, what chores need doing and what batteries need charging with this
+  proudly Open Source tool For more information on grocy visit their website and check
+  it out: https://grocy. Info'
+description: 'Grocy is an ERP system for your kitchen! Cut down on food waste, and
+  manage your chores with this brilliant utility. Keep track of your purchases, how
+  much food you are wasting, what chores need doing and what batteries need charging
+  with this proudly Open Source tool For more information on grocy visit their website
+  and check it out: https://grocy.info'
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

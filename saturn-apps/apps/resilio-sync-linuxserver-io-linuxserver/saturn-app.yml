@@ -1,0 +1,18 @@
+id: resilio-sync-linuxserver-io-linuxserver
+name: Resilio sync (LinuxServer.io)
+tagline: (formerly BitTorrent Sync) uses the BitTorrent protocol to sync files and
+  folders between all of your devices. There are both free and paid versions, this
+  container supports both. There is an official sync image but we created this one
+  as it supports user mapping to simplify permissions for volumes.
+description: Resilio-sync (formerly BitTorrent Sync) uses the BitTorrent protocol
+  to sync files and folders between all of your devices. There are both free and paid
+  versions, this container supports both. There is an official sync image but we created
+  this one as it supports user mapping to simplify permissions for volumes.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64
+- arm64

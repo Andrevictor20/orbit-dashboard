@@ -7,7 +7,8 @@ import {
   Sparkles, 
   ChevronRight, 
   Flame,
-  LayoutGrid, 
+  LayoutGrid,
+  FolderGit2,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ComposeInstallModal } from '../components/docker/ComposeInstallModal';
@@ -15,17 +16,22 @@ import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import { PortConflictDialog } from '../components/docker/PortConflictDialog';
 import toast from 'react-hot-toast';
 
-import { useStoreAppsQuery, STORE_APPS_QUERY_KEY, type AppStoreItem } from '../queries';
-import { AppStoreCard, AppStoreSidebar, AppStoreHeroCarousel, useAppStoreInstall } from '../components/appstore';
+import { useStoreAppsQuery, STORE_APPS_QUERY_KEY } from '../queries';
+import { 
+  AppStoreCard, 
+  AppStoreSidebar, 
+  AppStoreHeroCarousel, 
+  StoreRepositoriesModal,
+  AppStoreArchFilter,
+  useAppStoreInstall,
+  useAppInstalled,
+  type DockerContainerLite
+} from '../components/appstore';
+import { useSystemVersionQuery } from '../queries/useSystemVersionQuery';
+import { parseAppArchitectures, isArchCompatibleWithHost } from '../utils/architecture';
 import { queryClient } from '../lib/queryClient';
 
-interface DockerContainerLite {
-  id: string;
-  name: string;
-  image: string;
-  state: string;
-  labels?: Record<string, string>;
-}
+
 
 export function AppStore() {
   const { t } = useTranslation();
@@ -39,8 +45,12 @@ export function AppStore() {
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Discover');
+  const [selectedArch, setSelectedArch] = useState<string>('all');
+  const { data: systemVersion } = useSystemVersionQuery();
+  const hostArch = systemVersion?.arch;
   const [selectedStore, setSelectedStore] = useState<string>('All');
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isRepositoriesOpen, setIsRepositoriesOpen] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
 
   const {
@@ -66,7 +76,7 @@ export function AppStore() {
 
   const fetchInstalledContainers = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/docker/containers', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -89,7 +99,7 @@ export function AppStore() {
     try {
       setSyncing(true);
       const loadingToast = toast.loading(t('store.syncing_stores', 'Sincronizando lojas de aplicativos...'));
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/store/sync', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -116,49 +126,7 @@ export function AppStore() {
 
   const stores = useMemo(() => ['All', ...Array.from(new Set(apps.map(app => app.store)))].sort(), [apps]);
 
-  // Determine if an app from the store is already installed locally
-  const isAppInstalled = useMemo(() => {
-    const installedIdentifiers = new Set<string>();
-    installedContainers.forEach(c => {
-      const cleanName = (c.name || '').replace(/^\//, '').toLowerCase().trim();
-      if (cleanName) {
-        installedIdentifiers.add(cleanName);
-        installedIdentifiers.add(cleanName.replace(/[^a-z0-9]/g, ''));
-      }
-      if (c.labels) {
-        if (c.labels['com.docker.compose.project']) {
-          const proj = c.labels['com.docker.compose.project'].toLowerCase().trim();
-          installedIdentifiers.add(proj);
-          installedIdentifiers.add(proj.replace(/[^a-z0-9]/g, ''));
-        }
-        if (c.labels['com.docker.compose.service']) {
-          const srv = c.labels['com.docker.compose.service'].toLowerCase().trim();
-          installedIdentifiers.add(srv);
-          installedIdentifiers.add(srv.replace(/[^a-z0-9]/g, ''));
-        }
-      }
-      const rawImage = (c.image || '').split(':')[0].split('/').pop()?.toLowerCase().trim();
-      if (rawImage) {
-        installedIdentifiers.add(rawImage);
-        installedIdentifiers.add(rawImage.replace(/[^a-z0-9]/g, ''));
-      }
-    });
-
-    return (app: AppStoreItem) => {
-      if (!app) return false;
-      const id = (app.id || '').toLowerCase().trim();
-      const idSimple = id.replace(/[^a-z0-9]/g, '');
-      const name = (app.name || '').toLowerCase().trim();
-      const nameSimple = name.replace(/[^a-z0-9]/g, '');
-
-      return (
-        installedIdentifiers.has(id) || 
-        installedIdentifiers.has(idSimple) ||
-        installedIdentifiers.has(name) ||
-        installedIdentifiers.has(nameSimple)
-      );
-    };
-  }, [installedContainers]);
+  const isAppInstalled = useAppInstalled(installedContainers);
 
   // Featured apps for Hero Banner
   const featuredApps = useMemo(() => {
@@ -188,25 +156,34 @@ export function AppStore() {
                               app.category.toLowerCase() === selectedCategory.toLowerCase();
                               
       const matchesStore = selectedStore === 'All' || app.store === selectedStore;
+      const matchesArch = (() => {
+        if (selectedArch === 'all') return true;
+        const info = parseAppArchitectures(app.architectures);
+        if (selectedArch === 'compatible') return isArchCompatibleWithHost(info, hostArch).isCompatible;
+        if (selectedArch === 'multi') return info.isMultiArch;
+        if (selectedArch === 'x86') return info.isOnlyX86;
+        if (selectedArch === 'arm') return info.isOnlyArm;
+        return true;
+      })();
       
-      return matchesSearch && matchesCategory && matchesStore;
+      return matchesSearch && matchesCategory && matchesStore && matchesArch;
     });
-  }, [apps, search, selectedCategory, selectedStore]);
+  }, [apps, search, selectedCategory, selectedStore, selectedArch, hostArch]);
 
-  const isDiscoverMode = selectedCategory === 'Discover' && !search.trim() && selectedStore === 'All';
+  const isDiscoverMode = selectedCategory === 'Discover' && !search.trim() && selectedStore === 'All' && selectedArch === 'all';
 
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border border-border/70 p-4 sm:p-5 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-orbit-500/10 border border-orbit-500/20 flex items-center justify-center text-orbit-400 shadow-inner shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-saturn-500/10 border border-saturn-500/20 flex items-center justify-center text-saturn-400 shadow-inner shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-primary flex items-center gap-2">
               {t('store.title')}
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-orbit-500/15 text-orbit-400 border border-orbit-500/30">
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-saturn-500/15 text-saturn-400 border border-saturn-500/30">
                 Hub
               </span>
             </h1>
@@ -219,7 +196,7 @@ export function AppStore() {
         <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
           <button
             onClick={() => setIsDockerInstallOpen(true)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-md shadow-orbit-500/20 transition-all active:scale-[0.98]"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-saturn-500 hover:bg-saturn-600 text-white shadow-md shadow-saturn-500/20 transition-all active:scale-[0.98]"
             title={t('docker_install.title')}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -227,18 +204,33 @@ export function AppStore() {
           </button>
           
           <button
+            onClick={() => setIsRepositoriesOpen(true)}
+            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-card hover:bg-accent border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] shadow-sm"
+            title={t('store.manage_repositories', 'Gerenciar Repositórios')}
+          >
+            <FolderGit2 className="w-3.5 h-3.5 text-saturn-400" />
+            <span className="hidden sm:inline">{t('store.repositories', 'Repositórios')}</span>
+          </button>
+
+          <button
             onClick={handleSync}
             disabled={syncing}
             className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-card hover:bg-accent border border-border text-secondary hover:text-primary transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
             title={t('store.sync_stores')}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-orbit-500' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-saturn-500' : ''}`} />
             <span className="hidden sm:inline">{syncing ? t('store.syncing_stores') : t('store.sync_stores')}</span>
           </button>
         </div>
       </div>
 
       <ComposeInstallModal isOpen={isDockerInstallOpen} onClose={() => setIsDockerInstallOpen(false)} />
+      
+      <StoreRepositoriesModal 
+        isOpen={isRepositoriesOpen} 
+        onClose={() => setIsRepositoriesOpen(false)}
+        onSyncTriggered={() => queryClient.invalidateQueries({ queryKey: STORE_APPS_QUERY_KEY })}
+      />
 
       {/* Main Grid: Left Category Sidebar + Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6 items-start">
@@ -298,7 +290,7 @@ export function AppStore() {
             </div>
           ) : apps.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-card border border-border/70 rounded-3xl space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-orbit-500/10 border border-orbit-500/20 flex items-center justify-center text-orbit-400 shadow-inner">
+              <div className="w-16 h-16 rounded-2xl bg-saturn-500/10 border border-saturn-500/20 flex items-center justify-center text-saturn-400 shadow-inner">
                 <Package className="w-8 h-8" />
               </div>
               <div className="space-y-1 max-w-md">
@@ -311,7 +303,7 @@ export function AppStore() {
                 <button
                   onClick={handleSync}
                   disabled={syncing}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-md shadow-orbit-500/20 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-saturn-500 hover:bg-saturn-600 text-white shadow-md shadow-saturn-500/20 transition-all active:scale-[0.98]"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
                   <span>{syncing ? t('store.syncing', 'Sincronizando...') : t('store.sync_catalog', 'Sincronizar Catálogo')}</span>
@@ -348,7 +340,7 @@ export function AppStore() {
                   </div>
                   <button 
                     onClick={() => setSelectedCategory('All')}
-                    className="text-xs font-semibold text-orbit-400 hover:text-orbit-300 transition-colors flex items-center gap-1"
+                    className="text-xs font-semibold text-saturn-400 hover:text-saturn-300 transition-colors flex items-center gap-1"
                   >
                     <span>{t('store.view_all', 'Ver todos')}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -363,6 +355,7 @@ export function AppStore() {
                       index={index}
                       isInstalled={isAppInstalled(app)}
                       installing={installing}
+                      hostArch={hostArch}
                       onExplore={(id) => navigate(`/store/app/${id}`)}
                       onManage={() => navigate('/')}
                       onInstall={handleInstall}
@@ -374,9 +367,9 @@ export function AppStore() {
 
               {/* All Catalog Section */}
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <LayoutGrid className="w-4 h-4 text-orbit-500" />
+                    <LayoutGrid className="w-4 h-4 text-saturn-500" />
                     <span className="text-base font-bold text-primary tracking-tight">
                       {t('store.catalog_applications', 'Catálogo de Aplicações')}
                     </span>
@@ -384,6 +377,7 @@ export function AppStore() {
                       {t('store.available_count', { count: filteredApps.length, defaultValue: `(${filteredApps.length} disponíveis)` })}
                     </span>
                   </div>
+                  <AppStoreArchFilter selectedArch={selectedArch} onSelectArch={setSelectedArch} hostArch={hostArch} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
@@ -394,6 +388,7 @@ export function AppStore() {
                       index={index}
                       isInstalled={isAppInstalled(app)}
                       installing={installing}
+                      hostArch={hostArch}
                       onExplore={(id) => navigate(`/store/app/${id}`)}
                       onManage={() => navigate('/')}
                       onInstall={handleInstall}
@@ -406,7 +401,7 @@ export function AppStore() {
           ) : (
             /* ===== CATEGORY / SEARCH FILTERED VIEW ===== */
             <div className="space-y-4">
-              <div className="flex items-center justify-between pb-1 border-b border-border/50">
+              <div className="flex items-center justify-between pb-1 border-b border-border/50 gap-4 flex-wrap">
                 <div>
                   <h2 className="text-base font-bold text-primary tracking-tight">
                     {selectedCategory === 'All' ? t('store.all_applications', 'Todas as Aplicações') : selectedCategory}
@@ -417,6 +412,7 @@ export function AppStore() {
                       : t('store.apps_found_other', { count: filteredApps.length, defaultValue: `${filteredApps.length} aplicativos encontrados` })}
                   </p>
                 </div>
+                <AppStoreArchFilter selectedArch={selectedArch} onSelectArch={setSelectedArch} hostArch={hostArch} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4">
@@ -427,6 +423,7 @@ export function AppStore() {
                     index={index}
                     isInstalled={isAppInstalled(app)}
                     installing={installing}
+                    hostArch={hostArch}
                     onExplore={(id) => navigate(`/store/app/${id}`)}
                     onManage={() => navigate('/')}
                     onInstall={handleInstall}

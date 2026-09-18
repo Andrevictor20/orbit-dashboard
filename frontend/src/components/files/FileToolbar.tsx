@@ -116,7 +116,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
             className="lg:hidden p-2 rounded-xl bg-card border border-border text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors flex items-center gap-1.5 text-xs shrink-0 shadow-sm"
             aria-label={t('files.storage_drives', 'Locais de armazenamento')}
           >
-            <HardDrive className="w-4 h-4 text-orbit-600 dark:text-orbit-400" />
+            <HardDrive className="w-4 h-4 text-saturn-600 dark:text-saturn-400" />
           </button>
 
           {/* History Back/Forward */}
@@ -216,7 +216,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
               {onOpenSamba && (
                 <button
                   onClick={onOpenSamba}
-                  className="p-2 rounded-xl border border-border/80 bg-card text-slate-700 dark:text-secondary hover:text-orbit-500 hover:bg-accent transition-colors shadow-sm"
+                  className="p-2 rounded-xl border border-border/80 bg-card text-slate-700 dark:text-secondary hover:text-saturn-500 hover:bg-accent transition-colors shadow-sm"
                   title={t('files.samba_network_sharing', 'Compartilhamento de Rede Samba (SMB)')}
                 >
                   <Network className="w-4 h-4" />
@@ -235,7 +235,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
               {/* Primary CTA: Import / Upload Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all active:scale-95"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold shadow-md shadow-saturn-500/25 transition-all active:scale-95"
                 title={t('files.import_or_upload', 'Importar ou carregar arquivos')}
               >
                 <Upload className="w-3.5 h-3.5" />
@@ -246,7 +246,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
               {clipboard && (
                 <button
                   onClick={handlePaste}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orbit-500/15 text-orbit-700 dark:text-orbit-300 border border-orbit-500/30 hover:bg-orbit-500/25 text-xs font-semibold transition-colors animate-in fade-in"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-saturn-500/15 text-saturn-700 dark:text-saturn-300 border border-saturn-500/30 hover:bg-saturn-500/25 text-xs font-semibold transition-colors animate-in fade-in"
                   title={t('files.paste_items', 'Colar {{count}} item(s)', { count: clipboard.items.length })}
                 >
                   <Clipboard className="w-3.5 h-3.5" />
@@ -271,21 +271,21 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
                       className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                     >
                       <span>{t('common.name', 'Nome')}</span>
-                      {sortBy === 'name' && <span className="text-[10px] text-orbit-600 dark:text-orbit-400 font-semibold">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
+                      {sortBy === 'name' && <span className="text-[10px] text-saturn-600 dark:text-saturn-400 font-semibold">{sortAsc ? 'A-Z' : 'Z-A'}</span>}
                     </button>
                     <button
                       onClick={() => { setSortBy('size'); setSortAsc((prev) => (sortBy === 'size' ? !prev : true)); setShowSortMenu(false); }}
                       className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                     >
                       <span>{t('common.size', 'Tamanho')}</span>
-                      {sortBy === 'size' && <span className="text-[10px] text-orbit-600 dark:text-orbit-400 font-semibold">{sortAsc ? t('files.sort_smallest', 'Menor') : t('files.sort_largest', 'Maior')}</span>}
+                      {sortBy === 'size' && <span className="text-[10px] text-saturn-600 dark:text-saturn-400 font-semibold">{sortAsc ? t('files.sort_smallest', 'Menor') : t('files.sort_largest', 'Maior')}</span>}
                     </button>
                     <button
                       onClick={() => { setSortBy('modified'); setSortAsc((prev) => (sortBy === 'modified' ? !prev : true)); setShowSortMenu(false); }}
                       className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors"
                     >
                       <span>{t('files.modified', 'Modificado')}</span>
-                      {sortBy === 'modified' && <span className="text-[10px] text-orbit-600 dark:text-orbit-400 font-semibold">{sortAsc ? t('files.sort_oldest', 'Antigo') : t('files.sort_newest', 'Recente')}</span>}
+                      {sortBy === 'modified' && <span className="text-[10px] text-saturn-600 dark:text-saturn-400 font-semibold">{sortAsc ? t('files.sort_oldest', 'Antigo') : t('files.sort_newest', 'Recente')}</span>}
                     </button>
                   </div>
                 )}
@@ -318,14 +318,14 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
 
       {/* Selected Batch Action Bar */}
       {selectedItems.length > 0 && !isTrashView && (
-        <div className="px-4 sm:px-6 py-2 bg-orbit-500/10 border-b border-orbit-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-orbit-700 dark:text-orbit-300 animate-in fade-in">
+        <div className="px-4 sm:px-6 py-2 bg-saturn-500/10 border-b border-saturn-500/20 flex flex-wrap items-center justify-between gap-2 text-xs text-saturn-700 dark:text-saturn-300 animate-in fade-in">
           <div className="flex items-center gap-2">
             <button
               onClick={selectAll}
               className="flex items-center gap-1.5 font-semibold hover:underline text-primary"
             >
               {selectedItems.length === filteredFilesCount ? (
-                <CheckSquare className="w-4 h-4 text-orbit-600 dark:text-orbit-400" />
+                <CheckSquare className="w-4 h-4 text-saturn-600 dark:text-saturn-400" />
               ) : (
                 <Square className="w-4 h-4" />
               )}

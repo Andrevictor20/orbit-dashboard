@@ -1,0 +1,23 @@
+name: linuxserver-qdirstat
+services:
+  app:
+    image: linuxserver/qdirstat:2.0.20260913
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/qdirstat/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/qdirstat/data
+      target: /data

@@ -1,0 +1,25 @@
+name: gitea-arm
+services:
+  gitea-arm:
+    environment:
+      USER_GID: '1000'
+      USER_UID: '1000'
+    image: patrickthedev/gitea-rpi:1.21.0
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '3002'
+      protocol: tcp
+    - target: 22
+      published: '222'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/gitea-arm/data
+      target: /data
+    container_name: gitea-arm

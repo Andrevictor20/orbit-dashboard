@@ -1,0 +1,19 @@
+name: certimate
+services:
+  certimate:
+    image: certimate/certimate:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: bridge
+    ports:
+    - target: 8090
+      published: '8090'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/certimate/data
+      target: /app/pb_data
+    container_name: certimate

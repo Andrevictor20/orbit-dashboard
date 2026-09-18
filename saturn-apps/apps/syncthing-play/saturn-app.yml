@@ -1,0 +1,15 @@
+id: syncthing-play
+name: Syncthing
+tagline: Free, secure, and distributed file synchronisation tool.
+description: Syncthing is a continuous file synchronization program. It synchronizes
+  files between two or more computers in real time, safely protected from prying eyes.
+  Your data is your data alone and you deserve to choose where it is stored, whether
+  it is shared with some third party, and how it's transmitted over the internet.
+category: Backup
+version: 1.0.0
+developer: Syncthing
+store: play
+icon: icon.png
+port: 8384
+architectures:
+- arm

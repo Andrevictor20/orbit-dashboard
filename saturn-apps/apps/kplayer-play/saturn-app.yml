@@ -1,0 +1,14 @@
+id: kplayer-play
+name: KPlayer
+tagline: Live streaming of video resources
+description: KPlayer can help you quickly perform looped live streaming of video resources
+  on the server, simply customize the configuration file to enable live streaming.
+category: Networking
+version: 1.0.0
+developer: bytelang
+store: play
+icon: icon.png
+port: 4156
+architectures:
+- amd64
+- arm64

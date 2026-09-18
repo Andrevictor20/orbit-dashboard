@@ -24,7 +24,7 @@ describe('SambaModal', () => {
         path: '/DATA',
         read_only: false,
         guest_ok: true,
-        comment: 'Orbit Shared Storage',
+        comment: 'Saturn Shared Storage',
       },
     ];
 
@@ -45,7 +45,7 @@ describe('SambaModal', () => {
       expect(screen.getByText(/Servidor Samba: Ativo/i)).toBeInTheDocument();
       expect(screen.getByText('192.168.1.100')).toBeInTheDocument();
       expect(screen.getByText('public')).toBeInTheDocument();
-      expect(screen.getByText('/DATA — Orbit Shared Storage')).toBeInTheDocument();
+      expect(screen.getByText('/DATA — Saturn Shared Storage')).toBeInTheDocument();
     });
   });
 

@@ -36,7 +36,7 @@ export function ContainerDetail() {
 
   useEffect(() => {
     if (id) {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       fetch(`/api/docker/containers/${id}/check-update`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.has_update) setHasUpdate(true); })
@@ -46,7 +46,7 @@ export function ContainerDetail() {
 
   async function fetchContainer() {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/docker/containers', { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const list: ContainerData[] = await res.json();
@@ -58,7 +58,7 @@ export function ContainerDetail() {
 
   async function fetchInspect() {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/docker/containers/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
@@ -70,7 +70,7 @@ export function ContainerDetail() {
 
   const fetchLogs = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/docker/containers/${id}/logs`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setLogs(await res.text());
     } catch (e) { console.error(e); }
@@ -78,7 +78,7 @@ export function ContainerDetail() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const statsRes = await fetch('/api/docker/containers/stats/snapshot', { headers: { Authorization: `Bearer ${token}` } });
       if (statsRes.ok) {
         const statsData = await statsRes.json();
@@ -113,8 +113,8 @@ export function ContainerDetail() {
 
   useEffect(() => {
     if (!id) return;
-    if (sessionStorage.getItem(`orbit_deleting_${id}`)) {
-      sessionStorage.removeItem(`orbit_deleting_${id}`);
+    if (sessionStorage.getItem(`saturn_deleting_${id}`)) {
+      sessionStorage.removeItem(`saturn_deleting_${id}`);
       toast(t('containers.delete_background_notice', 'A exclusão do container continua em andamento em segundo plano.'), { icon: '🗑️' });
       navigate('/containers');
       return;
@@ -123,7 +123,7 @@ export function ContainerDetail() {
     fetchStats();
     fetchInspect();
 
-    const token = localStorage.getItem('orbit_token');
+    const token = localStorage.getItem('saturn_token');
     fetch(`/api/docker/containers/${id}/update-status`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.ok ? r.json() : null)
       .then(task => {
@@ -132,7 +132,7 @@ export function ContainerDetail() {
           toast(t('containers.resuming_update', 'Recuperando processo de atualização em andamento...'), { icon: '⏳' });
           pollUpdateStatus(token).finally(() => {
             setUpdating(false);
-            sessionStorage.removeItem(`orbit_updating_${id}`);
+            sessionStorage.removeItem(`saturn_updating_${id}`);
           });
         }
       })
@@ -149,9 +149,9 @@ export function ContainerDetail() {
   const handleUpdate = async () => {
     if (!id) return;
     setUpdating(true);
-    sessionStorage.setItem(`orbit_updating_${id}`, 'true');
+    sessionStorage.setItem(`saturn_updating_${id}`, 'true');
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/docker/containers/${id}/update`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       const rawText = await res.text().catch(() => '');
       let data: any = null;
@@ -176,7 +176,7 @@ export function ContainerDetail() {
       toast.error(t('containers.update_conn_error', 'Erro de conexão ao atualizar container.'));
     } finally {
       setUpdating(false);
-      sessionStorage.removeItem(`orbit_updating_${id}`);
+      sessionStorage.removeItem(`saturn_updating_${id}`);
     }
   };
 
@@ -184,7 +184,7 @@ export function ContainerDetail() {
     if (!container) return;
     setActionLoading(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       await fetch(`/api/docker/containers/${container.id}/${action}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       await fetchContainer();
     } catch (err) { console.error(`Failed to ${action} container`, err); }
@@ -194,21 +194,21 @@ export function ContainerDetail() {
   const executeDelete = async () => {
     if (!container) return;
     setActionLoading(true);
-    sessionStorage.setItem(`orbit_deleting_${id}`, 'true');
+    sessionStorage.setItem(`saturn_deleting_${id}`, 'true');
     const loadingToast = toast.loading(t('containers.stopping_and_deleting', 'Parando e excluindo container com segurança...'));
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const query = new URLSearchParams();
       if (deleteOptions.volumes) query.append('v', 'true');
       if (deleteOptions.image) query.append('image', 'true');
       if (deleteOptions.network) query.append('network', 'true');
       const res = await fetch(`/api/docker/containers/${id}?${query.toString()}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      sessionStorage.removeItem(`orbit_deleting_${id}`);
+      sessionStorage.removeItem(`saturn_deleting_${id}`);
       toast.success(t('containers.delete_success', 'Container excluído com sucesso!'), { id: loadingToast });
       navigate('/containers');
     } catch (err) {
-      sessionStorage.removeItem(`orbit_deleting_${id}`);
+      sessionStorage.removeItem(`saturn_deleting_${id}`);
       console.error('Failed to delete container', err);
       toast.error(t('containers.delete_error', 'Erro ao excluir o container.'), { id: loadingToast });
       setActionLoading(false);
@@ -223,7 +223,7 @@ export function ContainerDetail() {
         if (hostBindings) {
           for (const binding of (hostBindings as any[])) {
             const hostPort = binding.HostPort;
-            links.push(<a key={`${containerPort}-${hostPort}`} href={resolveWebUrl(hostPort)} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">{hostPort} → {containerPort}</a>);
+            links.push(<a key={`${containerPort}-${hostPort}`} href={resolveWebUrl(hostPort)} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-saturn-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">{hostPort} → {containerPort}</a>);
           }
         }
       }
@@ -232,7 +232,7 @@ export function ContainerDetail() {
       if (exposed) {
         for (const portKey of Object.keys(exposed)) {
           const hostPort = portKey.split('/')[0];
-          links.push(<a key={`host-${hostPort}`} href={resolveWebUrl(hostPort)} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-orbit-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">{hostPort} (Host Network)</a>);
+          links.push(<a key={`host-${hostPort}`} href={resolveWebUrl(hostPort)} target="_blank" rel="noreferrer" className="inline-block bg-accent hover:bg-saturn-700 text-secondary px-2 py-1 rounded text-xs font-mono transition-colors mr-2 mb-2">{hostPort} (Host Network)</a>);
         }
       }
     }

@@ -1,0 +1,20 @@
+id: remmina-linuxserver-io-linuxserver
+name: Remmina (LinuxServer.io)
+tagline: A remote desktop client written in GTK, aiming to be useful for system administrators
+  and travellers, who need to work with lots of remote computers in front of either
+  large or tiny screens. Remmina supports multiple network protocols, in an integrated
+  and consistent user interface. Currently RDP, VNC, SPICE, SSH and EXEC are supported.
+description: Remmina is a remote desktop client written in GTK, aiming to be useful
+  for system administrators and travellers, who need to work with lots of remote computers
+  in front of either large or tiny screens. Remmina supports multiple network protocols,
+  in an integrated and consistent user interface. Currently RDP, VNC, SPICE, SSH and
+  EXEC are supported.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

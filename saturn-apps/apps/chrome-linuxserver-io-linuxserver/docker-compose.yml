@@ -1,0 +1,21 @@
+name: linuxserver-chrome
+services:
+  app:
+    image: linuxserver/chrome:153.0.8010
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      CHROME_CLI: ''
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/chrome/config
+      target: /config

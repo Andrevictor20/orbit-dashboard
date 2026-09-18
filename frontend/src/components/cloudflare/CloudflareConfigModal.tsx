@@ -49,7 +49,7 @@ export function CloudflareConfigModal({
   const [testingConnection, setTestingConnection] = useState(false);
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -127,7 +127,7 @@ export function CloudflareConfigModal({
     <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200">
       <div className="flex items-center justify-between pb-3 mb-4 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <Key className="w-4 h-4 text-orbit-500" />
+          <Key className="w-4 h-4 text-saturn-500" />
           <h2 className="text-sm font-bold text-primary">
             {t('cloudflare.config_section_title', 'Credenciais e Conexão da Cloudflare')}
           </h2>
@@ -156,7 +156,7 @@ export function CloudflareConfigModal({
               placeholder="ex: 8a4c9e83..."
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500"
+              className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-saturn-500"
             />
           </div>
 
@@ -170,7 +170,7 @@ export function CloudflareConfigModal({
               placeholder="ex: 6ff42887-865e-4658-b612-..."
               value={tunnelId}
               onChange={(e) => setTunnelId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500"
+              className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-saturn-500"
             />
           </div>
         </div>
@@ -187,7 +187,7 @@ export function CloudflareConfigModal({
               <button
                 type="button"
                 onClick={() => setShowApiTokenGuide(!showApiTokenGuide)}
-                className="text-[11px] text-orbit-500 hover:text-orbit-400 flex items-center gap-1 font-medium transition-colors"
+                className="text-[11px] text-saturn-500 hover:text-saturn-400 flex items-center gap-1 font-medium transition-colors"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 <span>{t('cloudflare.api_token_guide_title', 'Como obter?')}</span>
@@ -199,7 +199,7 @@ export function CloudflareConfigModal({
             placeholder={config?.has_api_token ? '••••••••••••••••' : 'Cole seu token da API aqui'}
             value={apiToken}
             onChange={handleApiTokenChange}
-            className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500"
+            className="w-full px-3 py-2 rounded-xl bg-accent/50 border border-border text-xs text-primary font-mono placeholder:text-secondary/50 focus:outline-none focus:border-saturn-500"
           />
 
           {tunnelTokenNotice && (
@@ -212,12 +212,12 @@ export function CloudflareConfigModal({
           {showApiTokenGuide && (
             <div className="p-3.5 rounded-xl bg-accent/40 border border-border/70 text-xs text-secondary space-y-1.5 animate-in fade-in">
               <div className="flex items-center gap-1.5 text-primary font-bold">
-                <ExternalLink className="w-3.5 h-3.5 text-orbit-500" />
+                <ExternalLink className="w-3.5 h-3.5 text-saturn-500" />
                 <a
                   href="https://dash.cloudflare.com/profile/api-tokens"
                   target="_blank"
                   rel="noreferrer"
-                  className="underline hover:text-orbit-500 transition-colors"
+                  className="underline hover:text-saturn-500 transition-colors"
                 >
                   {t('cloudflare.api_token_guide_step1', 'Acesse dash.cloudflare.com/profile/api-tokens')}
                 </a>
@@ -235,7 +235,7 @@ export function CloudflareConfigModal({
               type="checkbox"
               checked={autoSync}
               onChange={(e) => setAutoSync(e.target.checked)}
-              className="rounded border-border text-orbit-500 focus:ring-orbit-500"
+              className="rounded border-border text-saturn-500 focus:ring-saturn-500"
             />
             <span className="text-xs text-secondary font-medium">
               {t(
@@ -253,7 +253,7 @@ export function CloudflareConfigModal({
               className="px-3.5 py-1.5 rounded-xl border border-border/80 bg-accent/40 hover:bg-accent text-secondary hover:text-primary text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-[0.98]"
             >
               {testingConnection ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-orbit-500" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-saturn-500" />
               ) : (
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
               )}
@@ -270,7 +270,7 @@ export function CloudflareConfigModal({
             <button
               type="submit"
               disabled={saving || testingConnection}
-              className="px-4 py-1.5 rounded-xl bg-orbit-500 hover:bg-orbit-400 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-[0.98]"
+              className="px-4 py-1.5 rounded-xl bg-saturn-500 hover:bg-saturn-400 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-[0.98]"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>{t('common.save', 'Salvar Alterações')}</span>

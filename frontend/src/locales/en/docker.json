@@ -19,7 +19,7 @@
   "install_failed": "Installation failed",
   "install_cancelled": "Installation cancelled",
   "background_task": "Background Task",
-  "port_conflict_explanation": "By clicking \"Install with Suggested Port\", Orbit automatically remaps services to available ports without needing to download images again.",
+  "port_conflict_explanation": "By clicking \"Install with Suggested Port\", Saturn automatically remaps services to available ports without needing to download images again.",
   "managed_stack_services": "Managed stack with {{count}} interconnected services",
   "services": "Services",
   "image_update_available_tip": "New image version available for your device. Click to update and restart.",

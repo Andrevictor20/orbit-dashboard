@@ -1,0 +1,23 @@
+name: linuxserver-wireshark
+services:
+  app:
+    image: linuxserver/wireshark:4.6.6
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/wireshark/config
+      target: /config

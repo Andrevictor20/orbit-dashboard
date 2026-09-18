@@ -1,0 +1,13 @@
+id: project-management-bigbear
+name: Project Management
+tagline: Project Management
+description: An open source Project management tool based on Laravel and Filament
+category: Developer
+version: 1.0.0
+developer: eloufirhatim
+store: bigbear
+icon: icon.png
+port: 8000
+architectures:
+- amd64
+- arm64

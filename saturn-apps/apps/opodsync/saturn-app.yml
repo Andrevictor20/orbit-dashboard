@@ -1,0 +1,36 @@
+id: opodsync
+name: oPodSync
+tagline: Podcast synchronization service
+description: 'oPodSync is a podcast synchronization service that allows users to sync
+  their podcast subscriptions and listening progress across multiple devices. It provides
+  a server-side solution for managing podcast data and ensures that users can seamlessly
+  switch between their devices.
+
+
+  **Key Features:**
+
+  - Sync podcast subscriptions
+
+  - Track listening progress across devices
+
+  - Web-based management interface
+
+  - Support for multiple podcast clients
+
+  - Centralized data storage
+
+  - Easy setup and configuration
+
+
+  **Learn More:**
+
+  - [oPodSync GitHub Repo](https://github.com/kd2org/oPodSync)'
+category: Media
+version: 1.0.0
+developer: ganeshlab
+store: official
+icon: icon.png
+port: 8086
+architectures:
+- amd64
+- arm64

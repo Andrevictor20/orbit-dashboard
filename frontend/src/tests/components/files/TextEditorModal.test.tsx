@@ -22,7 +22,7 @@ describe('TextEditorModal Component', () => {
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ content: '# Orbit Dashboard\n\nWelcome to **Orbit**!' }),
+        json: () => Promise.resolve({ content: '# Saturn Dashboard\n\nWelcome to **Saturn**!' }),
       });
     }));
   });
@@ -32,7 +32,7 @@ describe('TextEditorModal Component', () => {
 
     expect(screen.getByText('README.md')).toBeTruthy();
     const textarea = await screen.findByTestId('text-editor-area') as HTMLTextAreaElement;
-    expect(textarea.value).toContain('# Orbit Dashboard');
+    expect(textarea.value).toContain('# Saturn Dashboard');
 
     // Check preview button exists for .md file
     const previewTab = screen.getByTestId('tab-preview');
@@ -41,7 +41,7 @@ describe('TextEditorModal Component', () => {
     fireEvent.click(previewTab);
 
     // Markdown preview should render formatted header
-    expect(await screen.findByText('Orbit Dashboard')).toBeTruthy();
+    expect(await screen.findByText('Saturn Dashboard')).toBeTruthy();
   });
 
   it('allows editing and saving content', async () => {

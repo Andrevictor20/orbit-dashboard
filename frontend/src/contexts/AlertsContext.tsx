@@ -23,7 +23,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
   const fetchAlerts = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/system/alerts', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

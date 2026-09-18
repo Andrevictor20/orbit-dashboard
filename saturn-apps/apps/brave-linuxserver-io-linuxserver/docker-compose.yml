@@ -1,0 +1,20 @@
+name: linuxserver-brave
+services:
+  app:
+    image: linuxserver/brave:1.95.101
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/brave/config
+      target: /config

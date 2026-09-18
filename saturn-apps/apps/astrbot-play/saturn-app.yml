@@ -1,0 +1,16 @@
+id: astrbot-play
+name: AstrBot
+tagline: Multi-platform Chatbot Framework with LLM Integration
+description: AstrBot is an easy-to-use multi-platform chatbot and development framework.
+  It features loose coupling, asynchronous processing, multi-platform deployment,
+  an easy-to-use plugin system, and comprehensive integration with large language
+  models (LLM).
+category: Social
+version: 1.0.0
+developer: soulter
+store: play
+icon: icon.png
+port: 6185
+architectures:
+- arm64
+- amd64

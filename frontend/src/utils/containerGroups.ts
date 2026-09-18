@@ -74,16 +74,16 @@ export function formatGroupName(raw: string): string {
  * Extracts candidate group key from container labels or name heuristic.
  */
 export function getContainerGroupName(c: ContainerLike): string | null {
-  // 1. Check standard Docker Compose / Swarm / CasaOS labels
+  // 1. Check standard Docker Compose / Swarm / Saturn labels
   if (c.labels) {
     const composeProject = c.labels['com.docker.compose.project'] || c.labels['com.docker.stack.namespace'];
     if (composeProject && composeProject.trim()) {
       return composeProject.trim().toLowerCase();
     }
 
-    const casaosApp = c.labels['io.casaos.app.name'] || c.labels['io.casaos.compose.name'];
-    if (casaosApp && casaosApp.trim()) {
-      return casaosApp.trim().toLowerCase();
+    const saturnApp = c.labels['io.saturn.app.name'] || c.labels['io.saturn.compose.name'];
+    if (saturnApp && saturnApp.trim()) {
+      return saturnApp.trim().toLowerCase();
     }
   }
 
@@ -224,15 +224,15 @@ export function detectWellKnownWebPort(image?: string, name?: string): number | 
 }
 
 /**
- * Detects web port from CasaOS/Traefik labels.
+ * Detects web port from Saturn/Traefik labels.
  */
 export function detectLabelWebPort(labels?: Record<string, string>): number | null {
   if (!labels) return null;
   const labelKeys = [
-    'io.casaos.port.web',
-    'io.casaos.app.port',
-    'io.casaos.app.main_port',
-    'dev.casaos.app.port',
+    'io.saturn.port.web',
+    'io.saturn.app.port',
+    'io.saturn.app.main_port',
+    'dev.saturn.app.port',
     'webui.port',
     'web.port',
     'port',
@@ -417,7 +417,7 @@ export function groupContainers<T extends ContainerLike>(
   for (const [groupKey, bucket] of groupBuckets.entries()) {
     if (bucket.length >= 2) {
       const savedPrimaryId = typeof localStorage !== 'undefined' 
-        ? localStorage.getItem(`orbit_stack_primary_${groupKey}`) 
+        ? localStorage.getItem(`saturn_stack_primary_${groupKey}`) 
         : null;
 
       const primary = getPrimaryContainer(bucket, savedPrimaryId);

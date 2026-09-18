@@ -1,0 +1,16 @@
+id: jellyseerr-legacy-bigbear
+name: Jellyseerr (Legacy)
+tagline: Legacy media request manager - new users should use Seerr instead
+description: 'Jellyseerr is a free and open source software application for managing
+  requests for your media library. It is a fork of Overseerr built to bring support
+  for Jellyfin & Emby media servers! Note: Jellyseerr is no longer actively maintained.
+  New users should use Seerr instead.'
+category: Media
+version: 1.0.0
+developer: Fallenbagel
+store: bigbear
+icon: icon.png
+port: 5055
+architectures:
+- amd64
+- arm64

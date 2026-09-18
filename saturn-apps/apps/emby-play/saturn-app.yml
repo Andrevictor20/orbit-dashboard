@@ -1,0 +1,14 @@
+id: emby-play
+name: Emby
+tagline: TAKE YOUR MEDIA ANYWHERE WITH EMBY
+description: Bringing all of your home videos, music, and photos together into one
+  place has never been easier. Your personal Emby Server automatically converts and
+  streams your media on-the-fly to play on any device.
+category: Media
+version: 1.0.0
+developer: linuxserver
+store: play
+icon: icon.png
+port: 8096
+architectures:
+- arm

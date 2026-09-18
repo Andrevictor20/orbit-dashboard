@@ -41,7 +41,7 @@ const getPlaceIcon = (iconName: string) => {
 };
 
 const getPlaceColorClass = (iconName: string, isActive: boolean) => {
-  if (isActive) return 'text-orbit-400';
+  if (isActive) return 'text-saturn-400';
   switch (iconName.toLowerCase()) {
     case 'documents':
     case 'file-text': return 'text-amber-400';
@@ -104,12 +104,12 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
         <div className="space-y-3 pb-2 border-b border-border/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-400 shadow-inner">
+              <div className="w-8 h-8 rounded-xl bg-saturn-500/15 border border-saturn-500/30 flex items-center justify-center text-saturn-400 shadow-inner">
                 <FolderGit2 className="w-4 h-4" />
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-primary">Arquivos</h2>
-                <p className="text-[10px] text-secondary">Orbit Storage</p>
+                <p className="text-[10px] text-secondary">Saturn Storage</p>
               </div>
             </div>
             
@@ -130,7 +130,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
               placeholder="Pesquisar..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-colors shadow-inner"
+              className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/50 focus:outline-none focus:border-saturn-500/80 transition-colors shadow-inner"
             />
             {searchQuery && (
               <button
@@ -165,12 +165,12 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
                     navigateTo(place.path);
                     setIsStorageDrawerOpen(false);
                   }}
-                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-orbit-500/20'); }}
-                  onDragLeave={(e) => e.currentTarget.classList.remove('bg-orbit-500/20')}
-                  onDrop={(e) => { e.currentTarget.classList.remove('bg-orbit-500/20'); handleInternalDrop(e, place.path); }}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-saturn-500/20'); }}
+                  onDragLeave={(e) => e.currentTarget.classList.remove('bg-saturn-500/20')}
+                  onDrop={(e) => { e.currentTarget.classList.remove('bg-saturn-500/20'); handleInternalDrop(e, place.path); }}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-orbit-500 text-white font-semibold shadow-md shadow-orbit-500/25'
+                      ? 'bg-saturn-500 text-white font-semibold shadow-md shadow-saturn-500/25'
                       : 'text-secondary hover:text-primary hover:bg-accent'
                   }`}
                 >
@@ -234,17 +234,17 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
                     navigateTo(st.mount_point);
                     setIsStorageDrawerOpen(false);
                   }}
-                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-orbit-500'); }}
-                  onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-orbit-500')}
-                  onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-orbit-500'); handleInternalDrop(e, st.mount_point); }}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-saturn-500'); }}
+                  onDragLeave={(e) => e.currentTarget.classList.remove('ring-2', 'ring-saturn-500')}
+                  onDrop={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-saturn-500'); handleInternalDrop(e, st.mount_point); }}
                   className={`w-full text-left p-2.5 rounded-xl border transition-all ${
                     isActive
-                      ? 'bg-orbit-500/10 border-orbit-500/30 text-orbit-400 font-semibold shadow-sm'
+                      ? 'bg-saturn-500/10 border-saturn-500/30 text-saturn-400 font-semibold shadow-sm'
                       : 'bg-card border-border/70 hover:bg-accent text-primary'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <HardDrive className="w-4 h-4 shrink-0 text-orbit-400" />
+                    <HardDrive className="w-4 h-4 shrink-0 text-saturn-400" />
                     <span className="text-xs truncate font-medium">{friendlyName}</span>
                   </div>
                   {st.total_bytes > 0 && (
@@ -252,7 +252,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
                       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-1">
                         <div
                           className={`h-full rounded-full transition-all ${
-                            pct > 85 ? 'bg-rose-500' : 'bg-orbit-500'
+                            pct > 85 ? 'bg-rose-500' : 'bg-saturn-500'
                           }`}
                           style={{ width: `${Math.min(pct, 100)}%` }}
                         />
@@ -277,12 +277,12 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
           onClick={() => setShowHiddenFiles((prev) => !prev)}
           className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors font-medium ${
             showHiddenFiles
-              ? 'bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 font-semibold'
+              ? 'bg-saturn-500/10 text-saturn-400 border border-saturn-500/20 font-semibold'
               : 'text-secondary hover:text-primary hover:bg-accent'
           }`}
         >
           <div className="flex items-center gap-2">
-            {showHiddenFiles ? <Eye className="w-3.5 h-3.5 text-orbit-400" /> : <EyeOff className="w-3.5 h-3.5" />}
+            {showHiddenFiles ? <Eye className="w-3.5 h-3.5 text-saturn-400" /> : <EyeOff className="w-3.5 h-3.5" />}
             <span>{t('files.hidden_files', 'Arquivos ocultos')}</span>
           </div>
           <span className="text-[10px] text-secondary font-mono">{showHiddenFiles ? t('files.visible', 'Visíveis') : t('files.hidden', 'Ocultos')}</span>

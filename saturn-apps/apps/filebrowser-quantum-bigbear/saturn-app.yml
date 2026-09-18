@@ -1,0 +1,15 @@
+id: filebrowser-quantum-bigbear
+name: FileBrowser Quantum
+tagline: Advanced self-hosted web file manager
+description: A self-hosted web file manager forked from FileBrowser with advanced
+  features including OIDC authentication, indexed search, office document previews,
+  and multi-source support.
+category: Productivity
+version: 1.0.0
+developer: gtsteffaniak
+store: bigbear
+icon: icon.png
+port: 8700
+architectures:
+- amd64
+- arm64

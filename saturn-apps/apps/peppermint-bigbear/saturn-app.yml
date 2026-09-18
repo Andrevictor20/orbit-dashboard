@@ -1,0 +1,13 @@
+id: peppermint-bigbear
+name: Peppermint
+tagline: peppermint
+description: Peppermint is a central hub for your help desk. A powerfully easy system
+  for tracking, prioritising, and solving customer support tickets.
+category: Others
+version: 1.0.0
+developer: Pepperlabs
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64

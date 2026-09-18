@@ -8,7 +8,7 @@ test('Capture Screenshots for README', async ({ page }) => {
   await page.goto('http://localhost:5173/');
 
   await page.evaluate(() => {
-    localStorage.setItem('orbit_token', 'fake_token');
+    localStorage.setItem('saturn_token', 'fake_token');
     localStorage.setItem('theme', 'zinc');
   });
 
@@ -31,13 +31,13 @@ test('Capture Screenshots for README', async ({ page }) => {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: '../docs/images/13_disk_analyzer.png' });
 
-  // File Manager - show orbit folder
+  // File Manager - show saturn folder
   await page.route('**/api/files/list*', async route => {
     await route.fulfill({ status: 200, json: [
-      { name: 'frontend', path: '/home/andrevmp/Downloads/Orbit/frontend', is_dir: true, size: 4096, modified_at: '2023-10-01' },
-      { name: 'backend', path: '/home/andrevmp/Downloads/Orbit/backend', is_dir: true, size: 4096, modified_at: '2023-10-01' },
-      { name: 'README.md', path: '/home/andrevmp/Downloads/Orbit/README.md', is_dir: false, size: 10240, modified_at: '2023-10-01' },
-      { name: 'docker-compose.yml', path: '/home/andrevmp/Downloads/Orbit/docker-compose.yml', is_dir: false, size: 512, modified_at: '2023-10-01' }
+      { name: 'frontend', path: '/home/andrevmp/Downloads/Saturn/frontend', is_dir: true, size: 4096, modified_at: '2023-10-01' },
+      { name: 'backend', path: '/home/andrevmp/Downloads/Saturn/backend', is_dir: true, size: 4096, modified_at: '2023-10-01' },
+      { name: 'README.md', path: '/home/andrevmp/Downloads/Saturn/README.md', is_dir: false, size: 10240, modified_at: '2023-10-01' },
+      { name: 'docker-compose.yml', path: '/home/andrevmp/Downloads/Saturn/docker-compose.yml', is_dir: false, size: 512, modified_at: '2023-10-01' }
     ] });
   });
   await page.goto('http://localhost:5173/files');
@@ -80,8 +80,8 @@ test('Capture Screenshots for README', async ({ page }) => {
   await page.waitForTimeout(1000);
   
   await page.evaluate(() => {
-    localStorage.setItem('orbit_theme', 'catppuccin-mocha');
-    localStorage.setItem('orbit_color', 'blue');
+    localStorage.setItem('saturn_theme', 'catppuccin-mocha');
+    localStorage.setItem('saturn_color', 'blue');
     document.documentElement.className = 'dark theme-catppuccin-mocha color-blue';
   });
   

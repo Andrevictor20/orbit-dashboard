@@ -1,0 +1,14 @@
+id: homer-bigbear
+name: Homer
+tagline: Homer
+description: A dead simple static HOMepage for your servER to keep your services on
+  hand, from a simple yaml configuration file.
+category: Others
+version: 1.0.0
+developer: bastienwirtz
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

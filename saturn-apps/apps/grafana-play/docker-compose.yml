@@ -1,0 +1,19 @@
+name: grafana-arm
+services:
+  grafana-arm:
+    image: grafana/grafana:8.4.3-armv7
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '3003'
+      protocol: tcp
+    restart: always
+    volumes:
+    - type: bind
+      source: /DATA/AppData/grafana-arm/data
+      target: /var/lib/grafana
+    container_name: grafana-arm

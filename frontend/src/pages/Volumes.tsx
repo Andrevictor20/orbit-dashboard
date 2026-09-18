@@ -42,7 +42,7 @@ export function Volumes() {
 
   const fetchVolumes = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/docker/volumes', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -92,7 +92,7 @@ export function Volumes() {
           <div className="max-h-44 overflow-y-auto space-y-1 p-2 rounded-xl bg-background/60 border border-border">
             {unusedVolumes.map(v => (
               <div key={v.name} className="flex items-center gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
-                <HardDrive className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                <HardDrive className="w-3.5 h-3.5 text-saturn-400 shrink-0" />
                 <span className="truncate flex-1" title={v.name}>{v.name}</span>
                 <span className="text-[10px] text-secondary px-1.5 py-0.5 rounded bg-accent shrink-0">{v.driver}</span>
               </div>
@@ -112,7 +112,7 @@ export function Volumes() {
           runner: async (helpers) => {
             helpers.setProgress(20);
             helpers.setStatus('running');
-            const token = localStorage.getItem('orbit_token');
+            const token = localStorage.getItem('saturn_token');
             const res = await fetch('/api/docker/volumes/prune', { 
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` }
@@ -152,7 +152,7 @@ export function Volumes() {
       onConfirm: async () => {
         const loadingToast = toast.loading(t('volumes.deleting_volume', 'Excluindo volume...'));
         try {
-          const token = localStorage.getItem('orbit_token');
+          const token = localStorage.getItem('saturn_token');
           const res = await fetch(`/api/docker/volumes/${name}`, { 
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` }
@@ -206,7 +206,7 @@ export function Volumes() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight flex items-center gap-2">
-            <HardDrive className="h-6 w-6 text-orbit-500" />
+            <HardDrive className="h-6 w-6 text-saturn-500" />
             {t('sidebar.volumes')}
           </h2>
           <p className="text-xs sm:text-sm text-secondary mt-1">{t('volumes.subtitle')}</p>
@@ -232,7 +232,7 @@ export function Volumes() {
             placeholder={t('volumes.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 transition-colors font-mono"
+            className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500 transition-colors font-mono"
           />
         </div>
 
@@ -241,7 +241,7 @@ export function Volumes() {
           <div className="flex bg-background p-1 rounded-xl border border-border text-xs overflow-x-auto scrollbar-none">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
             >
               {t('common.all')} ({volumes.length})
             </button>
@@ -282,7 +282,7 @@ export function Volumes() {
       <div className="glass-panel rounded-2xl overflow-hidden border border-border">
         {loading ? (
           <div className="p-8 sm:p-12 text-center text-secondary flex flex-col items-center justify-center gap-2">
-            <HardDrive className="w-8 h-8 animate-pulse text-orbit-500" />
+            <HardDrive className="w-8 h-8 animate-pulse text-saturn-500" />
             <span>{t('volumes.loading', 'Carregando volumes...')}</span>
           </div>
         ) : filteredAndSortedVolumes.length === 0 ? (
@@ -297,7 +297,7 @@ export function Volumes() {
                 <div key={vol.name} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-400 shrink-0">
+                      <div className="p-2 rounded-xl bg-saturn-500/10 text-saturn-400 shrink-0">
                         <HardDrive className="h-4 w-4" />
                       </div>
                       <span className="font-semibold text-primary text-sm font-mono break-all" title={vol.name}>
@@ -376,7 +376,7 @@ export function Volumes() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <HardDrive className="w-4 h-4 text-orbit-500 flex-shrink-0" />
+                          <HardDrive className="w-4 h-4 text-saturn-500 flex-shrink-0" />
                           <span className="font-mono text-sm font-medium text-primary" title={vol.name}>
                             {vol.name}
                           </span>

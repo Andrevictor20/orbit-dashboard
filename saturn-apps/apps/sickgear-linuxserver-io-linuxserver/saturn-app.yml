@@ -1,0 +1,17 @@
+id: sickgear-linuxserver-io-linuxserver
+name: Sickgear (LinuxServer.io)
+tagline: 'Provides management of TV shows and/or Anime, it detects new episodes, links
+  downloader apps, and more. . For more information on SickGear visit their website
+  and check it out: https://github. Com/SickGear/SickGear'
+description: 'SickGear provides management of TV shows and/or Anime, it detects new
+  episodes, links downloader apps, and more.. For more information on SickGear visit
+  their website and check it out: https://github.com/SickGear/SickGear'
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: https://raw.githubusercontent.com/wiki/SickGear/SickGear.Wiki/images/SickGearLogo.png
+port: 8081
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,15 @@
+id: nginx-proxy-manager
+name: Nginx Proxy Manager
+tagline: Managing Nginx proxy hosts with a simple, powerful interface.
+description: Nginx Proxy Manager is a simple, powerful tool to help you host multiple
+  websites on a single server.
+category: Networking
+version: 1.0.0
+developer: Nginx Proxy Manager
+store: official
+icon: icon.png
+port: 81
+architectures:
+- amd64
+- arm64
+- arm

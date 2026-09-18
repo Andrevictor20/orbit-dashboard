@@ -1,0 +1,17 @@
+id: cups-play
+name: CUPS
+tagline: Turn your printer into a network printer
+description: CUPS (Common UNIX Printing System) is a modular printing system for Unix-like
+  operating systems that allows a computer to act as a print server. It can accept
+  print jobs from client computers, process them, and send them to the appropriate
+  printer.
+category: Productivity
+version: 1.0.0
+developer: anujdatar
+store: play
+icon: icon.png
+port: 631
+architectures:
+- amd64
+- arm
+- arm64

@@ -19,7 +19,7 @@
   "install_failed": "La instalación falló",
   "install_cancelled": "Instalación cancelada",
   "background_task": "Tarea en segundo plano",
-  "port_conflict_explanation": "Al hacer clic en \"Instalar con puerto sugerido\", Orbit reasigna automáticamente los servicios a los puertos disponibles sin necesidad de descargar imágenes nuevamente.",
+  "port_conflict_explanation": "Al hacer clic en \"Instalar con puerto sugerido\", Saturn reasigna automáticamente los servicios a los puertos disponibles sin necesidad de descargar imágenes nuevamente.",
   "managed_stack_services": "Pila administrada con servicios interconectados {{count}}",
   "services": "Servicios",
   "image_update_available_tip": "Nueva versión de imagen disponible para tu dispositivo. Haga clic para actualizar y reiniciar.",

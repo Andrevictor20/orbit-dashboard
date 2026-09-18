@@ -1,0 +1,13 @@
+id: motioneye-arm-play
+name: Motioneye
+tagline: A web frontend for the motion daemon.
+description: motionEye is a web-based frontend for motion. Check out the wiki for
+  more details. Changelog is available on the releases page. https://github.com/motioneye-project/motioneye
+category: Utilities
+version: 1.0.0
+developer: Motioneye
+store: play
+icon: icon.png
+port: 8765
+architectures:
+- arm

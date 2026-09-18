@@ -1,0 +1,39 @@
+name: fnos
+services:
+  fnos:
+    image: makedie/fnos:0.8.29-568_test
+    container_name: fnos
+    tty: true
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/fuse:/dev/fuse
+    - /dev/kvm:/dev/kvm
+    - /dev/vfio:/dev/vfio
+    - /dev/nvidia0:/dev/nvidia0
+    - /dev/nvidiactl:/dev/nvidiactl
+    - /dev/nvidia-uvm:/dev/nvidia-uvm
+    - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools
+    - /dev/nvidia-vgpu1:/dev/nvidia-vgpu1
+    cap_add:
+    - SYS_ADMIN
+    - NET_ADMIN
+    ports:
+    - 5666:5666
+    - 5432:5432
+    volumes:
+    - /sys/fs/fuse:/sys/fs/fuse
+    tmpfs:
+    - /tmp
+    - /var/run
+    - /var/cache
+    - /run/lock
+    extra_hosts:
+    - fnOS:127.0.0.1
+    hostname: fnOS
+    privileged: true
+    network_mode: bridge
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 2048M

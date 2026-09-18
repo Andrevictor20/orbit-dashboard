@@ -1,0 +1,52 @@
+id: librechat
+name: LibreChat
+tagline: A full-featured, open-source AI chat interface
+description: 'LibreChat is a full-featured, open-source AI chat interface that allows
+  users to interact with multiple AI models through a unified platform. It supports
+  various AI providers and offers advanced features like conversation management,
+  plugin support, and customizable interfaces.
+
+  **Key Features:**
+
+  - Support for multiple AI models and providers
+
+  - Conversation history and management
+
+  - Plugin system for extended functionality
+
+  - Customizable themes and interfaces
+
+  - User authentication and management
+
+  - API integrations for various services
+
+  - Search functionality with MeiliSearch
+
+  - RAG (Retrieval-Augmented Generation) support
+
+  - File upload and processing capabilities
+
+  - Multi-language support
+
+
+  **Learn More:**
+
+  - [LibreChat Official Website](https://www.librechat.ai)
+
+  - [LibreChat GitHub Repository](https://github.com/danny-avila/LibreChat)
+
+
+  **extra:**
+
+  You can refer to the [Custom AI Endpoints](https://www.librechat.ai/docs/configuration/librechat_yaml/ai_endpoints)
+  documentation to configure the relevant files for calling the APIs of Anyscale,
+  ApiPie, Cohere, Deepseek, Databricks, Fireworks, Groq, HuggingFace, Mistral, OpenRouter,
+  Perplexity, ShuttleAI, TogetherAI, Unify, and xAI.'
+category: AI
+version: 1.0.0
+developer: LibreChat
+store: official
+icon: icon.png
+port: 3080
+architectures:
+- amd64

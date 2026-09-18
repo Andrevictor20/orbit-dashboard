@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { User, KeyRound, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { OrbitLogo } from '../components/ui/OrbitLogo';
+import { SaturnLogo } from '../components/ui/SaturnLogo';
 
 export function Setup() {
   const { t } = useTranslation();
@@ -63,18 +63,18 @@ export function Setup() {
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden text-secondary">
       {/* Background decoration */}
       <div className="absolute inset-0 z-0 opacity-10">
-        <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-orbit-500 rounded-full blur-[120px]" />
+        <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-saturn-500 rounded-full blur-[120px]" />
         <div className="absolute top-3/4 right-0 w-1/3 h-1/3 bg-blue-500 rounded-full blur-[100px]" />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in">
         <div className="flex justify-center">
-          <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-2xl shadow-orbit-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
-            <OrbitLogo size={64} className="rounded-2xl" />
+          <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-2xl shadow-saturn-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
+            <SaturnLogo size={64} className="rounded-2xl" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-primary">
-          {t('auth.welcome_orbit', 'Bem-vindo ao Orbit')}
+          {t('auth.welcome_saturn', 'Bem-vindo ao Saturn')}
         </h2>
         <p className="mt-2 text-center text-sm text-secondary">
           {t('auth.setup_subtitle', 'Crie seu usuário administrador para começar')}
@@ -82,7 +82,7 @@ export function Setup() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
-        <div className="bg-card py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-orbit-500/10 transition-shadow duration-500">
+        <div className="bg-card py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border hover:shadow-saturn-500/10 transition-shadow duration-500">
           <form className="space-y-6" onSubmit={handleSubmit}>
             
             {error && (
@@ -108,7 +108,7 @@ export function Setup() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                  className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 text-sm transition-colors shadow-sm"
                   placeholder={t('auth.username', 'admin')}
                 />
               </div>
@@ -130,7 +130,7 @@ export function Setup() {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 bg-background border border-border rounded-xl py-2.5 text-primary placeholder:text-secondary/60 focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                  className="block w-full pl-10 pr-10 bg-background border border-border rounded-xl py-2.5 text-primary placeholder:text-secondary/60 focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 text-sm transition-colors shadow-sm"
                   placeholder="••••••••"
                 />
                 <button
@@ -163,7 +163,7 @@ export function Setup() {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 bg-background border border-border rounded-xl py-2.5 text-primary placeholder:text-secondary/60 focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                  className="block w-full pl-10 pr-10 bg-background border border-border rounded-xl py-2.5 text-primary placeholder:text-secondary/60 focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 text-sm transition-colors shadow-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -173,7 +173,7 @@ export function Setup() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center items-center space-x-2 rounded-xl bg-orbit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orbit-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orbit-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="flex w-full justify-center items-center space-x-2 rounded-xl bg-saturn-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-saturn-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-saturn-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

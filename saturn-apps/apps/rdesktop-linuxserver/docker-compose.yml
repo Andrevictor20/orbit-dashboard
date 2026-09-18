@@ -1,0 +1,23 @@
+name: linuxserver-rdesktop
+services:
+  app:
+    image: linuxserver/rdesktop:arch-kde-version-arch-2025-01-10
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3389
+      published: 3389
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/rdesktop/config
+      target: /config
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    - type: bind
+      source: /DATA/AppData/rdesktop/config
+      target: /config

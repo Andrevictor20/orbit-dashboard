@@ -100,7 +100,7 @@ export const DeviceCardClimate: React.FC<DeviceCardClimateProps> = ({
               title="Aumentar 0.5°C"
             >
               {pending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-orbit-400" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-saturn-400" />
               ) : (
                 <Plus className="w-3.5 h-3.5" />
               )}

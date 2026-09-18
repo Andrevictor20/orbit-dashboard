@@ -88,7 +88,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
         {/* Modal Header */}
         <div className="p-6 border-b border-border/60 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 text-orbit-600 dark:text-orbit-400 shadow-inner">
+            <div className="p-3 rounded-2xl bg-saturn-500/15 border border-saturn-500/30 text-saturn-600 dark:text-saturn-400 shadow-inner">
               <Sliders className="w-6 h-6" />
             </div>
             <div>
@@ -193,7 +193,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
                           onClick={() => onToggle(ent.entity_id, ent.state)}
                           className={`p-2 rounded-xl border transition-all active:scale-95 ${
                             isOn
-                              ? 'bg-orbit-500 text-white border-orbit-400 shadow-md shadow-orbit-500/25'
+                              ? 'bg-saturn-500 text-white border-saturn-400 shadow-md shadow-saturn-500/25'
                               : 'bg-card text-slate-700 dark:text-secondary hover:text-primary border-border/80'
                           }`}
                           title={isOn ? t('homeassistant.turn_off', 'Desligar') : t('homeassistant.turn_on', 'Ligar')}
@@ -216,7 +216,7 @@ export const DeviceDetailModal: React.FC<DeviceDetailModalProps> = ({
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white font-medium text-xs shadow-md shadow-orbit-500/20 transition-all active:scale-95"
+            className="px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white font-medium text-xs shadow-md shadow-saturn-500/20 transition-all active:scale-95"
           >
             {t('common.done', 'Concluído')}
           </button>

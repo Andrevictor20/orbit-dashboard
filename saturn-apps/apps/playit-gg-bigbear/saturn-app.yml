@@ -1,0 +1,15 @@
+id: playit-gg-bigbear
+name: playit.gg
+tagline: playit.gg is a global proxy that allows anyone to host a server without port
+  forwarding. We use tunneling. Only the server needs to run the program, not every
+  player!
+description: playit.gg is a global proxy that allows anyone to host a server without
+  port forwarding. We use tunneling. Only the server needs to run the program, not
+  every player!
+category: Networking
+version: 1.0.0
+developer: Dysta
+store: bigbear
+icon: icon.png
+architectures:
+- amd64

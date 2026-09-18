@@ -1,0 +1,15 @@
+id: clouddrive-play
+name: CloudDrive2
+tagline: The infinite possibility of unlocking cloud storage
+description: A powerful multi -cloud disk management tool provides users with a one
+  -stop multi -cloud disk solution containing a cloud -mounted local mount.
+category: Productivity
+version: 1.0.0
+developer: waytechcloudfs
+store: play
+icon: icon.png
+port: 19798
+architectures:
+- amd64
+- arm
+- arm64

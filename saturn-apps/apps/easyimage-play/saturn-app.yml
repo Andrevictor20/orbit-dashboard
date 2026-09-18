@@ -1,0 +1,15 @@
+id: easyimage-play
+name: EasyImage
+tagline: A powerful picture warehouse without database
+description: 'Supporting multi -file upload, simple countless data library, returning
+  picture URL, Markdown, bbscode, html picture warehouse program. Demo: https://png.cm/'
+category: Productivity
+version: 1.0.0
+developer: icret
+store: play
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm
+- arm64

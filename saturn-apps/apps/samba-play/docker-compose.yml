@@ -1,0 +1,20 @@
+name: samba
+services:
+  samba:
+    image: dockurr/samba:latest
+    container_name: samba
+    environment:
+      NAME: Data
+      USER: admin
+      PASS: password
+      RW: 'true'
+    ports:
+    - 445:445
+    volumes:
+    - /DATA:/storage
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge

@@ -40,7 +40,7 @@ describe('batchUpdateRunner utility', () => {
 
   describe('isTunnelOrProxy', () => {
     it('correctly identifies tunnel and proxy containers', () => {
-      expect(isTunnelOrProxy({ id: '1', name: 'cloudflared-orbit', image: 'cloudflare/cloudflared:latest' })).toBe(true);
+      expect(isTunnelOrProxy({ id: '1', name: 'cloudflared-saturn', image: 'cloudflare/cloudflared:latest' })).toBe(true);
       expect(isTunnelOrProxy({ id: '2', name: 'my-traefik', image: 'traefik:v2.10' })).toBe(true);
       expect(isTunnelOrProxy({ id: '3', name: 'nginx-proxy-manager', image: 'jc21/nginx-proxy-manager' })).toBe(true);
       expect(isTunnelOrProxy({ id: '4', name: 'caddy-ssl', image: 'caddy:alpine' })).toBe(true);

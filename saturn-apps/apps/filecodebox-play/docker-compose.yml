@@ -1,0 +1,19 @@
+name: filecodebox
+services:
+  filecodebox:
+    image: lanol/filecodebox:beta
+    container_name: filecodebox
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 12345
+      published: 12345
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/filecodebox/data
+      target: /app/data

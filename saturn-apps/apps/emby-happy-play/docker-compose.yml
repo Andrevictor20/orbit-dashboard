@@ -1,0 +1,38 @@
+name: emby-happy
+services:
+  emby-happy:
+    image: amilys/embyserver:latest
+    container_name: emby-happy
+    devices:
+    - /dev/dri:/dev/dri
+    environment:
+    - NVIDIA_DRIVER_CAPABILITIES=all
+    - NVIDIA_VISIBLE_DEVICES=all
+    - GID=0
+    - UID=0
+    ports:
+    - target: 8096
+      published: '8096'
+      protocol: tcp
+    - target: 8920
+      published: '8920'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/emby-happy/config
+      target: /config
+    - type: bind
+      source: /DATA/Media/TV Shows
+      target: /data/tvshows
+    - type: bind
+      source: /DATA/Media/Movies
+      target: /data/movies
+    hostname: emby-happy
+    extra_hosts:
+    - api.themoviedb.org:13.224.163.120
+    - image.tmdb.org:143.244.50.83
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

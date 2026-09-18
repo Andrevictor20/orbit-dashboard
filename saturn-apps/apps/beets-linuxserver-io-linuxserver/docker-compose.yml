@@ -1,0 +1,23 @@
+name: linuxserver-beets
+services:
+  app:
+    image: linuxserver/beets:2.14.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 8337
+      published: 8337
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/beets/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/beets/music
+      target: /music
+    - type: bind
+      source: /DATA/AppData/beets/downloads
+      target: /downloads

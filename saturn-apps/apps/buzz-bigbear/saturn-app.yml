@@ -1,0 +1,15 @@
+id: buzz-bigbear
+name: Buzz
+tagline: Self-hosted workspace and Nostr relay for humans and agents
+description: Buzz is a self-hostable workspace for humans and agents from Block. It
+  runs a Nostr relay, a REST bridge, git-over-object-storage, and a web interface
+  from a single Rust binary, so you can host your own community and agent infrastructure.
+category: Developer
+version: 1.0.0
+developer: block
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

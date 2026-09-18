@@ -1,0 +1,13 @@
+id: duckdns
+name: duckdns
+tagline: Dynamic DNS for your domain, supporting both IPv4 and IPv6
+description: duckdns is a DDNS (Dynamic DNS) application that dynamically binds IP
+  addresses to domain names, supporting both IPv4 and IPv6.
+category: Networking
+version: 1.0.0
+developer: DuckDNS Team
+store: official
+icon: icon.png
+architectures:
+- amd64
+- arm64

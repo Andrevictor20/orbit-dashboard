@@ -45,7 +45,7 @@ export function CustomInstallPortsTab({
             className="text-xs flex items-center gap-1.5 bg-accent/60 hover:bg-accent text-secondary hover:text-primary border border-border px-2.5 py-1.5 rounded-xl transition-colors"
             title={t('custom_install.check_conflicts_tooltip', 'Verificar conflitos de portas com o host')}
           >
-            <RefreshCw className={`w-3 h-3 text-orbit-500 ${checkingPorts ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 text-saturn-500 ${checkingPorts ? 'animate-spin' : ''}`} />
             <span>{checkingPorts ? t('custom_install.checking', 'Checando...') : t('custom_install.check_conflicts', 'Checar Conflitos')}</span>
           </button>
           <button 
@@ -53,7 +53,7 @@ export function CustomInstallPortsTab({
             onClick={() => setPorts([...ports, { host: '', container: '', protocol: 'tcp' }])}
             className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
           >
-            <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
+            <Plus className="w-3.5 h-3.5 text-saturn-500" /> {t('common.add', 'Adicionar')}
           </button>
         </div>
       </div>
@@ -77,7 +77,7 @@ export function CustomInstallPortsTab({
                   }}
                   onBlur={() => onCheckConflicts(ports)}
                   className={`w-full bg-card border rounded-xl px-3 py-1.5 text-sm text-primary font-mono transition-all ${
-                    port.in_use ? 'border-rose-500 bg-rose-500/10' : 'border-border focus:border-orbit-500'
+                    port.in_use ? 'border-rose-500 bg-rose-500/10' : 'border-border focus:border-saturn-500'
                   }`}
                 />
               </div>

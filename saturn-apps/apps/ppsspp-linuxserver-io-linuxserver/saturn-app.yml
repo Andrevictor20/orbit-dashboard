@@ -1,0 +1,16 @@
+id: ppsspp-linuxserver-io-linuxserver
+name: Ppsspp (LinuxServer.io)
+tagline: A free and open-source PSP emulator for Windows, macOS, Linux, iOS, Android,
+  Nintendo Wii U, Nintendo Switch, BlackBerry 10, MeeGo, Pandora, Xbox Series and
+  Symbian with a focus on speed and portability.
+description: PPSSPP is a free and open-source PSP emulator for Windows, macOS, Linux,
+  iOS, Android, Nintendo Wii U, Nintendo Switch, BlackBerry 10, MeeGo, Pandora, Xbox
+  Series and Symbian with a focus on speed and portability.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

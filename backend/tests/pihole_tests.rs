@@ -250,7 +250,7 @@ fn test_pihole_parsers_domain_maps() {
     let combined_v6 = json!({
         "top_queries": {
             "google.com": 500,
-            "orbit.home": 300
+            "saturn.home": 300
         },
         "top_ads": {
             "telemetry.ms.com": 90,

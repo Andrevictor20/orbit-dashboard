@@ -1,0 +1,41 @@
+name: xiaoju-survey
+services:
+  mongo:
+    image: mongo:4
+    container_name: xiaoju-survey-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: xiaoju-survey
+      MONGO_INITDB_ROOT_PASSWORD: xiaoju-survey
+    ports:
+    - published: '27018'
+      target: 27017
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/xiaoju-survey/db
+      target: /data/db
+    networks:
+    - xiaoju-survey
+  xiaoju-survey:
+    image: xiaojusurvey/xiaoju-survey:1.1.2-slim
+    container_name: xiaoju-survey
+    restart: unless-stopped
+    ports:
+    - published: '8081'
+      target: 80
+      protocol: tcp
+    environment:
+      XIAOJU_SURVEY_MONGO_URL: mongodb://xiaoju-survey:xiaoju-survey@xiaoju-survey-mongo:27017
+    depends_on:
+    - mongo
+    networks:
+    - xiaoju-survey
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+networks:
+  xiaoju-survey:
+    name: xiaoju-survey
+    driver: bridge

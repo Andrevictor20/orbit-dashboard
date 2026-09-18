@@ -43,7 +43,7 @@
   "cancel_container": "取消更新",
   "cancelled_by_user": "已被用户取消",
   "ready_for_update": "{{count}} 容器已准备好更新",
-  "update_via_orbit_menu": "通过 Orbit 菜单更新",
+  "update_via_saturn_menu": "通过 Saturn 菜单更新",
   "continue_in_background": "在后台继续",
   "floating_title_updating": "后台更新",
   "floating_title_failed": "更新失败",

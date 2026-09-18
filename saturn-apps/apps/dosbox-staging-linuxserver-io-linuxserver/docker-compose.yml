@@ -1,0 +1,20 @@
+name: linuxserver-dosbox-staging
+services:
+  app:
+    image: linuxserver/dosbox-staging:0.83.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/dosbox-staging/config
+      target: /config

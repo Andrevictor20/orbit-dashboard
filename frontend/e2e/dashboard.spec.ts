@@ -12,7 +12,7 @@ test.describe('Dashboard and Navigation', () => {
     });
 
     await page.addInitScript(() => {
-      window.localStorage.setItem('orbit_token', 'mocked_token');
+      window.localStorage.setItem('saturn_token', 'mocked_token');
     });
 
     // Mock typical dashboard endpoints
@@ -43,7 +43,7 @@ test.describe('Dashboard and Navigation', () => {
     await page.goto('/');
     
     // Check if the page title is correct
-    await expect(page).toHaveTitle(/Orbit Dashboard/);
+    await expect(page).toHaveTitle(/Saturn Dashboard/);
 
     // Ensure the main layout or sidebar is present
     await expect(page.locator('aside, nav, header').first()).toBeVisible();

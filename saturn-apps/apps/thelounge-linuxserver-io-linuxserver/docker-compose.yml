@@ -1,0 +1,17 @@
+name: linuxserver-thelounge
+services:
+  app:
+    image: linuxserver/thelounge:4.5.2
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 9000
+      published: 9000
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/thelounge/config
+      target: /config

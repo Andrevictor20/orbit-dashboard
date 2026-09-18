@@ -123,12 +123,12 @@ export function PortConflictDialog({
             ))}
           </div>
 
-          <div className="p-3 bg-orbit-500/10 border border-orbit-500/20 rounded-xl text-xs text-slate-700 dark:text-orbit-300 flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-orbit-500 shrink-0 mt-0.5" />
+          <div className="p-3 bg-saturn-500/10 border border-saturn-500/20 rounded-xl text-xs text-slate-700 dark:text-saturn-300 flex items-start gap-2.5">
+            <Sparkles className="w-4 h-4 text-saturn-500 shrink-0 mt-0.5" />
             <span>
               {t(
                 'store.portConflictAutoTip',
-                'Ao clicar em "Instalar com Porta Sugerida", o Orbit remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.'
+                'Ao clicar em "Instalar com Porta Sugerida", o Saturn remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.'
               )}
             </span>
           </div>
@@ -157,7 +157,7 @@ export function PortConflictDialog({
             <button
               onClick={onAcceptSuggested}
               disabled={installing}
-              className="px-4 py-2 text-xs sm:text-sm font-medium bg-orbit-600 hover:bg-orbit-500 active:scale-95 text-white rounded-xl shadow-md shadow-orbit-600/20 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 text-xs sm:text-sm font-medium bg-saturn-600 hover:bg-saturn-500 active:scale-95 text-white rounded-xl shadow-md shadow-saturn-600/20 transition-all flex items-center gap-2 disabled:opacity-50"
             >
               {installing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

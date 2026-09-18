@@ -46,7 +46,7 @@ describe('Login component', () => {
   };
 
   it('renders login form without painel seguro and displays wallpaper when configured', () => {
-    localStorage.setItem('orbit-wallpaper-url', 'https://example.com/login-wallpaper.jpg');
+    localStorage.setItem('saturn-wallpaper-url', 'https://example.com/login-wallpaper.jpg');
     render(
       <ThemeProvider>
         <AuthProvider>
@@ -62,7 +62,7 @@ describe('Login component', () => {
     expect(screen.queryByText(/Painel Seguro/i)).toBeNull();
     const wallpaperImg = document.querySelector('img[src="https://example.com/login-wallpaper.jpg"]');
     expect(wallpaperImg).toBeTruthy();
-    localStorage.removeItem('orbit-wallpaper-url');
+    localStorage.removeItem('saturn-wallpaper-url');
   });
 
   it('shows error on empty fields', async () => {
@@ -112,7 +112,7 @@ describe('Login component', () => {
       </AuthProvider>
     );
 
-    expect(screen.getByText('Orbit Atualizado com Sucesso!')).toBeInTheDocument();
+    expect(screen.getByText(/Saturn Atualizado com Sucesso!/)).toBeInTheDocument();
     expect(screen.getByText('v1.9.8')).toBeInTheDocument();
     expect(screen.getByText(/O sistema foi atualizado para a versão mais recente/i)).toBeInTheDocument();
   });

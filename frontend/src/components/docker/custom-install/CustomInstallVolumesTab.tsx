@@ -37,7 +37,7 @@ export function CustomInstallVolumesTab({
           onClick={() => setVolumes([...volumes, { host: `/app/data/apps/${appId}`, container: '/data' }])}
           className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
         >
-          <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
+          <Plus className="w-3.5 h-3.5 text-saturn-500" /> {t('common.add', 'Adicionar')}
         </button>
       </div>
 
@@ -58,7 +58,7 @@ export function CustomInstallVolumesTab({
                       newVols[idx].host = e.target.value;
                       setVolumes(newVols);
                     }}
-                    className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary font-mono focus:border-orbit-500"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary font-mono focus:border-saturn-500"
                   />
                   <button
                     type="button"
@@ -67,7 +67,7 @@ export function CustomInstallVolumesTab({
                     title={t('folder_picker.browse', 'Selecionar pasta no servidor')}
                     aria-label={t('folder_picker.browse', 'Selecionar pasta no servidor')}
                   >
-                    <FolderOpen className="w-4 h-4 text-orbit-500" />
+                    <FolderOpen className="w-4 h-4 text-saturn-500" />
                   </button>
                 </div>
               </div>

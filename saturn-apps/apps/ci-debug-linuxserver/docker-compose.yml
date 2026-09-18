@@ -1,0 +1,17 @@
+name: linuxserver-ci-debug
+services:
+  app:
+    image: linuxserver/ci-debug:933e2702-ls1
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/ci-debug/config
+      target: /config

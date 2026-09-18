@@ -1,0 +1,26 @@
+name: tinymediamanager
+services:
+  tinymediamanager:
+    image: tinymediamanager/tinymediamanager:latest
+    container_name: tinymediamanager
+    deploy:
+      resources:
+        reservations:
+          memory: 1024M
+    network_mode: bridge
+    environment:
+    - USER_ID=1000
+    - GROUP_ID=1000
+    - ALLOW_DIRECT_VNC=true
+    - LC_ALL=en_US.UTF-8
+    - LANG=en_US.UTF-8
+    - PASSWORD=admin
+    ports:
+    - 5900:5900
+    - 4000:4000
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/tinymediamanager/data:/data
+    - /DATA/Media:/DATA/Media
+    - /media:/media
+    - /mnt:/mnt

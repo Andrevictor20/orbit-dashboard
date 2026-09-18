@@ -1,0 +1,15 @@
+id: dify
+name: Dify
+tagline: LLM App Development Platform
+description: Dify is an open-source large language model (LLM) application development
+  platform. It combines the concepts of Backend-as-a-Service and LLMOps to enable
+  developers to quickly build production-grade generative AI applications. Even non-technical
+  personnel can participate in the definition and data operations of AI applications.
+category: AI
+version: 1.0.0
+developer: LangGenius
+store: official
+icon: icon.png
+port: 3701
+architectures:
+- amd64

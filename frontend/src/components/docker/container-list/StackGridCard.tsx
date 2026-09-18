@@ -37,30 +37,30 @@ export function StackGridCard({
   return (
     <div
       onClick={() => onOpenGroupModal(group)}
-      className="bg-card border-2 border-orbit-500/30 hover:border-orbit-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-[transform,box-shadow,border-color] duration-220 ease-out hover:-translate-y-0.5 hover:z-10 active:scale-[0.99] active:translate-y-0 cursor-pointer shadow-md hover:shadow-xl overflow-hidden will-change-transform"
+      className="bg-card border-2 border-saturn-500/30 hover:border-saturn-500 rounded-2xl p-5 flex flex-col justify-between gap-4 relative group transition-[transform,box-shadow,border-color] duration-220 ease-out hover:-translate-y-0.5 hover:z-10 active:scale-[0.99] active:translate-y-0 cursor-pointer shadow-md hover:shadow-xl overflow-hidden will-change-transform"
     >
       {/* Top Layer indicator background glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-orbit-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-saturn-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-2 relative z-10">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-orbit-500/40 shadow-sm shrink-0 relative group-hover:scale-105 transition-transform p-1.5">
+          <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-saturn-500/40 shadow-sm shrink-0 relative group-hover:scale-105 transition-transform p-1.5">
             <ContainerIcon
               src={group.iconUrl}
               name={group.name}
               size={32}
               className="w-full h-full"
             />
-            <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white shadow-sm">
+            <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-saturn-500 text-white shadow-sm">
               <Layers className="w-2.5 h-2.5" />
             </div>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-bold text-primary text-base truncate group-hover:text-orbit-400 transition-colors" title={group.name}>
+            <span className="font-bold text-primary text-base truncate group-hover:text-saturn-400 transition-colors" title={group.name}>
               {group.name}
             </span>
-            <span className="text-[11px] text-orbit-600 dark:text-orbit-400 font-mono flex items-center gap-1 font-medium">
+            <span className="text-[11px] text-saturn-600 dark:text-saturn-400 font-mono flex items-center gap-1 font-medium">
               <Layers className="w-3 h-3" />
               <span>Stack ({group.totalCount} containers)</span>
             </span>
@@ -88,7 +88,7 @@ export function StackGridCard({
               <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })} ({stackUpdatesCount})</span>
             </button>
           )}
-          <span className="px-2 py-0.5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 border border-orbit-500/40 text-[11px] font-bold font-mono shrink-0">
+          <span className="px-2 py-0.5 rounded-full bg-saturn-500/20 text-saturn-700 dark:text-saturn-300 border border-saturn-500/40 text-[11px] font-bold font-mono shrink-0">
             Stack
           </span>
         </div>
@@ -105,7 +105,7 @@ export function StackGridCard({
           <span className="text-xs text-primary font-mono font-bold">{formatRAM(group.totalMemory)}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-orbit-700 dark:text-orbit-400 uppercase font-semibold tracking-wider">{t('docker.disk', 'Disco')}</span>
+          <span className="text-[10px] text-saturn-700 dark:text-saturn-400 uppercase font-semibold tracking-wider">{t('docker.disk', 'Disco')}</span>
           <span className="text-xs text-primary font-mono font-bold">{formatBytes(group.totalDisk)}</span>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function StackGridCard({
           </span>
         ))}
         {group.containers.length > 3 && (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-orbit-500/15 text-orbit-700 dark:text-orbit-300 font-bold border border-orbit-500/30">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-saturn-500/15 text-saturn-700 dark:text-saturn-300 font-bold border border-saturn-500/30">
             +{group.containers.length - 3}
           </span>
         )}
@@ -145,7 +145,7 @@ export function StackGridCard({
                         key={idx}
                         className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
                           isPrimary
-                            ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
+                            ? 'bg-saturn-500/15 border-saturn-500/40 text-saturn-500 font-semibold shadow-xs'
                             : 'bg-background border-border/50 text-secondary'
                         }`}
                       >
@@ -194,10 +194,10 @@ export function StackGridCard({
                 e.stopPropagation();
                 window.open(resolveWebUrl(group.webLink), '_blank');
               }}
-              className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-600 dark:text-orbit-400 hover:text-orbit-700 dark:hover:text-orbit-300 flex items-center gap-1 transition-colors border border-orbit-500/30 font-medium"
+              className="glass-button px-2.5 py-1 text-xs rounded-lg text-saturn-600 dark:text-saturn-400 hover:text-saturn-700 dark:hover:text-saturn-300 flex items-center gap-1 transition-colors border border-saturn-500/30 font-medium"
               title={t('docker.open_app_target', { name: group.primaryContainer.name, link: group.webLink, defaultValue: `Abrir ${group.primaryContainer.name} (${group.webLink})` })}
             >
-              <Globe className="w-3 h-3 text-orbit-600 dark:text-orbit-400" />
+              <Globe className="w-3 h-3 text-saturn-600 dark:text-saturn-400" />
               <span className="truncate max-w-[70px]">{t('containers.open_app')}</span>
             </button>
           )}
@@ -207,7 +207,7 @@ export function StackGridCard({
               e.stopPropagation();
               onOpenPrimarySelector(group);
             }}
-            className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-orbit-600 dark:hover:text-orbit-300 transition-colors border border-border/50"
+            className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-saturn-600 dark:hover:text-saturn-300 transition-colors border border-border/50"
             title={`${t('containers.select_primary')} (${group.primaryContainer.name})`}
           >
             <Settings2 className="w-3 h-3" />
@@ -219,7 +219,7 @@ export function StackGridCard({
       <div className="flex items-center justify-between pt-2 border-t border-border/50 gap-1.5" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => onOpenGroupModal(group)}
-          className="glass-button px-3 py-1.5 text-xs rounded-lg text-orbit-700 dark:text-orbit-300 hover:text-orbit-900 dark:hover:text-white bg-orbit-500/15 hover:bg-orbit-500/30 border border-orbit-500/40 flex-1 flex items-center justify-center gap-1.5 font-semibold transition-colors"
+          className="glass-button px-3 py-1.5 text-xs rounded-lg text-saturn-700 dark:text-saturn-300 hover:text-saturn-900 dark:hover:text-white bg-saturn-500/15 hover:bg-saturn-500/30 border border-saturn-500/40 flex-1 flex items-center justify-center gap-1.5 font-semibold transition-colors"
           title={t('docker.manage_subcontainers_title', 'Ver e gerenciar todos os sub-containers')}
         >
           <Layers className="w-3.5 h-3.5" />

@@ -1,0 +1,17 @@
+id: yesplaymusic-play
+name: YesPlayMusic
+tagline: High aesthetic third-party NetEase cloud player
+description: ✅ Developed using Vue.js stack, supports Netease Cloud login, MV playback,
+  lyrics display, private FM, and daily recommendations. No social features, direct
+  playback for overseas users, UnblockNeteaseMusic support, automatic check-ins, Light/Dark
+  Mode switching, Touch Bar, PWA installation, Last.fm Scrobble, music cloud storage,
+  custom shortcuts, Mpris, and more features in development. 🛠
+category: Media
+version: 1.0.0
+developer: qier222
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

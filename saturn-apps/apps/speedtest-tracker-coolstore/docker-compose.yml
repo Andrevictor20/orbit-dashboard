@@ -1,0 +1,18 @@
+name: speedtest-tracker
+services:
+  app:
+    image: henrywhitaker3/speedtest-tracker:v1.12.3-dev
+    restart: unless-stopped
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+      OOKLA_EULA_GDPR: true
+    ports:
+    - target: 80
+      published: 8765
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/config
+      target: /config

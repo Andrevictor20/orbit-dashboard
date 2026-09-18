@@ -1,0 +1,56 @@
+id: ztnet
+name: ZTnet
+tagline: Self-hosted ZeroTier network controller with web UI for centralized management.
+description: 'ZTNET is a powerful ZeroTier network management tool that simplifies
+  network configuration and management through an intuitive Web interface, ideal for
+  teams and individual users. Its modern design and rich features provide an efficient
+  solution for building secure, scalable virtual networks.
+
+
+  The tool centers on an intuitive Web interface and organization with multi-user
+  support. Developed in TypeScript, it acts as an intermediary between users and the
+  ZeroTier Controller API, enabling collaborative network management within organizations
+  to streamline team tasks. Integration with ZeroTier Central API allows direct management
+  of networks, nodes, and members through a user-friendly interface, enhancing configuration
+  efficiency.
+
+
+  It supports custom private root servers to create isolated network environments,
+  improving privacy and control. Personalized user spaces enable users to independently
+  create and manage networks. Support for 6plane and rfc4193 IPv6 addressing enriches
+  enterprise or personal networking capabilities. Compatibility with ARM64 and AMD64
+  architectures ensures broad device support. The tool focuses on user-friendly and
+  flexible design to deliver a modern network management experience.
+
+
+  **Key Features:**
+
+  - Intuitive Web interface for simplified ZeroTier network management
+
+  - Organization and multi-user support for team collaboration
+
+  - Integration with ZeroTier Central API for managing networks and nodes
+
+  - Custom private root server for enhanced privacy and control
+
+  - Personalized user spaces for independent network creation and management
+
+  - Support for 6plane and rfc4193 IPv6 addressing
+
+  - Compatibility with ARM64 and AMD64 architectures for diverse devices
+
+
+  **Learn More:**
+
+  - [ZTnet Official Website](https://ztnet.network/)
+
+  - [ZTnet GitHub](https://github.com/sinamics/ztnet)'
+category: Networking
+version: 1.0.0
+developer: sinamics
+store: official
+icon: icon.png
+port: 3050
+architectures:
+- amd64
+- arm64

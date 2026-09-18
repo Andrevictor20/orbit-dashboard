@@ -1,0 +1,18 @@
+id: linkstack-play
+name: LinkStack
+tagline: The Ultimate Link Management Solution
+description: LinkStack is a highly customizable link sharing platform with an intuitive,
+  easy to use user interface. The ultimate solution for creating a personalized &
+  professional profile page. Showcase all your important links in one place, forget
+  the limitation of one link on social media. Set up your personal site on your own
+  server with just a few clicks.
+category: Productivity
+version: 1.0.0
+developer: LinkStackOrg
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm
+- arm64

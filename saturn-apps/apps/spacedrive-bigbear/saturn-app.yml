@@ -1,0 +1,14 @@
+id: spacedrive-bigbear
+name: Spacedrive
+tagline: Cross-platform file explorer
+description: Spacedrive is an open source cross-platform file explorer, powered by
+  a virtual distributed filesystem written in Rust.
+category: Others
+version: 1.0.0
+developer: spacedriveapp
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

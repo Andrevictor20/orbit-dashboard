@@ -44,7 +44,7 @@ export function Networks() {
 
   const fetchNetworks = async () => {
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/docker/networks', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,7 +67,7 @@ export function Networks() {
       onConfirm: async () => {
         const loadingToast = toast.loading(t('networks.removing_network', 'Removendo rede...'));
         try {
-          const token = localStorage.getItem('orbit_token');
+          const token = localStorage.getItem('saturn_token');
           const res = await fetch(`/api/docker/networks/${id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` }
@@ -119,7 +119,7 @@ export function Networks() {
             {unusedNetworks.map(net => (
               <div key={net.id} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-card/80 border border-border/50 text-xs font-mono text-primary">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Network className="w-3.5 h-3.5 text-orbit-400 shrink-0" />
+                  <Network className="w-3.5 h-3.5 text-saturn-400 shrink-0" />
                   <span className="truncate font-semibold" title={net.name}>{net.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -143,7 +143,7 @@ export function Networks() {
           runner: async (helpers) => {
             helpers.setProgress(20);
             helpers.setStatus('running');
-            const token = localStorage.getItem('orbit_token');
+            const token = localStorage.getItem('saturn_token');
             const res = await fetch('/api/docker/networks/prune', {
               method: 'POST',
               headers: { Authorization: `Bearer ${token}` }
@@ -205,7 +205,7 @@ export function Networks() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-primary">
-            <Network className="h-6 w-6 text-orbit-500" />
+            <Network className="h-6 w-6 text-saturn-500" />
             {t('networks.title')}
           </h2>
           <p className="text-xs sm:text-sm text-secondary mt-1">{t('networks.subtitle')}</p>
@@ -231,7 +231,7 @@ export function Networks() {
             placeholder={t('networks.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 transition-colors font-mono"
+            className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500 transition-colors font-mono"
           />
         </div>
 
@@ -240,7 +240,7 @@ export function Networks() {
           <div className="flex bg-background p-1 rounded-xl border border-border text-xs overflow-x-auto scrollbar-none">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-center ${statusFilter === 'all' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary'}`}
             >
               {t('common.all')} ({networks.length})
             </button>
@@ -281,7 +281,7 @@ export function Networks() {
       <div className="glass-panel rounded-2xl overflow-hidden border border-border">
         {loading ? (
           <div className="p-8 sm:p-12 text-center text-secondary flex flex-col items-center justify-center gap-2">
-            <Network className="w-8 h-8 animate-pulse text-orbit-500" />
+            <Network className="w-8 h-8 animate-pulse text-saturn-500" />
             <span>{t('networks.loading', 'Carregando redes...')}</span>
           </div>
         ) : filteredAndSortedNetworks.length === 0 ? (
@@ -296,7 +296,7 @@ export function Networks() {
                 <div key={net.id} className="p-4 space-y-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 shrink-0">
+                      <div className="p-2 rounded-xl bg-saturn-500/10 text-saturn-600 dark:text-saturn-400 shrink-0">
                         <Server className="h-4 w-4" />
                       </div>
                       <span className="font-semibold text-primary text-sm truncate" title={net.name}>
@@ -371,7 +371,7 @@ export function Networks() {
                         )}
                       </td>
                       <td className="p-4 font-medium text-primary flex items-center gap-2">
-                        <Server className="h-4 w-4 text-orbit-500" />
+                        <Server className="h-4 w-4 text-saturn-500" />
                         {net.name}
                       </td>
                       <td className="p-4">

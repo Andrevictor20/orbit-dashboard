@@ -1,0 +1,23 @@
+name: movie-robot
+services:
+  movie-robot:
+    image: yipengfei/movie-robot:latest
+    container_name: movie-robot
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    environment:
+      LICENSE_KEY: your_license_key
+      WORKDIR: /data
+    ports:
+    - 1329:1329
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/movie-robot/data
+      target: /data
+    - type: bind
+      source: /DATA/Media/Movies
+      target: /video
+    network_mode: bridge

@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # ==============================================================================
-# Orbit Dev Environment Resource Guard
+# Saturn Dev Environment Resource Guard
 # Prevents OOM freezes, checks available RAM, and cleans orphaned dev processes.
 # ==============================================================================
 
-echo "=== [Orbit Resource Guard] Checking System Memory ==="
+echo "=== [Saturn Resource Guard] Checking System Memory ==="
 
 # 1. Check Available Memory
 AVAILABLE_MB=$(free -m | awk '/^Mem:/{print $7}')

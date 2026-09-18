@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Orbit Dashboard API
-  description: Orbit is a modern, lightweight dashboard and application manager. This API manages system services, Docker containers, and the App Store.
+  title: Saturn Dashboard API
+  description: Saturn is a modern, lightweight dashboard and application manager. This API manages system services, Docker containers, and the App Store.
   version: 1.0.0
 servers:
   - url: http://localhost:5172

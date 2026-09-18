@@ -1,0 +1,14 @@
+id: zotero-linuxserver-io-linuxserver
+name: Zotero (LinuxServer.io)
+tagline: A free, easy-to-use tool to help you collect, organize, annotate, cite, and
+  share research.
+description: Zotero is a free, easy-to-use tool to help you collect, organize, annotate,
+  cite, and share research.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

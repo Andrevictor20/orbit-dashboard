@@ -1,0 +1,15 @@
+id: yaak-linuxserver-io-linuxserver
+name: Yaak (LinuxServer.io)
+tagline: A desktop API client for organizing and executing REST, GraphQL, and gRPC
+  requests. It's built using Tauri, Rust, and ReactJS.
+description: Yaak is a desktop API client for organizing and executing REST, GraphQL,
+  and gRPC requests. It's built using Tauri, Rust, and ReactJS.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

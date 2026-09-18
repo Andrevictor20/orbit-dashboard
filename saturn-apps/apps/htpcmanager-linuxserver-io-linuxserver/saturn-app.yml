@@ -1,0 +1,13 @@
+id: htpcmanager-linuxserver-io-linuxserver
+name: Htpcmanager (LinuxServer.io)
+tagline: A front end for many htpc related applications.
+description: Htpcmanager is a front end for many htpc related applications.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8085
+architectures:
+- amd64
+- arm64

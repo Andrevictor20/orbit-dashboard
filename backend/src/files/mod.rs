@@ -10,6 +10,7 @@ pub mod trash;
 pub mod shares;
 pub mod samba;
 pub mod chunked_upload;
+pub mod thumbnails;
 
 pub use types::*;
 pub use path_utils::*;
@@ -23,6 +24,7 @@ pub use trash::*;
 pub use shares::*;
 pub use samba::*;
 pub use chunked_upload::*;
+pub use thumbnails::*;
 
 use axum::{
     routing::{delete, get, post, put},
@@ -46,6 +48,7 @@ pub fn protected_router() -> Router<AppState> {
         .route("/api/files/archive", get(archive_folder))
         .route("/api/files/upload", post(upload_files))
         .route("/api/files/stream", get(stream_media))
+        .route("/api/files/thumbnail", get(get_file_thumbnail))
         .route("/api/files/subtitles", get(get_subtitles))
         .route("/api/files/subtitles/vtt", get(get_subtitle_vtt))
         .route("/api/files/content", get(get_file_content).put(update_file_content))

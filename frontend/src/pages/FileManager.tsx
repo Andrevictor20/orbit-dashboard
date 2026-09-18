@@ -234,8 +234,8 @@ export function FileManager() {
         loadFiles(currentPath);
       }
     };
-    window.addEventListener('orbit:files_changed', handleFilesChanged);
-    return () => window.removeEventListener('orbit:files_changed', handleFilesChanged);
+    window.addEventListener('saturn:files_changed', handleFilesChanged);
+    return () => window.removeEventListener('saturn:files_changed', handleFilesChanged);
   }, [currentPath]);
 
   // Filter & Sort files
@@ -387,8 +387,8 @@ export function FileManager() {
 
           {/* Drag & Drop Overlay */}
           {isDraggingOver && (
-            <div className="absolute inset-4 z-40 border-2 border-dashed border-orbit-500 bg-orbit-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
-              <div className="w-12 h-12 text-orbit-400 animate-bounce" />
+            <div className="absolute inset-4 z-40 border-2 border-dashed border-saturn-500 bg-saturn-500/10 rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm pointer-events-none animate-in fade-in">
+              <div className="w-12 h-12 text-saturn-400 animate-bounce" />
               <p className="font-semibold text-primary text-base">{t('files.drop_files_here', 'Solte os arquivos aqui para carregar')}</p>
             </div>
           )}

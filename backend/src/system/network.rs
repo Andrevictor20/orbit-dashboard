@@ -95,12 +95,12 @@ pub fn parse_dev_interface_bytes(content: &str, target_iface: &str) -> Option<(u
 
 /// Identifies the primary network interface (cable or wifi) used for internet traffic.
 /// Priority:
-/// 1. `ORBIT_NETWORK_INTERFACE` environment variable override (e.g. "eth0")
+/// 1. `SATURN_NETWORK_INTERFACE` environment variable override (e.g. "eth0")
 /// 2. Default route with lowest metric from routing tables (/host/proc/1/net/route, /proc/1/net/route, etc.)
 /// 3. Active physical network interface (prioritizing ethernet `eth*`, `en*` over wifi `wl*`)
 pub fn detect_primary_network_interface() -> Option<NetworkInterfaceInfo> {
     // 1. Explicit environment override
-    if let Ok(override_iface) = std::env::var("ORBIT_NETWORK_INTERFACE") {
+    if let Ok(override_iface) = std::env::var("SATURN_NETWORK_INTERFACE").or_else(|_| std::env::var("SATURN_NETWORK_INTERFACE")) {
         let trimmed = override_iface.trim();
         if !trimmed.is_empty() {
             return Some(NetworkInterfaceInfo {

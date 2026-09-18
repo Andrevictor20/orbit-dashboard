@@ -1,0 +1,16 @@
+id: heimdall-play
+name: Heimdall
+tagline: An Application dashboard and launcher
+description: As the name suggests Heimdall Application Dashboard is a dashboard for
+  all your web applications. It doesn't need to be limited to applications though,
+  you can add links to anything you like.  Heimdall is an elegant solution to organise
+  all your web applications.
+category: Productivity
+version: 1.0.0
+developer: heimdall.site
+store: play
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

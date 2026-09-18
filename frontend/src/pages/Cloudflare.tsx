@@ -34,7 +34,7 @@ export function Cloudflare() {
   const [autoSync, setAutoSync] = useState(true);
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -231,7 +231,7 @@ export function Cloudflare() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-orbit-500 border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-saturn-500 border-t-transparent animate-spin" />
           <p className="text-xs text-secondary font-medium">
             {t('cloudflare.loading', 'Carregando integração Cloudflare...')}
           </p>

@@ -45,7 +45,7 @@
   "test_success": "Connection established successfully! Tunnel: {{name}} ({{count}} routes)",
   "test_failed": "Failed to test connection with Cloudflare",
   "tunnel_token_detected": "Tunnel Token detected! Account ID and Tunnel ID were extracted and filled automatically.",
-  "tunnel_token_notice": "Notice: The pasted token is a local connector Tunnel Token (eyJh...). For Orbit to list public routes via API, provide a User API Token generated in Cloudflare Dashboard with Account > Cloudflare Tunnel > Read permission.",
+  "tunnel_token_notice": "Notice: The pasted token is a local connector Tunnel Token (eyJh...). For Saturn to list public routes via API, provide a User API Token generated in Cloudflare Dashboard with Account > Cloudflare Tunnel > Read permission.",
   "api_token_guide_title": "How to get a Cloudflare API Token?",
   "api_token_guide_step1": "Visit dash.cloudflare.com/profile/api-tokens",
   "api_token_guide_step2": "Click 'Create Token' and choose 'Create Custom Token'",

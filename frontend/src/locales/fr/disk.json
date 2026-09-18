@@ -72,7 +72,7 @@
   "emptying": "Vidange...",
   "empty_trash_action": "Vider la corbeille",
   "safety_title": "Directives de protection du système de fichiers Linux",
-  "safety_intro": "Orbit bloque la suppression des répertoires essentiels critiques. Vous trouverez ci-dessous la liste détaillée de ce qui ne doit JAMAIS être supprimé manuellement via un terminal ou des scripts pour éviter une corruption irréversible de l'hôte.",
+  "safety_intro": "Saturn bloque la suppression des répertoires essentiels critiques. Vous trouverez ci-dessous la liste détaillée de ce qui ne doit JAMAIS être supprimé manuellement via un terminal ou des scripts pour éviter une corruption irréversible de l'hôte.",
   "critical_folders_title": "Dossiers critiques (Danger maximum 🔴)",
   "boot_desc": "Contient les noyaux Linux, Initramfs et Grub. S'il est supprimé, le serveur ne démarrera pas.",
   "docker_overlay_desc": "Couches de pilotes de stockage interne Docker. N'utilisez jamais rm -rf directement ici. Utilisez toujours le pruneau du système Docker.",

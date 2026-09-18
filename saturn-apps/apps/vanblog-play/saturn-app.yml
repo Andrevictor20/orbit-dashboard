@@ -1,0 +1,19 @@
+id: vanblog-play
+name: VanBlog
+tagline: A simple, practical and elegant personal blog system
+description: VanBlog is a simple, practical and elegant high-performance personal
+  blog system. It supports HTTPS certificate fully automated on-demand application,
+  dark mode, support for mobile adaptive and commenting, built-in traffic statistics
+  and image bed, embedded commenting system, complete with, support for dark mode,
+  support for mobile, support for one-click upload of clipboard images to the image
+  bed, backend administration panel with a powerful editor.  Translated with DeepL.com
+  (free version)
+category: Social
+version: 1.0.0
+developer: Mereithhh
+store: play
+icon: icon.png
+port: 8880
+architectures:
+- arm64
+- amd64

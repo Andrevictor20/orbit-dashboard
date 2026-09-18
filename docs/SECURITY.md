@@ -1,12 +1,12 @@
-# Segurança da Informação e Políticas de Proteção - Orbit Dashboard
+# Segurança da Informação e Políticas de Proteção - Saturn
 
-Este documento detalha o modelo de ameaças, os controles criptográficos, a arquitetura de autorização e as práticas de DevSecOps aplicadas ao Orbit Dashboard.
+Este documento detalha o modelo de ameaças, os controles criptográficos, a arquitetura de autorização e as práticas de DevSecOps aplicadas ao Saturn.
 
 ---
 
-## 1. Princípios de Segurança e Modelo de Ameaças
+## 1. Princípios Fundamentais de Segurança
 
-O desenvolvimento do Orbit Dashboard orienta-se pelos princípios de **Security by Design**, **Princípio do Menor Privilégio** e conformidade com os guias de segurança do **OWASP Top 10** e **OWASP API Security Top 10**.
+O desenvolvimento do Saturn orienta-se pelos princípios de **Security by Design**, **Princípio do Menor Privilégio** e conformidade com os guias de segurança do **OWASP Top 10** e **OWASP API Security Top 10**.
 
 ### Modelo de Confiança (Trust Boundaries)
 - **Superfície Exposta (Fronteira Não Confiável):** Requisições HTTP e conexões WebSocket originadas no navegador do usuário ou através de proxies reversos e túneis.
@@ -37,7 +37,7 @@ O desenvolvimento do Orbit Dashboard orienta-se pelos princípios de **Security 
 ### 3.1 Proteção contra IDOR no Gerenciamento de Processos (`kill_process`)
 Para impedir negação de serviço do host ou auto-interrupção acidental do dashboard, o endpoint de encerramento de processos impõe verificações estritas:
 - **Proteção de PID Raiz:** Rejeição mandatória para PID 0 e PID 1 (`init` / `systemd`).
-- **Proteção do Próprio Binário:** Identificação e rejeição para o PID do próprio processo Orbit (`std::process::id()`).
+- **Proteção do Próprio Binário:** Identificação e rejeição para o PID do próprio processo Saturn (`std::process::id()`).
 - **Blocklist de Daemons Críticos:** Rejeição para processos essenciais do host operacional, incluindo `systemd`, `sshd`, `dockerd` e `containerd`.
 
 ### 3.2 Isolamento de Rotas Administrativas e Logs
@@ -106,4 +106,4 @@ graph LR
 
 ## 6. Notificação de Vulnerabilidades
 
-Caso identifique uma potencial falha de segurança no Orbit Dashboard, solicitamos a abertura de um relatório privado através da funcionalidade de **Security Advisories** do GitHub no repositório oficial (`Andrevictor20/orbit-dashboard`), ou via contato direto com os mantenedores. Vulnerabilidades reportadas são tratadas com prioridade e processo coordenado de correção prévia à divulgação pública.
+Caso identifique uma potencial falha de segurança no Saturn, solicitamos a abertura de um relatório privado através da funcionalidade de **Security Advisories** do GitHub no repositório oficial (`Andrevictor20/saturn`), ou via contato direto com os mantenedores. Vulnerabilidades reportadas são tratadas com prioridade e processo coordenado de correção prévia à divulgação pública.

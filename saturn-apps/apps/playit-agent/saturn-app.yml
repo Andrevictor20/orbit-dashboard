@@ -1,0 +1,12 @@
+id: playit-agent
+name: Playit Agent
+tagline: A free reverse proxy for tunneling services (not self-hosted).
+description: A free reverse proxy for tunneling services (not self-hosted).
+category: Networking
+version: 1.0.0
+developer: Patrick Lorio
+store: official
+icon: icon.png
+architectures:
+- amd64
+- arm64

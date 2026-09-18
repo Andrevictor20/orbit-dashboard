@@ -1,0 +1,25 @@
+name: plex-arm
+services:
+  plex-arm:
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/dvb:/dev/dvb
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      VERSION: docker
+    image: linuxserver/plex:arm32v7-1.32.4
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/plex-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Media
+      target: /Media
+    container_name: plex-arm

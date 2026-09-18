@@ -30,7 +30,7 @@ export function CustomInstallEnvTab({ envVars, setEnvVars }: CustomInstallEnvTab
           onClick={() => setEnvVars([...envVars, { key: '', value: '' }])}
           className="text-xs flex items-center gap-1.5 bg-accent/80 hover:bg-accent text-primary border border-border px-3 py-1.5 rounded-xl transition-colors font-semibold"
         >
-          <Plus className="w-3.5 h-3.5 text-orbit-500" /> {t('common.add', 'Adicionar')}
+          <Plus className="w-3.5 h-3.5 text-saturn-500" /> {t('common.add', 'Adicionar')}
         </button>
       </div>
 
@@ -45,7 +45,7 @@ export function CustomInstallEnvTab({ envVars, setEnvVars }: CustomInstallEnvTab
                 newEnv[idx].key = e.target.value;
                 setEnvVars(newEnv);
               }}
-              className="w-1/3 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono font-bold focus:border-orbit-500"
+              className="w-1/3 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono font-bold focus:border-saturn-500"
             />
             <span className="text-secondary font-bold font-mono">=</span>
             <input
@@ -56,7 +56,7 @@ export function CustomInstallEnvTab({ envVars, setEnvVars }: CustomInstallEnvTab
                 newEnv[idx].value = e.target.value;
                 setEnvVars(newEnv);
               }}
-              className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono focus:border-orbit-500"
+              className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-primary font-mono focus:border-saturn-500"
             />
             <button 
               type="button" 

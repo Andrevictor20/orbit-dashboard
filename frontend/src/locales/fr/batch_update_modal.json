@@ -43,7 +43,7 @@
   "cancel_container": "Annuler la mise à jour",
   "cancelled_by_user": "Annulé par l'utilisateur",
   "ready_for_update": "Conteneur(s) {{count}} prêt(s) pour la mise à jour",
-  "update_via_orbit_menu": "Mise à jour via le menu Orbite",
+  "update_via_saturn_menu": "Mise à jour via le menu Saturne",
   "continue_in_background": "Continuer en arrière-plan",
   "floating_title_updating": "Mise à jour en arrière-plan",
   "floating_title_failed": "Mise à jour avec des échecs",

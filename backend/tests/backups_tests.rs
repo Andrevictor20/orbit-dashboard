@@ -171,12 +171,12 @@ async fn test_full_system_and_configs_backup() {
     assert_eq!(full_item.get("target_type").and_then(|v| v.as_str()), Some("system_full"));
     assert_eq!(full_item.get("app_id").and_then(|v| v.as_str()), Some("system_full"));
 
-    // 3. Create Orbit Configs Backup
+    // 3. Create Saturn Configs Backup
     let config_res = server
         .post("/api/backups/create")
         .add_cookie(auth_cookie.clone())
         .json(&json!({
-            "target_type": "orbit_configs",
+            "target_type": "saturn_configs",
             "stop_container": false
         }))
         .await;
@@ -184,7 +184,7 @@ async fn test_full_system_and_configs_backup() {
     config_res.assert_status_ok();
     let config_item: serde_json::Value = config_res.json();
     let config_id = config_item.get("id").expect("id exists").as_str().unwrap().to_string();
-    assert_eq!(config_item.get("target_type").and_then(|v| v.as_str()), Some("orbit_configs"));
+    assert_eq!(config_item.get("target_type").and_then(|v| v.as_str()), Some("saturn_configs"));
 
     // 4. Corrupt state before restore
     let _ = fs::write(dummy_app_dir.join("app_state.json"), r#"{"status":"corrupted"}"#);
@@ -227,3 +227,65 @@ async fn test_full_system_and_configs_backup() {
     let _ = fs::remove_file("data/customization.json");
 }
 
+
+#[tokio::test]
+async fn test_restore_from_uploaded_backup_with_generic_name() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let server = TestServer::new(app());
+    let auth_cookie = get_test_cookie();
+
+    // 1. Prepare a staging directory to package a backup with generic name
+    let tmp_dir = std::env::temp_dir().join(format!("test_generic_backup_{}", uuid::Uuid::new_v4()));
+    let _ = fs::create_dir_all(&tmp_dir);
+    let app_dir = tmp_dir.join("apps").join("my-generic-app");
+    let _ = fs::create_dir_all(&app_dir);
+    let _ = fs::write(app_dir.join("docker-compose.yml"), "version: '3'
+services:
+  app:
+    image: alpine
+");
+    let _ = fs::write(app_dir.join("data.txt"), "restored_payload_content");
+
+    let configs_dir = tmp_dir.join("configs");
+    let _ = fs::create_dir_all(&configs_dir);
+    let _ = fs::write(configs_dir.join("customization.json"), r#"{"theme":"dark","color":"emerald"}"#);
+
+    // Package into a generic named tarball: "my_export_data.tar.gz"
+    let backups_dir = PathBuf::from("data/backups");
+    let _ = fs::create_dir_all(&backups_dir);
+    let tar_path = backups_dir.join("my_export_data.tar.gz");
+
+    let output = std::process::Command::new("tar")
+        .args(["-czf", tar_path.to_str().unwrap(), "-C", tmp_dir.to_str().unwrap(), "."])
+        .output()
+        .expect("tar should succeed");
+    assert!(output.status.success());
+    let _ = fs::remove_dir_all(&tmp_dir);
+
+    // 2. Call POST /api/backups/restore with generic filename
+    let restore_res = server
+        .post("/api/backups/restore")
+        .add_cookie(auth_cookie.clone())
+        .json(&json!({
+            "filename": "my_export_data.tar.gz"
+        }))
+        .await;
+    restore_res.assert_status_ok();
+
+    // 3. Verify app was restored to data/apps/my-generic-app
+    let restored_app_file = PathBuf::from("data/apps/my-generic-app/data.txt");
+    assert!(restored_app_file.exists(), "data/apps/my-generic-app/data.txt must exist after restore");
+    let content = fs::read_to_string(&restored_app_file).unwrap();
+    assert_eq!(content, "restored_payload_content");
+
+    // 4. Verify customization was restored
+    let restored_custom_file = PathBuf::from("data/customization.json");
+    assert!(restored_custom_file.exists(), "data/customization.json must exist after restore");
+    let custom_content = fs::read_to_string(&restored_custom_file).unwrap();
+    assert!(custom_content.contains("emerald"), "customization.json must contain restored emerald color");
+
+    // Cleanup
+    let _ = fs::remove_file(&tar_path);
+    let _ = fs::remove_dir_all("data/apps/my-generic-app");
+    let _ = fs::remove_file("data/customization.json");
+}

@@ -1,0 +1,15 @@
+id: portainer-agent-play
+name: Portainer Agent
+tagline: Used for Remote Portainer Management
+description: Portainer Agent is a lightweight agent used to manage Docker environments
+  remotely. It allows Portainer to manage the resources of a Docker environment even
+  if Portainer is not installed directly on the Docker host.
+category: Productivity
+version: 1.0.0
+developer: Portainer
+store: play
+icon: icon.png
+architectures:
+- arm64
+- arm
+- amd64

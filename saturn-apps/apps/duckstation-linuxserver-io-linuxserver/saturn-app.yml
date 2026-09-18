@@ -1,0 +1,13 @@
+id: duckstation-linuxserver-io-linuxserver
+name: Duckstation (LinuxServer.io)
+tagline: A PS1 Emulator aiming for the best accuracy and game support.
+description: DuckStation is a PS1 Emulator aiming for the best accuracy and game support.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

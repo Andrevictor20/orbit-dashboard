@@ -184,11 +184,11 @@ describe('processAppResolver', () => {
     expect(resolved.subtitle).toContain('1');
   });
 
-  it('identifies known host daemon like dockerd or orbit', () => {
+  it('identifies known host daemon like dockerd or saturn', () => {
     const proc: ProcessInfo = {
-      pid: 1200,
-      name: 'orbit',
-      cmd: ['/app/orbit'],
+      pid: 999,
+      name: 'saturn',
+      cmd: ['/app/saturn'],
       cpu_usage: 0.8,
       memory_rss: 45000000,
       memory_vms: 80000000,
@@ -201,7 +201,7 @@ describe('processAppResolver', () => {
 
     const resolved = resolveProcessAppInfo(proc, mockContainers);
 
-    expect(resolved.displayName).toBe('Orbit Dashboard');
-    expect(resolved.iconUrl).toBe('__orbit__');
+    expect(resolved.displayName).toBe('Saturn');
+    expect(resolved.iconUrl).toBe('__saturn__');
   });
 });

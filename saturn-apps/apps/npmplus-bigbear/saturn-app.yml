@@ -1,0 +1,14 @@
+id: npmplus-bigbear
+name: NPMPlus
+tagline: NPMPlus
+description: Docker container for managing Nginx proxy hosts with a simple, powerful
+  interface
+category: Networking
+version: 1.0.0
+developer: zoeyvid
+store: bigbear
+icon: icon.png
+port: 81
+architectures:
+- amd64
+- arm64

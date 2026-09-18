@@ -105,13 +105,13 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
         <p className="text-xs text-secondary mt-0.5">
           {t(
             'settings.integrations_subtitle',
-            'Ative ou desative as integrações do Orbit. Quando desativadas, elas são ocultadas da barra lateral.'
+            'Ative ou desative as integrações do Saturn. Quando desativadas, elas são ocultadas da barra lateral.'
           )}
         </p>
       </div>
 
       {/* Home Assistant Card */}
-      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-orbit-500/30">
+      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-saturn-500/30">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
@@ -162,8 +162,8 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
               aria-checked={settings.integrations.homeassistant}
               disabled={updatingIntegration === 'homeassistant'}
               onClick={() => handleToggle('homeassistant', settings.integrations.homeassistant)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 ${
-                settings.integrations.homeassistant ? 'bg-orbit-500' : 'bg-zinc-300 dark:bg-zinc-700'
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-saturn-500 ${
+                settings.integrations.homeassistant ? 'bg-saturn-500' : 'bg-zinc-300 dark:bg-zinc-700'
               }`}
             >
               <span
@@ -180,7 +180,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
             <button
               type="button"
               onClick={() => navigateTo('/homeassistant')}
-              className="text-xs text-orbit-500 hover:text-orbit-400 font-semibold flex items-center gap-1.5 transition-colors"
+              className="text-xs text-saturn-500 hover:text-saturn-400 font-semibold flex items-center gap-1.5 transition-colors"
             >
               <span>{t('settings.open_integration_dashboard', 'Abrir Home Assistant')}</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -190,7 +190,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
       </div>
 
       {/* Pi-hole Card */}
-      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-orbit-500/30">
+      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-saturn-500/30">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
@@ -241,8 +241,8 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
               aria-checked={settings.integrations.pihole}
               disabled={updatingIntegration === 'pihole'}
               onClick={() => handleToggle('pihole', settings.integrations.pihole)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 ${
-                settings.integrations.pihole ? 'bg-orbit-500' : 'bg-zinc-300 dark:bg-zinc-700'
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-saturn-500 ${
+                settings.integrations.pihole ? 'bg-saturn-500' : 'bg-zinc-300 dark:bg-zinc-700'
               }`}
             >
               <span
@@ -259,7 +259,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
             <button
               type="button"
               onClick={() => navigateTo('/pihole')}
-              className="text-xs text-orbit-500 hover:text-orbit-400 font-semibold flex items-center gap-1.5 transition-colors"
+              className="text-xs text-saturn-500 hover:text-saturn-400 font-semibold flex items-center gap-1.5 transition-colors"
             >
               <span>{t('settings.open_integration_dashboard', 'Abrir Pi-hole')}</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -269,7 +269,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
       </div>
 
       {/* Cloudflare Tunnels Card */}
-      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-orbit-500/30">
+      <div className="rounded-2xl border border-border/80 bg-surface/70 dark:bg-zinc-800/40 p-4 transition-all hover:border-saturn-500/30">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
@@ -320,8 +320,8 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
               aria-checked={settings.integrations.cloudflare ?? true}
               disabled={updatingIntegration === 'cloudflare'}
               onClick={() => handleToggle('cloudflare', settings.integrations.cloudflare ?? true)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-orbit-500 ${
-                (settings.integrations.cloudflare ?? true) ? 'bg-orbit-500' : 'bg-zinc-300 dark:bg-zinc-700'
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-saturn-500 ${
+                (settings.integrations.cloudflare ?? true) ? 'bg-saturn-500' : 'bg-zinc-300 dark:bg-zinc-700'
               }`}
             >
               <span
@@ -338,7 +338,7 @@ export function IntegrationsTab({ onCloseModal }: { onCloseModal?: () => void })
             <button
               type="button"
               onClick={() => navigateTo('/cloudflare')}
-              className="text-xs text-orbit-500 hover:text-orbit-400 font-semibold flex items-center gap-1.5 transition-colors"
+              className="text-xs text-saturn-500 hover:text-saturn-400 font-semibold flex items-center gap-1.5 transition-colors"
             >
               <span>{t('settings.open_cloudflare_dashboard', 'Abrir Cloudflare')}</span>
               <ExternalLink className="w-3.5 h-3.5" />

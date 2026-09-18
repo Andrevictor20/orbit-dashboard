@@ -3,7 +3,7 @@ import type { AppStoreItem } from '../../queries/useStoreAppsQuery';
 
 export const HERO_GRADIENTS = [
   'from-blue-600/35 via-indigo-900/40 to-neutral-950',
-  'from-purple-600/35 via-orbit-900/40 to-neutral-950',
+  'from-purple-600/35 via-saturn-900/40 to-neutral-950',
   'from-emerald-600/35 via-teal-950/40 to-neutral-950',
   'from-rose-600/35 via-amber-950/40 to-neutral-950'
 ];
@@ -46,13 +46,13 @@ export function AppStoreHeroCarousel({
                 className="w-full h-full object-contain drop-shadow-md"
               />
             ) : (
-              <Package className="w-8 h-8 text-orbit-400" />
+              <Package className="w-8 h-8 text-saturn-400" />
             )}
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-orbit-500/30 text-orbit-300 border border-orbit-400/30">
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-saturn-500/30 text-saturn-300 border border-saturn-400/30">
                 Destaque
               </span>
               <span className="text-xs text-white/60 font-medium">

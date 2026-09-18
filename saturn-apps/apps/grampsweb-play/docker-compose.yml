@@ -1,0 +1,53 @@
+name: grampsweb
+services:
+  grampsweb:
+    image: ghcr.io/gramps-project/grampsweb:latest
+    container_name: grampsweb
+    restart: unless-stopped
+    ports:
+    - 8081:5000
+    environment: &id001
+      GRAMPSWEB_TREE: Gramps Web
+      GRAMPSWEB_CELERY_CONFIG__broker_url: redis://grampsweb-redis:6379/0
+      GRAMPSWEB_CELERY_CONFIG__result_backend: redis://grampsweb-redis:6379/0
+      GRAMPSWEB_RATELIMIT_STORAGE_URI: redis://grampsweb-redis:6379/1
+    depends_on:
+    - grampsweb-redis
+    volumes: &id002
+    - /DATA/AppData/grampsweb/users:/app/users
+    - /DATA/AppData/grampsweb/index:/app/indexdir
+    - /DATA/AppData/grampsweb/thumb_cache:/app/thumbnail_cache
+    - /DATA/AppData/grampsweb/cache:/app/cache
+    - /DATA/AppData/grampsweb/secret:/app/secret
+    - /DATA/AppData/grampsweb/db:/root/.gramps/grampsdb
+    - /DATA/AppData/grampsweb/media:/app/media
+    - /DATA/AppData/grampsweb/tmp:/tmp
+    networks: &id003
+    - grampsweb
+    deploy: &id004
+      resources:
+        reservations:
+          memory: 128M
+  grampsweb-celery:
+    image: ghcr.io/gramps-project/grampsweb:latest
+    container_name: grampsweb-celery
+    restart: unless-stopped
+    ports:
+    - 65000:65000
+    environment: *id001
+    depends_on:
+    - grampsweb-redis
+    volumes: *id002
+    networks: *id003
+    deploy: *id004
+    command: celery -A gramps_webapi.celery worker --loglevel=INFO --concurrency=2
+  grampsweb-redis:
+    image: docker.io/library/redis:7.2.4-alpine
+    container_name: grampsweb-redis
+    restart: unless-stopped
+    networks:
+    - grampsweb
+networks:
+  grampsweb:
+    name: grampsweb
+    driver: bridge

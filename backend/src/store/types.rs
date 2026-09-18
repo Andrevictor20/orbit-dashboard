@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct AppStoreItem {
     pub id: String,
     pub name: String,
@@ -10,6 +10,33 @@ pub struct AppStoreItem {
     pub category: String,
     pub store: String,
     pub compose_file: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tagline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub developer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architectures: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StoreRepository {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    #[serde(default)]
+    pub is_official: bool,
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct AddStoreRepositoryPayload {
+    pub name: String,
+    pub url: String,
 }
 
 #[derive(Serialize, Clone)]

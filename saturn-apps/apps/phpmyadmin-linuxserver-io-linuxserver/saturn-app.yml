@@ -1,0 +1,17 @@
+id: phpmyadmin-linuxserver-io-linuxserver
+name: Phpmyadmin (LinuxServer.io)
+tagline: A free software tool written in PHP, intended to handle the administration
+  of MySQL over the Web. PhpMyAdmin supports a wide range of operations on MySQL and
+  MariaDB.
+description: Phpmyadmin is a free software tool written in PHP, intended to handle
+  the administration of MySQL over the Web. phpMyAdmin supports a wide range of operations
+  on MySQL and MariaDB.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,56 @@
+id: pi-hole
+name: Pi-hole
+tagline: Network-wide Ad Blocking
+description: 'Pi-hole is a network-wide ad-blocking platform for Linux hardware, using
+  DNS sinkhole technology to protect devices from unwanted content without requiring
+  client-side software. Designed for home or enterprise networks, it offers efficient
+  ad blocking and network optimization.
+
+
+  Core features include network-wide ad blocking and content blocking in non-browser
+  environments. It uses DNS sinkhole to block ads, covering mobile apps and smart
+  TVs. Caching DNS queries speeds up everyday browsing. A command-line interface ensures
+  interoperability with reliable control options.
+
+
+  It provides an intuitive web interface dashboard for viewing and managing system
+  status. An optional DHCP server function automatically protects all devices. Capable
+  of handling high query volumes on server-grade hardware, it supports ad blocking
+  over IPv4 and IPv6. With efficiency and versatility at the core, the platform delivers
+  a modern network protection solution.
+
+
+  **Key Features:**
+
+  - Network-wide ad blocking via DNS sinkhole technology
+
+  - Blocking content in non-browser environments, including mobile apps and smart
+  TVs
+
+  - Caching DNS queries to speed up browsing
+
+  - Command-line interface for interoperability
+
+  - Intuitive web interface dashboard for system viewing and control
+
+  - Optional DHCP server function for automatic device protection
+
+  - Ad blocking support for IPv4 and IPv6
+
+
+  **Learn More:**
+
+  - [Pi-hole Official Website](https://pi-hole.net/)
+
+  - [Pi-hole GitHub](https://github.com/pi-hole/pi-hole)'
+category: Networking
+version: 1.0.0
+developer: Pi-hole
+store: official
+icon: icon.png
+port: 8800
+architectures:
+- amd64
+- arm64
+- '386'
+- arm

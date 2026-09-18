@@ -1,0 +1,14 @@
+id: 1panel-play
+name: 1Panel
+tagline: 1Panel running in Docker
+description: Modern and Open-Source Linux Server Operation and Management Panel
+category: Developer
+version: 1.0.0
+developer: 1panel.cn
+store: play
+icon: icon.png
+port: 10086
+architectures:
+- amd64
+- arm
+- arm64

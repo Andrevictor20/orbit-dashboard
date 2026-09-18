@@ -1,0 +1,13 @@
+id: kiwix-server-bigbear
+name: Kiwix Server
+tagline: Kiwix Server
+description: Kiwix Server is a web server for hosting .zim files
+category: Others
+version: 1.0.0
+developer: kiwix
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

@@ -114,7 +114,7 @@ describe('Overview Component', () => {
     });
 
     const mockContainers = [
-      { id: 'c1', name: 'orbit', image: 'orbit:latest', state: 'running', status: 'Up 1 day' },
+      { id: 'c1', name: 'saturn', image: 'saturn:latest', state: 'running', status: 'Up 1 day' },
       { id: 'c2', name: 'overseerr', image: 'overseerr:latest', state: 'running', status: 'Up 1 day' },
       { id: 'as1', name: 'ar-saude-coletor', image: 'coletor:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },
       { id: 'as2', name: 'ar-saude-frontend', image: 'frontend:latest', state: 'running', status: 'Up 1 day', labels: { 'com.docker.compose.project': 'ar-saude' } },

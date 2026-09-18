@@ -1,0 +1,16 @@
+id: redroid-play
+name: redroid
+tagline: Android in Cloud solution
+description: redroid (Remote-Android) is a multi-arch, GPU enabled, Android in Cloud
+  solution. You can boot many instances in Linux host (Docker, podman, k8s etc.).
+  redroid supports both arm64 and amd64 architectures. redroid is suitable for Cloud
+  Gaming, Virtualise Phones, Automation Test and more.
+category: Developer
+version: 1.0.0
+developer: zhouziyang
+store: play
+icon: icon.png
+port: 5555
+architectures:
+- arm64
+- amd64

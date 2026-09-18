@@ -1,0 +1,17 @@
+id: xemu-linuxserver-io-linuxserver
+name: Xemu (LinuxServer.io)
+tagline: A free and open-source application that emulates the original Microsoft Xbox
+  game console, enabling people to play their original Xbox games on Windows, macOS,
+  and Linux systems.
+description: xemu is a free and open-source application that emulates the original
+  Microsoft Xbox game console, enabling people to play their original Xbox games on
+  Windows, macOS, and Linux systems.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

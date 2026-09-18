@@ -43,7 +43,7 @@
   "cancel_container": "إلغاء التحديث",
   "cancelled_by_user": "تم الإلغاء بواسطة المستخدم",
   "ready_for_update": "حاوية (حاويات) {{count}} جاهزة للتحديث",
-  "update_via_orbit_menu": "التحديث عبر قائمة أوربت",
+  "update_via_saturn_menu": "التحديث عبر قائمة أوربت",
   "continue_in_background": "المتابعة في الخلفية",
   "floating_title_updating": "التحديث في الخلفية",
   "floating_title_failed": "تحديث مع الفشل",

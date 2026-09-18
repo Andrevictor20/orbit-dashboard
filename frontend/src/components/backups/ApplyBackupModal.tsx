@@ -87,13 +87,17 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
         throw new Error(err || 'Falha no envio do arquivo');
       }
 
+      const uploadedBackup: BackupItem = await uploadRes.json();
+
       setStatusMessage(t('backups.restoring_configs_and_apps', 'Extraindo configurações e inicializando contêineres Docker...'));
 
       const restoreRes = await fetch('/api/backups/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          filename: uploadFile.name,
+          id: uploadedBackup?.id,
+          filename: uploadedBackup?.filename || uploadFile.name,
+          app_name: uploadedBackup?.app_name,
         }),
       });
 
@@ -149,7 +153,7 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
             disabled={isApplying}
             className={`px-4 py-2 text-xs font-semibold rounded-t-xl transition-colors border-b-2 flex items-center gap-2 ${
               activeTab === 'existing'
-                ? 'border-orbit-500 text-orbit-500 bg-card'
+                ? 'border-saturn-500 text-saturn-500 bg-card'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -165,7 +169,7 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
             disabled={isApplying}
             className={`px-4 py-2 text-xs font-semibold rounded-t-xl transition-colors border-b-2 flex items-center gap-2 ${
               activeTab === 'upload'
-                ? 'border-orbit-500 text-orbit-500 bg-card'
+                ? 'border-saturn-500 text-saturn-500 bg-card'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -206,7 +210,7 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
                         onClick={() => !isApplying && setSelectedBackup(b)}
                         className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                           isSelected
-                            ? 'border-orbit-500 bg-orbit-500/5 ring-1 ring-orbit-500/40 shadow-sm'
+                            ? 'border-saturn-500 bg-saturn-500/5 ring-1 ring-saturn-500/40 shadow-sm'
                             : 'border-border bg-accent/20 hover:bg-accent/40'
                         }`}
                       >
@@ -252,10 +256,10 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
                 className={`p-8 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-colors ${
                   uploadFile
                     ? 'border-emerald-500/50 bg-emerald-500/5'
-                    : 'border-border hover:border-orbit-500 hover:bg-accent/30'
+                    : 'border-border hover:border-saturn-500 hover:bg-accent/30'
                 }`}
               >
-                <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-3 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20">
+                <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-3 bg-saturn-500/10 text-saturn-500 border border-saturn-500/20">
                   <UploadCloud className="w-6 h-6" />
                 </div>
 
@@ -275,7 +279,7 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
                       {t('backups.click_to_select_file', 'Clique para selecionar o arquivo .tar.gz')}
                     </p>
                     <p className="text-[11px] text-secondary">
-                      {t('backups.drag_or_browse', 'Ou arraste o arquivo gerado pelo Orbit diretamente aqui')}
+                      {t('backups.drag_or_browse', 'Ou arraste o arquivo gerado pelo Saturn diretamente aqui')}
                     </p>
                   </div>
                 )}
@@ -285,9 +289,9 @@ export const ApplyBackupModal: React.FC<ApplyBackupModalProps> = ({
 
           {/* Status Message during execution */}
           {isApplying && (
-            <div className="p-3.5 rounded-xl bg-orbit-500/10 border border-orbit-500/20 flex items-center gap-3 animate-pulse">
-              <RotateCcw className="w-4 h-4 text-orbit-500 animate-spin shrink-0" />
-              <p className="text-xs font-medium text-orbit-600 dark:text-orbit-400">{statusMessage}</p>
+            <div className="p-3.5 rounded-xl bg-saturn-500/10 border border-saturn-500/20 flex items-center gap-3 animate-pulse">
+              <RotateCcw className="w-4 h-4 text-saturn-500 animate-spin shrink-0" />
+              <p className="text-xs font-medium text-saturn-600 dark:text-saturn-400">{statusMessage}</p>
             </div>
           )}
         </div>

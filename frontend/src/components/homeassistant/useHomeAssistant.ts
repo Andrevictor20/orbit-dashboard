@@ -5,7 +5,7 @@ import type { HAConfig, HAEntity, HADeviceGroup, MainTabType, DeviceSubFilter } 
 import { groupEntities, groupAllDevices } from './haUtils';
 
 const getAuthHeaders = () => {
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
   return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 };
 

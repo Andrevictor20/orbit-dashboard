@@ -63,7 +63,7 @@ export function ProcessTable({
             placeholder={t('metrics.search_processes')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all font-mono"
+            className="w-full bg-background border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-saturn-500/50 transition-all font-mono"
           />
         </div>
 
@@ -123,11 +123,11 @@ export function ProcessTable({
           {/* Manual Refresh */}
           <button
             onClick={() => fetchProcesses(true)}
-            className="p-2 rounded-lg bg-accent border border-border hover:bg-orbit-700 text-secondary hover:text-white transition-colors flex items-center justify-center shrink-0"
+            className="p-2 rounded-lg bg-accent border border-border hover:bg-saturn-700 text-secondary hover:text-white transition-colors flex items-center justify-center shrink-0"
             title={t('metrics.refresh_now', 'Atualizar agora')}
             aria-label={t('metrics.refresh_processes', 'Atualizar processos')}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-orbit-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-saturn-400' : ''}`} />
           </button>
         </div>
       </div>
@@ -193,7 +193,7 @@ export function ProcessTable({
               {loading && filteredProcesses.length === 0 && (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-secondary">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-orbit-500 mb-2" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-saturn-500 mb-2" />
                     {t('metrics.loading_processes', 'Carregando tabela de processos do sistema...')}
                   </td>
                 </tr>
@@ -244,7 +244,7 @@ export function ProcessTable({
                     {/* Scope / Container */}
                     <td className="px-3.5 py-2.5 font-sans whitespace-nowrap">
                       {p.container_name ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orbit-500/15 text-orbit-700 dark:text-orbit-300 text-xs font-semibold border border-orbit-500/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-saturn-500/15 text-saturn-700 dark:text-saturn-300 text-xs font-semibold border border-saturn-500/30">
                           <Box className="w-3 h-3 shrink-0" />
                           <span className="truncate max-w-[120px]">{p.container_name}</span>
                         </span>
@@ -272,7 +272,7 @@ export function ProcessTable({
                         <div className="w-full bg-background rounded-full h-1.5 overflow-hidden border border-border/50">
                           <div 
                             className={`h-full rounded-full transition-all ${
-                              isHighCpu ? 'bg-purple-500' : 'bg-orbit-500'
+                              isHighCpu ? 'bg-purple-500' : 'bg-saturn-500'
                             }`}
                             style={{ width: `${Math.min(100, p.cpu_usage)}%` }}
                           />

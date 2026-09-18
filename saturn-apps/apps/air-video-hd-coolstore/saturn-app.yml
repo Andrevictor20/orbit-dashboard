@@ -1,0 +1,13 @@
+id: air-video-hd-coolstore
+name: Air Video HD
+tagline: Watch videos streamed instantly from your computer on your iPhone, iPad,
+  iPod touch or Apple TV.
+description: Watch videos streamed instantly from your computer on your iPhone, iPad,
+  iPod touch or Apple TV.
+category: Coolstore
+version: 1.0.0
+developer: InMethod
+store: coolstore
+icon: icon.png
+architectures:
+- amd64

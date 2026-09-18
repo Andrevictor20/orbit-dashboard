@@ -30,7 +30,7 @@ export function HAHeader({
     <div className="bg-card/55 backdrop-blur-3xl saturate-[190%] border border-border/70 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
       {/* Identificação da Instância */}
       <div className="flex items-center gap-3.5 relative z-10">
-        <div className="p-2.5 rounded-xl bg-orbit-500/15 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shadow-sm shrink-0">
+        <div className="p-2.5 rounded-xl bg-saturn-500/15 text-saturn-600 dark:text-saturn-400 border border-saturn-500/20 shadow-sm shrink-0">
           <Home className="w-5 h-5" />
         </div>
         <div className="min-w-0">
@@ -105,7 +105,7 @@ export function HAHeader({
           title={t('homeassistant.sync')}
           aria-label={t('homeassistant.sync')}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingEntities ? 'animate-spin text-orbit-500' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loadingEntities ? 'animate-spin text-saturn-500' : ''}`} />
           <span className="hidden sm:inline">
             {loadingEntities ? t('homeassistant.syncing') : t('homeassistant.sync')}
           </span>

@@ -1,0 +1,15 @@
+id: mtg-proxy-play
+name: MTG Proxy
+tagline: Telegram proxy server
+description: MTProto Proxy is a Telegram proxy server with support for all aspects
+  of the protocol and multi-core processors. It provides a high level of privacy and
+  security for your Telegram communication.
+category: Networking
+version: 1.0.0
+developer: nineseconds
+store: play
+icon: icon.png
+architectures:
+- amd64
+- arm64
+- arm

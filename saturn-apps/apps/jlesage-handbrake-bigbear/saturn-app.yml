@@ -1,0 +1,14 @@
+id: jlesage-handbrake-bigbear
+name: Jlesage Handbrake
+tagline: This project implements a Docker container for Handbrake.
+description: The GUI of the application is accessed through a modern web browser (no
+  installation or configuration needed on the client side) or via any VNC client.
+category: Others
+version: 1.0.0
+developer: jlesage
+store: bigbear
+icon: icon.png
+port: 5800
+architectures:
+- amd64
+- arm64

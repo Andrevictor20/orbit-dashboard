@@ -1,0 +1,26 @@
+name: big-bear-otel-lgtm
+services:
+  big-bear-otel-lgtm:
+    container_name: big-bear-otel-lgtm
+    image: grafana/otel-lgtm:0.30.1@sha256:bb182ac3174a20923fa58f00d1790fa71eb06cc0150078c0b0e8feb9e6611492
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/$AppID/data:/data
+    ports:
+    - mode: ingress
+      target: 3000
+      published: '3000'
+      protocol: tcp
+    - mode: ingress
+      target: 4317
+      published: '4317'
+      protocol: tcp
+    - mode: ingress
+      target: 4318
+      published: '4318'
+      protocol: tcp
+    networks:
+    - big-bear-otel-lgtm
+networks:
+  big-bear-otel-lgtm:
+    driver: bridge

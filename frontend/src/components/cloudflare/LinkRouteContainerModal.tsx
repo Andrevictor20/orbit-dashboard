@@ -47,7 +47,7 @@ export function LinkRouteContainerModal({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -180,7 +180,7 @@ export function LinkRouteContainerModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orbit-500/10 border border-orbit-500/20 flex items-center justify-center text-orbit-500">
+            <div className="w-9 h-9 rounded-xl bg-saturn-500/10 border border-saturn-500/20 flex items-center justify-center text-saturn-500">
               <Link2 className="w-4 h-4" />
             </div>
             <div>
@@ -208,7 +208,7 @@ export function LinkRouteContainerModal({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t('cloudflare.search_container_placeholder', 'Buscar por nome, imagem ou porta...')}
-            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-accent/40 border border-border/60 text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500/50"
+            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-accent/40 border border-border/60 text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500/50"
           />
         </div>
 
@@ -216,7 +216,7 @@ export function LinkRouteContainerModal({
         <div className="mt-3 overflow-y-auto space-y-1.5 flex-1 pr-1 custom-scrollbar min-h-[220px]">
           {loading ? (
             <div className="h-48 flex items-center justify-center text-secondary gap-2 text-xs">
-              <Loader2 className="w-4 h-4 animate-spin text-orbit-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-saturn-500" />
               <span>{t('common.loading', 'Carregando contêineres...')}</span>
             </div>
           ) : filteredContainers.length === 0 ? (
@@ -238,7 +238,7 @@ export function LinkRouteContainerModal({
                   onClick={() => setSelectedId(c.id)}
                   className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     isSelected
-                      ? 'border-orbit-500/60 bg-orbit-500/10 shadow-sm'
+                      ? 'border-saturn-500/60 bg-saturn-500/10 shadow-sm'
                       : 'border-border/60 bg-accent/20 hover:bg-accent/40 hover:border-border'
                   }`}
                 >
@@ -262,7 +262,7 @@ export function LinkRouteContainerModal({
 
                   <div className="shrink-0 ml-2">
                     {isSelected ? (
-                      <div className="w-5 h-5 rounded-full bg-orbit-500 text-white flex items-center justify-center">
+                      <div className="w-5 h-5 rounded-full bg-saturn-500 text-white flex items-center justify-center">
                         <Check className="w-3 h-3" />
                       </div>
                     ) : (
@@ -304,7 +304,7 @@ export function LinkRouteContainerModal({
               type="button"
               onClick={handleSave}
               disabled={saving || !selectedId}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
               <span>{t('cloudflare.save_link', 'Salvar Vínculo')}</span>

@@ -12,22 +12,19 @@ use futures::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 struct InitMessage {
+    #[serde(alias = "username")]
     user: Option<String>,
+    #[serde(alias = "password")]
     pass: Option<String>,
     host: Option<String>,
     port: Option<u16>,
     cols: Option<u16>,
     rows: Option<u16>,
-}
-
-#[derive(Deserialize, Debug)]
-struct ControlMessage {
-    #[serde(rename = "type")]
-    #[allow(dead_code)]
+    #[serde(alias = "type")]
     msg_type: Option<String>,
-    cols: Option<u16>,
-    rows: Option<u16>,
+    mode: Option<String>,
 }
 
 pub async fn terminal_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -150,11 +147,11 @@ async fn handle_socket(socket: WebSocket) {
         if let Message::Text(text) = msg {
             match serde_json::from_str::<InitMessage>(&text) {
                 Ok(m) => {
-                    tracing::debug!("SSH init: user={:?}", m.user);
+                    tracing::debug!("Terminal init message: user={:?}, mode={:?}", m.user, m.mode);
                     init_msg = Some(m);
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to parse SSH init message: {}", e);
+                    tracing::warn!("Failed to parse Terminal init message: {}", e);
                 }
             }
         }
@@ -164,20 +161,62 @@ async fn handle_socket(socket: WebSocket) {
 
     let init_msg = match init_msg {
         Some(m) => m,
-        None => {
-            let _ = sender.send(Message::Text("Invalid or missing init message\r\n".into())).await;
-            return;
-        }
+        None => InitMessage {
+            user: None,
+            pass: None,
+            host: Some("localhost".to_string()),
+            port: Some(22),
+            cols: Some(80),
+            rows: Some(24),
+            msg_type: None,
+            mode: Some("local".to_string()),
+        },
     };
 
     let cols = init_msg.cols.unwrap_or(100).max(10).min(500);
     let rows = init_msg.rows.unwrap_or(30).max(5).min(200);
     let port = init_msg.port.unwrap_or(22);
 
+    let is_explicit_ssh = init_msg.mode.as_deref() == Some("ssh");
+    let has_ssh_creds = init_msg.user.as_ref().map(|u| !u.trim().is_empty()).unwrap_or(false)
+        && init_msg.pass.as_ref().map(|p| !p.is_empty()).unwrap_or(false);
+
+    let is_local = (!is_explicit_ssh && !has_ssh_creds)
+        || init_msg.mode.as_deref() == Some("local")
+        || init_msg.mode.as_deref() == Some("internal");
+
     // 2. Setup command based on Init message
-    let (cmd, target_host) = if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
+    let (cmd, target_host_display) = if is_local {
+        // Internal local shell execution
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| {
+            if is_executable_in_path("bash") {
+                "bash".to_string()
+            } else {
+                "sh".to_string()
+            }
+        });
+        tracing::info!("[Terminal] Spawning internal shell: {}", shell);
+
+        let mut builder = CommandBuilder::new(&shell);
+        builder.env("TERM", "xterm-256color");
+        builder.env("COLORTERM", "truecolor");
+        if let Ok(path) = std::env::var("PATH") {
+            builder.env("PATH", path);
+        }
+        if let Ok(home) = std::env::var("HOME") {
+            builder.env("HOME", home);
+        }
+        if let Ok(pwd) = std::env::current_dir() {
+            builder.cwd(pwd);
+        }
+        (builder, "Saturn Host (internal shell)".to_string())
+    } else if let (Some(user), Some(pass)) = (init_msg.user, init_msg.pass) {
         if !is_executable_in_path("sshpass") {
-            let _ = sender.send(Message::Text("Error: sshpass not found in container image\r\n".into())).await;
+            let err_json = serde_json::json!({
+                "type": "error",
+                "message": "sshpass não encontrado no container para conexão SSH"
+            });
+            let _ = sender.send(Message::Text(err_json.to_string().into())).await;
             return;
         }
 
@@ -199,9 +238,13 @@ async fn handle_socket(socket: WebSocket) {
         builder.arg("-o");
         builder.arg("ConnectTimeout=10");
         builder.arg(format!("{}@{}", user, ssh_host));
-        (builder, ssh_host)
+        (builder, format!("{}:{}", ssh_host, port))
     } else {
-        let _ = sender.send(Message::Text("Missing credentials for SSH\r\n".into())).await;
+        let err_json = serde_json::json!({
+            "type": "error",
+            "message": "Credenciais ausentes para conexão SSH"
+        });
+        let _ = sender.send(Message::Text(err_json.to_string().into())).await;
         return;
     };
 
@@ -216,7 +259,11 @@ async fn handle_socket(socket: WebSocket) {
     }) {
         Ok(p) => p,
         Err(e) => {
-            let _ = sender.send(Message::Text(format!("Failed to open PTY: {}\r\n", e).into())).await;
+            let err_json = serde_json::json!({
+                "type": "error",
+                "message": format!("Falha ao inicializar PTY: {}", e)
+            });
+            let _ = sender.send(Message::Text(err_json.to_string().into())).await;
             return;
         }
     };
@@ -225,7 +272,11 @@ async fn handle_socket(socket: WebSocket) {
     let _child = match pair.slave.spawn_command(cmd) {
         Ok(c) => c,
         Err(e) => {
-            let _ = sender.send(Message::Text(format!("Failed to spawn shell: {}\r\n", e).into())).await;
+            let err_json = serde_json::json!({
+                "type": "error",
+                "message": format!("Falha ao iniciar processo do shell: {}", e)
+            });
+            let _ = sender.send(Message::Text(err_json.to_string().into())).await;
             return;
         }
     };
@@ -246,8 +297,12 @@ async fn handle_socket(socket: WebSocket) {
     let master = Arc::new(Mutex::new(pair.master));
     let writer = Arc::new(Mutex::new(writer));
 
-    // Notify frontend we are connected
-    let _ = sender.send(Message::Text(format!("\x1b[1;32mConnected!\x1b[0m \x1b[1;30m(Host: {}:{})\x1b[0m\r\n", target_host, port).into())).await;
+    // Notify frontend that connection is established (both JSON and banner output)
+    let connected_json = serde_json::json!({
+        "type": "connected",
+        "data": format!("\x1b[1;32mConectado com sucesso!\x1b[0m \x1b[1;30m({})\x1b[0m\r\n", target_host_display)
+    });
+    let _ = sender.send(Message::Text(connected_json.to_string().into())).await;
 
     let (tx, mut rx) = mpsc::channel::<String>(256);
 
@@ -273,7 +328,11 @@ async fn handle_socket(socket: WebSocket) {
     // Tokio task to forward messages from PTY to WS
     let mut send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            if sender.send(Message::Text(msg.into())).await.is_err() {
+            let out_json = serde_json::json!({
+                "type": "output",
+                "data": msg
+            });
+            if sender.send(Message::Text(out_json.to_string().into())).await.is_err() {
                 break;
             }
         }
@@ -284,10 +343,38 @@ async fn handle_socket(socket: WebSocket) {
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
                 Message::Text(text) => {
-                    // Check if this is a resize control message
-                    if text.starts_with('{') && text.contains("cols") && text.contains("rows") {
-                        if let Ok(ctrl) = serde_json::from_str::<ControlMessage>(&text) {
-                            if let (Some(c), Some(r)) = (ctrl.cols, ctrl.rows) {
+                    // Try parsing as JSON control message
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+                        if let Some(msg_type) = val.get("type").and_then(|t| t.as_str()) {
+                            if msg_type == "input" {
+                                if let Some(data) = val.get("data").and_then(|d| d.as_str()) {
+                                    if let Ok(mut w) = writer_clone.lock() {
+                                        let _ = w.write_all(data.as_bytes());
+                                        let _ = w.flush();
+                                    }
+                                }
+                                continue;
+                            } else if msg_type == "resize" {
+                                let cols = val.get("cols").and_then(|c| c.as_u64()).map(|c| c as u16);
+                                let rows = val.get("rows").and_then(|r| r.as_u64()).map(|r| r as u16);
+                                if let (Some(c), Some(r)) = (cols, rows) {
+                                    if let Ok(m) = master_clone.lock() {
+                                        let _ = m.resize(PtySize {
+                                            rows: r.max(5).min(500),
+                                            cols: c.max(10).min(1000),
+                                            pixel_width: 0,
+                                            pixel_height: 0,
+                                        });
+                                    }
+                                }
+                                continue;
+                            }
+                        }
+
+                        if val.get("cols").is_some() && val.get("rows").is_some() {
+                            let cols = val.get("cols").and_then(|c| c.as_u64()).map(|c| c as u16);
+                            let rows = val.get("rows").and_then(|r| r.as_u64()).map(|r| r as u16);
+                            if let (Some(c), Some(r)) = (cols, rows) {
                                 if let Ok(m) = master_clone.lock() {
                                     let _ = m.resize(PtySize {
                                         rows: r.max(5).min(500),
@@ -296,12 +383,12 @@ async fn handle_socket(socket: WebSocket) {
                                         pixel_height: 0,
                                     });
                                 }
-                                continue;
                             }
+                            continue;
                         }
                     }
 
-                    // Regular terminal input
+                    // Direct raw terminal input fallback
                     if let Ok(mut w) = writer_clone.lock() {
                         let _ = w.write_all(text.as_bytes());
                         let _ = w.flush();
@@ -324,3 +411,4 @@ async fn handle_socket(socket: WebSocket) {
         _ = (&mut recv_task) => send_task.abort(),
     };
 }
+

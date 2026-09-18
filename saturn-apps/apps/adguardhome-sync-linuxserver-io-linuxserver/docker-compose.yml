@@ -1,0 +1,18 @@
+name: linuxserver-adguardhome-sync
+services:
+  app:
+    image: linuxserver/adguardhome-sync:0.9.3
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      CONFIGFILE: ''
+    ports:
+    - target: 8080
+      published: 8080
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/adguardhome-sync/config
+      target: /config

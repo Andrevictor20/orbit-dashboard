@@ -1,0 +1,16 @@
+id: sonarr
+name: Sonarr
+tagline: The PVR for Usenet and BitTorrent users
+description: Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple
+  RSS feeds for new episodes of your favorite shows and will grab, sort and rename
+  them. It can also be configured to automatically upgrade the quality of files already
+  downloaded when a better quality format becomes available.
+category: Media
+version: 1.0.0
+developer: Sonarr
+store: official
+icon: icon.png
+port: 8989
+architectures:
+- amd64
+- arm64

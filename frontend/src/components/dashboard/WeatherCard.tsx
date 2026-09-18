@@ -38,7 +38,7 @@ export function WeatherCard() {
   const [loading, setLoading] = useState(true);
   const [isEditingCity, setIsEditingCity] = useState(false);
   const [cityInput, setCityInput] = useState('');
-  const [savedCity, setSavedCity] = useState(() => settings.weather_city || localStorage.getItem('orbit_weather_city') || '');
+  const [savedCity, setSavedCity] = useState(() => settings.weather_city || localStorage.getItem('saturn_weather_city') || '');
 
   const effectiveCity = settings.weather_city || savedCity;
 
@@ -82,10 +82,12 @@ export function WeatherCard() {
     const clean = cityInput.trim();
     setSavedCity(clean);
     if (clean) {
-      localStorage.setItem('orbit_weather_city', clean);
+      localStorage.setItem('saturn_weather_city', clean);
+      localStorage.setItem('saturn_weather_city', clean);
       toast.success(t('dashboard.weather_city_changed', { city: clean, defaultValue: `Cidade alterada para ${clean}` }));
     } else {
-      localStorage.removeItem('orbit_weather_city');
+      localStorage.removeItem('saturn_weather_city');
+      localStorage.removeItem('saturn_weather_city');
       toast.success(t('dashboard.weather_auto_location', 'Localização automática ativada'));
     }
     updateSettings({ weather_city: clean }).catch(() => {});
@@ -127,7 +129,7 @@ export function WeatherCard() {
       case 99:
         return <CloudLightning className="w-8 h-8 text-amber-400 animate-bounce" />;
       default:
-        return <CloudSun className="w-8 h-8 text-orbit-500" />;
+        return <CloudSun className="w-8 h-8 text-saturn-500" />;
     }
   };
 
@@ -135,7 +137,7 @@ export function WeatherCard() {
     return (
       <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 flex items-center justify-center min-h-[140px]">
         <div className="flex items-center gap-2 text-xs text-secondary">
-          <RefreshCw className="w-4 h-4 animate-spin text-orbit-500" />
+          <RefreshCw className="w-4 h-4 animate-spin text-saturn-500" />
           <span>{t('dashboard.weather_loading', 'Carregando previsão do tempo...')}</span>
         </div>
       </div>
@@ -143,7 +145,7 @@ export function WeatherCard() {
   }
 
   return (
-    <div className="bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between relative overflow-hidden">
+    <div className="bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between relative overflow-hidden">
       {/* Top row: City & Actions */}
       <div className="flex items-center justify-between gap-2 mb-2">
         {isEditingCity ? (
@@ -154,11 +156,11 @@ export function WeatherCard() {
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
               autoFocus
-              className="w-full bg-accent/60 border border-border text-primary rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orbit-500"
+              className="w-full bg-accent/60 border border-border text-primary rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-saturn-500"
             />
             <button
               type="submit"
-              className="p-1 bg-orbit-500 text-white rounded-lg hover:bg-orbit-600 transition-colors"
+              className="p-1 bg-saturn-500 text-white rounded-lg hover:bg-saturn-600 transition-colors"
               title={t('dashboard.weather_save_city', 'Salvar cidade')}
             >
               <Check className="w-3.5 h-3.5" />
@@ -173,8 +175,8 @@ export function WeatherCard() {
           </form>
         ) : (
           <div className="flex items-center gap-1.5 group cursor-pointer" onClick={() => { setCityInput(effectiveCity); setIsEditingCity(true); }}>
-            <MapPin className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
-            <span className="text-xs font-semibold text-primary group-hover:text-orbit-500 transition-colors truncate max-w-[140px]">
+            <MapPin className="w-3.5 h-3.5 text-saturn-500 shrink-0" />
+            <span className="text-xs font-semibold text-primary group-hover:text-saturn-500 transition-colors truncate max-w-[140px]">
               {weather?.location_name || 'Homelab Local'}
             </span>
             <Edit3 className="w-3 h-3 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -187,7 +189,7 @@ export function WeatherCard() {
           className="p-1.5 text-secondary hover:text-primary rounded-lg hover:bg-accent transition-colors"
           title={t('dashboard.weather_refresh', 'Atualizar clima')}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-orbit-500' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-saturn-500' : ''}`} />
         </button>
       </div>
 

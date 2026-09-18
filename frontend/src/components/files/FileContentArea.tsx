@@ -61,7 +61,7 @@ export function FileContentArea({
   if (isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20">
-        <Loader2 className="w-9 h-9 animate-spin text-orbit-400" />
+        <Loader2 className="w-9 h-9 animate-spin text-saturn-400" />
         <span className="text-xs font-medium">{t('files.loading_content', 'Carregando arquivos...')}</span>
       </div>
     );
@@ -86,7 +86,7 @@ export function FileContentArea({
             <button
               data-testid="clear-search-btn"
               onClick={() => setSearchQuery('')}
-              className="px-3 py-1.5 rounded-xl bg-orbit-500/15 text-orbit-400 border border-orbit-500/30 text-xs font-semibold hover:bg-orbit-500/25 transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-saturn-500/15 text-saturn-400 border border-saturn-500/30 text-xs font-semibold hover:bg-saturn-500/25 transition-colors"
             >
               {t('files.clear_search', 'Limpar pesquisa')}
             </button>
@@ -100,7 +100,7 @@ export function FileContentArea({
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="mt-2 px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors shadow-md shadow-orbit-500/20"
+              className="mt-2 px-4 py-2 rounded-xl bg-saturn-500 text-white text-xs font-semibold hover:bg-saturn-600 transition-colors shadow-md shadow-saturn-500/20"
             >
               {t('files.upload_file', 'Carregar arquivos')}
             </button>

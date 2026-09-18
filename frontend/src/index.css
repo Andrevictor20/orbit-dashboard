@@ -15,16 +15,17 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
 
-  --color-orbit-100: var(--orbit-100);
-  --color-orbit-200: var(--orbit-200);
-  --color-orbit-300: var(--orbit-300);
-  --color-orbit-400: var(--orbit-400);
-  --color-orbit-500: var(--orbit-500);
-  --color-orbit-600: var(--orbit-600);
-  --color-orbit-700: var(--orbit-700);
-  --color-orbit-800: var(--orbit-800);
-  --color-orbit-900: var(--orbit-900);
-  --color-orbit-950: var(--orbit-950);
+  --color-saturn-100: var(--saturn-100);
+  --color-saturn-200: var(--saturn-200);
+  --color-saturn-300: var(--saturn-300);
+  --color-saturn-400: var(--saturn-400);
+  --color-saturn-500: var(--saturn-500);
+  --color-saturn-600: var(--saturn-600);
+  --color-saturn-700: var(--saturn-700);
+  --color-saturn-800: var(--saturn-800);
+  --color-saturn-900: var(--saturn-900);
+  --color-saturn-950: var(--saturn-950);
+
 
   --animate-fade-in: fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-slide-up: slide-up 0.32s cubic-bezier(0.16, 1, 0.3, 1);
@@ -281,8 +282,8 @@
     --muted: rgba(241, 245, 249, 0.85);
     --accent: rgba(226, 232, 240, 0.75);
 
-    --orbit-500: #6366f1;
-    --orbit-600: #4f46e5;
+    --saturn-500: #6366f1;
+    --saturn-600: #4f46e5;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.2), 0 12px 36px -6px rgba(0, 0, 0, 0.07);
     --glass-pill-bg: rgba(255, 255, 255, 0.75);
@@ -301,8 +302,8 @@
     --muted: rgba(39, 39, 46, 0.6);
     --accent: rgba(255, 255, 255, 0.07);
 
-    --orbit-500: #818cf8;
-    --orbit-600: #6366f1;
+    --saturn-500: #818cf8;
+    --saturn-600: #6366f1;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(255, 255, 255, 0.02), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.06);
@@ -321,8 +322,8 @@
     --muted: rgba(255, 228, 230, 0.7);
     --accent: rgba(254, 205, 211, 0.6);
 
-    --orbit-500: #f43f5e;
-    --orbit-600: #e11d48;
+    --saturn-500: #f43f5e;
+    --saturn-600: #e11d48;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(244, 63, 94, 0.08);
     --glass-pill-bg: rgba(244, 63, 94, 0.06);
@@ -340,8 +341,8 @@
     --muted: rgba(136, 19, 55, 0.6);
     --accent: rgba(136, 19, 55, 0.45);
 
-    --orbit-500: #f43f5e;
-    --orbit-600: #e11d48;
+    --saturn-500: #f43f5e;
+    --saturn-600: #e11d48;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(244, 63, 94, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -360,8 +361,8 @@
     --muted: rgba(224, 242, 254, 0.7);
     --accent: rgba(186, 230, 253, 0.6);
 
-    --orbit-500: #0ea5e9;
-    --orbit-600: #0284c7;
+    --saturn-500: #0ea5e9;
+    --saturn-600: #0284c7;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(14, 165, 233, 0.08);
     --glass-pill-bg: rgba(14, 165, 233, 0.06);
@@ -379,8 +380,8 @@
     --muted: rgba(12, 74, 110, 0.6);
     --accent: rgba(12, 74, 110, 0.45);
 
-    --orbit-500: #0ea5e9;
-    --orbit-600: #0284c7;
+    --saturn-500: #0ea5e9;
+    --saturn-600: #0284c7;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(14, 165, 233, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -399,8 +400,8 @@
     --muted: rgba(220, 252, 231, 0.7);
     --accent: rgba(187, 247, 208, 0.6);
 
-    --orbit-500: #22c55e;
-    --orbit-600: #16a34a;
+    --saturn-500: #22c55e;
+    --saturn-600: #16a34a;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(34, 197, 94, 0.08);
     --glass-pill-bg: rgba(34, 197, 94, 0.06);
@@ -418,8 +419,8 @@
     --muted: rgba(20, 83, 45, 0.6);
     --accent: rgba(20, 83, 45, 0.45);
 
-    --orbit-500: #22c55e;
-    --orbit-600: #16a34a;
+    --saturn-500: #22c55e;
+    --saturn-600: #16a34a;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(34, 197, 94, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -439,9 +440,9 @@
     --muted: rgba(230, 233, 239, 0.7);
     --accent: rgba(220, 224, 232, 0.6);
 
-    --orbit-500: #8839ef;
+    --saturn-500: #8839ef;
     /* Mauve Latte */
-    --orbit-600: #7287fd;
+    --saturn-600: #7287fd;
     /* Lavender Latte */
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(136, 57, 239, 0.08);
@@ -461,9 +462,9 @@
     --muted: rgba(49, 50, 68, 0.6);
     --accent: rgba(49, 50, 68, 0.45);
 
-    --orbit-500: #cba6f7;
+    --saturn-500: #cba6f7;
     /* Mauve */
-    --orbit-600: #b4befe;
+    --saturn-600: #b4befe;
     /* Lavender */
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(203, 166, 247, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
@@ -484,8 +485,8 @@
     --muted: rgba(213, 214, 219, 0.7);
     --accent: rgba(196, 200, 218, 0.6);
 
-    --orbit-500: #3760bf;
-    --orbit-600: #2e7de9;
+    --saturn-500: #3760bf;
+    --saturn-600: #2e7de9;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(55, 96, 191, 0.08);
     --glass-pill-bg: rgba(55, 96, 191, 0.06);
@@ -504,8 +505,8 @@
     --muted: rgba(41, 46, 66, 0.6);
     --accent: rgba(41, 46, 66, 0.45);
 
-    --orbit-500: #7aa2f7;
-    --orbit-600: #2ac3de;
+    --saturn-500: #7aa2f7;
+    --saturn-600: #2ac3de;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(122, 162, 247, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -524,8 +525,8 @@
     --muted: rgba(235, 219, 178, 0.7);
     --accent: rgba(214, 93, 14, 0.2);
 
-    --orbit-500: #d65d0e;
-    --orbit-600: #af3a03;
+    --saturn-500: #d65d0e;
+    --saturn-600: #af3a03;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(214, 93, 14, 0.08);
     --glass-pill-bg: rgba(214, 93, 14, 0.08);
@@ -543,8 +544,8 @@
     --muted: rgba(50, 48, 47, 0.65);
     --accent: rgba(254, 128, 25, 0.15);
 
-    --orbit-500: #fe8019;
-    --orbit-600: #d65d0e;
+    --saturn-500: #fe8019;
+    --saturn-600: #d65d0e;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.15), inset 0 0 16px 0 rgba(254, 128, 25, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -563,8 +564,8 @@
     --muted: rgba(229, 233, 240, 0.7);
     --accent: rgba(129, 161, 193, 0.2);
 
-    --orbit-500: #5e81ac;
-    --orbit-600: #434c5e;
+    --saturn-500: #5e81ac;
+    --saturn-600: #434c5e;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(94, 129, 172, 0.08);
     --glass-pill-bg: rgba(94, 129, 172, 0.08);
@@ -582,8 +583,8 @@
     --muted: rgba(59, 66, 82, 0.65);
     --accent: rgba(136, 192, 208, 0.15);
 
-    --orbit-500: #88c0d0;
-    --orbit-600: #81a1c1;
+    --saturn-500: #88c0d0;
+    --saturn-600: #81a1c1;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2), inset 0 0 16px 0 rgba(136, 192, 208, 0.04), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -602,8 +603,8 @@
     --muted: rgba(230, 230, 245, 0.7);
     --accent: rgba(189, 147, 249, 0.15);
 
-    --orbit-500: #7952b3;
-    --orbit-600: #6272a4;
+    --saturn-500: #7952b3;
+    --saturn-600: #6272a4;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(121, 82, 179, 0.08);
     --glass-pill-bg: rgba(121, 82, 179, 0.08);
@@ -621,8 +622,8 @@
     --muted: rgba(68, 71, 90, 0.65);
     --accent: rgba(255, 121, 198, 0.15);
 
-    --orbit-500: #bd93f9;
-    --orbit-600: #ff79c6;
+    --saturn-500: #bd93f9;
+    --saturn-600: #ff79c6;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(189, 147, 249, 0.05), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -642,8 +643,8 @@
     --muted: rgba(244, 244, 245, 0.85);
     --accent: rgba(0, 0, 0, 0.07);
 
-    --orbit-500: #18181b;
-    --orbit-600: #09090b;
+    --saturn-500: #18181b;
+    --saturn-600: #09090b;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(0, 0, 0, 0.03), 0 12px 36px -6px rgba(0, 0, 0, 0.08);
     --glass-pill-bg: rgba(0, 0, 0, 0.05);
@@ -662,8 +663,8 @@
     --muted: rgba(24, 24, 27, 0.85);
     --accent: rgba(255, 255, 255, 0.12);
 
-    --orbit-500: #e4e4e7;
-    --orbit-600: #d4d4d8;
+    --saturn-500: #e4e4e7;
+    --saturn-600: #d4d4d8;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2), inset 0 0 16px 0 rgba(255, 255, 255, 0.03), 0 20px 50px -10px rgba(0, 0, 0, 0.95);
     --glass-pill-bg: rgba(255, 255, 255, 0.08);
@@ -672,25 +673,25 @@
   }
 
   /* OLED High-Contrast Action Buttons & Badges: solid silver/white buttons must have crisp dark text */
-  .dark.theme-oled .bg-orbit-500,
-  .dark.theme-onedark .bg-orbit-500,
-  .dark.theme-oled .bg-orbit-600,
-  .dark.theme-onedark .bg-orbit-600,
-  .dark.theme-oled .hover\:bg-orbit-500:hover,
-  .dark.theme-onedark .hover\:bg-orbit-500:hover,
-  .dark.theme-oled .hover\:bg-orbit-600:hover,
-  .dark.theme-onedark .hover\:bg-orbit-600:hover {
+  .dark.theme-oled .bg-saturn-500,
+  .dark.theme-onedark .bg-saturn-500,
+  .dark.theme-oled .bg-saturn-600,
+  .dark.theme-onedark .bg-saturn-600,
+  .dark.theme-oled .hover\:bg-saturn-500:hover,
+  .dark.theme-onedark .hover\:bg-saturn-500:hover,
+  .dark.theme-oled .hover\:bg-saturn-600:hover,
+  .dark.theme-onedark .hover\:bg-saturn-600:hover {
     color: #000000 !important;
   }
 
-  .dark.theme-oled .bg-orbit-500 *,
-  .dark.theme-onedark .bg-orbit-500 *,
-  .dark.theme-oled .bg-orbit-600 *,
-  .dark.theme-onedark .bg-orbit-600 *,
-  .dark.theme-oled .hover\:bg-orbit-500:hover *,
-  .dark.theme-onedark .hover\:bg-orbit-500:hover *,
-  .dark.theme-oled .hover\:bg-orbit-600:hover *,
-  .dark.theme-onedark .hover\:bg-orbit-600:hover * {
+  .dark.theme-oled .bg-saturn-500 *,
+  .dark.theme-onedark .bg-saturn-500 *,
+  .dark.theme-oled .bg-saturn-600 *,
+  .dark.theme-onedark .bg-saturn-600 *,
+  .dark.theme-oled .hover\:bg-saturn-500:hover *,
+  .dark.theme-onedark .hover\:bg-saturn-500:hover *,
+  .dark.theme-oled .hover\:bg-saturn-600:hover *,
+  .dark.theme-onedark .hover\:bg-saturn-600:hover * {
     color: #000000 !important;
   }
 
@@ -705,8 +706,8 @@
     --muted: rgba(244, 244, 245, 0.85);
     --accent: rgba(0, 0, 0, 0.06);
 
-    --orbit-500: #6366f1;
-    --orbit-600: #4f46e5;
+    --saturn-500: #6366f1;
+    --saturn-600: #4f46e5;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(0, 0, 0, 0.03), 0 12px 36px -6px rgba(0, 0, 0, 0.08);
     --glass-pill-bg: rgba(0, 0, 0, 0.05);
@@ -724,8 +725,8 @@
     --muted: rgba(30, 35, 50, 0.85);
     --accent: rgba(255, 255, 255, 0.10);
 
-    --orbit-500: #818cf8;
-    --orbit-600: #6366f1;
+    --saturn-500: #818cf8;
+    --saturn-600: #6366f1;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2), inset 0 0 16px 0 rgba(255, 255, 255, 0.03), 0 20px 50px -10px rgba(0, 0, 0, 0.95);
     --glass-pill-bg: rgba(255, 255, 255, 0.08);
@@ -744,8 +745,8 @@
     --muted: rgba(253, 235, 245, 0.7);
     --accent: rgba(255, 42, 133, 0.15);
 
-    --orbit-500: #d81b60;
-    --orbit-600: #ad1457;
+    --saturn-500: #d81b60;
+    --saturn-600: #ad1457;
 
     --glass-shadow: inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 0 15px 0 rgba(255, 255, 255, 0.22), 0 12px 36px -6px rgba(216, 27, 96, 0.08);
     --glass-pill-bg: rgba(216, 27, 96, 0.08);
@@ -763,8 +764,8 @@
     --muted: rgba(45, 25, 80, 0.65);
     --accent: rgba(255, 42, 133, 0.2);
 
-    --orbit-500: #ff2a85;
-    --orbit-600: #05d9e8;
+    --saturn-500: #ff2a85;
+    --saturn-600: #05d9e8;
 
     --glass-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22), inset 0 0 16px 0 rgba(255, 42, 133, 0.06), 0 18px 48px -10px rgba(0, 0, 0, 0.65);
     --glass-pill-bg: rgba(255, 255, 255, 0.07);
@@ -838,7 +839,7 @@
 
   .liquid-glass-card:hover {
     transform: translateY(-2px);
-    border-color: var(--orbit-500);
+    border-color: var(--saturn-500);
     box-shadow: var(--glass-shadow), 0 16px 36px -10px rgba(0, 0, 0, 0.35);
   }
 
@@ -871,7 +872,7 @@
   .glass-button:hover {
     background: var(--card-hover);
     transform: translateY(-1.5px) scale(1.01);
-    border-color: var(--orbit-500);
+    border-color: var(--saturn-500);
   }
 
   .glass-button:active {
@@ -893,8 +894,8 @@
 
   .double-bezel:hover {
     transform: translateY(-3px) scale(1.005);
-    border-color: var(--orbit-500);
-    box-shadow: var(--glass-shadow), 0 0 25px -5px var(--orbit-500);
+    border-color: var(--saturn-500);
+    box-shadow: var(--glass-shadow), 0 0 25px -5px var(--saturn-500);
   }
 
   /* Inner content bounding for Double-Bezel */
@@ -936,7 +937,7 @@
 
   .shad-card:hover {
     transform: translate3d(0, -2px, 0);
-    border-color: var(--orbit-500);
+    border-color: var(--saturn-500);
     box-shadow: var(--glass-shadow), 0 14px 32px -8px rgba(0, 0, 0, 0.25);
   }
 

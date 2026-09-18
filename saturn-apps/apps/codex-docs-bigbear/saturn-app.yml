@@ -1,0 +1,14 @@
+id: codex-docs-bigbear
+name: CodeX Docs
+tagline: CodeX Docs
+description: CodeX Docs is a free docs application. It's based on Editor.js ecosystem
+  which gives all modern opportunities for working with content.
+category: Developer
+version: 1.0.0
+developer: codex-team
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

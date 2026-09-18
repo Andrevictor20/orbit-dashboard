@@ -1,0 +1,14 @@
+id: linkwarden-bigbear
+name: Linkwarden
+tagline: Linkwarden
+description: ⚡️⚡️⚡️Self-hosted collaborative bookmark manager to collect, organize,
+  and preserve webpages and articles.
+category: Productivity
+version: 1.0.0
+developer: linkwarden
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

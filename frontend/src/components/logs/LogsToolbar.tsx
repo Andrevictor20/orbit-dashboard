@@ -14,7 +14,7 @@ import {
   Layers,
 } from 'lucide-react';
 
-type LogSource = 'orbit' | 'system' | 'docker' | 'dmesg' | 'all';
+type LogSource = 'saturn' | 'system' | 'docker' | 'dmesg' | 'all';
 type LogLevel = 'all' | 'info' | 'warn' | 'error';
 
 interface LogsToolbarProps {
@@ -48,7 +48,7 @@ export function LogsToolbar({
   const { t } = useTranslation();
 
   const sourcesList = [
-    { id: 'orbit' as const, label: 'Orbit Backend', icon: Server, desc: t('logs.source_orbit_desc', 'Logs da aplicação Orbit, sync da App Store e APIs') },
+    { id: 'saturn' as const, label: 'Saturn Backend', icon: Server, desc: t('logs.source_saturn_desc', 'Logs da aplicação Saturn, sync da App Store e APIs') },
     { id: 'system' as const, label: t('logs.source_system_label', 'Sistema Linux'), icon: Cpu, desc: t('logs.source_system_desc', 'Logs do sistema operacional via journalctl / syslog') },
     { id: 'docker' as const, label: 'Docker Daemon', icon: Box, desc: t('logs.source_docker_desc', 'Eventos e logs do motor Docker') },
     { id: 'dmesg' as const, label: 'Kernel (dmesg)', icon: Activity, desc: t('logs.source_kernel_desc', 'Mensagens do kernel Linux e hardware') },
@@ -82,7 +82,7 @@ export function LogsToolbar({
             <Trash2 className={`w-3.5 h-3.5 ${clearing ? 'animate-spin' : ''}`} />
             <span>{t('common.clear')}</span>
           </button>
-          <button onClick={onRefresh} disabled={loading} className="px-3.5 py-1.5 bg-orbit-600 hover:bg-orbit-500 text-white rounded-xl transition-all shadow-md shadow-orbit-900/20 text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95">
+          <button onClick={onRefresh} disabled={loading} className="px-3.5 py-1.5 bg-saturn-600 hover:bg-saturn-500 text-white rounded-xl transition-all shadow-md shadow-saturn-900/20 text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 active:scale-95">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>{t('common.refresh')}</span>
           </button>
@@ -99,7 +99,7 @@ export function LogsToolbar({
               key={s.id}
               onClick={() => onSourceChange(s.id)}
               className={`flex-1 min-w-[130px] sm:min-w-[150px] flex items-center justify-center gap-2 py-2 px-3 text-xs sm:text-sm font-medium rounded-xl transition-all ${
-                isActive ? 'bg-orbit-600 text-white shadow-md shadow-orbit-900/30' : 'text-secondary hover:text-primary hover:bg-white/5'
+                isActive ? 'bg-saturn-600 text-white shadow-md shadow-saturn-900/30' : 'text-secondary hover:text-primary hover:bg-white/5'
               }`}
               title={s.desc}
             >
@@ -119,7 +119,7 @@ export function LogsToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('logs.search_placeholder_short', 'Filtrar texto ou palavra-chave (ex: error, port, restart)...')}
-            className="w-full bg-background/80 border border-border rounded-xl pl-9 pr-8 py-1.5 text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-orbit-500 font-mono transition-colors"
+            className="w-full bg-background/80 border border-border rounded-xl pl-9 pr-8 py-1.5 text-xs text-primary placeholder-zinc-500 focus:outline-none focus:border-saturn-500 font-mono transition-colors"
           />
           {searchQuery && (
             <button onClick={() => onSearchChange('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-secondary hover:text-primary px-1">✕</button>
@@ -139,7 +139,7 @@ export function LogsToolbar({
                       ? lvl === 'error' ? 'bg-rose-600 text-white shadow-sm'
                         : lvl === 'warn' ? 'bg-amber-600 text-white shadow-sm'
                         : lvl === 'info' ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-orbit-600 text-white shadow-sm'
+                        : 'bg-saturn-600 text-white shadow-sm'
                       : 'text-secondary hover:text-primary hover:bg-white/5'
                   }`}
                 >
@@ -157,7 +157,7 @@ export function LogsToolbar({
           </div>
 
           <div className="flex items-center gap-1.5 text-xs text-secondary bg-background/80 border border-border rounded-xl px-2.5 py-1">
-            <Clock className="w-3 h-3 text-orbit-500" />
+            <Clock className="w-3 h-3 text-saturn-500" />
             <span className="text-[11px] font-medium">Auto:</span>
             <select value={autoRefreshInterval} onChange={(e) => onAutoRefreshChange(Number(e.target.value))} className="bg-transparent text-xs text-primary focus:outline-none font-mono cursor-pointer">
               <option value={0} className="bg-card text-primary">{t('common.disabled', 'Desativado')}</option>
@@ -171,7 +171,7 @@ export function LogsToolbar({
             onClick={onAutoScrollToggle}
             className={`px-3 py-1 rounded-xl border text-xs font-medium transition-all ${
               autoScroll
-                ? 'bg-orbit-500/15 text-orbit-600 dark:text-orbit-300 border-orbit-500/30'
+                ? 'bg-saturn-500/15 text-saturn-600 dark:text-saturn-300 border-saturn-500/30'
                 : 'bg-background/80 text-secondary border-border hover:text-primary'
             }`}
           >

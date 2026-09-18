@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Orbit Dashboard — Raspberry Pi Setup Script
+# Saturn — Raspberry Pi Setup Script
 # Run once on the Pi to install Docker, login to ghcr.io and start the stack.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/scripts/setup-pi.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Andrevictor20/saturn/main/scripts/setup-pi.sh | bash
 # =============================================================================
 set -euo pipefail
 
-REPO="Andrevictor20/orbit-dashboard"
+REPO="Andrevictor20/saturn"
 IMAGE="ghcr.io/${REPO}:latest"
-INSTALL_DIR="${HOME}/orbit"
+INSTALL_DIR="${HOME}/saturn"
 
-echo "🚀 Orbit Dashboard — Raspberry Pi Setup"
+echo "🚀 Saturn — Raspberry Pi Setup"
 echo "========================================"
 
 # ── 1. Install Docker if missing ─────────────────────────────────────────────
@@ -37,7 +37,7 @@ if command -v sudo &>/dev/null; then
   # Limit Systemd Journal to 100M and vacuum old logs (frees up to 4GB)
   if [ -d /etc/systemd ]; then
     sudo mkdir -p /etc/systemd/journald.conf.d
-    echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | sudo tee /etc/systemd/journald.conf.d/00-orbit.conf > /dev/null
+    echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | sudo tee /etc/systemd/journald.conf.d/00-saturn.conf > /dev/null
     sudo systemctl restart systemd-journald 2>/dev/null || true
     sudo journalctl --vacuum-size=50M 2>/dev/null || true
   fi
@@ -57,7 +57,7 @@ echo "📥 Downloading docker-compose.yml..."
 curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/docker-compose.yml" -o docker-compose.yml
 
 # ── 4. Removed .env generation ─────────────────────────────────────────────────
-# The Orbit backend now automatically generates its own secure JWT_SECRET
+# The Saturn backend now automatically generates its own secure JWT_SECRET
 # and stores it in the SQLite data volume. No .env configuration is needed!
 
 # ── 5. Login to ghcr.io (public image, anonymous pull works for public repos) ─
@@ -76,14 +76,13 @@ echo ""
 echo "🐳 Pulling image: ${IMAGE}"
 docker pull "${IMAGE}"
 
-echo "▶️  Starting Orbit Dashboard..."
+echo "▶️  Starting Saturn..."
 docker compose up -d
 
 echo ""
-echo "✅ Done! Orbit Dashboard is running."
+echo "✅ Done! Saturn is running."
 echo ""
 echo "   🌐 Access: http://$(hostname -I | awk '{print $1}'):5172"
-echo "   📋 Logs:   docker compose logs -f orbit"
-echo "   🔄 Updates are managed directly via the Orbit Dashboard UI"
+echo "   📋 Logs:   docker compose logs -f saturn"
+echo "   🔄 Updates are managed directly via the Saturn UI"
 echo ""
-

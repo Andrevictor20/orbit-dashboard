@@ -1,0 +1,13 @@
+id: ws-scrcpy-play
+name: ws-scrcpy
+tagline: Control your Android device from your web browser
+description: ws-scrcpy is a WebSocket-based implementation of the scrcpy Android screen
+  mirroring tool. It allows you to control your Android device from your web browser.
+category: Developer
+version: 1.0.0
+developer: scavin
+store: play
+icon: icon.png
+port: 8000
+architectures:
+- amd64

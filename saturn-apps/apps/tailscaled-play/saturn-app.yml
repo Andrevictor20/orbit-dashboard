@@ -1,0 +1,15 @@
+id: tailscaled-play
+name: Tailscaled
+tagline: Secure, private, and easy networking
+description: Tailscale lets you connect your devices and users together in your own
+  secure virtual private network. Tailscale enables encrypted point-to-point connections
+  using the open source WireGuard protocol.
+category: Networking
+version: 1.0.0
+developer: tailscale
+store: play
+icon: icon.png
+architectures:
+- amd64
+- arm
+- arm64

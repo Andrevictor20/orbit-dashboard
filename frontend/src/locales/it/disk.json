@@ -72,7 +72,7 @@
   "emptying": "Svuotamento...",
   "empty_trash_action": "Svuota cestino",
   "safety_title": "Linee guida per la protezione del file system Linux",
-  "safety_intro": "Orbit blocca la cancellazione delle directory essenziali critiche. Di seguito è riportato l'elenco dettagliato di ciò che non dovrebbe MAI essere eliminato manualmente tramite terminale o script per prevenire la corruzione irreversibile dell'host.",
+  "safety_intro": "Saturn blocca la cancellazione delle directory essenziali critiche. Di seguito è riportato l'elenco dettagliato di ciò che non dovrebbe MAI essere eliminato manualmente tramite terminale o script per prevenire la corruzione irreversibile dell'host.",
   "critical_folders_title": "Cartelle critiche (Pericolo massimo 🔴)",
   "boot_desc": "Contiene kernel Linux, Initramfs e Grub. Se eliminato, il server non si avvierà.",
   "docker_overlay_desc": "Livelli del driver di archiviazione interno Docker. Non usare mai rm -rf direttamente qui. Utilizzare sempre la potatura del sistema docker.",

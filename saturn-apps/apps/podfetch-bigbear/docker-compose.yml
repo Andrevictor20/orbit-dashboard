@@ -1,0 +1,23 @@
+name: big-bear-podfetch
+services:
+  app:
+    image: samuel19982/podfetch:v5.2.3@sha256:30dde81c92ec60450da08dee9f13723c0d8586e3ee4b3d7933b1fb221e051c28
+    container_name: podfetch
+    ports:
+    - 8000:8000
+    volumes:
+    - /DATA/AppData/$AppID/podcasts:/app/podcasts
+    - /DATA/AppData/$AppID/db:/app/db
+    environment:
+    - DATABASE_URL=sqlite:///app/db/podcast.db
+    - POLLING_INTERVAL=300
+    - BASIC_AUTH=false
+    - USERNAME=bigbear
+    - PASSWORD=15c40698-3cd9-40ce-8039-e8d80fc1a030
+    - GPODDER_INTEGRATION_ENABLED=false
+    restart: unless-stopped
+    networks:
+    - podfetch-network
+networks:
+  podfetch-network:
+    driver: bridge

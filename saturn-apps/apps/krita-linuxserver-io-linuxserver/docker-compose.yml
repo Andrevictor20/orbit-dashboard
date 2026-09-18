@@ -1,0 +1,20 @@
+name: linuxserver-krita
+services:
+  app:
+    image: linuxserver/krita:5.3.3
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    - target: 3001
+      published: 3001
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/krita/config
+      target: /config

@@ -1,0 +1,15 @@
+id: lobechat-bigbear
+name: LobeChat
+tagline: LobeChat
+description: LobeChat is a open-source, extensible (Function Calling), high-performance
+  chatbot framework. It supports one-click free deployment of your private ChatGPT/LLM
+  web application.
+category: AI
+version: 1.0.0
+developer: lobehub
+store: bigbear
+icon: icon.png
+port: 3210
+architectures:
+- amd64
+- arm64

@@ -1,11 +1,13 @@
 use bollard::Docker;
 
-pub struct DetectedOrbitContainer {
+pub struct DetectedSaturnContainer {
     pub id: Option<String>,
     pub name: Option<String>,
     pub inspect: Option<bollard::models::ContainerInspectResponse>,
     pub image_name: String,
 }
+
+
 
 pub struct DetectedComposeContext {
     pub host_compose_dir: Option<String>,
@@ -14,8 +16,8 @@ pub struct DetectedComposeContext {
     pub detected_data_mount: String,
 }
 
-pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContainer {
-    let mut image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest".to_string();
+pub async fn find_active_saturn_container(docker: &Docker) -> DetectedSaturnContainer {
+    let mut image_name = "ghcr.io/andrevictor20/saturn:latest".to_string();
     let mut current_container_id: Option<String> = None;
     let mut current_container_name: Option<String> = None;
     let mut inspect_result: Option<bollard::models::ContainerInspectResponse> = None;
@@ -41,7 +43,7 @@ pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContai
 
     // 2. Second attempt: well-known candidate names
     if inspect_result.is_none() {
-        for cname in &["orbit-dashboard", "orbit", "Orbit", "orbit_dashboard", "orbit-app"] {
+        for cname in &["saturn", "saturn-dashboard", "saturn-app"] {
             if let Ok(ins) = docker
                 .inspect_container(
                     cname,
@@ -69,7 +71,7 @@ pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContai
                 let image_match = c
                     .image
                     .as_ref()
-                    .map(|img| img.contains("orbit-dashboard"))
+                    .map(|img| img.contains("saturn") )
                     .unwrap_or(false);
                 let name_match = c
                     .names
@@ -77,9 +79,9 @@ pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContai
                     .map(|names| {
                         names.iter().any(|n| {
                             let clean = n.trim_start_matches('/').to_lowercase();
-                            clean == "orbit"
-                                || clean.contains("orbit-dashboard")
-                                || clean.starts_with("orbit")
+                            clean == "saturn"
+                                || clean.contains("saturn")
+                                || false
                         })
                     })
                     .unwrap_or(false);
@@ -109,14 +111,14 @@ pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContai
     if let Some(ref ins) = inspect_result {
         if let Some(ref config) = ins.config {
             if let Some(ref img) = config.image {
-                if img.contains("victorandre280/orbit-dashboard") {
-                    image_name = "victorandre280/orbit-dashboard:latest".to_string();
+                if img.contains("victorandre280/saturn")  {
+                    image_name = "victorandre280/saturn:latest".to_string();
                 }
             }
         }
     }
 
-    DetectedOrbitContainer {
+    DetectedSaturnContainer {
         id: current_container_id,
         name: current_container_name,
         inspect: inspect_result,
@@ -124,13 +126,15 @@ pub async fn find_active_orbit_container(docker: &Docker) -> DetectedOrbitContai
     }
 }
 
+
+
 pub fn discover_compose_context(
     inspect_result: Option<&bollard::models::ContainerInspectResponse>,
 ) -> DetectedComposeContext {
     let mut host_compose_dir = None;
     let mut compose_file_name = "docker-compose.yml".to_string();
     let mut compose_project_name = None;
-    let mut detected_data_mount = "orbit_data".to_string();
+    let mut detected_data_mount = "saturn_data".to_string();
 
     if let Some(inspect) = inspect_result {
         if let Some(labels) = inspect.config.as_ref().and_then(|c| c.labels.as_ref()) {
@@ -180,11 +184,12 @@ pub fn discover_compose_context(
     // Second attempt: Scan common host paths
     if host_compose_dir.is_none() {
         let candidate_bases = [
-            "/host/DATA/orbit",
-            "/host/data/orbit",
-            "/host/root/orbit",
-            "/host/opt/orbit",
-            "/host/srv/orbit",
+            "/host/DATA/saturn",
+            "/host/data/saturn",
+            "/host/root/saturn",
+            "/host/opt/saturn",
+            "/host/srv/saturn",
+            
         ];
         for base in candidate_bases {
             if std::path::Path::new(base).join(&compose_file_name).exists() {
@@ -197,14 +202,19 @@ pub fn discover_compose_context(
         if host_compose_dir.is_none() {
             if let Ok(entries) = std::fs::read_dir("/host/home") {
                 for entry in entries.flatten() {
-                    let orbit_path = entry.path().join("orbit");
-                    if orbit_path.join(&compose_file_name).exists() {
-                        let host_str = orbit_path.to_string_lossy();
-                        let cleaned = host_str
-                            .strip_prefix("/host")
-                            .unwrap_or(&host_str)
-                            .to_string();
-                        host_compose_dir = Some(cleaned);
+                    for sub in &["saturn"] {
+                        let sub_path = entry.path().join(sub);
+                        if sub_path.join(&compose_file_name).exists() {
+                            let host_str = sub_path.to_string_lossy();
+                            let cleaned = host_str
+                                .strip_prefix("/host")
+                                .unwrap_or(&host_str)
+                                .to_string();
+                            host_compose_dir = Some(cleaned);
+                            break;
+                        }
+                    }
+                    if host_compose_dir.is_some() {
                         break;
                     }
                 }

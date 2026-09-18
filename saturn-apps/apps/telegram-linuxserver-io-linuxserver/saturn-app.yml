@@ -1,0 +1,13 @@
+id: telegram-linuxserver-io-linuxserver
+name: Telegram (LinuxServer.io)
+tagline: A cloud-based mobile and desktop messaging app.
+description: Telegram is a cloud-based mobile and desktop messaging app.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,15 @@
+id: foxel-play
+name: Foxel
+tagline: Intelligent Image Retrieval and Management System
+description: Foxel is a modern intelligent image retrieval and management system based
+  on .NET 9, integrating advanced AI visual models and vector embedding technology
+  to provide efficient image search and management functions.
+category: Media
+version: 1.0.0
+developer: DrizzleTime
+store: play
+icon: icon.png
+port: 8088
+architectures:
+- amd64
+- arm64

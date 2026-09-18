@@ -1,0 +1,14 @@
+id: deluge-linuxserver-io-linuxserver
+name: Deluge (LinuxServer.io)
+tagline: A lightweight, Free Software, cross-platform BitTorrent client. * Full Encryption
+  * WebUI * Plugin System * Much more. . .
+description: Deluge is a lightweight, Free Software, cross-platform BitTorrent client.
+  * Full Encryption * WebUI * Plugin System * Much more...
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64
+- arm64

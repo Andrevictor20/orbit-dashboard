@@ -50,7 +50,7 @@ export const FileTrashView: React.FC<FileTrashViewProps> = ({
               <td className="py-2.5 px-4 text-right">
                 <button
                   onClick={() => handleRestoreTrash([item.id])}
-                  className="px-3 py-1.5 rounded-lg bg-orbit-500/15 text-orbit-400 hover:bg-orbit-500/25 border border-orbit-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
+                  className="px-3 py-1.5 rounded-lg bg-saturn-500/15 text-saturn-400 hover:bg-saturn-500/25 border border-saturn-500/30 transition-colors font-medium flex items-center gap-1.5 ml-auto"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>{t('files.restore_file', 'Restaurar')}</span>

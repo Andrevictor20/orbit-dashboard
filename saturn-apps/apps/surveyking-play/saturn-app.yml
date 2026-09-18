@@ -1,0 +1,14 @@
+id: surveyking-play
+name: SurveyKing
+tagline: Open-source survey, exam, and voting system
+description: SurveyKing is an open-source survey, exam, and voting system with features
+  comparable to commercial systems.
+category: Productivity
+version: 1.0.0
+developer: surveyking
+store: play
+icon: icon.png
+port: 1991
+architectures:
+- amd64
+- arm64

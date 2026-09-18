@@ -1,0 +1,14 @@
+id: onlyoffice-bigbear
+name: OnlyOffice
+tagline: OnlyOffice
+description: Feature-rich web-based office suite with a vast range of collaborative
+  capabilities
+category: Productivity
+version: 1.0.0
+developer: onlyoffice
+store: bigbear
+icon: icon.png
+port: 7400
+architectures:
+- amd64
+- arm64

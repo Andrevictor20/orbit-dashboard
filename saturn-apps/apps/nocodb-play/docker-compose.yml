@@ -1,0 +1,19 @@
+name: nocodb
+services:
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: nocodb
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    network_mode: bridge
+    ports:
+    - target: 8080
+      published: 8080
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/nocodb/data
+      target: /usr/app/data

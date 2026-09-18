@@ -69,20 +69,20 @@ export function ComposeEditorTab({
             placeholder="ex: my-custom-app"
             value={stackName}
             onChange={(e) => setStackName(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs font-mono text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+            className="w-full bg-card border border-border rounded-xl px-3 py-1.5 text-xs font-mono text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-saturn-500"
           />
         </div>
 
         {/* Ready Templates Picker */}
         <div>
           <label className="block text-[11px] font-semibold text-secondary uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-orbit-500" />
+            <Sparkles className="w-3 h-3 text-saturn-500" />
             <span>{t('docker.ready_templates', 'Templates Prontos')}</span>
           </label>
           <select
             onChange={(e) => onSelectTemplate(e.target.value)}
             defaultValue=""
-            className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+            className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500"
           >
             <option value="" disabled>{t('docker.load_preconfigured_template', 'Carregar modelo pré-configurado...')}</option>
             {COMPOSE_TEMPLATES.map((tmpl) => (
@@ -103,7 +103,7 @@ export function ComposeEditorTab({
             <button
               type="button"
               onClick={loadStacks}
-              className="text-[10px] text-orbit-500 hover:underline flex items-center gap-1"
+              className="text-[10px] text-saturn-500 hover:underline flex items-center gap-1"
             >
               <RefreshCw className={`w-2.5 h-2.5 ${loadingStacks ? 'animate-spin' : ''}`} />
               <span>{t('common.reload', 'Recarregar')}</span>
@@ -112,7 +112,7 @@ export function ComposeEditorTab({
           <select
             onChange={(e) => onLoadStackContent(e.target.value)}
             value={stackName}
-            className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs font-mono text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+            className="w-full bg-card border border-border rounded-xl px-2.5 py-1.5 text-xs font-mono text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500"
           >
             <option value="">{t('docker.select_existing_stack', '-- Selecionar stack existente --')}</option>
             {existingStacks.map((s) => (
@@ -159,7 +159,7 @@ export function ComposeEditorTab({
               onClick={() => setEditorSubTab('yaml')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 editorSubTab === 'yaml'
-                  ? 'bg-card text-orbit-500 shadow-xs border border-border'
+                  ? 'bg-card text-saturn-500 shadow-xs border border-border'
                   : 'text-secondary hover:text-primary'
               }`}
             >
@@ -172,7 +172,7 @@ export function ComposeEditorTab({
               onClick={() => setEditorSubTab('env')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 editorSubTab === 'env'
-                  ? 'bg-card text-orbit-500 shadow-xs border border-border'
+                  ? 'bg-card text-saturn-500 shadow-xs border border-border'
                   : 'text-secondary hover:text-primary'
               }`}
             >

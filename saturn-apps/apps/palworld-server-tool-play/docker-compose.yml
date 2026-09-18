@@ -1,0 +1,23 @@
+name: palworld-server-tool
+services:
+  palworld-server-tool:
+    image: jokerwho/palworld-server-tool:latest
+    container_name: palworld-server-tool
+    ports:
+    - 8080:8080
+    memswap_limit: 1G
+    volumes:
+    - /DATA/AppData/palworld-server/Pal/Saved:/game
+    environment:
+    - WEB__PASSWORD=password
+    - RCON__ADDRESS=172.17.0.1:25575
+    - RCON__PASSWORD=adminPasswordHere
+    - SAVE__PATH=/game
+    - SAVE__SYNC_INTERVAL=120
+    network_mode: bridge
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+        limits:
+          memory: 256M

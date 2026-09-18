@@ -66,7 +66,7 @@ export function ContainerTableView({
                   {/* Master Group Row */}
                   <tr 
                     onClick={() => onToggleGroupExpanded(group.groupKey)} 
-                    className="border-b border-border bg-orbit-500/[0.04] hover:bg-orbit-500/[0.08] transition-colors cursor-pointer"
+                    className="border-b border-border bg-saturn-500/[0.04] hover:bg-saturn-500/[0.08] transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
                       <button
@@ -74,18 +74,18 @@ export function ContainerTableView({
                           e.stopPropagation();
                           onToggleGroupExpanded(group.groupKey);
                         }}
-                        className="p-1 rounded text-orbit-600 dark:text-orbit-400 hover:text-orbit-800 dark:hover:text-white"
+                        className="p-1 rounded text-saturn-600 dark:text-saturn-400 hover:text-saturn-800 dark:hover:text-white"
                       >
                         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       </button>
 
-                      <div className="w-7 h-7 rounded-lg bg-background flex items-center justify-center border border-orbit-500/40 shrink-0 relative">
+                      <div className="w-7 h-7 rounded-lg bg-background flex items-center justify-center border border-saturn-500/40 shrink-0 relative">
                         <img 
                           src={group.iconUrl} 
                           alt="" 
                           className="w-5 h-5 object-contain" 
                         />
-                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-orbit-500 text-white">
+                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-saturn-500 text-white">
                           <Layers className="w-2 h-2" />
                         </div>
                       </div>
@@ -93,7 +93,7 @@ export function ContainerTableView({
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary leading-tight">{group.name}</span>
-                          <span className="px-2 py-0.5 rounded bg-orbit-500/20 text-orbit-700 dark:text-orbit-300 text-[10px] font-bold border border-orbit-500/30">
+                          <span className="px-2 py-0.5 rounded bg-saturn-500/20 text-saturn-700 dark:text-saturn-300 text-[10px] font-bold border border-saturn-500/30">
                             Stack ({t('docker.containers_count', { count: group.totalCount, defaultValue: `${group.totalCount} containers` })})
                           </span>
                           {(() => {
@@ -126,7 +126,7 @@ export function ContainerTableView({
                       {formatRAM(group.totalMemory)}
                     </td>
 
-                    <td className="px-4 py-4 text-orbit-700 dark:text-orbit-400 font-mono font-bold">
+                    <td className="px-4 py-4 text-saturn-700 dark:text-saturn-400 font-mono font-bold">
                       {formatBytes(group.totalDisk)}
                     </td>
 
@@ -134,7 +134,7 @@ export function ContainerTableView({
                       <div className="flex justify-end gap-2 items-center">
                         <button
                           onClick={() => onOpenGroupModal(group)}
-                          className="p-1.5 rounded glass-button text-orbit-700 dark:text-orbit-300 hover:text-orbit-900 dark:hover:text-white bg-orbit-500/15 border border-orbit-500/40 font-medium transition-colors text-xs flex items-center gap-1"
+                          className="p-1.5 rounded glass-button text-saturn-700 dark:text-saturn-300 hover:text-saturn-900 dark:hover:text-white bg-saturn-500/15 border border-saturn-500/40 font-medium transition-colors text-xs flex items-center gap-1"
                           title={t('docker.view_subcontainers', 'Ver sub-containers')}
                         >
                           <Layers className="w-3.5 h-3.5" />
@@ -180,7 +180,7 @@ export function ContainerTableView({
                       onClick={() => navigate(`/containers/${c.id}`)} 
                       className="border-b border-border/60 bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer text-xs"
                     >
-                      <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-orbit-500/50">
+                      <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-saturn-500/50">
                         <ContainerIcon
                           src={getIconForImage(c.image, c.name)}
                           name={c.name}
@@ -289,10 +289,10 @@ export function ContainerTableView({
                         return (
                           <button 
                             onClick={(e) => { e.stopPropagation(); window.open(webLink, '_blank'); }}
-                            className="px-2 py-1 rounded glass-button text-orbit-600 dark:text-orbit-400 hover:text-orbit-700 dark:hover:text-orbit-300 border border-orbit-500/30 transition-colors text-xs flex items-center gap-1 font-semibold" 
+                            className="px-2 py-1 rounded glass-button text-saturn-600 dark:text-saturn-400 hover:text-saturn-700 dark:hover:text-saturn-300 border border-saturn-500/30 transition-colors text-xs flex items-center gap-1 font-semibold" 
                             title={t('docker.open_app_target', { name: c.name, link: webLink, defaultValue: `Abrir ${c.name} (${webLink})` })}
                           >
-                            <Globe className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
+                            <Globe className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400" />
                             <span className="hidden xl:inline">{t('containers.open_app')}</span>
                           </button>
                         );

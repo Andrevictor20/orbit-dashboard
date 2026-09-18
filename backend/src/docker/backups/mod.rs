@@ -15,7 +15,7 @@ use axum::{
     Json,
 };
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 
 pub async fn list_backups_handler() -> impl IntoResponse {
     let backups = load_backup_index();
@@ -150,13 +150,14 @@ pub async fn download_backup_handler(
 pub async fn upload_backup_handler(
     mut multipart: Multipart,
 ) -> Result<Json<BackupItem>, StatusCode> {
+    use tokio::io::AsyncWriteExt;
     let dir = get_backups_dir();
     let mut uploaded_filename = String::new();
     let mut app_id = "uploaded-app".to_string();
     let mut app_name = "Upload Manual".to_string();
     let mut target_type = "single_app".to_string();
 
-    while let Ok(Some(field)) = multipart.next_field().await {
+    while let Ok(Some(mut field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" || name == "backup" {
             let original_name = field.file_name().unwrap_or("backup.tar.gz").to_string();
@@ -164,12 +165,12 @@ pub async fn upload_backup_handler(
 
             if safe_name.contains("system_full") {
                 app_id = "system_full".to_string();
-                app_name = "Sistema Completo (Orbit + Containers)".to_string();
+                app_name = "Sistema Completo (Saturn + Containers)".to_string();
                 target_type = "system_full".to_string();
-            } else if safe_name.contains("orbit_configs") {
-                app_id = "orbit_configs".to_string();
-                app_name = "Configurações Orbit & Integrações".to_string();
-                target_type = "orbit_configs".to_string();
+            } else if safe_name.contains("saturn_configs") {
+                app_id = "saturn_configs".to_string();
+                app_name = "Configurações Saturn & Integrações".to_string();
+                target_type = "saturn_configs".to_string();
             } else if safe_name.contains("all_containers") {
                 app_id = "all_containers".to_string();
                 app_name = "Todos os Contêineres & Stacks".to_string();
@@ -183,11 +184,38 @@ pub async fn upload_backup_handler(
             }
 
             let dest_path = dir.join(&safe_name);
-            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-
-            let mut f = File::create(&dest_path).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            f.write_all(&data)
+            let mut f = tokio::fs::File::create(&dest_path)
+                .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            while let Ok(Some(chunk)) = field.chunk().await {
+                f.write_all(&chunk)
+                    .await
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            }
+
+            // Inspect archive for embedded manifest to discover true metadata
+            for manifest_name in ["saturn_manifest.json"] {
+                if let Ok(output) = std::process::Command::new("tar")
+                    .args(["-xzf", dest_path.to_str().unwrap_or(""), manifest_name, "-O"])
+                    .output()
+                {
+                    if output.status.success() {
+                        if let Ok(m) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                            if let Some(tt) = m.get("target_type").and_then(|v| v.as_str()) {
+                                target_type = tt.to_string();
+                            }
+                            if let Some(aid) = m.get("app_id").and_then(|v| v.as_str()) {
+                                app_id = aid.to_string();
+                            }
+                            if let Some(aname) = m.get("app_name").and_then(|v| v.as_str()) {
+                                app_name = aname.to_string();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             uploaded_filename = safe_name;
             break;

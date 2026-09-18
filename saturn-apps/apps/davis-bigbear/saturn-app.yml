@@ -1,0 +1,16 @@
+id: davis-bigbear
+name: Davis
+tagline: Davis
+description: A simple, fully translatable admin interface for sabre/dav based on Symfony
+  5 and Bootstrap 5, initially inspired by Baïkal. Provides user edition, calendar
+  creation and sharing, and address book creation. The interface is simple and straightforward,
+  responsive, and provides a light and a dark mode.
+category: Productivity
+version: 1.0.0
+developer: tchapi
+store: bigbear
+icon: icon.png
+port: 9000
+architectures:
+- amd64
+- arm64

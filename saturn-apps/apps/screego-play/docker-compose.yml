@@ -1,0 +1,18 @@
+name: screego
+services:
+  screego:
+    image: ghcr.io/screego/server:1.10.3
+    ports:
+    - 5050:5050
+    - 3478:3478
+    - 50000-50200:50000-50200/udp
+    environment:
+      SCREEGO_EXTERNAL_IP: 192.168.178.2
+      SCREEGO_TURN_PORT_RANGE: 50000:50200
+    restart: unless-stopped
+    container_name: screego
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: bridge

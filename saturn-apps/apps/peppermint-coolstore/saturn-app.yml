@@ -1,0 +1,14 @@
+id: peppermint-coolstore
+name: Peppermint
+tagline: Peppermint is a central hub for your help desk. A powerfully easy system
+  for tracking, prioritising, and solving customer support tickets.
+description: Peppermint is a central hub for your help desk. A powerfully easy system
+  for tracking, prioritising, and solving customer support tickets.
+category: Coolstore
+version: 1.0.0
+developer: Pepperlabs
+store: coolstore
+icon: icon.png
+port: 5000
+architectures:
+- amd64

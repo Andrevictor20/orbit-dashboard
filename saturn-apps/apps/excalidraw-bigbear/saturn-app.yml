@@ -1,0 +1,12 @@
+id: excalidraw-bigbear
+name: Excalidraw
+tagline: Virtual whiteboard for sketching hand-drawn like diagrams
+description: Virtual whiteboard for sketching hand-drawn like diagrams
+category: Others
+version: 1.0.0
+developer: excalidraw
+store: bigbear
+icon: icon.png
+port: 8000
+architectures:
+- amd64

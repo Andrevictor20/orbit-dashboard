@@ -1,0 +1,18 @@
+name: linkease
+services:
+  linkease:
+    container_name: linkease
+    image: linkease/linkease:latest
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/linkease/data:/linkease-data
+    - /DATA/AppData/linkease/config:/linkease-config
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+      PUID: '0'
+      PGID: '0'
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

@@ -1,0 +1,14 @@
+id: vscode-play
+name: VS Code
+tagline: Code Anywhere with VS Code
+description: Code with ease using Visual Studio Code on your server. Access it through
+  your browser anywhere, anytime.
+category: Developer
+version: 1.0.0
+developer: Coder.com
+store: play
+icon: icon.png
+port: 8443
+architectures:
+- amd64
+- arm64

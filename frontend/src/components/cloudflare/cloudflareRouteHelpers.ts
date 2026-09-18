@@ -3,7 +3,7 @@ import type { IngressRule } from '../../types/cloudflare';
 export function detectBaseDomain(existingRules?: IngressRule[]): string {
   // 1. From localStorage
   if (typeof localStorage !== 'undefined') {
-    const saved = localStorage.getItem('orbit_base_domain');
+    const saved = localStorage.getItem('saturn_base_domain') || localStorage.getItem('saturn_base_domain');
     if (saved && saved.trim()) return saved.trim().toLowerCase();
   }
 

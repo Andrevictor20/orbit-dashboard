@@ -77,8 +77,9 @@ const WELL_KNOWN_APP_NAMES: Record<string, string> = {
   duplicati: 'Duplicati',
   'code-server': 'VS Code Server',
   watchtower: 'Watchtower',
-  orbit: 'Orbit Dashboard',
-  'orbit-dashboard': 'Orbit Dashboard',
+  saturn: 'Saturn',
+  'saturn-dashboard': 'Saturn',
+  
   dockerd: 'Docker Daemon',
 };
 
@@ -124,7 +125,7 @@ export function resolveProcessAppInfo(
     const composeProject =
       matchedContainer.labels?.['com.docker.compose.project'] ||
       matchedContainer.labels?.['com.docker.stack.namespace'] ||
-      matchedContainer.labels?.['io.casaos.app.name'];
+      matchedContainer.labels?.['io.saturn.app.name'];
 
     // If compose project is present, it defines the application group/stack
     let displayName: string;

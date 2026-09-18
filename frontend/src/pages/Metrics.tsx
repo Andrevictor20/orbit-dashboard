@@ -6,7 +6,7 @@ import { Activity, Network, Cpu, HardDrive, LayoutGrid, Monitor, Box, Rocket, Te
 import { ProcessMonitor } from '../components/metrics/ProcessMonitor';
 import { AlertsPanel } from '../components/metrics/AlertsPanel';
 
-type TabType = 'overview' | 'system' | 'containers' | 'orbit' | 'processes';
+type TabType = 'overview' | 'system' | 'containers' | 'saturn' | 'processes';
 type TimeRangeType = '1m' | '5m' | '15m' | '30m' | '1h';
 
 export function Metrics() {
@@ -111,7 +111,7 @@ export function Metrics() {
                   onClick={() => setTimeRange(range)}
                   className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                     timeRange === range
-                      ? 'bg-orbit-500 text-white shadow-sm font-semibold'
+                      ? 'bg-saturn-500 text-white shadow-sm font-semibold'
                       : 'text-secondary hover:text-primary hover:bg-accent'
                   }`}
                 >
@@ -125,35 +125,35 @@ export function Metrics() {
           <div className="bg-card border border-border p-1 rounded-lg flex items-center shadow-sm overflow-x-auto max-w-full scrollbar-none">
             <button 
               onClick={() => setActiveTab('overview')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               {t('common.all')}
             </button>
             <button 
               onClick={() => setActiveTab('system')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'system' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'system' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Monitor className="w-3.5 h-3.5" />
               Host
             </button>
             <button 
               onClick={() => setActiveTab('containers')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'containers' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Box className="w-3.5 h-3.5" />
               {t('sidebar.containers')}
             </button>
             <button 
-              onClick={() => setActiveTab('orbit')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'orbit' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
+              onClick={() => setActiveTab('saturn')}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'saturn' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Rocket className="w-3.5 h-3.5" />
-              Orbit
+              Saturn
             </button>
             <button 
               onClick={() => setActiveTab('processes')}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'processes' ? 'bg-orbit-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors whitespace-nowrap ${activeTab === 'processes' ? 'bg-saturn-500 text-white shadow-sm font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'}`}
             >
               <Terminal className="w-3.5 h-3.5" />
               {t('metrics.process_monitor')}
@@ -172,7 +172,7 @@ export function Metrics() {
       
       {activeTab !== 'processes' && <AlertsPanel />}
 
-      {activeTab === 'orbit' && (
+      {activeTab === 'saturn' && (
         <div className="bg-card/70 border border-yellow-500/20 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
@@ -180,28 +180,28 @@ export function Metrics() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-primary">{t('metrics.orbit_consumption_title')}</h3>
+                <h3 className="text-sm font-semibold text-primary">{t('metrics.saturn_consumption_title')}</h3>
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
                   Consolidado
                 </span>
               </div>
               <p className="text-xs text-secondary mt-0.5 flex items-center gap-1">
                 <Info className="w-3.5 h-3.5 text-yellow-500/80 shrink-0" />
-                {t('metrics.orbit_consumption_desc')}
+                {t('metrics.saturn_consumption_desc')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
             <div className="bg-accent/60 border border-border px-3 py-1.5 rounded-lg text-right shadow-sm">
-              <span className="text-[10px] uppercase font-bold text-secondary block">CPU Orbit</span>
+              <span className="text-[10px] uppercase font-bold text-secondary block">CPU Saturn</span>
               <span className="text-sm font-bold text-amber-500 font-mono">
-                {stats ? stats.orbit_cpu.toFixed(2) : '0.00'}%
+                {stats ? stats.saturn_cpu.toFixed(2) : '0.00'}%
               </span>
             </div>
             <div className="bg-accent/60 border border-border px-3 py-1.5 rounded-lg text-right shadow-sm">
-              <span className="text-[10px] uppercase font-bold text-secondary block">RAM Orbit</span>
+              <span className="text-[10px] uppercase font-bold text-secondary block">RAM Saturn</span>
               <span className="text-sm font-bold text-emerald-500 font-mono">
-                {stats ? formatBytes(stats.orbit_memory) : '0 B'}
+                {stats ? formatBytes(stats.saturn_memory) : '0 B'}
               </span>
             </div>
           </div>
@@ -235,7 +235,7 @@ export function Metrics() {
                       <stop offset="5%" stopColor="#ec4899" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                     </linearGradient>
-                    <linearGradient id="metricOrbitCpu" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="metricSaturnCpu" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#eab308" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
                     </linearGradient>
@@ -247,7 +247,7 @@ export function Metrics() {
                   
                   <Area type="monotone" dataKey="cpu" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#8b5cf6" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricCpu)" name="Host CPU" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
                   <Area type="monotone" dataKey="dockerCpu" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#ec4899" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerCpu)" name="Containers CPU" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
-                  <Area type="monotone" dataKey="orbitCpu" stroke={(activeTab === 'overview' || activeTab === 'orbit') ? "#eab308" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'orbit') ? 1 : 0} fill="url(#metricOrbitCpu)" name="Orbit CPU" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'orbit') ? undefined : 'none'} />
+                  <Area type="monotone" dataKey="saturnCpu" stroke={(activeTab === 'overview' || activeTab === 'saturn') ? "#eab308" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'saturn') ? 1 : 0} fill="url(#metricSaturnCpu)" name="Saturn CPU" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'saturn') ? undefined : 'none'} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -276,7 +276,7 @@ export function Metrics() {
                       <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
                     </linearGradient>
-                    <linearGradient id="metricOrbitMem" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="metricSaturnMem" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#84cc16" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#84cc16" stopOpacity={0}/>
                     </linearGradient>
@@ -288,14 +288,14 @@ export function Metrics() {
                   
                   <Area type="monotone" dataKey="memory" stroke={(activeTab === 'overview' || activeTab === 'system') ? "#10b981" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'system') ? 1 : 0} fill="url(#metricMem)" name="Host RAM" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'system') ? undefined : 'none'} />
                   <Area type="monotone" dataKey="dockerMemory" stroke={(activeTab === 'overview' || activeTab === 'containers') ? "#14b8a6" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'containers') ? 1 : 0} fill="url(#metricDockerMem)" name="Containers RAM" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'containers') ? undefined : 'none'} />
-                  <Area type="monotone" dataKey="orbitMemory" stroke={(activeTab === 'overview' || activeTab === 'orbit') ? "#84cc16" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'orbit') ? 1 : 0} fill="url(#metricOrbitMem)" name="Orbit RAM" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'orbit') ? undefined : 'none'} />
+                  <Area type="monotone" dataKey="saturnMemory" stroke={(activeTab === 'overview' || activeTab === 'saturn') ? "#84cc16" : "transparent"} fillOpacity={(activeTab === 'overview' || activeTab === 'saturn') ? 1 : 0} fill="url(#metricSaturnMem)" name="Saturn RAM" isAnimationActive={false} tooltipType={(activeTab === 'overview' || activeTab === 'saturn') ? undefined : 'none'} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Network Panel (Only for System and Containers) */}
-          {activeTab !== 'orbit' && (
+          {activeTab !== 'saturn' && (
             <div className="bg-card/85 backdrop-blur-2xl border border-border/80 rounded-2xl p-4 sm:p-6 min-h-[300px] sm:min-h-[350px] lg:col-span-2 flex flex-col shadow-sm animate-in fade-in zoom-in-95 duration-300">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                 <div className="flex items-center gap-2.5 flex-wrap">

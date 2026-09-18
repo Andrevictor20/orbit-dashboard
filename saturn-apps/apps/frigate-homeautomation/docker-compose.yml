@@ -1,0 +1,58 @@
+name: frigate
+services:
+  frigate:
+    container_name: frigate
+    entrypoint: "bash -c '\n  if [ ! -f \"/config/config.yml\" ]; then\n    echo -n\
+      \ \"No config file found. Create one... \"\n    {\n      echo \"# config generated\
+      \ on $(date +%Y.%m.%d\\ %H:%M:%S)\"\n      echo \"mqtt:\"\n      echo \"  enabled:\
+      \ False\"\n      echo \"\"\n      echo \"cameras:\"\n      echo \"  sample_camera:\
+      \ # <------ Name the camera\"\n      echo \"    ffmpeg:\"\n      echo \"   \
+      \   inputs:\"\n      echo \"        - path: rtsp://192.168.255.10/stream # <-----\
+      \ The stream you want to use for detection\"\n      echo \"          roles:\"\
+      \n      echo \"            - detect\"\n      echo \"    detect:\"\n      echo\
+      \ \"      enabled: False # <---- disable detection until you have a working\
+      \ camera feed\"\n      echo \"      width: 1280 # <---- update for your camera\
+      \ resolution\"\n      echo \"      height: 720 # <---- update for your camera\
+      \ resolution\"\n    } > /config/config.yml\n    if [ $? -eq 0 ]; then\n    \
+      \  echo \"done.\"\n    else\n      echo \"error.\"\n      exit 1\n    fi\n \
+      \ fi\n  /init'\n"
+    privileged: true
+    image: ghcr.io/blakeblackshear/frigate:stable
+    labels:
+      icon: https://raw.githubusercontent.com/mr-manuel/saturn-HomeAutomation-AppStore/latest/Apps/Frigate/icon.png
+    network_mode: bridge
+    ports:
+    - target: 5000
+      published: '5000'
+      protocol: tcp
+    - target: 8554
+      published: '8554'
+      protocol: tcp
+    - target: 8555
+      published: '8555'
+      protocol: tcp
+    - target: 8555
+      published: '8555'
+      protocol: udp
+    restart: unless-stopped
+    healthcheck:
+      test: curl --fail -s http://localhost:5000/ || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    shm_size: 64mb
+    devices:
+    - /dev/bus/usb:/dev/bus/usb
+    - /dev/apex_0:/dev/apex_0
+    - /dev/dri/renderD128
+    volumes:
+    - type: bind
+      source: /etc/localtime
+      target: /etc/localtime
+      read_only: true
+    - type: bind
+      source: /DATA/AppData/$AppID/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/$AppID/media
+      target: /media/frigate

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Copy, Check, AlertTriangle, Loader2, QrCode, Key, ArrowRight, Download, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getAuthToken } from '../../utils/auth';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       setStep('scan');
       setVerificationCode('');
       setLoading(true);
-      const token = localStorage.getItem('orbit_token');
+      const token = getAuthToken();
       fetch('/api/auth/2fa/setup', {
         method: 'POST',
         headers: {
@@ -75,12 +76,12 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
   const handleDownloadCodes = () => {
     if (!setupData?.recovery_codes) return;
-    const content = `=== ORBIT DASHBOARD - RECOVERY CODES ===\n\nGuard estes codigos em local seguro. Cada codigo pode ser usado apenas uma vez.\n\n${setupData.recovery_codes.join('\n')}\n\nGerado em: ${new Date().toLocaleString()}`;
+    const content = `=== SATURN DASHBOARD - RECOVERY CODES ===\n\nGuarde estes codigos em local seguro. Cada codigo pode ser usado apenas uma vez.\n\n${setupData.recovery_codes.join('\n')}\n\nGerado em: ${new Date().toLocaleString()}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'orbit-recovery-codes.txt';
+    a.download = 'saturn-recovery-codes.txt';
     a.click();
     URL.revokeObjectURL(url);
     toast.success(t('two_factor.downloaded', 'Arquivo baixado!'));
@@ -92,7 +93,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
     setVerifying(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = getAuthToken();
       const res = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
         headers: {
@@ -144,7 +145,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       >
         <div className="flex items-center justify-between p-4 border-b border-border/70 shrink-0">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-orbit-500" />
+            <ShieldCheck className="w-5 h-5 text-saturn-500" />
             <h2 className="font-bold text-base text-primary">
               {t('two_factor.modal_title', 'Configurar Autenticação de 2 Fatores (2FA)')}
             </h2>
@@ -161,15 +162,15 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
         <div className="p-5 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin text-orbit-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-saturn-500" />
               <p className="text-sm text-secondary">{t('two_factor.generating', 'Gerando chaves de segurança...')}</p>
             </div>
           ) : !setupData ? null : (
         <div className="space-y-6">
           {step === 'scan' ? (
             <div className="space-y-5 animate-fade-in">
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-orbit-500/10 border border-orbit-500/20 text-primary text-sm">
-                <ShieldCheck className="w-5 h-5 text-orbit-500 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-saturn-500/10 border border-saturn-500/20 text-primary text-sm">
+                <ShieldCheck className="w-5 h-5 text-saturn-500 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
                   {t(
                     'two_factor.instructions',
@@ -190,7 +191,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
                 <div className="space-y-3 w-full">
                   <span className="text-xs font-semibold text-secondary flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-orbit-500" />
+                    <Key className="w-3.5 h-3.5 text-saturn-500" />
                     {t('two_factor.manual_entry', 'Entrada manual da chave')}
                   </span>
                   <div className="flex items-center gap-2">
@@ -262,7 +263,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                 <button
                   type="button"
                   onClick={() => setStep('verify')}
-                  className="bg-orbit-500 hover:bg-orbit-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md shadow-orbit-500/20 active:scale-95"
+                  className="bg-saturn-500 hover:bg-saturn-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md shadow-saturn-500/20 active:scale-95"
                 >
                   <span>{t('two_factor.next_step', 'Continuar para Verificação')}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -272,7 +273,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
           ) : (
             <form onSubmit={handleVerifyAndEnable} className="space-y-5 animate-fade-in">
               <div className="space-y-2 text-center py-2">
-                <div className="w-12 h-12 rounded-2xl bg-orbit-500/10 text-orbit-500 flex items-center justify-center mx-auto mb-3 border border-orbit-500/20">
+                <div className="w-12 h-12 rounded-2xl bg-saturn-500/10 text-saturn-500 flex items-center justify-center mx-auto mb-3 border border-saturn-500/20">
                   <QrCode className="w-6 h-6" />
                 </div>
                 <h4 className="font-bold text-base text-primary">
@@ -296,7 +297,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
-                  className="w-full text-center tracking-[0.4em] font-mono text-2xl font-bold bg-background border border-border rounded-xl py-3 text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-secondary/40"
+                  className="w-full text-center tracking-[0.4em] font-mono text-2xl font-bold bg-background border border-border rounded-xl py-3 text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500 transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-secondary/40"
                   required
                 />
               </div>
@@ -313,7 +314,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                 <button
                   type="submit"
                   disabled={verifying || verificationCode.length !== 6}
-                  className="bg-orbit-500 hover:bg-orbit-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md shadow-orbit-500/20 disabled:opacity-50 active:scale-95"
+                  className="bg-saturn-500 hover:bg-saturn-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md shadow-saturn-500/20 disabled:opacity-50 active:scale-95"
                 >
                   {verifying && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>{t('two_factor.enable_button', 'Ativar 2FA')}</span>

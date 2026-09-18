@@ -1,0 +1,29 @@
+name: readarr-arm
+services:
+  readarr-arm:
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/readarr:arm32v7-0.1.8-develop
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8787
+      published: '8787'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/readarr/config
+      target: /config
+    - type: bind
+      source: /path/to/books
+      target: /books
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    container_name: readarr-arm

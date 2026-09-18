@@ -26,7 +26,7 @@ export function HAQuickScenes({
         <span className="text-secondary/50">•</span>
         <span className="capitalize">{formattedDate}</span>
         <span className="text-secondary/50">•</span>
-        <span className="font-medium text-orbit-600 dark:text-orbit-400">
+        <span className="font-medium text-saturn-600 dark:text-saturn-400">
           {activeDevicesCount} {t('homeassistant.active_devices', 'dispositivos ativos')}
         </span>
       </div>

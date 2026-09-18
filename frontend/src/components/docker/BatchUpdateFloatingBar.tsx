@@ -32,7 +32,7 @@ export const BatchUpdateFloatingBar: React.FC = () => {
         <div
           className={`p-2 rounded-xl shrink-0 ${
             isUpdating
-              ? 'bg-orbit-500/15 text-orbit-500'
+              ? 'bg-saturn-500/15 text-saturn-500'
               : failedCount > 0
               ? 'bg-rose-500/15 text-rose-500'
               : 'bg-emerald-500/15 text-emerald-500'
@@ -74,7 +74,7 @@ export const BatchUpdateFloatingBar: React.FC = () => {
       <div className="flex items-center gap-1.5 shrink-0 pl-1">
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-orbit-600 hover:bg-orbit-500 text-white transition-all shadow-sm active:scale-95"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-saturn-600 hover:bg-saturn-500 text-white transition-all shadow-sm active:scale-95"
           title={t('batch_update_modal.floating_view_details', 'Ver detalhes da atualização')}
         >
           <span>{t('batch_update_modal.floating_progress_btn', 'Progresso')}</span>

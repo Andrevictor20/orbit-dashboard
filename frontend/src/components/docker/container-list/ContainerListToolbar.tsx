@@ -66,7 +66,7 @@ export function ContainerListToolbar({
             onClick={onToggleGroupByStack}
             className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all ${
               groupByStack
-                ? 'bg-orbit-500/20 text-orbit-300 border-orbit-500/40 shadow-sm'
+                ? 'bg-saturn-500/20 text-saturn-300 border-saturn-500/40 shadow-sm'
                 : 'bg-card text-secondary hover:text-primary border-border'
             }`}
             title={t('dashboard.group_managed')}
@@ -120,7 +120,7 @@ export function ContainerListToolbar({
 
           <button
             onClick={onOpenDockerInstall}
-            className="px-3 sm:px-4 py-2 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-lg flex items-center gap-1.5 transition-all text-xs sm:text-sm font-semibold shadow-sm shadow-orbit-500/20"
+            className="px-3 sm:px-4 py-2 bg-saturn-500 hover:bg-saturn-600 active:scale-95 text-white rounded-lg flex items-center gap-1.5 transition-all text-xs sm:text-sm font-semibold shadow-sm shadow-saturn-500/20"
             title={t('docker_install.title')}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ export function ContainerListToolbar({
             placeholder={t('containers.search_placeholder')}
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all text-primary"
+            className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-saturn-500/50 transition-all text-primary"
           />
         </div>
         <div className="flex items-center gap-2">

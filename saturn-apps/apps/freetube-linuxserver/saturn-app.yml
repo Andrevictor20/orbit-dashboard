@@ -1,0 +1,13 @@
+id: freetube-linuxserver
+name: Freetube
+tagline: A feature-rich and user-friendly YouTube client with a focus on privacy.
+description: FreeTube is a feature-rich and user-friendly YouTube client with a focus
+  on privacy.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64
+- arm64

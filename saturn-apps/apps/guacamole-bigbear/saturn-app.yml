@@ -1,0 +1,13 @@
+id: guacamole-bigbear
+name: Guacamole
+tagline: Guacamole
+description: Apache Guacamole is a free and open-source, cross-platform, clientless
+  remote desktop gateway maintained by the Apache Software Foundation.
+category: Others
+version: 1.0.0
+developer: guacamole
+store: bigbear
+icon: icon.png
+port: 8090
+architectures:
+- amd64

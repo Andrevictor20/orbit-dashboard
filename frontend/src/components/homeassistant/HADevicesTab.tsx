@@ -67,7 +67,7 @@ export function HADevicesTab({
                 onClick={() => onFilterSubCategory(sub.id as DeviceSubFilter)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 active:scale-95 border ${
                   isActive
-                    ? 'bg-orbit-500 text-white shadow-sm font-semibold border-orbit-500'
+                    ? 'bg-saturn-500 text-white shadow-sm font-semibold border-saturn-500'
                     : 'bg-card/50 hover:bg-card text-secondary hover:text-primary border-border/70'
                 }`}
               >
@@ -100,7 +100,7 @@ export function HADevicesTab({
             defaultValue: `Exibindo ${filteredDeviceGroups.length} dispositivos`,
           })}
           {selectedAreaFilter !== 'all' && (
-            <span className="ml-1 text-orbit-500 font-medium">({selectedAreaFilter})</span>
+            <span className="ml-1 text-saturn-500 font-medium">({selectedAreaFilter})</span>
           )}
         </span>
         <span className="font-mono text-[11px] bg-card/60 border border-border/60 px-2 py-0.5 rounded-md">

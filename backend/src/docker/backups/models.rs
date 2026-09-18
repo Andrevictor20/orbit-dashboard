@@ -15,7 +15,7 @@ pub struct BackupItem {
     pub status: String,      // "completed", "failed", "in_progress"
     pub backup_type: String, // "manual", "scheduled"
     #[serde(default = "default_target_type")]
-    pub target_type: String, // "system_full", "orbit_configs", "all_containers", "single_app"
+    pub target_type: String, // "system_full", "saturn_configs", "all_containers", "single_app"
     #[serde(default)]
     pub description: Option<String>,
 }
@@ -49,7 +49,7 @@ impl Default for BackupScheduleConfig {
 #[derive(Deserialize, Debug)]
 pub struct CreateBackupPayload {
     pub app_id: Option<String>,
-    pub target_type: Option<String>, // "system_full" | "orbit_configs" | "all_containers" | "single_app"
+    pub target_type: Option<String>, // "system_full" | "saturn_configs" | "all_containers" | "single_app"
     pub stop_container: Option<bool>,
     pub app_name: Option<String>,
 }

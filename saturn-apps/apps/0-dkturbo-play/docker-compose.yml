@@ -1,0 +1,20 @@
+name: 0-dkturbo
+services:
+  0-dkturbo:
+    image: registry.cn-shenzhen.aliyuncs.com/cp0204/dkturbo:main
+    container_name: dkturbo
+    hostname: dkturbo
+    volumes:
+    - /etc/docker:/etc/docker
+    - /opt:/opt
+    environment:
+    - MODE=registry
+    - REGISTRY=auto
+    network_mode: bridge
+    restart: unless-stopped
+    pid: host
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          memory: 8M

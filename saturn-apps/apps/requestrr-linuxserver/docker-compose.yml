@@ -1,0 +1,17 @@
+name: linuxserver-requestrr
+services:
+  app:
+    image: linuxserver/requestrr:2.1.2
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 4545
+      published: 4545
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/requestrr/config
+      target: /config

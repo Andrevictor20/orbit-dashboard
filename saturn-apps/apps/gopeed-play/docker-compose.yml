@@ -1,0 +1,19 @@
+name: gopeed
+services:
+  gopeed:
+    image: liwei2633/gopeed:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 32M
+    network_mode: bridge
+    ports:
+    - target: 9999
+      published: '9999'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/Downloads
+      target: /root/Downloads
+    container_name: gopeed

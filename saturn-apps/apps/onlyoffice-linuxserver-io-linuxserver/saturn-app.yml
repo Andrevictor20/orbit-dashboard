@@ -1,0 +1,16 @@
+id: onlyoffice-linuxserver-io-linuxserver
+name: Onlyoffice (LinuxServer.io)
+tagline: Provides a full range of tools to create, edit and collaborate on text documents,
+  spreadsheets, presentations, PDF forms and regular PDF files on web, desktop and
+  mobile platforms.
+description: ONLYOFFICE provides a full range of tools to create, edit and collaborate
+  on text documents, spreadsheets, presentations, PDF forms and regular PDF files
+  on web, desktop and mobile platforms.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

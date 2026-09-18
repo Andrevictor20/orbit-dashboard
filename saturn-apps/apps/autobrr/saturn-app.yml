@@ -1,0 +1,16 @@
+id: autobrr
+name: Autobrr
+tagline: Modern, easy to use download automation for torrents and usenet.
+description: Autobrr is the modern download automation tool for torrents and usenet.
+  With inspiration and ideas from tools like trackarr, autodl-irssi and flexget we
+  built one tool that can do it all, and then some.
+category: Media
+version: 1.0.0
+developer: Autobrr Team
+store: official
+icon: icon.png
+port: 7474
+architectures:
+- amd64
+- arm
+- arm64

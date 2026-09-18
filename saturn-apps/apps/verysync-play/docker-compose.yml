@@ -1,0 +1,21 @@
+name: verysync
+services:
+  verysync:
+    image: jonnyan404/verysync:latest
+    container_name: verysync
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    environment:
+      PORT: 8886
+    ports:
+    - 3000:3000
+    - 22037:22037/udp
+    - 22027:22027/udp
+    - 22330:22330
+    - 8886:8886
+    volumes:
+    - /DATA/AppData/verysync/config:/config
+    - /DATA/AppData/verysync/data:/data
+    network_mode: bridge

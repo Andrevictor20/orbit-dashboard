@@ -1,0 +1,16 @@
+id: sickchill
+name: Sickchill
+tagline: Automatic video library manager for TV Shows
+description: 'SickChill is an automatic Video Library Manager for TV Shows. It watches
+  for new episodes of your favorite shows, and when they are posted it does its magic:
+  automatic torrent/nzb searching, downloading, and processing at the qualities you
+  want.'
+category: Media
+version: 1.0.0
+developer: Sickchill Team
+store: official
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm64

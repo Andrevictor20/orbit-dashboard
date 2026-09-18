@@ -62,9 +62,9 @@ PORT=8080
     container_name: postgres-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: \${DB_USER:-orbit}
-      POSTGRES_PASSWORD: \${DB_PASSWORD:-orbit_secret}
-      POSTGRES_DB: \${DB_NAME:-orbit_db}
+      POSTGRES_USER: \${DB_USER:-saturn}
+      POSTGRES_PASSWORD: \${DB_PASSWORD:-saturn_secret}
+      POSTGRES_DB: \${DB_NAME:-saturn_db}
     ports:
       - "5432:5432"
     volumes:
@@ -75,7 +75,7 @@ PORT=8080
     container_name: pgadmin-ui
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_EMAIL:-admin@orbit.local}
+      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_EMAIL:-admin@saturn.local}
       PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_PASSWORD:-admin1234}
     ports:
       - "5050:80"
@@ -85,10 +85,10 @@ PORT=8080
 volumes:
   pgdata:
 `,
-    env: `DB_USER=orbit
-DB_PASSWORD=orbit_secret
-DB_NAME=orbit_db
-PGADMIN_EMAIL=admin@orbit.local
+    env: `DB_USER=saturn
+DB_PASSWORD=saturn_secret
+DB_NAME=saturn_db
+PGADMIN_EMAIL=admin@saturn.local
 PGADMIN_PASSWORD=admin1234
 `,
   },
@@ -102,7 +102,7 @@ PGADMIN_PASSWORD=admin1234
     image: redis:7-alpine
     container_name: redis-cache
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass \${REDIS_PASSWORD:-orbitredis}
+    command: redis-server --appendonly yes --requirepass \${REDIS_PASSWORD:-saturnredis}
     ports:
       - "6379:6379"
     volumes:
@@ -113,7 +113,7 @@ PGADMIN_PASSWORD=admin1234
     container_name: redis-commander-ui
     restart: unless-stopped
     environment:
-      - REDIS_HOSTS=local:redis:6379:0:\${REDIS_PASSWORD:-orbitredis}
+      - REDIS_HOSTS=local:redis:6379:0:\${REDIS_PASSWORD:-saturnredis}
     ports:
       - "8081:8081"
     depends_on:
@@ -122,7 +122,7 @@ PGADMIN_PASSWORD=admin1234
 volumes:
   redisdata:
 `,
-    env: `REDIS_PASSWORD=orbitredis
+    env: `REDIS_PASSWORD=saturnredis
 `,
   },
   {

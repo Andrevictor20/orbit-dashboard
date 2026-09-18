@@ -1,0 +1,14 @@
+id: kicad-linuxserver-io-linuxserver
+name: Kicad (LinuxServer.io)
+tagline: A Cross Platform and Open Source Electronics Design Automation Suite.
+description: KiCad - A Cross Platform and Open Source Electronics Design Automation
+  Suite.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

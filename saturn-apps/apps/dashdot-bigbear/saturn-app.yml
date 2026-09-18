@@ -1,0 +1,14 @@
+id: dashdot-bigbear
+name: Dashdot
+tagline: dash. - a modern server dashboard
+description: About A simple, modern server dashboard, primarily used by smaller private
+  servers.
+category: Others
+version: 1.0.0
+developer: mauricenino
+store: bigbear
+icon: icon.png
+port: 3001
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  app-id:
+    image: vendor/app:latest
+    container_name: app-id
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=UTC
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./data:/data

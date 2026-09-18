@@ -1,0 +1,15 @@
+id: autofilm-play
+name: AutoFilm
+tagline: A project that provides Strm direct chain playback for Emby and Jellyfin
+  servers
+description: AutoFilm obtains video playback links from cloud disks through Webdav
+  provided by Alist and generates Strm files, which can be recognized and played directly
+  by audio and video media servers such as Jellyfin/Emby.
+category: Media
+version: 1.0.0
+developer: akimio
+store: play
+icon: icon.png
+architectures:
+- arm64
+- amd64

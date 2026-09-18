@@ -1,0 +1,14 @@
+id: handbrake-linuxserver-io-linuxserver
+name: Handbrake (LinuxServer.io)
+tagline: An open-source tool, built by volunteers, for converting video from nearly
+  any format to a selection of modern, widely supported codecs.
+description: HandBrake is an open-source tool, built by volunteers, for converting
+  video from nearly any format to a selection of modern, widely supported codecs.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

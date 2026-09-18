@@ -1,0 +1,15 @@
+id: mealie-play
+name: Mealie
+tagline: An open source recipe manager
+description: Mealie is a self hosted recipe manager and meal planner with a RestAPI
+  backend and a reactive frontend application built in Vue for a pleasant user experience
+  for the whole family.
+category: Home
+version: 1.0.0
+developer: mealie
+store: play
+icon: icon.png
+port: 9925
+architectures:
+- arm64
+- amd64

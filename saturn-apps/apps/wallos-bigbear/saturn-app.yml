@@ -1,0 +1,13 @@
+id: wallos-bigbear
+name: Wallos
+tagline: Wallos
+description: 'Wallos: Open-Source Personal Subscription Tracker'
+category: Others
+version: 1.0.0
+developer: bellamy
+store: bigbear
+icon: icon.png
+port: 8282
+architectures:
+- amd64
+- arm64

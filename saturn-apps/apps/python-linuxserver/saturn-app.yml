@@ -1,0 +1,15 @@
+id: python-linuxserver
+name: Python
+tagline: This container needs special attention. Please check https://hub. Docker.
+  Com/r/linuxserver/python for details.
+description: This container needs special attention. Please check https://hub.docker.com/r/linuxserver/python
+  for details.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: ''
+port: 80
+architectures:
+- arm64
+- amd64

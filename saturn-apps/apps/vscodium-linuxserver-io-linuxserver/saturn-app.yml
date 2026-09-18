@@ -1,0 +1,15 @@
+id: vscodium-linuxserver-io-linuxserver
+name: Vscodium (LinuxServer.io)
+tagline: A community-driven, freely-licensed binary distribution of Microsoft’s editor
+  VS Code.
+description: VSCodium is a community-driven, freely-licensed binary distribution of
+  Microsoft’s editor VS Code.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

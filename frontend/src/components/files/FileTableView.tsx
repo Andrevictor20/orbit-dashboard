@@ -48,7 +48,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
               <th className="py-3 px-4 w-8">
                 <button onClick={selectAll} className="p-0.5 rounded hover:bg-accent">
                   {selectedItems.length === files.length && files.length > 0 ? (
-                    <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
+                    <CheckSquare className="w-3.5 h-3.5 text-saturn-400" />
                   ) : (
                     <Square className="w-3.5 h-3.5 text-secondary" />
                   )}
@@ -75,27 +75,27 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                   onDragOver={(e) => {
                     if (item.is_dir) {
                       e.preventDefault();
-                      e.currentTarget.classList.add('bg-orbit-500/10');
+                      e.currentTarget.classList.add('bg-saturn-500/10');
                     }
                   }}
                   onDragLeave={(e) => {
-                    if (item.is_dir) e.currentTarget.classList.remove('bg-orbit-500/10');
+                    if (item.is_dir) e.currentTarget.classList.remove('bg-saturn-500/10');
                   }}
                   onDrop={(e) => {
                     if (item.is_dir) {
-                      e.currentTarget.classList.remove('bg-orbit-500/10');
+                      e.currentTarget.classList.remove('bg-saturn-500/10');
                       handleInternalDrop(e, item.path);
                     }
                   }}
                   onClick={() => handleItemClick(item)}
                   className={`hover:bg-accent/60 transition-colors cursor-pointer ${
-                    selected ? 'bg-orbit-500/10' : ''
+                    selected ? 'bg-saturn-500/10' : ''
                   } ${item.is_hidden ? 'opacity-60 hover:opacity-100' : ''}`}
                 >
                   <td className="py-2.5 px-4" onClick={(e) => toggleSelect(e, item)}>
                     <button className="p-0.5 rounded">
                       {selected ? (
-                        <CheckSquare className="w-3.5 h-3.5 text-orbit-400" />
+                        <CheckSquare className="w-3.5 h-3.5 text-saturn-400" />
                       ) : (
                         <Square className="w-3.5 h-3.5 text-secondary opacity-40 hover:opacity-100" />
                       )}
@@ -133,7 +133,7 @@ export const FileTableView: React.FC<FileTableViewProps> = ({
                             e.stopPropagation();
                             onShareSamba(item);
                           }}
-                          className="p-1 rounded-lg text-secondary hover:text-orbit-400 hover:bg-accent"
+                          className="p-1 rounded-lg text-secondary hover:text-saturn-400 hover:bg-accent"
                           title={t('files.share_samba', 'Compartilhar via Samba (SMB)')}
                         >
                           <Network className="w-3.5 h-3.5" />

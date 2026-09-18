@@ -50,7 +50,7 @@ export function HomeAssistant() {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-orbit-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-saturn-500" />
           <span className="text-xs text-secondary font-medium tracking-wide">{t('common.loading')}</span>
         </div>
       </div>
@@ -113,7 +113,7 @@ export function HomeAssistant() {
 
         {loadingEntities && entities.length === 0 ? (
           <div className="flex items-center justify-center p-16">
-            <Loader2 className="w-8 h-8 animate-spin text-orbit-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-saturn-500" />
           </div>
         ) : (
           <>

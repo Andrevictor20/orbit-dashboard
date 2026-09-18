@@ -1,0 +1,14 @@
+id: appsmith-bigbear
+name: Appsmith
+tagline: Appsmith
+description: Low code project to build admin panels, internal tools, and dashboards,
+  integrating 15+ databases.
+category: Developer
+version: 1.0.0
+developer: appsmithorg
+store: bigbear
+icon: icon.png
+port: 1080
+architectures:
+- amd64
+- arm64

@@ -4,8 +4,9 @@ import toast from 'react-hot-toast';
 import type { ContainerLike } from '../utils/containerGroups';
 import type { ContainerTaskStatus } from '../utils/batchUpdateRunner';
 import { isTunnelOrProxy, sanitizeErrorMessage, pollContainerUpdate } from '../utils/batchUpdateRunner';
+import { getAuthToken } from '../utils/auth';
 
-const BATCH_STORAGE_KEY = 'orbit_batch_update_session';
+const SATURN_BATCH_STORAGE_KEY = 'saturn_batch_update_session';
 
 interface PersistedBatchSession {
   orderedTargets: ContainerLike[];
@@ -17,16 +18,21 @@ interface PersistedBatchSession {
 }
 
 const saveBatchSession = (session: PersistedBatchSession) => {
-  try { localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(session)); } catch {}
+  try {
+    const serialized = JSON.stringify(session);
+    localStorage.setItem(SATURN_BATCH_STORAGE_KEY, serialized);
+      } catch {}
 };
 
 export const clearBatchSession = () => {
-  try { localStorage.removeItem(BATCH_STORAGE_KEY); } catch {}
+  try {
+    localStorage.removeItem(SATURN_BATCH_STORAGE_KEY);
+      } catch {}
 };
 
 export function loadBatchSession(): PersistedBatchSession | null {
   try {
-    const raw = localStorage.getItem(BATCH_STORAGE_KEY);
+    const raw = localStorage.getItem(SATURN_BATCH_STORAGE_KEY);
     if (!raw) return null;
     const session: PersistedBatchSession = JSON.parse(raw);
     if (!session?.orderedTargets?.length) { clearBatchSession(); return null; }
@@ -85,7 +91,7 @@ export function useBatchUpdateRunner(deps: BatchRunnerDeps) {
       d.addLog(`Retomando lote a partir do container ${startIndex + 1}/${orderedTargets.length}...`);
     }
 
-    const token = localStorage.getItem('orbit_token');
+    const token = getAuthToken();
     let localSuccess = Object.values(currentStatuses).filter(t => t.state === 'success').length;
     let localFailed = Object.values(currentStatuses).filter(t => t.state === 'error').length;
 
@@ -205,7 +211,7 @@ export function useBatchUpdateRunner(deps: BatchRunnerDeps) {
     const wasCancelled = controller.signal.aborted;
     d.addLog(t('batch_update_modal.batch_done_summary', { success: localSuccess, failed: localFailed, defaultValue: `${wasCancelled ? 'Cancelado' : 'Concluído'}. ${localSuccess} atualizado(s), ${localFailed} falha(s).` }));
 
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('orbit:containers-updated'));
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('saturn:containers-updated'));
     if (localFailed === 0 && localSuccess > 0) toast.success(`${localSuccess} container(s) atualizado(s) com sucesso!`, { duration: 5000 });
     else if (localFailed > 0) toast.error(`${localSuccess} com sucesso, ${localFailed} com falha.`, { duration: 6000 });
   }, [t]);

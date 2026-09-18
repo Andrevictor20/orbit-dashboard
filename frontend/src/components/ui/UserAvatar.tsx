@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { OrbitLogo } from './OrbitLogo';
+import { SaturnLogo } from './SaturnLogo';
 
 interface UserAvatarProps {
   size?: number;
@@ -23,7 +23,7 @@ export function UserAvatar({
       <div 
         style={{ width: size, height: size }}
         className={`relative shrink-0 rounded-2xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-border/80 ${
-          showGlow ? 'shadow-lg shadow-orbit-500/20' : ''
+          showGlow ? 'shadow-lg shadow-saturn-500/20' : ''
         } ${className}`}
       >
         <img
@@ -37,9 +37,9 @@ export function UserAvatar({
   }
 
   return (
-    <OrbitLogo
+    <SaturnLogo
       size={size}
-      className={`${showGlow ? 'shadow-lg shadow-orbit-500/20' : ''} ${className}`}
+      className={`${showGlow ? 'shadow-lg shadow-saturn-500/20' : ''} ${className}`}
     />
   );
 }

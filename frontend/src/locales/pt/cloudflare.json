@@ -45,7 +45,7 @@
   "test_success": "Conexão estabelecida com sucesso! Túnel: {{name}} ({{count}} rotas)",
   "test_failed": "Falha ao testar conexão com a Cloudflare",
   "tunnel_token_detected": "Tunnel Token detectado! Account ID e Tunnel ID foram extraídos e preenchidos automaticamente.",
-  "tunnel_token_notice": "Atenção: O token colado é um Tunnel Token (eyJh...). Ele serve para o conector local cloudflared. Para que o Orbit liste as rotas remotas via API, forneça um API Token de Usuário gerado no Cloudflare Dashboard com permissão Account > Cloudflare Tunnel > Read.",
+  "tunnel_token_notice": "Atenção: O token colado é um Tunnel Token (eyJh...). Ele serve para o conector local cloudflared. Para que o Saturn liste as rotas remotas via API, forneça um API Token de Usuário gerado no Cloudflare Dashboard com permissão Account > Cloudflare Tunnel > Read.",
   "api_token_guide_title": "Como obter um API Token na Cloudflare?",
   "api_token_guide_step1": "Acesse dash.cloudflare.com/profile/api-tokens",
   "api_token_guide_step2": "Clique em 'Create Token' e selecione 'Create Custom Token'",

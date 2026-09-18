@@ -1,0 +1,13 @@
+id: rdtclient
+name: Real-Debrid Torrent Client
+tagline: ''
+description: ''
+category: Media
+version: 1.0.0
+developer: calganaygun
+store: official
+icon: icon.png
+port: 6500
+architectures:
+- amd64
+- arm64

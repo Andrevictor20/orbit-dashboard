@@ -1,0 +1,20 @@
+name: php-nginx
+services:
+  php-nginx:
+    environment:
+      TZ: UTC
+      HOME: /root
+      PGID: '1000'
+      PUID: '1000'
+      WEBHOME: /var/www/html
+    image: shinsenter/phpfpm-nginx:latest
+    container_name: php-nginx
+    network_mode: bridge
+    ports:
+    - target: 80
+      published: '8080'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/php-nginx/wwwroot:/var/www/html
+    - /DATA/AppData/php-nginx/certs:/etc/ssl/web

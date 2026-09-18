@@ -1,0 +1,14 @@
+id: pi-hole-bigbear
+name: Pi-hole
+tagline: A black hole for Internet advertisements
+description: The Pi-hole® is a DNS sinkhole that protects your devices from unwanted
+  content without installing any client-side software.
+category: Networking
+version: 1.0.0
+developer: pi-hole.net
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

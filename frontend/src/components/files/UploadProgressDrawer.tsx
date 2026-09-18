@@ -49,9 +49,9 @@ export function UploadProgressDrawer() {
       <div className="fixed bottom-5 right-5 z-50 animate-fade-in">
         <button
           onClick={() => setIsMinimized(false)}
-          className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-card/95 backdrop-blur-xl border border-border/80 hover:border-orbit-500/50 shadow-2xl text-xs font-semibold text-primary transition-all duration-150 hover:-translate-y-0.5"
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-card/95 backdrop-blur-xl border border-border/80 hover:border-saturn-500/50 shadow-2xl text-xs font-semibold text-primary transition-all duration-150 hover:-translate-y-0.5"
         >
-          <div className="p-1 rounded-lg bg-orbit-500/15 text-orbit-500">
+          <div className="p-1 rounded-lg bg-saturn-500/15 text-saturn-500">
             <Upload className="w-4 h-4 animate-bounce" />
           </div>
           <span>
@@ -77,7 +77,7 @@ export function UploadProgressDrawer() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/80 bg-accent/30">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-orbit-500/15 text-orbit-500">
+            <div className="p-1.5 rounded-lg bg-saturn-500/15 text-saturn-500">
               <Upload className="w-4 h-4" />
             </div>
             <div>
@@ -110,7 +110,7 @@ export function UploadProgressDrawer() {
         {/* Global Progress Bar */}
         <div className="w-full h-1 bg-muted overflow-hidden">
           <div
-            className="h-full bg-orbit-500 transition-all duration-200"
+            className="h-full bg-saturn-500 transition-all duration-200"
             style={{ width: `${overallProgress}%` }}
           />
         </div>
@@ -130,7 +130,7 @@ export function UploadProgressDrawer() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-4 h-4 text-orbit-500 shrink-0" />
+                    <FileText className="w-4 h-4 text-saturn-500 shrink-0" />
                     <span className="font-semibold text-primary truncate max-w-[140px] sm:max-w-[180px]" title={item.fileName}>
                       {item.fileName}
                     </span>
@@ -175,7 +175,7 @@ export function UploadProgressDrawer() {
                         ? 'bg-rose-500' 
                         : isPaused 
                         ? 'bg-amber-500' 
-                        : 'bg-orbit-500'
+                        : 'bg-saturn-500'
                     }`}
                     style={{ width: `${item.progress}%` }}
                   />
@@ -195,7 +195,7 @@ export function UploadProgressDrawer() {
                     ) : isPaused ? (
                       <span className="text-amber-600 dark:text-amber-400">{t('files.upload_paused', 'Pausado')}</span>
                     ) : (
-                      <span className="text-orbit-600 dark:text-orbit-400">
+                      <span className="text-saturn-600 dark:text-saturn-400">
                         {item.progress}% {item.speedMBs > 0 && `• ${item.speedMBs} MB/s`}
                       </span>
                     )}

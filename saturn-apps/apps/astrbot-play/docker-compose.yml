@@ -1,0 +1,14 @@
+name: astrbot
+services:
+  astrbot:
+    image: soulter/astrbot:latest
+    container_name: astrbot
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /DATA/AppData/astrbot/data:/AstrBot/data
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

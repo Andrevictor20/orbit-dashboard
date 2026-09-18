@@ -78,7 +78,7 @@ export function ProcessMonitor() {
   const fetchProcesses = async (isManual = false) => {
     if (isManual) setIsRefreshing(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/system/processes', {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -112,7 +112,7 @@ export function ProcessMonitor() {
     if (!killModalProcess) return;
     setKilling(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/system/processes/${killModalProcess.pid}/kill`, {
         method: 'POST',
         headers: {

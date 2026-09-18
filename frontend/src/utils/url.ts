@@ -1,8 +1,8 @@
 /**
- * Dynamic URL Resolution Utility for Orbit Dashboard
+ * Dynamic URL Resolution Utility for Saturn Dashboard
  * 
  * Automatically adapts container and stack web URLs to the active Host IP,
- * VPN (Tailscale/WireGuard), local network IP, or domain used to access Orbit.
+ * VPN (Tailscale/WireGuard), local network IP, or domain used to access Saturn.
  */
 
 export function resolveWebUrl(rawUrlOrPort?: string | number | null, defaultPort?: number): string {

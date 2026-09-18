@@ -1,0 +1,21 @@
+name: langflow
+services:
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: langflow
+    environment:
+    - DO_NOT_TRACK=true
+    - LANGFLOW_CONFIG_DIR=/app/langflow
+    - LANGFLOW_AUTO_LOGIN=false
+    - LANGFLOW_SUPERUSER=langflow
+    - LANGFLOW_SUPERUSER_PASSWORD=langflow
+    ports:
+    - 7860:7860
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/langflow/data:/app/langflow
+    network_mode: bridge
+    deploy:
+      resources:
+        reservations:
+          memory: 2G

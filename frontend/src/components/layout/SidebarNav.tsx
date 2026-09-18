@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useInstall } from '../../contexts/InstallContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { OrbitLogo } from '../ui/OrbitLogo';
 import { preloadRoute } from '../../utils/navigation';
 
 interface SidebarNavProps {
@@ -38,7 +37,7 @@ function SidebarItem({ icon: Icon, label, to, isCollapsed, onClick }: { icon: Re
       className={({ isActive }) =>
         `w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3.5'} py-2.5 rounded-xl transition-[background-color,color,border-color,transform,box-shadow] duration-200 cubic-bezier(0.16,1,0.3,1) text-sm font-medium active:scale-[0.98] ${
           isActive
-            ? 'bg-orbit-500/15 text-orbit-500 dark:text-orbit-400 border border-orbit-500/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] font-semibold translate-x-0.5'
+            ? 'bg-saturn-500/15 text-saturn-500 dark:text-saturn-400 border border-saturn-500/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] font-semibold translate-x-0.5'
             : 'text-secondary hover:text-primary hover:bg-accent/70 hover:translate-x-0.5'
         }`
       }
@@ -90,19 +89,19 @@ export function SidebarNav({ isSidebarOpen, isMobileMenuOpen, onClose }: Sidebar
         {task && (
           <button
             onClick={() => maximize(task.id)}
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] border focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] border focus-visible:ring-2 focus-visible:ring-saturn-500 focus-visible:outline-none ${
               task.status === 'error'
                 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
                 : task.status === 'done'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                : 'bg-orbit-500/10 text-orbit-400 border-orbit-500/20 hover:bg-orbit-500/20'
+                : 'bg-saturn-500/10 text-saturn-400 border-saturn-500/20 hover:bg-saturn-500/20'
             }`}
             title={isCollapsed ? `${task.title || appName} (${task.progress}%)` : undefined}
           >
             <div className="flex items-center gap-2.5 min-w-0">
               {task.status === 'error' ? <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 : task.status === 'done' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                : <Loader2 className="w-4 h-4 shrink-0 animate-spin text-orbit-400" />}
+                : <Loader2 className="w-4 h-4 shrink-0 animate-spin text-saturn-400" />}
               {!isCollapsed && <span className="truncate max-w-[120px] text-left">{task.title || appName}</span>}
             </div>
             {!isCollapsed && <span className="text-xs font-bold tabular-nums shrink-0 ml-1">{task.progress}%</span>}
@@ -113,5 +112,4 @@ export function SidebarNav({ isSidebarOpen, isMobileMenuOpen, onClose }: Sidebar
   );
 }
 
-export { OrbitLogo };
 export type { SidebarNavProps };

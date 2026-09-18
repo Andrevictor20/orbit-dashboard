@@ -10,12 +10,12 @@ describe('Logs Page Component', () => {
       ok: true,
       json: async () => ({
         logs: [
-          '2026-08-31 09:00:00 [INFO] Orbit backend started on port 3000',
+          '2026-08-31 09:00:00 [INFO] Saturn backend started on port 3000',
           '2026-08-31 09:00:05 [WARN] High memory utilization detected',
           '2026-08-31 09:00:10 [ERROR] Connection timed out on upstream',
         ],
-        source: 'orbit',
-        available_sources: ['orbit', 'system', 'docker', 'dmesg', 'all'],
+        source: 'saturn',
+        available_sources: ['saturn', 'system', 'docker', 'dmesg', 'all'],
         total: 3,
       }),
     } as any);
@@ -35,14 +35,14 @@ describe('Logs Page Component', () => {
     );
 
     expect(screen.getByText('Logs do Sistema')).toBeTruthy();
-    expect(screen.getByText('Orbit Backend')).toBeTruthy();
+    expect(screen.getByText('Saturn Backend')).toBeTruthy();
     expect(screen.getByText('Sistema Linux')).toBeTruthy();
     expect(screen.getByText('Docker Daemon')).toBeTruthy();
     expect(screen.getByText('Kernel (dmesg)')).toBeTruthy();
     expect(screen.getByText('Todos (Combinado)')).toBeTruthy();
 
     await waitFor(() => {
-      expect(screen.getByText(/Orbit backend started on port 3000/)).toBeTruthy();
+      expect(screen.getByText(/Saturn backend started on port 3000/)).toBeTruthy();
       expect(screen.getByText(/High memory utilization detected/)).toBeTruthy();
       expect(screen.getByText(/Connection timed out on upstream/)).toBeTruthy();
     });
@@ -92,7 +92,7 @@ describe('Logs Page Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Orbit backend started/)).toBeTruthy();
+      expect(screen.getByText(/Saturn backend started/)).toBeTruthy();
     });
 
     const copyBtn = screen.getByTitle('Copiar');

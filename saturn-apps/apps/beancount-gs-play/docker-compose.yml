@@ -1,0 +1,31 @@
+name: beancount-gs
+services:
+  beancount-gs:
+    container_name: beancount-gs
+    image: xdbin/beancount-gs:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: bridge
+    ports:
+    - target: 80
+      published: '10000'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/beancount
+      target: /data/beancount
+    - type: bind
+      source: /DATA/AppData/beancount/icons
+      target: /app/public/icons
+    - type: bind
+      source: /DATA/AppData/beancount/config
+      target: /app/config
+    - type: bind
+      source: /DATA/AppData/beancount/bak
+      target: /app/bak
+    - type: bind
+      source: /DATA/AppData/beancount/logs
+      target: /app/logs

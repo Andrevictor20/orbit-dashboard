@@ -1,0 +1,15 @@
+id: hermes-agent-play
+name: Hermes Agent
+tagline: The agent that grows with you.
+description: The self-improving AI agent by Nous Research. Creates skills from experience,
+  improves them during use, persists knowledge across sessions. Supports Telegram,
+  Discord, Slack, WhatsApp, Signal, and CLI with a full TUI interface.
+category: Developer
+version: 1.0.0
+developer: Nous Research
+store: play
+icon: icon.png
+port: 9119
+architectures:
+- amd64
+- arm64

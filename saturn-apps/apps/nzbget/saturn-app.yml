@@ -1,0 +1,16 @@
+id: nzbget
+name: Nzbget
+tagline: Efficient Usenet downloader
+description: NZBGet can run on almost any device - classic PC, NAS, media player,
+  SAT-receiver, WLAN-router, etc. The download area provides precompiled binaries
+  for Windows, macOS, Linux (compatible with many CPUs and platform variants), FreeBSD
+  and Android. For other platforms the program can be compiled from sources.
+category: Media
+version: 1.0.0
+developer: Nzbget Team
+store: official
+icon: icon.png
+port: 6789
+architectures:
+- amd64
+- arm64

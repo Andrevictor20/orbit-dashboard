@@ -1,0 +1,15 @@
+id: farmos-legacy-bigbear
+name: FarmOS (Legacy)
+tagline: A web-based farm record keeping application.
+description: farmOS is a web-based application for farm management, planning, and
+  record keeping. It is developed by a community of volunteers and aims to provide
+  a standard platform for farmers, developers, and researchers to build upon.
+category: Social
+version: 1.0.0
+developer: farmOS
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

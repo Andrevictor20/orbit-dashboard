@@ -1,0 +1,16 @@
+id: open-webui-play
+name: Open WebUI
+tagline: User-friendly WebUI for LLMs (Formerly Ollama WebUI)
+description: Open WebUI is an extensible, feature-rich, and user-friendly self-hosted
+  WebUI designed to operate entirely offline. It supports various LLM runners, including
+  Ollama and OpenAI-compatible APIs. For more information, be sure to check out our
+  [Open WebUI Documentation](https://docs.openwebui.com/).
+category: Social
+version: 1.0.0
+developer: tjbck
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

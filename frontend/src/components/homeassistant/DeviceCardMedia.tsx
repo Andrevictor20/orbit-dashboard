@@ -79,7 +79,7 @@ export const DeviceCardMedia: React.FC<DeviceCardMediaProps> = ({
           title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
         >
           {pending ? (
-            <Loader2 className="w-4 h-4 animate-spin text-orbit-600 dark:text-orbit-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-saturn-600 dark:text-saturn-400" />
           ) : (
             <Power className="w-4 h-4" />
           )}

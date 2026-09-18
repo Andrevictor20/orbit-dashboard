@@ -13,8 +13,8 @@ export interface SystemStats {
   docker_memory: number;
   docker_tx: number;
   docker_rx: number;
-  orbit_cpu: number;
-  orbit_memory: number;
+  saturn_cpu: number;
+  saturn_memory: number;
   network_interface?: string;
   network_interface_type?: 'ethernet' | 'wifi' | string;
   gpu_usage?: number;

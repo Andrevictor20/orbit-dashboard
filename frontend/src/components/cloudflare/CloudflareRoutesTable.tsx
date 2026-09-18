@@ -41,7 +41,7 @@ export function CloudflareRoutesTable({
   const [linkingRule, setLinkingRule] = useState<IngressRule | null>(null);
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -107,13 +107,13 @@ export function CloudflareRoutesTable({
             placeholder={t('common.search_placeholder', 'Filtrar rotas ou contêineres...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-accent/50 border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 w-full sm:w-56"
+            className="px-3 py-1.5 rounded-xl bg-accent/50 border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500 w-full sm:w-56"
           />
 
           {isConfigured && (
             <button
               onClick={onAddRouteClick}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orbit-500 hover:bg-orbit-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-saturn-500 hover:bg-saturn-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{t('cloudflare.btn_new_route', 'Nova Rota')}</span>
@@ -139,7 +139,7 @@ export function CloudflareRoutesTable({
           {isConfigured && (
             <button
               onClick={onAddRouteClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-400 text-white text-xs font-bold transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-400 text-white text-xs font-bold transition-all shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{t('cloudflare.btn_new_route', 'Nova Rota')}</span>
@@ -167,12 +167,12 @@ export function CloudflareRoutesTable({
                     {/* Public Hostname */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
-                        <Globe className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
+                        <Globe className="w-3.5 h-3.5 text-saturn-500 shrink-0" />
                         <a
                           href={rule.public_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-semibold text-primary hover:text-orbit-500 flex items-center gap-1 group font-mono transition-colors"
+                          className="font-semibold text-primary hover:text-saturn-500 flex items-center gap-1 group font-mono transition-colors"
                         >
                           <span>{rule.hostname}</span>
                           {rule.path && (

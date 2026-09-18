@@ -1,0 +1,12 @@
+id: gluetun-bigbear
+name: Gluetun
+tagline: Gluetun
+description: Lightweight swiss-knife-like VPN client to multiple VPN service providers
+category: Networking
+version: 1.0.0
+developer: portainer
+store: bigbear
+icon: icon.png
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,60 @@
+id: emby
+name: Emby
+tagline: Emby brings together your personal videos, music, photos, and live television.
+description: 'Emby is a personal media management platform that brings home videos,
+  music, and photos together, automatically converting and streaming to any device.
+  An intuitive design makes it ideal for users to enjoy media content anytime, anywhere,
+  meeting family entertainment and media management needs.
+
+
+  Core features include cross-device media streaming and easy access. It supports
+  real-time conversion and streaming of personal media to any device for seamless
+  playback. A connection service enables easy media access while away from home. Live
+  TV functionality supports streaming, managing DVR, and accessing a library of recordings.
+  Mobile sync delivers media to smartphones and tablets for offline access, automatically
+  updating new content.
+
+
+  It offers parental controls to restrict children''s content access, set schedules
+  and time limits, and remotely monitor sessions. Chromecast support enables easy
+  streaming of videos, music, photos, and Live TV. Content is presented elegantly,
+  enhancing visual experience. Cloud sync supports backup, archiving, and multi-resolution
+  storage for optimized streaming. Web-based media management facilitates editing
+  metadata, images, and searching subtitles, while DLNA integration auto-detects network
+  devices for content streaming. With convenience and versatility at the core, the
+  platform delivers a modern media management solution.
+
+
+  **Key Features:**
+
+  - Automatic conversion and streaming of media to any device
+
+  - Easy access via connection service while away from home
+
+  - Live TV streaming, DVR management, and recording library access
+
+  - Mobile sync to smartphones and tablets for offline access
+
+  - Parental controls with content restrictions, schedules, and remote monitoring
+
+  - Chromecast support for streaming videos, music, photos, and Live TV
+
+  - Cloud sync for backup and multi-resolution storage
+
+  - Web-based media management for editing metadata and searching subtitles
+
+  - DLNA integration for auto-detecting network devices and streaming content
+
+
+  **Learn More:**
+
+  - [Emby Official Website](https://emby.media/)'
+category: Media
+version: 1.0.0
+developer: Emby Team
+store: official
+icon: icon.png
+port: 8096
+architectures:
+- amd64
+- arm64

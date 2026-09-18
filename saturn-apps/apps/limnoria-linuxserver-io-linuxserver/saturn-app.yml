@@ -1,0 +1,15 @@
+id: limnoria-linuxserver-io-linuxserver
+name: Limnoria (LinuxServer.io)
+tagline: A robust, full-featured, and user/programmer-friendly Python IRC bot, with
+  many existing plugins. Successor of the well-known Supybot.
+description: Limnoria A robust, full-featured, and user/programmer-friendly Python
+  IRC bot, with many existing plugins. Successor of the well-known Supybot.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

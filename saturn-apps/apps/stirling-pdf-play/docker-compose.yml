@@ -1,0 +1,26 @@
+name: stirling-pdf
+services:
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 768M
+    network_mode: bridge
+    ports:
+    - 8081:8080
+    volumes:
+    - /DATA/AppData/stirling-pdf/trainingData:/usr/share/tessdata
+    - /DATA/AppData/stirling-pdf/extraConfigs:/configs
+    - /DATA/AppData/stirling-pdf/customFiles:/customFiles/
+    - /DATA/AppData/stirling-pdf/logs:/logs/
+    - /DATA/AppData/stirling-pdf/pipeline:/pipeline/
+    environment:
+    - DOCKER_ENABLE_SECURITY=false
+    - SECURITY_ENABLE_LOGIN=true
+    - SECURITY_INITIALLOGIN_USERNAME=admin
+    - SECURITY_INITIALLOGIN_PASSWORD=admin
+    - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=false
+    - LANGS=zh_CN
+    restart: unless-stopped
+    container_name: stirling-pdf

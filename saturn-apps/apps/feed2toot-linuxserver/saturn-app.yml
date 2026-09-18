@@ -1,0 +1,14 @@
+id: feed2toot-linuxserver
+name: Feed2toot
+tagline: Automatically parses rss feeds, identifies new posts and posts them on the
+  Mastodon social network.
+description: Feed2toot automatically parses rss feeds, identifies new posts and posts
+  them on the Mastodon social network.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/feed2toot-banner.png
+architectures:
+- amd64
+- arm64

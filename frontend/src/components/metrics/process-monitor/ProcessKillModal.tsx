@@ -54,7 +54,7 @@ export function ProcessKillModal({
               name="signal" 
               checked={killSignal === 'SIGTERM'} 
               onChange={() => setKillSignal('SIGTERM')} 
-              className="accent-orbit-500"
+              className="accent-saturn-500"
             />
             <div>
               <span className="font-semibold text-primary">{t('metrics.sigterm_title', 'SIGTERM (Sinal 15 - Recomendado)')}</span>

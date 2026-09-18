@@ -16,7 +16,7 @@ describe('TwoFactorModals', () => {
           json: () =>
             Promise.resolve({
               secret: 'JBSWY3DPEHPK3PXP',
-              otpauth_url: 'otpauth://totp/Orbit:admin?secret=JBSWY3DPEHPK3PXP',
+              otpauth_url: 'otpauth://totp/Saturn:admin?secret=JBSWY3DPEHPK3PXP',
               qr_data_url: 'data:image/png;base64,mockqr',
               recovery_codes: ['AAAA-1111', 'BBBB-2222', 'CCCC-3333', 'DDDD-4444'],
             }),

@@ -1,0 +1,13 @@
+id: snapdrop-linuxserver
+name: Snapdrop
+tagline: A local file sharing in your browser. Inspired by Apple's Airdrop.
+description: 'Visit homepage: https://hub.docker.com/r/linuxserver/snapdrop/'
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

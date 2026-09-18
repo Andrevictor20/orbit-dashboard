@@ -1,0 +1,15 @@
+id: pylon-linuxserver
+name: Pylon
+tagline: A web based integrated development environment built with Node. Js as a backend
+  and with a supercharged JavaScript/HTML5 frontend, licensed under GPL version 3.
+  This project originates from Cloud9 v2 project.
+description: 'Visit homepage: https://hub.docker.com/r/linuxserver/pylon/'
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3131
+architectures:
+- amd64
+- arm64

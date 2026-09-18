@@ -1,0 +1,15 @@
+id: paperless-ngx-bigbear
+name: Paperless-ngx
+tagline: Paperless-ngx
+description: Paperless-ngx is a community-supported open-source document management
+  system that transforms your physical documents into a searchable online archive
+  so you can keep, well, less paper.
+category: Social
+version: 1.0.0
+developer: paperless-ngx
+store: bigbear
+icon: icon.png
+port: 8000
+architectures:
+- amd64
+- arm64

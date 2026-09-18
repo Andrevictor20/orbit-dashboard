@@ -1,0 +1,23 @@
+name: linuxserver-sonarr
+services:
+  app:
+    image: linuxserver/sonarr:4.0.19
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 8989
+      published: 8989
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/sonarr/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/sonarr/tv
+      target: /tv
+    - type: bind
+      source: /DATA/AppData/sonarr/downloads
+      target: /downloads

@@ -1,0 +1,16 @@
+id: nocodb-play
+name: NocoDB
+tagline: Open Source data platform
+description: NocoDB is a no-code database platform that allows teams to collaborate
+  and build applications with ease of a familiar and intuitive spreadsheet interface.
+  This allows even non-developers or business users to become software creators.
+category: Productivity
+version: 1.0.0
+developer: nocodb.com
+store: play
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm
+- arm64

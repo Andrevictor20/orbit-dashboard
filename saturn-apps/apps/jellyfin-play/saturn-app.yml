@@ -1,0 +1,14 @@
+id: jellyfin-play
+name: Jellyfin
+tagline: Puts you in control of your media.
+description: Jellyfin enables you to collect, manage, and stream your media. Run the
+  Jellyfin server on your system and gain access to the leading free-software entertainment
+  system, bells and whistles included.
+category: Media
+version: 1.0.0
+developer: Jellyfin
+store: play
+icon: icon.png
+port: 8097
+architectures:
+- arm

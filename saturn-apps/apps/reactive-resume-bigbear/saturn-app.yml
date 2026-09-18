@@ -1,0 +1,14 @@
+id: reactive-resume-bigbear
+name: Reactive Resume
+tagline: A free and open-source resume builder
+description: A free and open-source resume builder that simplifies the process of
+  creating, updating, and sharing your resume.
+category: Others
+version: 1.0.0
+developer: AmruthPillai
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

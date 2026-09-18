@@ -43,7 +43,7 @@
   "cancel_container": "Annulla aggiornamento",
   "cancelled_by_user": "Annullato dall'utente",
   "ready_for_update": "Contenitori {{count}} pronti per l'aggiornamento",
-  "update_via_orbit_menu": "Aggiornamento tramite il menu Orbita",
+  "update_via_saturn_menu": "Aggiornamento tramite il menu Saturna",
   "continue_in_background": "Continua in sottofondo",
   "floating_title_updating": "Aggiornamento in background",
   "floating_title_failed": "Aggiornamento con errori",

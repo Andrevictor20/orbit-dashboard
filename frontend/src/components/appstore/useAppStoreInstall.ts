@@ -23,7 +23,7 @@ export function useAppStoreInstall() {
   const handleInstall = async (id: string, appName: string) => {
     try {
       setInstalling(id);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
 
       // 1. Inspeciona a configuração de portas antes de iniciar o download
       try {
@@ -99,7 +99,7 @@ export function useAppStoreInstall() {
     try {
       setInstalling(id);
       setCustomModalApp(null);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/store/install/custom/${id}`, {
         method: 'POST',
         headers: {

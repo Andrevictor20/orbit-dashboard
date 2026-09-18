@@ -1,0 +1,14 @@
+id: immich-kiosk-bigbear
+name: Immich Kiosk
+tagline: Immich Kiosk
+description: Immich Kiosk is a lightweight slideshow for running on kiosk devices
+  and browsers that uses Immich as a data source.
+category: Others
+version: 1.0.0
+developer: damongolding
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

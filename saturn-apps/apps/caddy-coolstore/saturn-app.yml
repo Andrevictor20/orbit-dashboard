@@ -1,0 +1,14 @@
+id: caddy-coolstore
+name: Caddy
+tagline: Caddy - The Ultimate Server With Automatic Https.
+description: Caddy - The Ultimate Server with Automatic HTTPS.
+category: Coolstore
+version: 1.0.0
+developer: WisdomSky
+store: coolstore
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm
+- arm64

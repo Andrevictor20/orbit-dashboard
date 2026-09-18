@@ -1,0 +1,16 @@
+id: ttydbridge-play
+name: ttydBridge
+tagline: Easy access to the host terminal in web
+description: ttydBridge acts as a "bridge" to the host environment, allowing you to
+  easily access and use the host terminal in a web. It is built on ttyd and runs in
+  a containerized manner, providing a secure and convenient remote endpoint experience.
+category: Developer
+version: 1.0.0
+developer: Cp0204
+store: play
+icon: icon.png
+port: 2222
+architectures:
+- amd64
+- arm
+- arm64

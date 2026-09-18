@@ -19,7 +19,7 @@
   "install_failed": "安装失败",
   "install_cancelled": "安装已取消",
   "background_task": "后台任务",
-  "port_conflict_explanation": "通过单击“使用建议的端口安装”，Orbit 会自动将服务重新映射到可用端口，而无需再次下载映像。",
+  "port_conflict_explanation": "通过单击“使用建议的端口安装”，Saturn 会自动将服务重新映射到可用端口，而无需再次下载映像。",
   "managed_stack_services": "具有 {{count}} 互连服务的托管堆栈",
   "services": "服务",
   "image_update_available_tip": "新的图像版本可用于您的设备。单击更新并重新启动。",

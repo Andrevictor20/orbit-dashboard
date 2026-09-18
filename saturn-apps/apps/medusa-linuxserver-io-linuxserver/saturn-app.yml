@@ -1,0 +1,15 @@
+id: medusa-linuxserver-io-linuxserver
+name: Medusa (LinuxServer.io)
+tagline: An automatic Video Library Manager for TV Shows. It watches for new episodes
+  of your favorite shows, and when they are posted it does its magic.
+description: Medusa is an automatic Video Library Manager for TV Shows. It watches
+  for new episodes of your favorite shows, and when they are posted it does its magic.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm64

@@ -46,7 +46,7 @@ export const DeviceCardSystem: React.FC<DeviceCardSystemProps> = ({
             <button
               onClick={onRunSpeedtest}
               disabled={isTesting}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white font-medium text-xs shadow-md shadow-orbit-500/20 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 active:scale-95 text-white font-medium text-xs shadow-md shadow-saturn-500/20 transition-all disabled:opacity-50"
             >
               {isTesting ? (
                 <>
@@ -107,7 +107,7 @@ export const DeviceCardSystem: React.FC<DeviceCardSystemProps> = ({
       {(metrics.cpu || metrics.ram || metrics.disk) && (
         <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-3xl saturate-[190%] p-5 shadow-lg">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-secondary mb-4 flex items-center gap-2">
-            <Network className="w-4 h-4 text-orbit-400" />
+            <Network className="w-4 h-4 text-saturn-400" />
             Host Telemetry
           </h4>
 
@@ -115,7 +115,7 @@ export const DeviceCardSystem: React.FC<DeviceCardSystemProps> = ({
             {metrics.cpu && (
               <div className="p-3.5 rounded-xl bg-accent/40 border border-border/50 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Cpu className="w-4 h-4 text-orbit-400" />
+                  <Cpu className="w-4 h-4 text-saturn-400" />
                   <span className="text-xs font-medium text-secondary">CPU</span>
                 </div>
                 <span className="text-sm font-bold text-primary">{metrics.cpu.state}%</span>

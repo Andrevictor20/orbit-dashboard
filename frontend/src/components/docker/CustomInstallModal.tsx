@@ -32,7 +32,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
     async function fetchConfig() {
       try {
         setLoading(true);
-        const token = localStorage.getItem('orbit_token');
+        const token = localStorage.getItem('saturn_token');
         const res = await fetch(`/api/store/apps/${appId}/config`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
@@ -105,7 +105,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
 
       if (hostPorts.length === 0) return;
 
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/docker/ports/check', {
         method: 'POST',
         headers: {
@@ -180,7 +180,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-card/60">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-500">
+            <div className="w-9 h-9 rounded-xl bg-saturn-500/15 border border-saturn-500/30 flex items-center justify-center text-saturn-500">
               <Terminal className="w-5 h-5" />
             </div>
             <div>
@@ -208,7 +208,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             onClick={() => setActiveTab('ports')}
             className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
               activeTab === 'ports'
-                ? 'border-orbit-500 text-orbit-500 font-bold'
+                ? 'border-saturn-500 text-saturn-500 font-bold'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -224,7 +224,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             onClick={() => setActiveTab('volumes')}
             className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
               activeTab === 'volumes'
-                ? 'border-orbit-500 text-orbit-500 font-bold'
+                ? 'border-saturn-500 text-saturn-500 font-bold'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -237,7 +237,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             onClick={() => setActiveTab('env')}
             className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
               activeTab === 'env'
-                ? 'border-orbit-500 text-orbit-500 font-bold'
+                ? 'border-saturn-500 text-saturn-500 font-bold'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -250,7 +250,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <RefreshCw className="w-7 h-7 animate-spin text-orbit-500" />
+              <RefreshCw className="w-7 h-7 animate-spin text-saturn-500" />
               <span className="text-xs text-secondary">{t('common.loading', 'Carregando configurações...')}</span>
             </div>
           ) : (
@@ -301,7 +301,7 @@ export function CustomInstallModal({ appId, appName, onClose, onInstall }: Custo
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-5 py-2.5 bg-orbit-500 text-white rounded-xl font-semibold hover:bg-orbit-600 active:scale-95 shadow-md shadow-orbit-500/25 transition-all text-xs flex items-center gap-2"
+              className="px-5 py-2.5 bg-saturn-500 text-white rounded-xl font-semibold hover:bg-saturn-600 active:scale-95 shadow-md shadow-saturn-500/25 transition-all text-xs flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4" />
               {t('custom_install.confirm_install', 'Confirmar e Instalar')}

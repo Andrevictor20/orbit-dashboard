@@ -1,0 +1,16 @@
+id: discopanel-bigbear
+name: DiscoPanel
+tagline: A game server panel for Minecraft
+description: DiscoPanel is a game server panel for Minecraft. It provides a clean
+  interface for creating and managing Minecraft servers, installing modpacks, and
+  running each server as its own Docker container. Features include modpack browsing
+  and installation, per-server configuration, backups, and real-time server management.
+category: Developer
+version: 1.0.0
+developer: nickheyer
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

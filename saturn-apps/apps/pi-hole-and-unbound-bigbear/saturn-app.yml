@@ -1,0 +1,13 @@
+id: pi-hole-and-unbound-bigbear
+name: Pi-hole and Unbound
+tagline: Pi-hole and Unbound
+description: This is a custom pihole and unbound setup.
+category: Networking
+version: 1.0.0
+developer: bigbeartechworld
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

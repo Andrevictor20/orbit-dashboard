@@ -55,7 +55,7 @@ function PageFallback() {
           <div key={i} className="h-28 rounded-2xl bg-card/50 border border-border/50 p-4 space-y-3 backdrop-blur-xl">
             <div className="flex items-center justify-between">
               <div className="h-3.5 w-20 rounded-md bg-accent/40 animate-pulse" />
-              <div className="h-8 w-8 rounded-xl bg-orbit-500/10 animate-pulse" />
+              <div className="h-8 w-8 rounded-xl bg-saturn-500/10 animate-pulse" />
             </div>
             <div className="h-6 w-16 rounded-md bg-accent/50 animate-pulse" />
           </div>
@@ -63,7 +63,7 @@ function PageFallback() {
       </div>
 
       <div className="h-64 rounded-3xl bg-card/40 border border-border/50 p-6 flex flex-col justify-center items-center gap-3 backdrop-blur-xl">
-        <Loader2 className="w-7 h-7 animate-spin text-orbit-500/70" />
+        <Loader2 className="w-7 h-7 animate-spin text-saturn-500/70" />
         <span className="text-xs text-secondary/70 font-medium tracking-wide">Carregando interface...</span>
       </div>
     </div>
@@ -138,7 +138,7 @@ function App() {
             },
             success: {
               iconTheme: {
-                primary: 'var(--orbit-500)',
+                primary: 'var(--saturn-500)',
                 secondary: 'var(--bg)',
               },
             },

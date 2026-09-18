@@ -21,7 +21,7 @@ export const BackupKpiCards: React.FC<BackupKpiCardsProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center gap-4">
-        <div className="p-3 bg-orbit-500/10 text-orbit-500 rounded-xl border border-orbit-500/20">
+        <div className="p-3 bg-saturn-500/10 text-saturn-500 rounded-xl border border-saturn-500/20">
           <FileArchive className="w-5 h-5" />
         </div>
         <div>

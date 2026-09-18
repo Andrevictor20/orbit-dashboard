@@ -1,0 +1,21 @@
+name: freefilesync
+services:
+  freefilesync:
+    image: jlesage/freefilesync:latest
+    container_name: freefilesync
+    restart: unless-stopped
+    environment:
+      GROUP_ID: '0'
+      USER_ID: '0'
+    ports:
+    - 5800:5800
+    volumes:
+    - /DATA/AppData/freefilesync/config:/config
+    - /DATA/AppData/freefilesync/storage:/storage
+    - /mnt:/mnt
+    - /media:/media
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge

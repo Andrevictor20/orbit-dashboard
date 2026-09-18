@@ -51,11 +51,11 @@ pub fn app() -> Router {
     // Start background stats collector immediately so metrics history is populated continuously
     ws::ensure_stats_collector(state.docker.clone());
 
-    // Background automatic cleanup of old/dangling Orbit images post-update
+    // Background automatic cleanup of old/dangling Saturn images post-update
     let docker_cleanup = state.docker.clone();
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        system::cleanup_old_orbit_images(docker_cleanup).await;
+        system::cleanup_old_saturn_images(docker_cleanup).await;
     });
 
     // Background auto-sync of Cloudflare tunnel links to containers on startup and periodically
@@ -76,6 +76,7 @@ pub fn app() -> Router {
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
         .route("/api/docker/stats/history", get(ws::get_stats_history_handler))
+        .route("/api/terminal/ws", get(ssh::terminal_handler))
         .route("/api/ssh", get(ssh::terminal_handler))
         .route("/api/logs", get(logs::get_logs))
         .route("/api/logs/clear", axum::routing::post(logs::clear_logs));
@@ -185,7 +186,7 @@ fn is_allowed_origin(origin_bytes: &[u8], parts: &axum::http::request::Parts) ->
         Err(_) => return false,
     };
 
-    // Extract host from origin string (e.g. https://orbit.meudominio.com:443 -> orbit.meudominio.com)
+    // Extract host from origin string (e.g. https://saturn.meudominio.com:443 -> saturn.meudominio.com)
     let origin_host_part = origin_str
         .strip_prefix("http://")
         .or_else(|| origin_str.strip_prefix("https://"))

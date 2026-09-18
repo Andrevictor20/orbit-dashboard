@@ -1,0 +1,14 @@
+id: dosbox-staging-linuxserver-io-linuxserver
+name: Dosbox staging (LinuxServer.io)
+tagline: A modern continuation of DOSBox a free and open-source emulator that enables
+  the execution of MS-DOS software, especially video games.
+description: DOSBox Staging is a modern continuation of DOSBox a free and open-source
+  emulator that enables the execution of MS-DOS software, especially video games.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

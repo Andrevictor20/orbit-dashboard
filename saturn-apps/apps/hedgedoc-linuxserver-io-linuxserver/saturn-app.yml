@@ -1,0 +1,21 @@
+id: hedgedoc-linuxserver-io-linuxserver
+name: Hedgedoc (LinuxServer.io)
+tagline: Gives you access to all your files wherever you are. HedgeDoc is a real-time,
+  multi-platform collaborative markdown note editor. This means that you can write
+  notes with other people on your desktop, tablet or even on the phone. You can sign-in
+  via multiple auth providers like Facebook, Twitter, GitHub and many more on the
+  homepage.
+description: HedgeDoc gives you access to all your files wherever you are. HedgeDoc
+  is a real-time, multi-platform collaborative markdown note editor. This means that
+  you can write notes with other people on your desktop, tablet or even on the phone.
+  You can sign-in via multiple auth providers like Facebook, Twitter, GitHub and many
+  more on the homepage.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

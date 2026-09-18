@@ -72,7 +72,7 @@
   "emptying": "正在清空...",
   "empty_trash_action": "清空垃圾箱",
   "safety_title": "Linux 文件系统保护指南",
-  "safety_intro": "Orbit 会阻止删除关键的重要目录。以下是切勿通过终端或脚本手动删除的内容的详细列表，以防止不可逆转的主机损坏。",
+  "safety_intro": "Saturn 会阻止删除关键的重要目录。以下是切勿通过终端或脚本手动删除的内容的详细列表，以防止不可逆转的主机损坏。",
   "critical_folders_title": "关键文件夹（最大危险🔴）",
   "boot_desc": "包含 Linux 内核、Initramfs 和 Grub。如果删除，服务器将无法启动。",
   "docker_overlay_desc": "Docker 内部存储驱动层。切勿直接在此处使用 rm -rf。始终使用 docker 系统修剪。",

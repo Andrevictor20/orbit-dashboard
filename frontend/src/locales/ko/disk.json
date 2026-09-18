@@ -72,7 +72,7 @@
   "emptying": "비우는 중...",
   "empty_trash_action": "휴지통 비우기",
   "safety_title": "Linux 파일 시스템 보호 지침",
-  "safety_intro": "Orbit은 중요한 필수 디렉터리의 삭제를 차단합니다. 다음은 되돌릴 수 없는 호스트 손상을 방지하기 위해 터미널이나 스크립트를 통해 수동으로 삭제해서는 안 되는 항목에 대한 자세한 목록입니다.",
+  "safety_intro": "Saturn은 중요한 필수 디렉터리의 삭제를 차단합니다. 다음은 되돌릴 수 없는 호스트 손상을 방지하기 위해 터미널이나 스크립트를 통해 수동으로 삭제해서는 안 되는 항목에 대한 자세한 목록입니다.",
   "critical_folders_title": "중요한 폴더(최대 위험 🔴)",
   "boot_desc": "Linux 커널, Initramfs 및 Grub이 포함되어 있습니다. 삭제하면 서버가 부팅되지 않습니다.",
   "docker_overlay_desc": "Docker 내부 스토리지 드라이버 계층. 여기서는 rm -rf를 직접 사용하지 마십시오. 항상 docker system prune을 사용하세요.",

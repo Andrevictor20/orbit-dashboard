@@ -1,0 +1,13 @@
+id: planka-v2-bigbear
+name: Planka v2
+tagline: Free open source kanban board for workgroups.
+description: The realtime kanban board for workgroups built with React and Redux.
+category: Productivity
+version: 1.0.0
+developer: plankanban
+store: bigbear
+icon: icon.png
+port: 3001
+architectures:
+- amd64
+- arm64

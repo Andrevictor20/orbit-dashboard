@@ -1,0 +1,19 @@
+id: sonarr-linuxserver-io-linuxserver
+name: Sonarr (LinuxServer.io)
+tagline: (formerly NZBdrone) is a PVR for usenet and bittorrent users. It can monitor
+  multiple RSS feeds for new episodes of your favorite shows and will grab, sort and
+  rename them. It can also be configured to automatically upgrade the quality of files
+  already downloaded when a better quality format becomes available.
+description: Sonarr (formerly NZBdrone) is a PVR for usenet and bittorrent users.
+  It can monitor multiple RSS feeds for new episodes of your favorite shows and will
+  grab, sort and rename them. It can also be configured to automatically upgrade the
+  quality of files already downloaded when a better quality format becomes available.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8989
+architectures:
+- amd64
+- arm64

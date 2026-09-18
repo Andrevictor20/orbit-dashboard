@@ -1,0 +1,14 @@
+id: tandoor-bigbear
+name: Tandoor
+tagline: Recipe collection manager.
+description: Drop your collection of links and notes. Get Tandoor and never look back
+  onto a time without recipe management, storage, sharing and collaborative cooking!
+category: Others
+version: 1.0.0
+developer: tandoorrecipes
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

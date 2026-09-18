@@ -1,0 +1,13 @@
+id: mailpit-bigbear
+name: Mailpit
+tagline: Mailpit
+description: Mailpit is a multi-platform email testing tool & API for developers.
+category: Developer
+version: 1.0.0
+developer: axllent
+store: bigbear
+icon: icon.png
+port: 8025
+architectures:
+- amd64
+- arm64

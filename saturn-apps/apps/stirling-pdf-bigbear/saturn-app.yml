@@ -1,0 +1,13 @@
+id: stirling-pdf-bigbear
+name: Stirling-PDF
+tagline: Stirling PDF - Local hosted web based PDF editor
+description: Stirling PDF - Local hosted web based PDF editor
+category: Productivity
+version: 1.0.0
+developer: stirlingtools
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

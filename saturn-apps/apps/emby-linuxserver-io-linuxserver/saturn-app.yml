@@ -1,0 +1,16 @@
+id: emby-linuxserver-io-linuxserver
+name: Emby (LinuxServer.io)
+tagline: Organizes video, music, live TV, and photos from personal media libraries
+  and streams them to smart TVs, streaming boxes and mobile devices. This container
+  is packaged as a standalone emby Media Server.
+description: Emby organizes video, music, live TV, and photos from personal media
+  libraries and streams them to smart TVs, streaming boxes and mobile devices. This
+  container is packaged as a standalone emby Media Server.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64
+- arm64

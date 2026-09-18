@@ -1,0 +1,15 @@
+id: librespeed-linuxserver-io-linuxserver
+name: Librespeed (LinuxServer.io)
+tagline: A very lightweight Speedtest implemented in Javascript, using XMLHttpRequest
+  and Web Workers. No Flash, No Java, No Websocket, No Bullshit.
+description: Librespeed is a very lightweight Speedtest implemented in Javascript,
+  using XMLHttpRequest and Web Workers. No Flash, No Java, No Websocket, No Bullshit.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

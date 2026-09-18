@@ -63,7 +63,9 @@ pub fn save_schedule_config_internal(config: &BackupScheduleConfig) {
 }
 
 pub const CONFIG_FILES: &[&str] = &[
-    "orbit_auth.json",
+    "saturn_auth.json",
+    "saturn_auth.json",
+    "stores.json",
     "custom_links.json",
     "settings.json",
     "pihole.json",
@@ -128,7 +130,7 @@ pub async fn create_backup_dispatch(
 
     match target {
         "system_full" => create_full_system_backup_internal(stop, backup_type).await,
-        "orbit_configs" => create_orbit_configs_backup_internal(backup_type).await,
+        "saturn_configs" => create_saturn_configs_backup_internal(backup_type).await,
         "all_containers" => create_all_containers_backup_internal(stop, backup_type).await,
         other => create_single_app_backup_internal(other, stop, backup_type).await,
     }
@@ -197,13 +199,14 @@ pub async fn create_full_system_backup_internal(
         "version": env!("CARGO_PKG_VERSION"),
         "target_type": "system_full",
         "app_id": "system_full",
-        "app_name": "Sistema Completo (Orbit + Containers)",
+        "app_name": "Sistema Completo (Saturn + Containers)",
         "created_at": timestamp_str,
         "includes_apps": true,
         "includes_configs": true,
-        "description": "Backup completo das configurações do Orbit, integrações e todos os contêineres e volumes"
+        "description": "Backup completo das configurações do Saturn, integrações e todos os contêineres e volumes"
     });
-    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
 
     // 2. Configs & Containers Manifest
     copy_system_configs_to_staging(&staging_dir.join("configs"));
@@ -235,14 +238,14 @@ pub async fn create_full_system_backup_internal(
             let backup_item = BackupItem {
                 id: uuid::Uuid::new_v4().to_string(),
                 app_id: "system_full".to_string(),
-                app_name: "Sistema Completo (Orbit + Containers)".to_string(),
+                app_name: "Sistema Completo (Saturn + Containers)".to_string(),
                 filename: filename.clone(),
                 size_bytes: size,
                 created_at: timestamp_str,
                 status: "completed".to_string(),
                 backup_type: backup_type.to_string(),
                 target_type: "system_full".to_string(),
-                description: Some("Backup completo das configurações do Orbit, integrações e contêineres".to_string()),
+                description: Some("Backup completo das configurações do Saturn, integrações e contêineres".to_string()),
             };
             let mut current = load_backup_index();
             current.insert(0, backup_item.clone());
@@ -255,12 +258,12 @@ pub async fn create_full_system_backup_internal(
     }
 }
 
-pub async fn create_orbit_configs_backup_internal(
+pub async fn create_saturn_configs_backup_internal(
     backup_type: &str,
 ) -> Result<BackupItem, (StatusCode, String)> {
     let _lock = BACKUP_MUTEX.lock().await;
     let (timestamp_str, file_suffix) = get_timestamp_and_suffix();
-    let filename = format!("backup_orbit_configs_{}.tar.gz", file_suffix);
+    let filename = format!("backup_saturn_configs_{}.tar.gz", file_suffix);
     let backup_path = get_backups_dir().join(&filename);
     let staging_id = uuid::Uuid::new_v4().to_string();
     let staging_dir = get_backups_dir().join(format!(".tmp_cfg_{}", staging_id));
@@ -268,15 +271,16 @@ pub async fn create_orbit_configs_backup_internal(
 
     let manifest = serde_json::json!({
         "version": env!("CARGO_PKG_VERSION"),
-        "target_type": "orbit_configs",
-        "app_id": "orbit_configs",
-        "app_name": "Configurações Orbit & Integrações",
+        "target_type": "saturn_configs",
+        "app_id": "saturn_configs",
+        "app_name": "Configurações Saturn & Integrações",
         "created_at": timestamp_str,
         "includes_apps": false,
         "includes_configs": true,
         "description": "Autenticação, usuários, credenciais, integrações (HA, Cloudflare, Pi-hole, Samba) e preferências"
     });
-    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
     copy_system_configs_to_staging(&staging_dir.join("configs"));
 
     let tar_result = Command::new("tar")
@@ -291,15 +295,15 @@ pub async fn create_orbit_configs_backup_internal(
             let size = backup_path.metadata().map(|m| m.len()).unwrap_or(0);
             let backup_item = BackupItem {
                 id: uuid::Uuid::new_v4().to_string(),
-                app_id: "orbit_configs".to_string(),
-                app_name: "Configurações Orbit & Integrações".to_string(),
+                app_id: "saturn_configs".to_string(),
+                app_name: "Configurações Saturn & Integrações".to_string(),
                 filename: filename.clone(),
                 size_bytes: size,
                 created_at: timestamp_str,
                 status: "completed".to_string(),
                 backup_type: backup_type.to_string(),
-                target_type: "orbit_configs".to_string(),
-                description: Some("Configurações, credenciais e integrações do Orbit".to_string()),
+                target_type: "saturn_configs".to_string(),
+                description: Some("Configurações, credenciais e integrações do Saturn".to_string()),
             };
             let mut current = load_backup_index();
             current.insert(0, backup_item.clone());
@@ -311,6 +315,8 @@ pub async fn create_orbit_configs_backup_internal(
     }
 }
 
+
+
 pub async fn create_all_containers_backup_internal(
     stop: bool,
     backup_type: &str,
@@ -320,7 +326,7 @@ pub async fn create_all_containers_backup_internal(
     let filename = format!("backup_all_containers_{}.tar.gz", file_suffix);
     let backup_path = get_backups_dir().join(&filename);
     let staging_id = uuid::Uuid::new_v4().to_string();
-    let staging_dir = get_backups_dir().join(format!(".tmp_apps_{}", staging_id));
+    let staging_dir = get_backups_dir().join(format!(".tmp_all_{}", staging_id));
     let _ = fs::create_dir_all(&staging_dir);
 
     let manifest = serde_json::json!({
@@ -332,7 +338,8 @@ pub async fn create_all_containers_backup_internal(
         "includes_apps": true,
         "includes_configs": false
     });
-    let _ = fs::write(staging_dir.join("orbit_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
     dump_containers_manifest_to_staging(&staging_dir);
 
     let apps_source = PathBuf::from("data/apps");
@@ -397,18 +404,38 @@ pub async fn create_single_app_backup_internal(
 
     info!("Iniciando backup para aplicativo {} em {}", app_id, backup_path.display());
 
+    let staging_id = uuid::Uuid::new_v4().to_string();
+    let staging_dir = get_backups_dir().join(format!(".tmp_app_{}", staging_id));
+    let _ = fs::create_dir_all(&staging_dir);
+
+    let manifest = serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "target_type": "single_app",
+        "app_id": app_id.clone(),
+        "app_name": app_id.clone(),
+        "created_at": timestamp_str,
+        "includes_apps": true,
+        "includes_configs": false
+    });
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
+    let _ = fs::write(staging_dir.join("saturn_manifest.json"), manifest.to_string());
+
     if stop {
         let _ = Command::new("docker").args(["compose", "stop"]).current_dir(&app_dir).output().await;
     }
 
-    let tar_result = Command::new("tar")
-        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", "data/apps", &app_id])
-        .output()
-        .await;
+    let _ = copy_dir_all(&app_dir, &staging_dir.join(&app_id));
 
     if stop {
         let _ = Command::new("docker").args(["compose", "start"]).current_dir(&app_dir).output().await;
     }
+
+    let tar_result = Command::new("tar")
+        .args(["-czf", backup_path.to_str().unwrap_or(""), "-C", staging_dir.to_str().unwrap_or(""), "."])
+        .output()
+        .await;
+
+    let _ = fs::remove_dir_all(&staging_dir);
 
     match tar_result {
         Ok(output) if output.status.success() => {

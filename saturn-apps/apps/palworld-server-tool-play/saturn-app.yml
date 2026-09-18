@@ -1,0 +1,14 @@
+id: palworld-server-tool-play
+name: PalWorld Server Tool
+tagline: Visual Management of PalWorld dedicated server.
+description: Through parse Level.sav and RCON, visual interface management PalWorld
+  dedicated server. [documentation](https://github.com/zaigie/palworld-server-tool)
+category: Others
+version: 1.0.0
+developer: zaigie
+store: play
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

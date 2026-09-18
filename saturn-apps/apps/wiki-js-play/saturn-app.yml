@@ -1,0 +1,14 @@
+id: wiki-js-play
+name: Wiki.js
+tagline: A modern, lightweight and powerful wiki app
+description: Wiki.js is a powerful and extensible open source wiki software built
+  on Node.js.
+category: Productivity
+version: 1.0.0
+developer: requarks.io
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- arm64
+- amd64

@@ -1,0 +1,15 @@
+id: webdav-coolstore
+name: WebDAV
+tagline: Web-based distributed authoring and versioning (WebDAV) is a set of extensions
+  to the HTTP protocol that allows WebDAV clients (such as Microsoft Web Folders)
+  to collaboratively edit and manage files on remote Web servers.
+description: Web-based distributed authoring and versioning (WebDAV) is a set of extensions
+  to the HTTP protocol that allows WebDAV clients (such as Microsoft Web Folders)
+  to collaboratively edit and manage files on remote Web servers.
+category: Coolstore
+version: 1.0.0
+developer: Bytemark
+store: coolstore
+icon: icon.png
+architectures:
+- amd64

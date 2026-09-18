@@ -45,7 +45,7 @@ export function FolderPickerModal({
   const [newFolderName, setNewFolderName] = useState<string>('');
 
   const getAuthHeaders = useCallback((): HeadersInit => {
-    const token = localStorage.getItem('orbit_token');
+    const token = localStorage.getItem('saturn_token');
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -194,7 +194,7 @@ export function FolderPickerModal({
         {/* Header */}
         <div className="p-4 sm:px-6 border-b border-border flex items-center justify-between bg-muted/20">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-500 border border-orbit-500/20">
+            <div className="p-2 rounded-xl bg-saturn-500/10 text-saturn-500 border border-saturn-500/20">
               <FolderOpen className="w-5 h-5" />
             </div>
             <div>
@@ -227,7 +227,7 @@ export function FolderPickerModal({
               onClick={() => handleNavigateTo('/')}
               className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 transition-all shrink-0 ${
                 currentPath === '/' 
-                  ? 'bg-orbit-500 text-white shadow-sm font-bold' 
+                  ? 'bg-saturn-500 text-white shadow-sm font-bold' 
                   : 'bg-card border border-border/70 text-secondary hover:text-primary hover:bg-accent'
               }`}
             >
@@ -241,7 +241,7 @@ export function FolderPickerModal({
                 onClick={() => handleNavigateTo(storage.mount_point)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 transition-all shrink-0 ${
                   currentPath === storage.mount_point || currentPath.startsWith(storage.mount_point + '/')
-                    ? 'bg-orbit-500/20 text-orbit-400 border border-orbit-500/40 font-bold' 
+                    ? 'bg-saturn-500/20 text-saturn-400 border border-saturn-500/40 font-bold' 
                     : 'bg-card border border-border/70 text-secondary hover:text-primary hover:bg-accent'
                 }`}
               >
@@ -275,7 +275,7 @@ export function FolderPickerModal({
                     onClick={() => handleNavigateTo(fullSegmentPath)}
                     className={`px-1.5 py-0.5 rounded transition-colors ${
                       isLast 
-                        ? 'bg-card border border-border text-orbit-500 font-bold shadow-xs' 
+                        ? 'bg-card border border-border text-saturn-500 font-bold shadow-xs' 
                         : 'text-secondary hover:text-primary hover:bg-accent'
                     }`}
                   >
@@ -303,7 +303,7 @@ export function FolderPickerModal({
               className="px-2 py-1 rounded-lg border border-border bg-card hover:bg-accent text-secondary hover:text-primary text-xs font-medium transition-all flex items-center gap-1"
               title={t('folder_picker.new_folder', 'Nova Pasta')}
             >
-              <FolderPlus className="w-3.5 h-3.5 text-orbit-500" />
+              <FolderPlus className="w-3.5 h-3.5 text-saturn-500" />
               <span className="hidden sm:inline">{t('folder_picker.new_folder', 'Nova Pasta')}</span>
             </button>
           </div>
@@ -311,19 +311,19 @@ export function FolderPickerModal({
 
         {/* Inline Create Folder Form */}
         {creatingFolder && (
-          <form onSubmit={handleCreateFolder} className="p-3 border-b border-border bg-orbit-500/5 flex items-center gap-2">
+          <form onSubmit={handleCreateFolder} className="p-3 border-b border-border bg-saturn-500/5 flex items-center gap-2">
             <input
               type="text"
               autoFocus
               placeholder={t('folder_picker.folder_name_placeholder', 'Nome da nova pasta...')}
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              className="flex-1 bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+              className="flex-1 bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500"
             />
             <button
               type="submit"
               disabled={!newFolderName.trim() || loading}
-              className="px-3 py-1.5 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition-all flex items-center gap-1"
+              className="px-3 py-1.5 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition-all flex items-center gap-1"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{t('common.create', 'Criar')}</span>
@@ -342,7 +342,7 @@ export function FolderPickerModal({
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-[260px] max-h-[380px] space-y-1">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 gap-2 text-secondary">
-              <Loader2 className="w-6 h-6 animate-spin text-orbit-500" />
+              <Loader2 className="w-6 h-6 animate-spin text-saturn-500" />
               <span className="text-xs">{t('common.loading', 'Carregando pastas...')}</span>
             </div>
           ) : error ? (
@@ -352,7 +352,7 @@ export function FolderPickerModal({
               <button
                 type="button"
                 onClick={() => handleNavigateTo('/')}
-                className="mt-2 text-xs text-orbit-500 hover:underline"
+                className="mt-2 text-xs text-saturn-500 hover:underline"
               >
                 {t('folder_picker.return_to_root', 'Voltar para a raiz (/)?')}
               </button>
@@ -374,7 +374,7 @@ export function FolderPickerModal({
                   className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-accent/70 border border-transparent hover:border-border transition-all text-left group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Folder className="w-4 h-4 text-orbit-500 shrink-0 group-hover:scale-110 transition-transform" />
+                    <Folder className="w-4 h-4 text-saturn-500 shrink-0 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-mono font-medium text-primary truncate">
                       {folder.name}
                     </span>
@@ -392,7 +392,7 @@ export function FolderPickerModal({
             <span className="text-[10px] font-bold uppercase tracking-wider text-secondary shrink-0">
               {t('folder_picker.selected', 'Caminho')}:
             </span>
-            <code className="text-xs font-mono bg-card px-2.5 py-1 rounded-lg border border-border text-orbit-500 font-bold truncate max-w-full sm:max-w-xs">
+            <code className="text-xs font-mono bg-card px-2.5 py-1 rounded-lg border border-border text-saturn-500 font-bold truncate max-w-full sm:max-w-xs">
               {currentPath}
             </code>
           </div>
@@ -409,7 +409,7 @@ export function FolderPickerModal({
             <button
               type="button"
               onClick={handleConfirmSelect}
-              className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-orbit-500/20 flex items-center gap-1.5 active:scale-95"
+              className="px-4 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-saturn-500/20 flex items-center gap-1.5 active:scale-95"
             >
               <Check className="w-4 h-4" />
               <span>{t('folder_picker.select_this_folder', 'Selecionar Esta Pasta')}</span>

@@ -1,0 +1,14 @@
+id: flaresolverr
+name: FlareSolverr
+tagline: ''
+description: ''
+category: Networking
+version: 1.0.0
+developer: calganaygun
+store: official
+icon: icon.png
+port: 8191
+architectures:
+- amd64
+- arm
+- arm64

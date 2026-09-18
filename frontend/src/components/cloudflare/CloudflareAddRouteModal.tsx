@@ -35,7 +35,7 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
   const [authError, setAuthError] = useState<string | null>(null);
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   };
 
@@ -89,7 +89,11 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
     const finalService = computeFinalService();
     if (!cleanHostname) { toast.error(t('cloudflare.error_hostname_required', 'Informe o hostname público desejado.')); return; }
     if (!finalService) { toast.error(t('cloudflare.error_service_required', 'Informe o serviço interno de destino.')); return; }
-    if (baseDomain.trim() && typeof localStorage !== 'undefined') localStorage.setItem('orbit_base_domain', baseDomain.trim().toLowerCase());
+    if (baseDomain.trim() && typeof localStorage !== 'undefined') {
+      const clean = baseDomain.trim().toLowerCase();
+      localStorage.setItem('saturn_base_domain', clean);
+      localStorage.setItem('saturn_base_domain', clean);
+    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/cloudflare/routes', {
@@ -119,7 +123,7 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
       <div className="relative w-full max-w-lg rounded-2xl border border-border/80 bg-card p-6 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center justify-between pb-4 border-b border-border/60">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-500"><Globe className="w-5 h-5" /></div>
+            <div className="w-9 h-9 rounded-xl bg-saturn-500/15 border border-saturn-500/30 flex items-center justify-center text-saturn-500"><Globe className="w-5 h-5" /></div>
             <div>
               <h2 className="text-base font-bold text-primary">{t('cloudflare.add_route_title', 'Adicionar Nova Rota Ingress')}</h2>
               <p className="text-xs text-secondary">{t('cloudflare.add_route_desc', 'Exponha um contêiner ou serviço local de forma segura via Cloudflare.')}</p>
@@ -146,11 +150,11 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <span className="block text-[11px] text-secondary mb-1 font-medium">{t('cloudflare.subdomain_label', 'Subdomínio')}</span>
-                    <input type="text" required value={subdomain} onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="stirling-pdf" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500" />
+                    <input type="text" required value={subdomain} onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="stirling-pdf" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500" />
                   </div>
                   <div>
                     <span className="block text-[11px] text-secondary mb-1 font-medium">{t('cloudflare.base_domain_label', 'Domínio Base')}</span>
-                    <input type="text" required value={baseDomain} onChange={(e) => { const val = e.target.value.toLowerCase(); setBaseDomain(val); if (typeof localStorage !== 'undefined') localStorage.setItem('orbit_base_domain', val.trim()); }} placeholder="rasppi.cloud" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500" />
+                    <input type="text" required value={baseDomain} onChange={(e) => { const val = e.target.value.toLowerCase(); setBaseDomain(val); if (typeof localStorage !== 'undefined') { localStorage.setItem('saturn_base_domain', val.trim()); localStorage.setItem('saturn_base_domain', val.trim()); } }} placeholder="rasppi.cloud" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500" />
                   </div>
                 </div>
                 <div className="px-3 py-2 rounded-xl bg-accent/20 border border-border/50 text-[11px] font-mono flex items-center justify-between">
@@ -159,7 +163,7 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
                 </div>
               </div>
             ) : (
-              <div className="flex rounded-xl bg-accent/40 border border-border focus-within:border-orbit-500 overflow-hidden">
+              <div className="flex rounded-xl bg-accent/40 border border-border focus-within:border-saturn-500 overflow-hidden">
                 <span className="px-3 py-2 text-xs font-mono text-secondary/70 bg-accent/30 border-r border-border/60 flex items-center select-none shrink-0">https://</span>
                 <input type="text" required value={rawHostname} onChange={(e) => setRawHostname(e.target.value)} placeholder={t('cloudflare.hostname_placeholder', 'ex: app.rasppi.cloud')} className="flex-1 px-3 py-2 bg-transparent text-xs text-primary font-mono focus:outline-none" />
               </div>
@@ -186,13 +190,13 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <span className="block text-[11px] text-secondary mb-1">{t('cloudflare.select_container', 'Selecione o Contêiner')}</span>
-                      <select value={selectedContainer} onChange={(e) => handleContainerChange(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500">
+                      <select value={selectedContainer} onChange={(e) => handleContainerChange(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500">
                         {containers.map(c => <option key={c.id} value={c.name}>{c.name} {c.state === 'running' ? '(ativo)' : ''}</option>)}
                       </select>
                     </div>
                     <div>
                       <span className="block text-[11px] text-secondary mb-1">{t('cloudflare.select_port', 'Porta')}</span>
-                      <input type="text" value={selectedPort} onChange={(e) => setSelectedPort(e.target.value)} placeholder="8080" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500" />
+                      <input type="text" value={selectedPort} onChange={(e) => setSelectedPort(e.target.value)} placeholder="8080" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500" />
                     </div>
                   </div>
                 )}
@@ -200,7 +204,7 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
               </div>
             ) : (
               <div>
-                <input type="text" value={customService} onChange={(e) => setCustomService(e.target.value)} placeholder="http://192.168.1.50:8080" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500" />
+                <input type="text" value={customService} onChange={(e) => setCustomService(e.target.value)} placeholder="http://192.168.1.50:8080" className="w-full px-3 py-2 rounded-xl bg-accent/40 border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500" />
                 <span className="text-[10px] text-secondary mt-1 block">{t('cloudflare.custom_service_hint', 'Ex: http://192.168.1.100:8080 ou http://localhost:3000')}</span>
               </div>
             )}
@@ -216,10 +220,10 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
               <div className="mt-2.5 p-3 rounded-xl bg-accent/20 border border-border/50 space-y-3">
                 <div>
                   <label className="block text-[11px] text-secondary mb-1">{t('cloudflare.path_optional', 'Caminho (Path Opcional)')}</label>
-                  <input type="text" value={path} onChange={(e) => setPath(e.target.value)} placeholder="/api" className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-primary font-mono focus:outline-none focus:border-orbit-500" />
+                  <input type="text" value={path} onChange={(e) => setPath(e.target.value)} placeholder="/api" className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-primary font-mono focus:outline-none focus:border-saturn-500" />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={noTlsVerify} onChange={(e) => setNoTlsVerify(e.target.checked)} className="rounded border-border text-orbit-500 focus:ring-0" />
+                  <input type="checkbox" checked={noTlsVerify} onChange={(e) => setNoTlsVerify(e.target.checked)} className="rounded border-border text-saturn-500 focus:ring-0" />
                   <span className="text-xs text-secondary">{t('cloudflare.no_tls_verify', 'No TLS Verify (ignorar certificados HTTPS auto-assinados)')}</span>
                 </label>
               </div>
@@ -255,7 +259,7 @@ export function CloudflareAddRouteModal({ isOpen, onClose, onRouteCreated, tunne
           {/* Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/60">
             <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 rounded-xl border border-border/70 bg-card hover:bg-accent text-secondary hover:text-primary text-xs font-semibold transition-all">{t('common.cancel', 'Cancelar')}</button>
-            <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50">
               {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
               <span>{t('cloudflare.create_route_btn', 'Criar Rota')}</span>
             </button>

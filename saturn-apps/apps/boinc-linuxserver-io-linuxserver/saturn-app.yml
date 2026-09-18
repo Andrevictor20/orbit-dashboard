@@ -1,0 +1,19 @@
+id: boinc-linuxserver-io-linuxserver
+name: Boinc (LinuxServer.io)
+tagline: A platform for high-throughput computing on a large scale (thousands or millions
+  of computers). It can be used for volunteer computing (using consumer devices) or
+  grid computing (using organizational resources). It supports virtualized, parallel,
+  and GPU-based applications.
+description: BOINC is a platform for high-throughput computing on a large scale (thousands
+  or millions of computers). It can be used for volunteer computing (using consumer
+  devices) or grid computing (using organizational resources). It supports virtualized,
+  parallel, and GPU-based applications.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,14 @@
+id: wxedge-play
+name: wxedge
+tagline: OnethingCloud Container
+description: 「容器魔方」由网心云推出的一款docker容器镜像软件，通过简单安装后即可快速加入网心云共享计算生态网络，为网心科技星域云贡献带宽和存储资源，用户根据每日的贡献量可获得相应的现金收益回报。网心科技星域云通过先进的边缘编排技术，将千家万户的节点连接成一张边缘云计算网络，为B端客户提供全球领先的、优质低成本的边缘计算服务。目前支持：koolshare、群晖、树莓派等支持docker的设备（arm32、aarch64、x86_64）。
+category: Productivity
+version: 1.0.0
+developer: OnethingCloud
+store: play
+icon: icon.png
+port: 18888
+architectures:
+- amd64
+- arm
+- arm64

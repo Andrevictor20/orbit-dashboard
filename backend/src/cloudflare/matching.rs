@@ -404,7 +404,7 @@ pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<Contai
         let service_name = c
             .labels
             .as_ref()
-            .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.casaos.app.name")))
+            .and_then(|l| l.get("com.docker.compose.service").or_else(|| l.get("io.saturn.app.name")))
             .cloned();
 
         let project_name = c
@@ -429,7 +429,7 @@ pub async fn fetch_docker_containers_for_matching(docker: &Docker) -> Vec<Contai
     results
 }
 
-/// Syncs matched ingress rules into Orbit's custom links
+/// Syncs matched ingress rules into Saturn's custom links
 pub fn sync_ingress_rules_to_links(rules: &[IngressRule]) -> SyncLinksResponse {
     let mut links_to_update = HashMap::new();
 

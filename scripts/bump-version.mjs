@@ -71,10 +71,10 @@ if (fs.existsSync(cargoPath)) {
 // 5. Atualizar título em LATEST_RELEASE.md
 if (fs.existsSync(releaseNotesPath)) {
   let releaseNotes = fs.readFileSync(releaseNotesPath, 'utf8');
-  if (/^#\s*Orbit Dashboard\s*v[^\n]+/m.test(releaseNotes)) {
-    releaseNotes = releaseNotes.replace(/^#\s*Orbit Dashboard\s*v[^\n]+/m, `# Orbit Dashboard v${newVersion}`);
+  if (/^#\s*Saturn Dashboard\s*v[^\n]+/m.test(releaseNotes)) {
+    releaseNotes = releaseNotes.replace(/^#\s*Saturn Dashboard\s*v[^\n]+/m, `# Saturn Dashboard v${newVersion}`);
   } else {
-    releaseNotes = `# Orbit Dashboard v${newVersion}\n\n` + releaseNotes;
+    releaseNotes = `# Saturn Dashboard v${newVersion}\n\n` + releaseNotes;
   }
   fs.writeFileSync(releaseNotesPath, releaseNotes);
 }

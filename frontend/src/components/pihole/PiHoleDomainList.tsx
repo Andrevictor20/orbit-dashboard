@@ -136,7 +136,7 @@ export function PiHoleDomainList({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('pihole.search_domains_placeholder')}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-surface dark:bg-zinc-800 border border-border focus:border-orbit-500 focus:outline-none transition-colors"
+            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-surface dark:bg-zinc-800 border border-border focus:border-saturn-500 focus:outline-none transition-colors"
           />
         </div>
       </div>
@@ -154,7 +154,7 @@ export function PiHoleDomainList({
                 ? t('pihole.add_whitelist_placeholder')
                 : t('pihole.add_blacklist_placeholder')
             }
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-surface dark:bg-zinc-800 border border-border focus:border-orbit-500 focus:outline-none transition-colors font-mono"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-surface dark:bg-zinc-800 border border-border focus:border-saturn-500 focus:outline-none transition-colors font-mono"
           />
         </div>
         <button
@@ -194,7 +194,7 @@ export function PiHoleDomainList({
               <tr>
                 <td colSpan={3} className="py-8 text-center text-secondary">
                   <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-orbit-500" />
+                    <Loader2 className="w-4 h-4 animate-spin text-saturn-500" />
                     <span>{t('common.loading')}</span>
                   </div>
                 </td>

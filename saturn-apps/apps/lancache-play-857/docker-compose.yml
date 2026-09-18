@@ -1,0 +1,46 @@
+name: lancache
+services:
+  dns:
+    image: jrcichra/lancachenet-lancache-dns:latest
+    container_name: lancache-dns
+    restart: unless-stopped
+    environment:
+      LANCACHE_IP: 192.168.1.88
+      CACHE_DOMAINS_REPO: https://github.com/uklans/cache-domains.git
+      CACHE_DOMAINS_BRANCH: master
+      UPSTREAM_DNS: 1.1.1.1
+      USE_GENERIC_CACHE: 'true'
+    ports:
+    - target: 53
+      published: 53
+      protocol: tcp
+    - target: 53
+      published: 53
+      protocol: udp
+    network_mode: bridge
+  monolithic:
+    image: jrcichra/lancachenet-monolithic:latest
+    container_name: lancache-monolithic
+    restart: unless-stopped
+    environment:
+      CACHE_DOMAINS_REPO: https://github.com/uklans/cache-domains.git
+      CACHE_DOMAINS_BRANCH: master
+      UPSTREAM_DNS: 1.1.1.1
+      CACHE_DISK_SIZE: 2000g
+      CACHE_INDEX_SIZE: 500m
+      CACHE_MAX_AGE: 3650d
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    - target: 443
+      published: 443
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/lancache/cache
+      target: /data/cache
+    - type: bind
+      source: /DATA/AppData/lancache/logs
+      target: /data/logs
+    network_mode: bridge

@@ -1,0 +1,15 @@
+id: linkstack-bigbear
+name: LinkStack
+tagline: Your all-in-one link sharing solution
+description: LinkStack is a link-in-bio tool that allows you to create a personalized
+  and easily customizable page that houses all the important links you want to share
+  with your audience.
+category: Others
+version: 1.0.0
+developer: LinkStackOrg
+store: bigbear
+icon: icon.png
+port: 10443
+architectures:
+- amd64
+- arm64

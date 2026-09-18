@@ -1,0 +1,12 @@
+id: anaconda3
+name: Anaconda3
+tagline: Your machine learning Env work with Jupyter Lab
+description: Your machine learning Env work with Jupyter Lab
+category: AI
+version: 1.0.0
+developer: LisonEvf
+store: official
+icon: icon.png
+port: 8888
+architectures:
+- amd64

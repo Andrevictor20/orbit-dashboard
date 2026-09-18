@@ -1,0 +1,15 @@
+id: duplicati
+name: Duplicati
+tagline: Store securely encrypted backups in the cloud!
+description: Duplicati is a free, open source, backup client that securely stores
+  encrypted, incremental, compressed backups on cloud storage services and remote
+  file servers.
+category: Productivity
+version: 1.0.0
+developer: duplicati
+store: official
+icon: icon.png
+port: 8200
+architectures:
+- amd64
+- arm64

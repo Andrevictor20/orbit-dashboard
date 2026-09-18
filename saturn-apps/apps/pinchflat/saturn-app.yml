@@ -1,0 +1,52 @@
+id: pinchflat
+name: Pinchflat
+tagline: Your next YouTube media manager
+description: 'Pinchflat is a self-hosted app for downloading YouTube content built
+  using yt-dlp. It''s designed to be lightweight, self-contained, and easy to use.
+  You set up rules for how to download content from YouTube channels or playlists
+  and it''ll do the rest, periodically checking for new content.
+
+
+  Key features include:
+
+  - Self-contained - just one Docker container with no external dependencies
+
+  - Powerful naming system so content is stored where and how you want it
+
+  - Easy-to-use web interface with presets to get you started right away
+
+  - First-class support for media center apps like Plex, Jellyfin, and Kodi
+
+  - Supports serving RSS feeds to your favourite podcast app
+
+  - Automatically downloads new content from channels and playlists
+
+  - Supports downloading audio content
+
+  - Custom rules for handling YouTube Shorts and livestreams
+
+  - Apprise support for notifications
+
+  - Optionally automatically delete old content
+
+  - Advanced options like setting cutoff dates and filtering by title
+
+  - Reliable hands-off operation
+
+  - Can pass cookies to YouTube to download your private playlists
+
+  - Sponsorblock integration
+
+  - Supports running custom scripts when after downloading/deleting media
+
+
+  Perfect for people who want to download content for use with a media center app
+  or for those who want to archive media!'
+category: Media
+version: 1.0.0
+developer: kieraneglin
+store: official
+icon: icon.png
+port: 8945
+architectures:
+- amd64

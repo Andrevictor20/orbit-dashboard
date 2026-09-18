@@ -1,0 +1,14 @@
+id: i-hate-money-bigbear
+name: I Hate Money
+tagline: A simple shared budget manager web application
+description: I hate money is a web application made to ease shared budget management.
+  It keeps track of who bought what, when, and for whom; and helps to settle the bills.
+category: Finance
+version: 1.0.0
+developer: spiral-project
+store: bigbear
+icon: icon.png
+port: 8001
+architectures:
+- amd64
+- arm64

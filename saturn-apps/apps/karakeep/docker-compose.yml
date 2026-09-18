@@ -1,0 +1,65 @@
+name: karakeep
+services:
+  karakeep:
+    image: ghcr.io/karakeep-app/karakeep:0.33.2
+    container_name: karakeep
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+    ports:
+    - target: 3000
+      published: '14592'
+      protocol: tcp
+    networks:
+    - karakeep
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/data
+      target: /data
+    environment:
+      MEILI_ADDR: http://karakeep-meilisearch:7700
+      BROWSER_WEB_URL: http://karakeep-chrome:9222
+      DATA_DIR: /data
+      NEXTAUTH_URL: http://localhost:14592
+      NEXTAUTH_SECRET: change_this_to_a_long_random_string
+      MEILI_MASTER_KEY: change_this_to_a_long_random_string
+      OPENAI_API_KEY: ''
+  karakeep-chrome:
+    image: ghcr.io/karakeep-app/karakeep-chrome:release
+    container_name: karakeep-chrome
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+    init: true
+    networks:
+    - karakeep
+    command:
+    - --disable-gpu
+    - --disable-dev-shm-usage
+    - --hide-scrollbars
+    - --disable-blink-features=AutomationControlled
+    - --window-size=1440,900
+  karakeep-meilisearch:
+    image: getmeili/meilisearch:v1.41.0
+    container_name: karakeep-meilisearch
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    restart: unless-stopped
+    networks:
+    - karakeep
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/meilisearch
+      target: /meili_data
+    environment:
+      MEILI_MASTER_KEY: change_this_to_a_long_random_string
+      MEILI_NO_ANALYTICS: 'true'
+networks:
+  karakeep:
+    driver: bridge

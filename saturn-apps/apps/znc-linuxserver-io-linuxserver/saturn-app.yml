@@ -1,0 +1,19 @@
+id: znc-linuxserver-io-linuxserver
+name: Znc (LinuxServer.io)
+tagline: An IRC network bouncer or BNC. It can detach the client from the actual IRC
+  server, and also from selected channels. Multiple clients from different locations
+  can connect to a single ZNC account simultaneously and therefore appear under the
+  same nickname on IRC.
+description: Znc is an IRC network bouncer or BNC. It can detach the client from the
+  actual IRC server, and also from selected channels. Multiple clients from different
+  locations can connect to a single ZNC account simultaneously and therefore appear
+  under the same nickname on IRC.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 6501
+architectures:
+- amd64
+- arm64

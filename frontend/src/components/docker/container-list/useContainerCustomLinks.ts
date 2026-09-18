@@ -31,7 +31,7 @@ export function useContainerCustomLinks(
     e.stopPropagation();
     const container = containers.find(c => c.id === id || c.id.startsWith(id) || id.startsWith(c.id));
     const cleanName = container ? container.name.replace(/^\//, '') : '';
-    const composeService = container?.labels?.['com.docker.compose.service'] || container?.labels?.['io.casaos.app.name'] || '';
+    const composeService = container?.labels?.['com.docker.compose.service'] || container?.labels?.['io.saturn.app.name'] || '';
 
     const currentLink = customLinks[id] ||
       (cleanName ? customLinks[cleanName] || customLinks[cleanName.toLowerCase()] : '') ||
@@ -57,10 +57,11 @@ export function useContainerCustomLinks(
     const targetLink = currentLink || detectedCloudflareUrl || '';
     setLinkInput(targetLink);
 
-    let savedDomain = localStorage.getItem('orbit_base_domain') || '';
+    let savedDomain = localStorage.getItem('saturn_base_domain') || localStorage.getItem('saturn_base_domain') || '';
     if (!savedDomain && matchedRoute?.hostname && matchedRoute.hostname.includes('.')) {
       savedDomain = matchedRoute.hostname.split('.').slice(1).join('.');
-      localStorage.setItem('orbit_base_domain', savedDomain);
+      localStorage.setItem('saturn_base_domain', savedDomain);
+      localStorage.setItem('saturn_base_domain', savedDomain);
     }
     if (!savedDomain) {
       savedDomain = 'rasppi.cloud';
@@ -102,7 +103,8 @@ export function useContainerCustomLinks(
     if (linkMode === 'builder') {
       if (linkSubdomain && linkDomain) {
         newLink = `https://${linkSubdomain.trim()}.${linkDomain.trim()}`;
-        localStorage.setItem('orbit_base_domain', linkDomain.trim());
+        localStorage.setItem('saturn_base_domain', linkDomain.trim());
+        localStorage.setItem('saturn_base_domain', linkDomain.trim());
       }
     } else {
       newLink = linkInput.trim();

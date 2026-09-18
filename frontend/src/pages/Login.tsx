@@ -4,14 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Lock, User, KeyRound, AlertCircle, Eye, EyeOff, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { OrbitLogo } from '../components/ui/OrbitLogo';
+import { SaturnLogo } from '../components/ui/SaturnLogo';
 
 export function Login() {
   const { t } = useTranslation();
   const { wallpaperUrl, wallpaperOpacity, wallpaperBlur } = useTheme();
   const [searchParams] = useSearchParams();
   const isUpdated = searchParams.get('updated') === 'true';
-  const updatedVersion = searchParams.get('version') || localStorage.getItem('orbit_last_updated_version');
+  const updatedVersion = searchParams.get('version') || localStorage.getItem('saturn_last_updated_version');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -143,19 +143,19 @@ export function Login() {
 
       {/* Ambient Lighting & Glow Orbs (Subtle when wallpaper is active to preserve true colors) */}
       <div className={`fixed inset-0 pointer-events-none overflow-hidden z-0 transition-opacity duration-500 ${wallpaperUrl ? 'opacity-25' : 'opacity-80'}`}>
-        <div className="absolute -top-36 -right-32 w-[650px] h-[650px] rounded-full bg-gradient-to-br from-orbit-500/20 via-purple-600/12 to-transparent blur-[140px] opacity-80 animate-float-slow" />
-        <div className="absolute top-1/4 -left-48 w-[720px] h-[720px] rounded-full bg-gradient-to-tr from-orbit-600/16 via-cyan-500/10 to-transparent blur-[150px] opacity-75 animate-float-reverse" />
+        <div className="absolute -top-36 -right-32 w-[650px] h-[650px] rounded-full bg-gradient-to-br from-saturn-500/20 via-purple-600/12 to-transparent blur-[140px] opacity-80 animate-float-slow" />
+        <div className="absolute top-1/4 -left-48 w-[720px] h-[720px] rounded-full bg-gradient-to-tr from-saturn-600/16 via-cyan-500/10 to-transparent blur-[150px] opacity-75 animate-float-reverse" />
         <div className="absolute -bottom-40 right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-indigo-500/16 via-pink-500/10 to-transparent blur-[140px] opacity-70 animate-pulse-glow" />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-fade-in">
         <div className="flex justify-center">
-          <div className="p-1 rounded-3xl bg-card/90 backdrop-blur-xl border border-border/80 shadow-2xl shadow-orbit-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
-            <OrbitLogo size={64} className="rounded-2xl" />
+          <div className="p-1 rounded-3xl bg-card/90 backdrop-blur-xl border border-border/80 shadow-2xl shadow-saturn-500/10 flex items-center justify-center transform hover:scale-105 transition-transform duration-500">
+            <SaturnLogo size={64} className="rounded-2xl" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-primary">
-          Orbit
+          Saturn
         </h2>
         <p className="mt-2 text-center text-sm text-secondary">
           {t('auth.login_subtitle', 'Painel de Controle de Contêineres')}
@@ -163,7 +163,7 @@ export function Login() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-slide-up">
-        <div className="bg-card/90 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border/80 hover:shadow-orbit-500/10 transition-shadow duration-500">
+        <div className="bg-card/90 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-border/80 hover:shadow-saturn-500/10 transition-shadow duration-500">
           {isUpdated && step === 'credentials' && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-left animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500 shrink-0 mt-0.5">
@@ -171,7 +171,7 @@ export function Login() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
-                  {t('auth.update_success_banner_title', 'Orbit Atualizado com Sucesso!')}
+                  {t('auth.update_success_banner_title', 'Saturn Atualizado com Sucesso!')}
                   {updatedVersion && (
                     <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
                       v{updatedVersion.replace(/^v/, '')}
@@ -210,7 +210,7 @@ export function Login() {
                     autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                    className="block w-full pl-10 pr-3 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 text-sm transition-colors shadow-sm"
                     placeholder={t('auth.username', 'Seu usuário')}
                   />
                 </div>
@@ -232,7 +232,7 @@ export function Login() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 text-sm transition-colors shadow-sm"
+                    className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 text-sm transition-colors shadow-sm"
                     placeholder="••••••••"
                   />
                   <button
@@ -249,7 +249,7 @@ export function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-saturn-600 hover:bg-saturn-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-saturn-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
                 >
                   {loading ? (
                     <div className="flex items-center space-x-2">
@@ -269,7 +269,7 @@ export function Login() {
             /* 2FA Verification View */
             <form className="space-y-6 animate-fade-in" onSubmit={handleTwoFactorSubmit}>
               <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-orbit-500/10 text-orbit-500 flex items-center justify-center mx-auto border border-orbit-500/20">
+                <div className="w-12 h-12 rounded-2xl bg-saturn-500/10 text-saturn-500 flex items-center justify-center mx-auto border border-saturn-500/20">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-primary">
@@ -295,7 +295,7 @@ export function Login() {
                   value={twoFactorCode}
                   onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
                   placeholder="000000"
-                  className="block w-full text-center py-3 bg-background border border-border rounded-xl text-primary font-mono text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all shadow-sm"
+                  className="block w-full text-center py-3 bg-background border border-border rounded-xl text-primary font-mono text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 transition-all shadow-sm"
                   required
                 />
               </div>
@@ -304,7 +304,7 @@ export function Login() {
                 <button
                   type="submit"
                   disabled={loading || !twoFactorCode.trim()}
-                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orbit-600 hover:bg-orbit-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orbit-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-saturn-600 hover:bg-saturn-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-saturn-500 disabled:opacity-50 transition-all duration-300 transform active:scale-95"
                 >
                   {loading ? (
                     <div className="flex items-center space-x-2">

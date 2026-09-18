@@ -1,0 +1,44 @@
+id: etherpad
+name: Etherpad
+tagline: Real-time collaborative document editor
+description: 'Etherpad is a real-time collaborative document editor where multiple
+  people can edit the same pad simultaneously, with every change synchronized instantly
+  and colour-coded per author.
+
+  Self-hosted, open source, and fully under your control, it is perfect for meeting
+  notes, brainstorming, shared writing, and lightweight knowledge capture.
+
+  It ships with a built-in admin panel, a plugin ecosystem of 250+ add-ons, native
+  DOCX/PDF/Markdown import & export, and multi-architecture container support (amd64
+  + arm64).
+
+
+  **Main Features:**
+
+  - Real-time collaborative editing with instant sync
+
+  - Per-author colour coding for clear writing attribution
+
+  - Built-in admin panel and a plugin ecosystem with 250+ add-ons
+
+  - Native DOCX, PDF, and Markdown import & export
+
+  - Open source, self-hosted deployment with amd64 and arm64 support
+
+
+  **Learn More:**
+
+  - [Etherpad Official Website](https://etherpad.org/)
+
+  - [Etherpad GitHub](https://github.com/ether/etherpad)
+
+  - [Etherpad Documentation](https://docs.etherpad.org/)'
+category: Productivity
+version: 1.0.0
+developer: Etherpad Foundation
+store: official
+icon: icon.png
+port: 9001
+architectures:
+- amd64
+- arm64

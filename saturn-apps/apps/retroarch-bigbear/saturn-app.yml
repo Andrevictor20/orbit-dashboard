@@ -1,0 +1,14 @@
+id: retroarch-bigbear
+name: RetroArch
+tagline: RetroArch Web Player
+description: Online retro games emulator.The RetroArch Web Player is RetroArch compiled
+  through Emscripten.
+category: Media
+version: 1.0.0
+developer: inglebard
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

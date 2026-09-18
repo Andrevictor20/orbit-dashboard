@@ -1,12 +1,12 @@
-# Estratégia de Testes e Garantia de Qualidade - Orbit Dashboard
+# Estratégia de Testes e Garantia de Qualidade - Saturn Dashboard
 
-Este documento define a metodologia de testes, a arquitetura da suíte de validação e os procedimentos para execução local e automatizada dos testes no Orbit Dashboard.
+Este documento define a metodologia de testes, a arquitetura da suíte de validação e os procedimentos para execução local e automatizada dos testes no Saturn Dashboard.
 
 ---
 
 ## 1. Pirâmide de Testes e Matriz de Validação
 
-A estratégia de testes do Orbit estrutura-se em camadas progressivas de garantia de qualidade:
+A estratégia de testes do Saturn estrutura-se em camadas progressivas de garantia de qualidade:
 
 ```
                   / \

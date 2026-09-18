@@ -1,0 +1,16 @@
+id: smartstrm-play
+name: SmartStrm
+tagline: Media library STRM file generation tool
+description: Media library STRM file generation tool. Works elegantly with Emby —
+  aggregate media resources from cloud drives (OpenList, Quark, 115, Tianyi, Xunlei),
+  manage tasks with scheduling and cleanup, integrate via Webhook, and support 302
+  direct link playback for Emby/Jellyfin/Plex.
+category: Media
+version: 1.0.0
+developer: Cp0204
+store: play
+icon: icon.png
+port: 8024
+architectures:
+- amd64
+- arm64

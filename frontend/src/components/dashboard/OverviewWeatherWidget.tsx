@@ -41,7 +41,7 @@ export function OverviewWeatherWidget() {
   const [loading, setLoading] = useState(true);
   const [isEditingCity, setIsEditingCity] = useState(false);
   const [cityInput, setCityInput] = useState('');
-  const [savedCity, setSavedCity] = useState(() => settings.weather_city || localStorage.getItem('orbit_weather_city') || '');
+  const [savedCity, setSavedCity] = useState(() => settings.weather_city || localStorage.getItem('saturn_weather_city') || '');
 
   const effectiveCity = settings.weather_city || savedCity;
 
@@ -78,10 +78,12 @@ export function OverviewWeatherWidget() {
     const clean = cityInput.trim();
     setSavedCity(clean);
     if (clean) {
-      localStorage.setItem('orbit_weather_city', clean);
+      localStorage.setItem('saturn_weather_city', clean);
+      localStorage.setItem('saturn_weather_city', clean);
       toast.success(t('dashboard.weather_city_changed', { city: clean, defaultValue: `Cidade alterada para ${clean}` }));
     } else {
-      localStorage.removeItem('orbit_weather_city');
+      localStorage.removeItem('saturn_weather_city');
+      localStorage.removeItem('saturn_weather_city');
       toast.success(t('dashboard.weather_auto_location', 'Localização automática ativada'));
     }
     updateSettings({ weather_city: clean }).catch(() => {});
@@ -137,7 +139,7 @@ export function OverviewWeatherWidget() {
   if (loading && !weather) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-accent/30 border border-border/50 text-xs text-secondary animate-pulse">
-        <RefreshCw className="w-3.5 h-3.5 animate-spin text-orbit-500" />
+        <RefreshCw className="w-3.5 h-3.5 animate-spin text-saturn-500" />
         <span>{t('dashboard.weather_loading', 'Carregando clima...')}</span>
       </div>
     );
@@ -158,7 +160,7 @@ export function OverviewWeatherWidget() {
             value={cityInput}
             onChange={(e) => setCityInput(e.target.value)}
             placeholder={t('dashboard.weather_city_placeholder', 'Digite a cidade...')}
-            className="w-32 sm:w-40 px-2 py-1 text-xs rounded-xl bg-card border border-orbit-500 focus:outline-none text-primary"
+            className="w-32 sm:w-40 px-2 py-1 text-xs rounded-xl bg-card border border-saturn-500 focus:outline-none text-primary"
             autoFocus
           />
           <button
@@ -187,7 +189,7 @@ export function OverviewWeatherWidget() {
           className="flex items-center gap-1 text-xs font-semibold text-secondary hover:text-primary transition-colors group cursor-pointer"
           title={t('dashboard.change_city', 'Alterar cidade')}
         >
-          <MapPin className="w-3.5 h-3.5 text-orbit-500" />
+          <MapPin className="w-3.5 h-3.5 text-saturn-500" />
           <span className="truncate max-w-[120px] sm:max-w-[150px]">{weather.location_name}</span>
           <Edit3 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity text-secondary" />
         </button>

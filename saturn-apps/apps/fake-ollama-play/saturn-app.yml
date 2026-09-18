@@ -1,0 +1,15 @@
+id: fake-ollama-play
+name: Fake Ollama
+tagline: A fake Ollama API server for testing and development
+description: A fake Ollama API server implementation, fully compatible with the Ollama
+  API, supporting OpenAI compatible interfaces and streaming output. Simulates multiple
+  DeepSeek-R1 models. Lightweight and easy to deploy.
+category: Developer
+version: 1.0.0
+developer: spoonnotfound
+store: play
+icon: icon.png
+port: 11434
+architectures:
+- amd64
+- arm64

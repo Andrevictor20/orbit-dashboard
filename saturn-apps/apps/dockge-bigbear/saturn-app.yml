@@ -1,0 +1,14 @@
+id: dockge-bigbear
+name: Dockge
+tagline: Dockge
+description: A fancy, easy-to-use and reactive docker `compose.yaml` stack-oriented
+  manager
+category: Developer
+version: 1.0.0
+developer: louislam
+store: bigbear
+icon: icon.png
+port: 5001
+architectures:
+- amd64
+- arm64

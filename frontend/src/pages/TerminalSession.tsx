@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import { Check } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
+import { getAuthToken } from '../utils/auth';
 import {
   DARK_TERMINAL_THEME,
   LIGHT_TERMINAL_THEME,
@@ -51,16 +52,16 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const [connState, setConnState] = useState<ConnectionState>('idle');
-  const [username, setUsername] = useState(() => localStorage.getItem('orbit_ssh_user') || '');
+  const [username, setUsername] = useState(() => localStorage.getItem('saturn_ssh_user') || '');
   const [password, setPassword] = useState('');
-  const [host, setHost] = useState(() => localStorage.getItem('orbit_ssh_host') || 'localhost');
+  const [host, setHost] = useState(() => localStorage.getItem('saturn_ssh_host') || 'localhost');
   const [port, setPort] = useState<number>(22);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
   // UI Controls
   const [fontSize, setFontSize] = useState<number>(() => {
-    const saved = localStorage.getItem('orbit_terminal_fontsize');
+    const saved = localStorage.getItem('saturn_terminal_fontsize');
     return saved ? parseInt(saved, 10) : 14;
   });
   const [dimensions, setDimensions] = useState<{ cols: number; rows: number }>({ cols: 80, rows: 24 });
@@ -87,7 +88,8 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
   const changeFontSize = (delta: number) => {
     const nextSize = Math.max(10, Math.min(24, fontSize + delta));
     setFontSize(nextSize);
-    localStorage.setItem('orbit_terminal_fontsize', nextSize.toString());
+    localStorage.setItem('saturn_terminal_fontsize', nextSize.toString());
+    localStorage.setItem('saturn_terminal_fontsize', nextSize.toString());
     if (xtermRef.current) {
       xtermRef.current.options.fontSize = nextSize;
       setTimeout(() => {
@@ -160,31 +162,45 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
     }
   }, [isLight]);
 
-  // Connect WebSocket & SSH
-  const connect = useCallback((e?: React.FormEvent) => {
+  const lastModeRef = useRef<'local' | 'ssh'>('local');
+
+  // Connect WebSocket & Terminal / SSH
+  const connect = useCallback((e?: React.FormEvent, forceMode?: 'local' | 'ssh') => {
     if (e) e.preventDefault();
-    if (!username.trim()) {
+    const mode = forceMode || (username.trim() ? 'ssh' : 'local');
+    lastModeRef.current = mode;
+
+    if (mode === 'ssh' && !username.trim()) {
       setErrorMessage(t('terminal.user_required', 'Informe o nome de usuário'));
       return;
     }
 
     setConnState('connecting');
     setErrorMessage('');
-    localStorage.setItem('orbit_ssh_user', username);
-    localStorage.setItem('orbit_ssh_host', host);
+    if (mode === 'ssh') {
+      localStorage.setItem('saturn_ssh_user', username);
+      localStorage.setItem('saturn_ssh_user', username);
+      localStorage.setItem('saturn_ssh_host', host);
+      localStorage.setItem('saturn_ssh_host', host);
+    }
+
+    // Retrieve active JWT token for WebSocket URL query param authentication
+    const token = getAuthToken() || '';
+    const queryToken = token ? `?token=${encodeURIComponent(token)}` : '';
 
     // Build WebSocket URL
     const loc = window.location;
     const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${loc.host}/api/terminal/ws`;
+    const wsUrl = `${protocol}//${loc.host}/api/terminal/ws${queryToken}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // Send SSH Credentials & configuration
+      // Send Terminal/SSH Credentials & configuration
       ws.send(JSON.stringify({
         type: 'connect',
+        mode: mode,
         username: username.trim(),
         password: password,
         host: host.trim() || 'localhost',
@@ -199,12 +215,18 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
         const msg = JSON.parse(evt.data);
         if (msg.type === 'connected') {
           setConnState('connected');
-          onTitleChange(id, `${username}@${host === 'localhost' ? 'orbit' : host}`);
+          const title = mode === 'local' 
+            ? 'saturn@host' 
+            : `${username}@${host === 'localhost' ? 'saturn' : host}`;
+          onTitleChange(id, title);
           if (xtermRef.current) {
             xtermRef.current.focus();
             fitAddonRef.current?.fit();
             sendResize(xtermRef.current.cols, xtermRef.current.rows);
             setDimensions({ cols: xtermRef.current.cols, rows: xtermRef.current.rows });
+            if (msg.data) {
+              xtermRef.current.write(msg.data);
+            }
           }
         } else if (msg.type === 'output') {
           if (xtermRef.current) {
@@ -375,7 +397,7 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
 
           {/* Floating Toast Notification */}
           {copyFeedback && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-orbit-600/90 text-white text-xs font-medium backdrop-blur-md border border-orbit-400/40 shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 z-30">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-saturn-600/90 text-white text-xs font-medium backdrop-blur-md border border-saturn-400/40 shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 z-30">
               <Check className="w-3.5 h-3.5 text-emerald-300" />
               <span>{copyFeedback}</span>
             </div>
@@ -406,14 +428,15 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
               showAdvanced={showAdvanced}
               setShowAdvanced={setShowAdvanced}
               errorMessage={errorMessage}
-              onConnect={connect}
+              onConnect={(e) => connect(e, 'ssh')}
+              onConnectInternal={() => connect(undefined, 'local')}
             />
           )}
 
           {/* Disconnected / Dropped Overlay (retaining terminal history) */}
           <TerminalDisconnectedBadge
             connState={connState}
-            onReconnect={() => connect()}
+            onReconnect={() => connect(undefined, lastModeRef.current)}
             onReset={() => setConnState('idle')}
           />
         </div>

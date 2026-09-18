@@ -13,10 +13,10 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Total Tasks */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-saturn-500/40 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.total_processes')}</span>
-          <div className="p-2 rounded-lg bg-orbit-500/10 text-orbit-600 dark:text-orbit-400">
+          <div className="p-2 rounded-lg bg-saturn-500/10 text-saturn-600 dark:text-saturn-400">
             <Layers className="w-4 h-4" />
           </div>
         </div>
@@ -49,7 +49,7 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
       </div>
 
       {/* Top CPU Consumer */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-saturn-500/40 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.cpu_usage_history')}</span>
           <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
@@ -69,7 +69,7 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
         </div>
         <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
           {t('logs.source')}: {data?.top_cpu_process?.container_name ? (
-            <span className="text-orbit-600 dark:text-orbit-400 font-semibold">{data.top_cpu_process.container_name}</span>
+            <span className="text-saturn-600 dark:text-saturn-400 font-semibold">{data.top_cpu_process.container_name}</span>
           ) : (
             <span className="text-secondary font-medium">Host</span>
           )}
@@ -77,7 +77,7 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
       </div>
 
       {/* Top RAM Consumer */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-saturn-500/40 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.memory_usage_history')}</span>
           <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -97,7 +97,7 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
         </div>
         <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] text-secondary truncate">
           {t('logs.source')}: {data?.top_memory_process?.container_name ? (
-            <span className="text-orbit-600 dark:text-orbit-400 font-semibold">{data.top_memory_process.container_name}</span>
+            <span className="text-saturn-600 dark:text-saturn-400 font-semibold">{data.top_memory_process.container_name}</span>
           ) : (
             <span className="text-secondary font-medium">Host</span>
           )}
@@ -105,7 +105,7 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
       </div>
 
       {/* Host vs Containers Distribution */}
-      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-orbit-500/40 transition-colors">
+      <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-saturn-500/40 transition-colors">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-secondary uppercase tracking-wider">{t('metrics.system_overview')}</span>
           <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -124,9 +124,9 @@ export function ProcessSummaryCards({ data }: ProcessSummaryCardsProps) {
           <div className="h-8 w-px bg-border mx-2" />
           <div className="flex flex-col">
             <span className="text-xs text-secondary flex items-center gap-1 font-medium">
-              <Box className="w-3 h-3 text-orbit-600 dark:text-orbit-400" /> Containers
+              <Box className="w-3 h-3 text-saturn-600 dark:text-saturn-400" /> Containers
             </span>
-            <span className="text-xl font-bold text-orbit-600 dark:text-orbit-400 font-mono mt-0.5">
+            <span className="text-xl font-bold text-saturn-600 dark:text-saturn-400 font-mono mt-0.5">
               {data?.container_processes_count ?? 0}
             </span>
           </div>

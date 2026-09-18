@@ -1,0 +1,13 @@
+id: minecraft-server-play
+name: Minecraft Server
+tagline: Minecraft Server
+description: A Minecraft Server that will automatically download the latest stable
+  version at startup. You can customize the server using environment variables.
+category: Others
+version: 1.0.0
+developer: itzg
+store: play
+icon: icon.png
+architectures:
+- amd64
+- arm64

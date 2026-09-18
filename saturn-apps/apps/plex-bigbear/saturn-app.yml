@@ -1,0 +1,13 @@
+id: plex-bigbear
+name: Plex
+tagline: Stream Movies & TV Shows
+description: Stream Movies & TV Shows
+category: Media
+version: 1.0.0
+developer: plexinc
+store: bigbear
+icon: icon.png
+port: 32400
+architectures:
+- amd64
+- arm64

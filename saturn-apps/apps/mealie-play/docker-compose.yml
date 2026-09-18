@@ -1,0 +1,27 @@
+name: mealie
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    container_name: mealie
+    restart: unless-stopped
+    ports:
+    - target: 9000
+      published: '9925'
+      protocol: tcp
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    volumes:
+    - type: bind
+      source: /DATA/AppData/mealie/data
+      target: /app/data/
+    environment:
+      ALLOW_SIGNUP: 'true'
+      PUID: '1000'
+      PGID: '1000'
+      TZ: ${TZ}
+      MAX_WORKERS: '1'
+      WEB_CONCURRENCY: '1'
+      BASE_URL: https://mealie.yourdomain.com
+    network_mode: bridge

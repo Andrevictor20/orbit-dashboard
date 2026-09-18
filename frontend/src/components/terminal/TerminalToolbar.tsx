@@ -51,12 +51,14 @@ export function TerminalToolbar({
               ? 'bg-amber-500 animate-ping'
               : 'bg-muted-foreground'
           }`} />
-          <TerminalIcon className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
+          <TerminalIcon className="w-3.5 h-3.5 text-saturn-500 shrink-0" />
         </div>
 
         <div className="flex items-center gap-2 min-w-0 font-mono">
           <span className="text-xs font-semibold text-primary truncate">
-            {connState === 'connected' ? `${username}@${host}:${port}` : 'Orbit Terminal Shell'}
+            {connState === 'connected' 
+              ? (username ? `${username}@${host}:${port}` : 'saturn@internal') 
+              : 'Saturn Terminal Shell'}
           </span>
           {connState === 'connected' && (
             <span className="text-[11px] font-mono text-secondary px-2 py-0.5 rounded-md bg-accent border border-border/60 hidden md:inline-block">
@@ -130,7 +132,7 @@ export function TerminalToolbar({
         <button
           onClick={onToggleFullscreen}
           className={`p-1.5 rounded-lg transition-colors text-xs ${
-            isFullscreen ? 'text-orbit-500 bg-orbit-500/20 font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'
+            isFullscreen ? 'text-saturn-500 bg-saturn-500/20 font-semibold' : 'text-secondary hover:text-primary hover:bg-accent'
           }`}
           title={isFullscreen ? t('terminal.exit_fullscreen', 'Sair da Tela Cheia (Esc)') : t('terminal.enter_fullscreen', 'Expandir em Tela Cheia')}
           aria-label={t('terminal.toggle_fullscreen', 'Alternar tela cheia')}
@@ -151,7 +153,7 @@ export function TerminalToolbar({
         ) : connState === 'disconnected' || connState === 'error' ? (
           <button
             onClick={onReconnect}
-            className="px-2.5 py-1 bg-orbit-500/20 hover:bg-orbit-500/30 text-orbit-600 dark:text-orbit-300 border border-orbit-500/40 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1 shadow-sm"
+            className="px-2.5 py-1 bg-saturn-500/20 hover:bg-saturn-500/30 text-saturn-600 dark:text-saturn-300 border border-saturn-500/40 rounded-lg text-xs flex items-center gap-1.5 font-medium transition-colors ml-1 shadow-sm"
             title={t('terminal.reconnect_ssh', 'Reconectar ao SSH')}
           >
             <RefreshCw className="w-3 h-3" />

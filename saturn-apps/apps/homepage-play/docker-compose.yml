@@ -1,0 +1,26 @@
+name: homepage
+services:
+  homepage:
+    container_name: homepage
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    environment:
+    - PGID=1000
+    - PUID=1000
+    image: ghcr.io/gethomepage/homepage:latest
+    ports:
+    - target: 3000
+      published: '3000'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/homepage/config
+      target: /app/config
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
+    network_mode: bridge
+    privileged: false

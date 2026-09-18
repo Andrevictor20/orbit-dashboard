@@ -1,0 +1,22 @@
+name: qbittorrent-nox
+services:
+  qbittorrent-nox:
+    image: qbittorrentofficial/qbittorrent-nox:latest
+    container_name: qbittorrent-nox
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/qbittorrent-nox/config:/config
+    - /DATA/Downloads:/downloads
+    - /mnt:/mnt
+    environment:
+      QBT_LEGAL_NOTICE: 'yes'
+      QBT_WEBUI_PORT: '8181'
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+      UMASK: '002'
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: host

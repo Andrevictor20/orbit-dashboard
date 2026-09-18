@@ -586,10 +586,10 @@ fn test_real_world_container_matching() {
             path: None,
             origin_request: None,
         },
-        // 5. orbit-dashboard matched via clean app name "orbit"
+        // 5. saturn matched via clean app name "saturn"
         RawIngressRule {
-            hostname: Some("orbit.rasppi.cloud".to_string()),
-            service: "http://orbit:5172".to_string(),
+            hostname: Some("saturn.rasppi.cloud".to_string()),
+            service: "http://saturn:5172".to_string(),
             path: None,
             origin_request: None,
         },
@@ -620,7 +620,7 @@ fn test_real_world_container_matching() {
         ContainerSummaryInfo::new("cont_stirling", "stirling-pdf", vec![8082]),
         ContainerSummaryInfo::new("cont_kavita", "linuxserver-kavita-app-1", vec![5000]),
         ContainerSummaryInfo::new("cont_pihole", "big-bear-pihole", vec![8080, 443]),
-        ContainerSummaryInfo::new("cont_orbit", "orbit-dashboard", vec![5172, 5173]),
+        ContainerSummaryInfo::new("cont_saturn", "saturn", vec![5172, 5173]),
         ContainerSummaryInfo::new("cont_alvimar", "site-alvimar", vec![86, 448]),
         ContainerSummaryInfo::new("cont_saude", "ar-saude-frontend-1", vec![3002])
             .with_project_name(Some("ar-saude".to_string()))
@@ -644,8 +644,8 @@ fn test_real_world_container_matching() {
     // 4. pihole.rasppi.cloud -> cont_pihole
     assert_eq!(matched[3].matched_container_id.as_deref(), Some("cont_pihole"));
 
-    // 5. orbit.rasppi.cloud -> cont_orbit
-    assert_eq!(matched[4].matched_container_id.as_deref(), Some("cont_orbit"));
+    // 5. saturn.rasppi.cloud -> cont_saturn
+    assert_eq!(matched[4].matched_container_id.as_deref(), Some("cont_saturn"));
 
     // 6. alvimar.rasppi.cloud -> cont_alvimar
     assert_eq!(matched[5].matched_container_id.as_deref(), Some("cont_alvimar"));
@@ -663,7 +663,7 @@ fn test_port_first_matching_resolves_ha_and_avoids_port_conflict() {
     use backend::cloudflare::ingress::RawIngressRule;
 
     let raw_rules = vec![
-        // Rule 1: home.rasppi.cloud pointing to 192.168.100.17:5172 (Orbit host port)
+        // Rule 1: home.rasppi.cloud pointing to 192.168.100.17:5172 (Saturn host port)
         // Must NOT match homeassistant container, because homeassistant does NOT listen on 5172!
         RawIngressRule {
             hostname: Some("home.rasppi.cloud".to_string()),

@@ -1,0 +1,15 @@
+id: readarr
+name: Readarr
+tagline: Ebook and audiobook collection manager for Usenet and BitTorrent users.
+description: Readarr is a ebook collection manager for Usenet and BitTorrent users.
+  It can monitor multiple RSS feeds for new books from your favorite authors and will
+  interface with clients and indexers to grab, sort, and rename them.
+category: Media
+version: 1.0.0
+developer: Readarr Team
+store: official
+icon: icon.png
+port: 8787
+architectures:
+- amd64
+- arm64

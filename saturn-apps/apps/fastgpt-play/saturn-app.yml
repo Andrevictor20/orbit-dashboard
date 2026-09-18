@@ -1,0 +1,15 @@
+id: fastgpt-play
+name: FastGPT
+tagline: Knowledge-based QA system built on the LLM
+description: FastGPT is a knowledge-based QA system built on the LLM, offers out-of-the-box
+  data processing and model invocation capabilities, allows for workflow orchestration
+  through Flow visualization!
+category: Social
+version: 1.0.0
+developer: sealos.io
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

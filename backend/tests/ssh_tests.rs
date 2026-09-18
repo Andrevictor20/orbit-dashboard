@@ -37,3 +37,16 @@ fn test_get_docker_gateway_ip_or_none() {
         assert_eq!(parts.len(), 4);
     }
 }
+
+#[tokio::test]
+async fn test_terminal_websocket_routes_registered_and_require_auth() {
+    let server = axum_test::TestServer::new(backend::app());
+
+    // Both /api/terminal/ws and /api/ssh are protected routes
+    let res = server.get("/api/terminal/ws").await;
+    res.assert_status_unauthorized();
+
+    let res_ssh = server.get("/api/ssh").await;
+    res_ssh.assert_status_unauthorized();
+}
+

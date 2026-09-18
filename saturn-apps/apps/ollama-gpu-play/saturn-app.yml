@@ -1,0 +1,14 @@
+id: ollama-gpu-play
+name: Ollama[GPU]
+tagline: The easiest way to get up and running with large language models.
+description: Ollama makes it easy to get up and running with large language models
+  locally.
+category: Social
+version: 1.0.0
+developer: Ollama
+store: play
+icon: icon.png
+port: 11434
+architectures:
+- amd64
+- arm64

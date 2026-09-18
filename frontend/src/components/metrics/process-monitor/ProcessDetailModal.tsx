@@ -28,7 +28,7 @@ export function ProcessDetailModal({
       >
         <div className="flex items-start justify-between border-b border-border pb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-400">
+            <div className="p-2.5 rounded-xl bg-saturn-500/10 text-saturn-400">
               <Terminal className="w-5 h-5" />
             </div>
             <div>
@@ -54,7 +54,7 @@ export function ProcessDetailModal({
           <div>
             <span className="text-secondary block mb-1">{t('metrics.process_origin', 'Origem do Processo')}</span>
             {selectedProcess.container_name ? (
-              <div className="flex items-center gap-1.5 font-semibold text-orbit-600 dark:text-orbit-400">
+              <div className="flex items-center gap-1.5 font-semibold text-saturn-600 dark:text-saturn-400">
                 <Box className="w-4 h-4" />
                 <span>Container: {selectedProcess.container_name}</span>
               </div>
@@ -82,7 +82,7 @@ export function ProcessDetailModal({
             <span className="text-base font-bold text-primary font-mono">{formatRAM(selectedProcess.memory_rss)}</span>
           </div>
           <div className="bg-background/80 p-3 rounded-xl border border-border/50">
-            <span className="text-[10px] uppercase font-bold text-orbit-700 dark:text-orbit-400 block mb-1">{t('metrics.percent_ram', '% da RAM Total')}</span>
+            <span className="text-[10px] uppercase font-bold text-saturn-700 dark:text-saturn-400 block mb-1">{t('metrics.percent_ram', '% da RAM Total')}</span>
             <span className="text-base font-bold text-primary font-mono">{selectedProcess.memory_percent.toFixed(2)}%</span>
           </div>
         </div>

@@ -1,0 +1,21 @@
+name: linuxserver-pairdrop
+services:
+  app:
+    image: linuxserver/pairdrop:1.11.2
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      RATE_LIMIT: ''
+      WS_FALLBACK: ''
+      RTC_CONFIG: ''
+      DEBUG_MODE: ''
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/pairdrop/config
+      target: /config

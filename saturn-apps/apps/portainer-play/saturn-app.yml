@@ -1,0 +1,16 @@
+id: portainer-play
+name: Portainer
+tagline: Lightweight Docker management UI
+description: Portainer is a lightweight management UI which allows you to easily manage
+  your Docker environments. It is designed to be easy to use and offers full control
+  over your Docker hosts and containers.
+category: Productivity
+version: 1.0.0
+developer: Portainer
+store: play
+icon: icon.png
+port: 9000
+architectures:
+- amd64
+- arm
+- arm64

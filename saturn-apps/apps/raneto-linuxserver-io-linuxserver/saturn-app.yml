@@ -1,0 +1,15 @@
+id: raneto-linuxserver-io-linuxserver
+name: Raneto (LinuxServer.io)
+tagline: is an open source Knowledgebase platform that uses static Markdown files
+  to power your Knowledgebase.
+description: Raneto - is an open source Knowledgebase platform that uses static Markdown
+  files to power your Knowledgebase.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -40,7 +40,7 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
             setIsEditingPath((prev) => !prev);
           }}
           className={`p-1 rounded-md transition-colors ${
-            isEditingPath ? 'bg-orbit-500 text-white' : 'text-secondary hover:text-primary hover:bg-accent'
+            isEditingPath ? 'bg-saturn-500 text-white' : 'text-secondary hover:text-primary hover:bg-accent'
           }`}
           title="Editar caminho manualmente"
         >
@@ -53,10 +53,10 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
               type="text"
               value={manualPathInput}
               onChange={(e) => setManualPathInput(e.target.value)}
-              className="w-full px-2.5 py-1 rounded-lg bg-background border border-orbit-500 text-xs text-primary focus:outline-none shadow-sm"
+              className="w-full px-2.5 py-1 rounded-lg bg-background border border-saturn-500 text-xs text-primary focus:outline-none shadow-sm"
               autoFocus
             />
-            <button type="submit" className="px-2 py-1 rounded-lg bg-orbit-500 text-white text-xs font-semibold shadow-sm">
+            <button type="submit" className="px-2 py-1 rounded-lg bg-saturn-500 text-white text-xs font-semibold shadow-sm">
               Ir
             </button>
             <button 
@@ -73,7 +73,7 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
               <React.Fragment key={crumb.path}>
                 <button
                   onClick={() => (crumb.path === '__trash__' ? navigateToTrash() : navigateTo(crumb.path))}
-                  className={`hover:text-orbit-400 transition-colors truncate ${
+                  className={`hover:text-saturn-400 transition-colors truncate ${
                     idx === arr.length - 1 ? 'text-primary font-bold' : ''
                   }`}
                 >
@@ -93,7 +93,7 @@ export const FileBreadcrumbs: React.FC<FileBreadcrumbsProps> = ({
         <div className="flex items-center gap-2.5 text-secondary font-mono text-[11px] shrink-0 bg-accent/60 px-3 py-1 rounded-xl border border-border/70 shadow-sm">
           <div className="w-16 sm:w-24 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
             <div
-              className="h-full bg-orbit-500 rounded-full transition-all"
+              className="h-full bg-saturn-500 rounded-full transition-all"
               style={{
                 width: `${Math.min(
                   Math.round((primaryStorage.used_bytes / primaryStorage.total_bytes) * 100),

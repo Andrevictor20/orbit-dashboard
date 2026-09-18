@@ -12,7 +12,7 @@ export function AlertsPanel() {
   return (
     <div className="w-full space-y-3 mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-2 px-1">
-        <Bell className="w-4 h-4 text-orbit-500" />
+        <Bell className="w-4 h-4 text-saturn-500" />
         <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">
           {t('metrics.recent_alerts', 'Avisos & Insights (Últimas 24h)')}
         </h3>

@@ -1,0 +1,17 @@
+name: linuxserver-modmanager
+services:
+  app:
+    image: linuxserver/modmanager:version-7dc8618e
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/modmanager/config
+      target: /config

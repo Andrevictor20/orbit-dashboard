@@ -1,0 +1,16 @@
+id: samba-play
+name: Samba
+tagline: Share files across all your devices with SMB protocol
+description: Samba SMB server in a Docker container. An implementation of the Windows
+  SMB networking protocol, allowing file sharing between Windows, Linux and macOS
+  systems. [DOC](https://hub.docker.com/r/dockurr/samba)
+category: Productivity
+version: 1.0.0
+developer: dockurr
+store: play
+icon: icon.png
+port: 445
+architectures:
+- arm
+- arm64
+- amd64

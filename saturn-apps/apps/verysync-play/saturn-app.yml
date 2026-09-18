@@ -1,0 +1,16 @@
+id: verysync-play
+name: VerySync
+tagline: An efficient data transfer tool
+description: A user-friendly, cross-platform file synchronization software with remarkable
+  transfer speeds as its most significant advantage. VerySync's intelligent P2P technology
+  accelerates synchronization by splitting files into small, data-only segments, and
+  encrypting the files with AES.
+category: Productivity
+version: 1.0.0
+developer: verysync.com
+store: play
+icon: icon.png
+port: 8886
+architectures:
+- amd64
+- arm64

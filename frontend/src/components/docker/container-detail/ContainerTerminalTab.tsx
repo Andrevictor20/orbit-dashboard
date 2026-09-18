@@ -53,7 +53,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
 
     let sessionBuffer = '';
     try {
-      const saved = sessionStorage.getItem(`orbit_term_history_${id}`);
+      const saved = sessionStorage.getItem(`saturn_term_history_${id}`);
       if (saved) {
         sessionBuffer = saved;
         term.write(saved);
@@ -101,7 +101,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
       term.write(event.data);
       sessionBuffer = (sessionBuffer + event.data).slice(-30000);
       try {
-        sessionStorage.setItem(`orbit_term_history_${id}`, sessionBuffer);
+        sessionStorage.setItem(`saturn_term_history_${id}`, sessionBuffer);
       } catch {}
     };
 
@@ -156,7 +156,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
                 }
               }
             }}
-            className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
+            className="text-xs flex items-center gap-1 bg-accent hover:bg-saturn-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
             title={t('docker.copy_selection', 'Copiar Seleção')}
           >
             <Copy className="w-3 h-3" />
@@ -171,7 +171,7 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
                 }
               }).catch(() => toast.error(t('docker.clipboard_paste_permission', 'Permissão necessária para colar')));
             }}
-            className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
+            className="text-xs flex items-center gap-1 bg-accent hover:bg-saturn-700 text-secondary hover:text-white px-2.5 py-1 rounded transition-colors"
             title={t('docker.paste_from_clipboard', 'Colar da Área de Transferência')}
           >
             <ClipboardPaste className="w-3 h-3" />
@@ -182,11 +182,11 @@ export function ContainerTerminalTab({ id }: ContainerTerminalTabProps) {
               if (xtermRef.current) {
                 xtermRef.current.clear();
                 try {
-                  sessionStorage.removeItem(`orbit_term_history_${id}`);
+                  sessionStorage.removeItem(`saturn_term_history_${id}`);
                 } catch {}
               }
             }}
-            className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary hover:text-white px-2 py-1 rounded transition-colors"
+            className="text-xs flex items-center gap-1 bg-accent hover:bg-saturn-700 text-secondary hover:text-white px-2 py-1 rounded transition-colors"
             title={t('docker.clear_terminal', 'Limpar Terminal')}
           >
             <Trash2 className="w-3 h-3" />

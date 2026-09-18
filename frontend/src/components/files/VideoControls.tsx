@@ -75,7 +75,7 @@ export function VideoControls({
           step="0.1"
           value={currentTime}
           onChange={onSeek}
-          className="relative z-10 w-full h-1.5 bg-transparent rounded-lg appearance-none cursor-pointer accent-orbit-500"
+          className="relative z-10 w-full h-1.5 bg-transparent rounded-lg appearance-none cursor-pointer accent-saturn-500"
         />
       </div>
 
@@ -129,7 +129,7 @@ export function VideoControls({
               step="0.05"
               value={isMuted ? 0 : volume}
               onChange={onVolumeChange}
-              className="w-16 md:w-24 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
+              className="w-16 md:w-24 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-saturn-500"
             />
           </div>
 

@@ -1,0 +1,31 @@
+name: peppermint
+services:
+  app:
+    image: pepperlabs/peppermint:latest
+    ports:
+    - target: 5000
+      published: 5000
+      protocol: tcp
+    depends_on:
+    - db
+    environment:
+      PORT: 5000
+      DB_USERNAME: saturn
+      DB_PASSWORD: saturn
+      DB_HOST: db
+      BASE_URL: http://saturn.local:5000
+    restart: unless-stopped
+  db:
+    image: postgres:15.19
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      POSTGRES_USER: saturn
+      POSTGRES_PASSWORD: saturn
+      POSTGRES_DB: saturn
+    volumes:
+    - type: bind
+      source: /DATA/AppData/peppermint/postgres/data
+      target: /var/lib/postgresql/data

@@ -19,7 +19,7 @@
   "install_failed": "설치 실패",
   "install_cancelled": "설치가 취소되었습니다.",
   "background_task": "백그라운드 작업",
-  "port_conflict_explanation": "\"권장 포트로 설치\"를 클릭하면 Orbit은 이미지를 다시 다운로드할 필요 없이 서비스를 사용 가능한 포트에 자동으로 다시 매핑합니다.",
+  "port_conflict_explanation": "\"권장 포트로 설치\"를 클릭하면 Saturn은 이미지를 다시 다운로드할 필요 없이 서비스를 사용 가능한 포트에 자동으로 다시 매핑합니다.",
   "managed_stack_services": "{{count}} 상호 연결된 서비스를 갖춘 관리형 스택",
   "services": "서비스",
   "image_update_available_tip": "장치에 사용할 수 있는 새 이미지 버전입니다. 업데이트하고 다시 시작하려면 클릭하세요.",

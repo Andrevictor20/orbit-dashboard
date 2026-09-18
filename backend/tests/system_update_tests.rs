@@ -105,30 +105,30 @@ async fn test_system_update_endpoint_exists_and_polls_task() {
     }
 }
 
-/// Regression [L-016]: the fallback docker run command must use 'orbit-dashboard'
-/// (the `container_name` from docker-compose.yml), NOT 'orbit' (which is only the
-/// compose service/project name). Using 'orbit' creates a duplicate container causing
+/// Regression [L-016]: the fallback docker run command must use 'saturn-dashboard'
+/// (the `container_name` from docker-compose.yml), NOT 'saturn' (which is only the
+/// compose service/project name). Using 'saturn' creates a duplicate container causing
 /// a port 5172 conflict and an immediate ExitCode=0 restart loop.
 #[test]
 fn test_fallback_docker_run_uses_correct_container_name() {
-    let image_name = "ghcr.io/andrevictor20/orbit-dashboard:latest";
+    let image_name = "ghcr.io/andrevictor20/saturn:latest";
     let host_dir_val = String::new(); // empty = no compose dir found
     let compose_file_name = "docker-compose.yml";
     let project_flag = String::new();
-    let detected_data_mount = "orbit_orbit_data"; // Preserved volume from running container
+    let detected_data_mount = "saturn_saturn_data"; // Preserved volume from running container
 
     let helper_script = format!(
         r#"sleep 1 && (
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
   cd "/host{host_dir}" && docker compose {project_flag} -f "{compose_file}" pull && docker compose {project_flag} -f "{compose_file}" up -d --force-recreate
-elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
-elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
+elif [ -f "/host/DATA/saturn/docker-compose.yml" ]; then
+  cd "/host/DATA/saturn" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
+elif [ -f "/host/root/saturn/docker-compose.yml" ]; then
+  cd "/host/root/saturn" && docker compose -f "docker-compose.yml" pull && docker compose -f "docker-compose.yml" up -d --force-recreate
 else
-  docker stop orbit-dashboard orbit 2>/dev/null || true
-  docker rm orbit-dashboard orbit 2>/dev/null || true
-  docker run -d --name orbit-dashboard --restart unless-stopped \
+  docker stop saturn-dashboard saturn 2>/dev/null || true
+  docker rm saturn-dashboard saturn 2>/dev/null || true
+  docker run -d --name saturn-dashboard --restart unless-stopped \
     --privileged \
     --pid host \
     --add-host host.docker.internal:host-gateway \
@@ -151,19 +151,19 @@ fi
         image_name = image_name
     );
 
-    // MUST use "orbit-dashboard" (container_name), never bare "orbit" (service name)
+    // MUST use "saturn-dashboard" (container_name), never bare "saturn" (service name)
     assert!(
-        helper_script.contains("--name orbit-dashboard"),
-        "Fallback docker run must use --name orbit-dashboard (container_name from compose), not the service name"
+        helper_script.contains("--name saturn-dashboard"),
+        "Fallback docker run must use --name saturn-dashboard (container_name from compose), not the service name"
     );
     assert!(
-        !helper_script.contains("--name orbit "),
-        "Fallback docker run must NOT use --name orbit (that is the service name, not the container_name)"
+        !helper_script.contains("--name saturn "),
+        "Fallback docker run must NOT use --name saturn (that is the service name, not the container_name)"
     );
 
     // MUST preserve the detected data mount (volume or bind-mount)
     assert!(
-        helper_script.contains("-v \"orbit_orbit_data:/app/data\""),
+        helper_script.contains("-v \"saturn_saturn_data:/app/data\""),
         "Fallback docker run must preserve the existing volume/bind mount instead of hardcoding an empty volume"
     );
 
@@ -310,13 +310,13 @@ async fn test_spa_html_routes_have_strict_no_cache_headers() {
 async fn test_ghcr_image_manifest_real_check() {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
-        .user_agent("Orbit-Dashboard")
+        .user_agent("Saturn")
         .build()
         .unwrap();
 
-    // v2.2.0 exists in GHCR
-    let exists = backend::system::check_ghcr_image_manifest(&client, "v2.2.0").await;
-    assert!(exists, "v2.2.0 must return true on GHCR manifest check");
+    // Verify GHCR token acquisition & manifest discovery on a known public GHCR image
+    let exists = backend::system::check_ghcr_image_manifest_for_repo(&client, "linuxserver/nginx", "latest").await;
+    assert!(exists, "Public GHCR image manifest check must return true");
 
     // Non-existent version tag must return false
     let not_exists = backend::system::check_ghcr_image_manifest(&client, "v999.999.999").await;
@@ -354,7 +354,7 @@ async fn test_system_update_blocks_when_ci_is_building() {
                 has_update: true,
                 platform: "linux/amd64".to_string(),
                 arch: "x86_64".to_string(),
-                release_name: "Orbit v2.2.0".to_string(),
+                release_name: "Saturn v2.2.0".to_string(),
                 release_notes: "Notes".to_string(),
                 published_at: None,
                 ci_status: Some("building".to_string()),
@@ -444,7 +444,7 @@ async fn test_check_update_never_has_update_when_versions_equal() {
                 has_update: true, // artificially simulated stale or digest flag
                 platform: "linux/amd64".to_string(),
                 arch: "x86_64".to_string(),
-                release_name: format!("Orbit v{}", current),
+                release_name: format!("Saturn v{}", current),
                 release_notes: "Notes".to_string(),
                 published_at: None,
                 ci_status: None,

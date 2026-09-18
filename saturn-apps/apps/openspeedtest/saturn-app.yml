@@ -1,0 +1,19 @@
+id: openspeedtest
+name: OpenSpeedTest
+tagline: HTML5 Network Speed Test Server.
+description: An application for launching HTML5 Network Speed Test Server. You can
+  test download & upload speed from any device within your network with a web browser
+  that is IE10 or new.
+category: Networking
+version: 1.0.0
+developer: OpenSpeedTest
+store: official
+icon: icon.png
+port: 3004
+architectures:
+- amd64
+- arm64
+- ppc64le
+- s390x
+- '386'
+- arm

@@ -1,0 +1,26 @@
+name: redroid
+services:
+  redroid:
+    command:
+    - androidboot.redroid_width=1080
+    - androidboot.redroid_height=1920
+    - androidboot.redroid_dpi=480
+    - androidboot.redroid_gpu_mode=guest
+    - ro.secure=0
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          memory: 2048M
+    image: redroid/redroid:14.0.0_64only-latest
+    network_mode: bridge
+    ports:
+    - target: 5555
+      published: '5555'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/redroid/data
+      target: /data
+    container_name: redroid

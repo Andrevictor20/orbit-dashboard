@@ -1,0 +1,30 @@
+name: webdav
+services:
+  webdav:
+    cpu_shares: 90
+    command: []
+    container_name: webdav
+    deploy:
+      resources:
+        limits:
+          memory: 15806M
+    environment:
+    - GID=1000
+    - PASSWORD=saturn
+    - TZ=Europe/Madrid
+    - UDI=1000
+    - USERNAME=saturn
+    image: ugeek/webdav:amd64
+    labels:
+      icon: https://icon.saturn.io/main/all/webdav.png
+    ports:
+    - target: 80
+      published: '5005'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /media/ZimaOS-HD/Media
+      target: /media
+    network_mode: bridge
+    privileged: false

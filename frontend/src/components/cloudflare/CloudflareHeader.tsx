@@ -65,7 +65,7 @@ export function CloudflareHeader({
         {isConfigured && (
           <button
             onClick={onAddRouteClick}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-400 active:scale-[0.98] text-white text-xs font-bold transition-all shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{t('cloudflare.btn_new_route', 'Nova Rota')}</span>
@@ -88,7 +88,7 @@ export function CloudflareHeader({
           onClick={onToggleConfig}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/70 text-xs font-semibold transition-all shadow-sm ${
             showConfig
-              ? 'bg-orbit-500 text-white border-orbit-500'
+              ? 'bg-saturn-500 text-white border-saturn-500'
               : 'bg-card/60 hover:bg-card text-secondary hover:text-primary active:scale-[0.98]'
           }`}
         >
@@ -102,7 +102,7 @@ export function CloudflareHeader({
           className="p-2 rounded-xl border border-border/70 bg-card/60 hover:bg-card text-secondary hover:text-primary active:scale-[0.98] transition-all shadow-sm"
           aria-label="Atualizar dados"
         >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-orbit-500' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-saturn-500' : ''}`} />
         </button>
       </div>
     </div>

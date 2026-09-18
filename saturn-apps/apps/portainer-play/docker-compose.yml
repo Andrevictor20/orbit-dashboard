@@ -1,0 +1,28 @@
+name: portainer
+services:
+  portainer:
+    image: portainer/portainer-ce:sts
+    container_name: portainer
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+    network_mode: bridge
+    ports:
+    - target: 8000
+      published: '8000'
+      protocol: tcp
+    - target: 9000
+      published: '9000'
+      protocol: tcp
+    - target: 9443
+      published: '9443'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/portainer
+      target: /data
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock

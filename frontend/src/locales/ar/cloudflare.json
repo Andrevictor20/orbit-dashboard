@@ -45,7 +45,7 @@
   "test_success": "تم الاتصال بنجاح! النفق: {{name}} (طرق {{count}})",
   "test_failed": "فشل في اختبار الاتصال بـ Cloudflare",
   "tunnel_token_detected": "تم اكتشاف رمز النفق! تم استخراج معرف الحساب ومعرف النفق وتعبئتهما تلقائيًا.",
-  "tunnel_token_notice": "ملاحظة: الرمز المميز الذي تم لصقه هو رمز Tunnel Token للموصل المحلي (eyJh...). لكي يقوم Orbit بإدراج المسارات العامة عبر واجهة برمجة التطبيقات، قم بتوفير رمز واجهة مستخدم المستخدم الذي تم إنشاؤه في لوحة تحكم Cloudflare باستخدام الحساب > Cloudflare Tunnel > إذن القراءة.",
+  "tunnel_token_notice": "ملاحظة: الرمز المميز الذي تم لصقه هو رمز Tunnel Token للموصل المحلي (eyJh...). لكي يقوم Saturn بإدراج المسارات العامة عبر واجهة برمجة التطبيقات، قم بتوفير رمز واجهة مستخدم المستخدم الذي تم إنشاؤه في لوحة تحكم Cloudflare باستخدام الحساب > Cloudflare Tunnel > إذن القراءة.",
   "api_token_guide_title": "كيفية الحصول على رمز Cloudflare API Token؟",
   "api_token_guide_step1": "قم بزيارة Dash.cloudflare.com/profile/api-tokens",
   "api_token_guide_step2": "انقر فوق \"إنشاء رمز مميز\" واختر \"إنشاء رمز مميز\"",

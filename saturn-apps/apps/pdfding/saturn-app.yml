@@ -1,0 +1,27 @@
+id: pdfding
+name: PdfDing
+tagline: Selfhosted PDF manager, viewer and editor
+description: 'PdfDing is a selfhosted PDF manager, viewer and editor offering a seamless
+  user experience on multiple devices. It''s designed to be minimal, fast, and easy
+  to set up using Docker.
+
+
+  With features like seamless browser-based PDF viewing that remembers your current
+  position, multi-level tagging, starring and archiving functionalities, PDF editing
+  with comments, highlighting and drawings, clean intuitive UI with dark mode, SSO
+  support via OIDC, PDF sharing with external audience, markdown notes, and progress
+  bars showing reading progress, PdfDing ensures an excellent PDF management experience.
+
+
+  Deploying PdfDing on private cloud devices like Zima brings unmatched convenience
+  with multi-device access, ensuring your PDF collection is always within reach and
+  secure, no matter where you are.'
+category: Productivity
+version: 1.0.0
+developer: mrmn2
+store: official
+icon: icon.png
+port: 8000
+architectures:
+- amd64
+- arm64

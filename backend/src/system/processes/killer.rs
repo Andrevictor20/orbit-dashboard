@@ -20,8 +20,10 @@ const PROTECTED_PROCESS_NAMES: &[&str] = &[
     "containerd-shim",
     "containerd-shim-runc-v2",
     "NetworkManager",
-    "orbit-backend",
-    "orbit",
+    "saturn-backend",
+    "saturn",
+    "saturn-backend",
+    "saturn",
 ];
 
 pub fn validate_process_termination(pid: u32) -> Result<(), (StatusCode, &'static str, Option<String>)> {
@@ -36,7 +38,7 @@ pub fn validate_process_termination(pid: u32) -> Result<(), (StatusCode, &'stati
     if pid == std::process::id() {
         return Err((
             StatusCode::FORBIDDEN,
-            "Não é permitido finalizar o processo do próprio Orbit.",
+            "Não é permitido finalizar o processo do próprio Saturn.",
             None,
         ));
     }

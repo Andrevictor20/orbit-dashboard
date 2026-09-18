@@ -35,8 +35,8 @@ pub fn read_private_memory(pid: u32) -> u64 {
     0
 }
 
-/// Scans /proc to discover all PIDs associated with Orbit (Rust Backend, child worker processes, and Frontend dev/node/vite processes).
-pub fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
+/// Scans /proc to discover all PIDs associated with Saturn (Rust Backend, child worker processes, and Frontend dev/node/vite processes).
+pub fn find_saturn_pids(backend_pid: u32) -> Vec<u32> {
     let mut pids = vec![backend_pid];
     let Ok(proc_entries) = std::fs::read_dir("/proc") else {
         return pids;
@@ -71,12 +71,14 @@ pub fn find_orbit_pids(backend_pid: u32) -> Vec<u32> {
         if let Ok(cmd_bytes) = std::fs::read(format!("/proc/{}/cmdline", pid_num)) {
             let cmd_lower = cmd_bytes.to_ascii_lowercase();
             let is_frontend = cmd_lower.windows(4).any(|w| w == b"vite")
-                || cmd_lower.windows(14).any(|w| w == b"orbit-dashboard")
+                || cmd_lower.windows(6).any(|w| w == b"saturn")
+                || cmd_lower.windows(14).any(|w| w == b"saturn-dashboard")
                 || (cmd_lower.windows(8).any(|w| w == b"frontend")
                     && (cmd_lower.windows(4).any(|w| w == b"node")
                         || cmd_lower.windows(3).any(|w| w == b"dev")))
                 || (cmd_lower.windows(7).any(|w| w == b"esbuild")
-                    && cmd_lower.windows(5).any(|w| w == b"orbit"));
+                    && (cmd_lower.windows(6).any(|w| w == b"saturn")
+                        || cmd_lower.windows(5).any(|w| w == b"saturn")));
 
             if is_frontend {
                 pids.push(pid_num);
@@ -99,8 +101,8 @@ pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
     let mut components = Components::new_with_refreshed_list();
 
     let backend_pid = std::process::id();
-    let mut orbit_pids = find_orbit_pids(backend_pid);
-    let mut orbit_pids_ticks: u32 = 0;
+    let mut saturn_pids = find_saturn_pids(backend_pid);
+    let mut saturn_pids_ticks: u32 = 0;
 
     let mut prev_cpu_stats = std::collections::HashMap::new();
     let mut prev_host_rx = 0u64;
@@ -146,30 +148,30 @@ pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
         let sys_mem = sys.used_memory();
         let num_cores = sys.cpus().len() as f32;
 
-        orbit_pids_ticks += 1;
-        let pids_alive = !orbit_pids.is_empty()
-            && orbit_pids
+        saturn_pids_ticks += 1;
+        let pids_alive = !saturn_pids.is_empty()
+            && saturn_pids
                 .iter()
                 .all(|&p| std::path::Path::new(&format!("/proc/{}", p)).exists());
-        if orbit_pids_ticks >= 30 || !pids_alive || first_tick {
-            orbit_pids = find_orbit_pids(backend_pid);
-            orbit_pids_ticks = 0;
+        if saturn_pids_ticks >= 30 || !pids_alive || first_tick {
+            saturn_pids = find_saturn_pids(backend_pid);
+            saturn_pids_ticks = 0;
             // Periodically reclaim unused arena memory back to the Linux OS
             crate::store::catalog::trim_memory();
         }
 
-        // Targeted process refresh only for Orbit PIDs instead of all 350+ host processes
-        let orbit_pids_sysinfo: Vec<sysinfo::Pid> =
-            orbit_pids.iter().map(|&p| sysinfo::Pid::from_u32(p)).collect();
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&orbit_pids_sysinfo), true);
+        // Targeted process refresh only for Saturn PIDs instead of all 350+ host processes
+        let saturn_pids_sysinfo: Vec<sysinfo::Pid> =
+            saturn_pids.iter().map(|&p| sysinfo::Pid::from_u32(p)).collect();
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&saturn_pids_sysinfo), true);
 
-        let orbit_cpu: f32 = orbit_pids
+        let saturn_cpu: f32 = saturn_pids
             .iter()
             .filter_map(|&p| sys.process(sysinfo::Pid::from_u32(p)))
             .map(|proc| proc.cpu_usage() / num_cores)
             .sum();
 
-        let orbit_memory: u64 = orbit_pids.iter().map(|&p| read_private_memory(p)).sum();
+        let saturn_memory: u64 = saturn_pids.iter().map(|&p| read_private_memory(p)).sum();
 
         let (current_iface_info, mut host_raw_rx, mut host_raw_tx) =
             crate::system::network::read_host_network_bytes(None);
@@ -405,8 +407,8 @@ pub async fn run_singleton_stats_collector(docker: Arc<Docker>) {
             docker_memory: cached_docker_mem,
             docker_tx: cached_docker_rate_tx,
             docker_rx: cached_docker_rate_rx,
-            orbit_cpu,
-            orbit_memory,
+            saturn_cpu,
+            saturn_memory,
         };
 
         evaluate_and_push_alerts(&stats);

@@ -21,7 +21,7 @@ pub fn get_shares_file() -> PathBuf {
             }
         }
     }
-    std::env::temp_dir().join("orbit_shares.json")
+    std::env::temp_dir().join("saturn_shares.json")
 }
 
 pub fn load_shares() -> Vec<ShareLink> {

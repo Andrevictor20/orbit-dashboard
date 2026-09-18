@@ -22,9 +22,15 @@ describe('CloudflareAddRouteModal Component', () => {
     ];
     expect(detectBaseDomain(rules)).toBe('rasppi.cloud');
 
-    // From localStorage
-    localStorage.setItem('orbit_base_domain', 'custom.me');
+    // From localStorage (saturn fallback)
+    localStorage.setItem('saturn_base_domain', 'custom.me');
     expect(detectBaseDomain(rules)).toBe('custom.me');
+
+    // From localStorage (saturn priority)
+    localStorage.setItem('saturn_base_domain', 'saturn.me');
+    expect(detectBaseDomain(rules)).toBe('saturn.me');
+    localStorage.removeItem('saturn_base_domain');
+    localStorage.removeItem('saturn_base_domain');
   });
 
   it('renders modal with smart builder mode, default domain rasppi.cloud and fetches containers', async () => {
@@ -152,7 +158,7 @@ describe('CloudflareAddRouteModal Component', () => {
       });
       expect(onRouteCreatedMock).toHaveBeenCalled();
       expect(onCloseMock).toHaveBeenCalled();
-      expect(localStorage.getItem('orbit_base_domain')).toBe('rasppi.cloud');
+      expect(localStorage.getItem('saturn_base_domain')).toBe('rasppi.cloud');
     });
   });
 

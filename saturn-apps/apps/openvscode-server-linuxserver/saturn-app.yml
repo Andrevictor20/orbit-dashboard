@@ -1,0 +1,15 @@
+id: openvscode-server-linuxserver
+name: Openvscode server
+tagline: Provides a version of VS Code that runs a server on a remote machine and
+  allows access through a modern web browser.
+description: Openvscode-server provides a version of VS Code that runs a server on
+  a remote machine and allows access through a modern web browser.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

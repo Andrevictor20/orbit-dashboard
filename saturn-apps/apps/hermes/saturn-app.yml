@@ -1,0 +1,42 @@
+id: hermes
+name: Hermes
+tagline: A self-improving AI agent with memory, skills, messaging, and a web dashboard.
+description: 'Hermes Agent is a self-improving AI agent from Nous Research, designed
+  to be a long-running collaborator rather than a one-off chatbot.
+
+  Its built-in learning loop combines persistent memory, cross-session recall, and
+  reusable skills so it can keep context and improve recurring workflows over time.
+
+  With a unified gateway, rich toolsets, and a browser-based dashboard, Hermes fits
+  research, automation, cross-platform communication, and ongoing operational work.
+
+
+  **Main Features:**
+
+  - Built-in learning loop with persistent memory, session search, and reusable skills
+
+  - One gateway for CLI, Telegram, Discord, Slack, WhatsApp, Signal, and more
+
+  - Tool-driven workflows with terminal access, web search, browser automation, file
+  editing, and MCP integration
+
+  - Automation and coordination with cron jobs, subagents, the web dashboard, and
+  an OpenAI-compatible API
+
+
+  **Learn More:**
+
+  - [Hermes Agent Official Website](https://hermes-agent.nousresearch.com/)
+
+  - [Hermes Agent GitHub](https://github.com/NousResearch/hermes-agent)
+
+  - [Hermes Agent Documentation](https://hermes-agent.nousresearch.com/docs/)'
+category: AI
+version: 1.0.0
+developer: Nous Research
+store: official
+icon: icon.png
+port: 9119
+architectures:
+- amd64
+- arm64

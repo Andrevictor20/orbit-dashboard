@@ -1,0 +1,25 @@
+name: wallabag
+services:
+  wallabag:
+    container_name: wallabag
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    environment:
+    - SYMFONY__ENV__DOMAIN_NAME=http://yourdomain:85
+    image: wallabag/wallabag
+    ports:
+    - target: 80
+      published: '85'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/wallabag/data
+      target: /var/www/wallabag/data
+    - type: bind
+      source: /DATA/AppData/wallabag/images
+      target: /var/www/wallabag/web/assets/images
+    network_mode: bridge
+    privileged: false

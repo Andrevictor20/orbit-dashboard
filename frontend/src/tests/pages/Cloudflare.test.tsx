@@ -205,7 +205,7 @@ describe('Cloudflare Page Component', () => {
   });
 
   it('sends Authorization Bearer token with requests and saves configuration', async () => {
-    localStorage.setItem('orbit_token', 'my_orbit_jwt_token_123');
+    localStorage.setItem('saturn_token', 'my_saturn_jwt_token_123');
 
     let savedPayload: any = null;
     let postHeaders: any = null;
@@ -278,10 +278,10 @@ describe('Cloudflare Page Component', () => {
         enabled: true,
       });
       // MUST include Authorization Bearer header
-      expect(postHeaders).toHaveProperty('Authorization', 'Bearer my_orbit_jwt_token_123');
+      expect(postHeaders).toHaveProperty('Authorization', 'Bearer my_saturn_jwt_token_123');
     });
 
-    localStorage.removeItem('orbit_token');
+    localStorage.removeItem('saturn_token');
   });
 
   it('auto-detects Tunnel Token and populates Account ID and Tunnel ID', async () => {

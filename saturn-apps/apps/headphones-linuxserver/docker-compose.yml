@@ -1,0 +1,23 @@
+name: linuxserver-headphones
+services:
+  app:
+    image: linuxserver/headphones:version-a78f38c1
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 8181
+      published: 8181
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/headphones/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/headphones/downloads
+      target: /downloads
+    - type: bind
+      source: /DATA/AppData/headphones/music
+      target: /music

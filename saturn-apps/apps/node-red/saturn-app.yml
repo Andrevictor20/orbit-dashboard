@@ -1,0 +1,57 @@
+id: node-red
+name: Node-RED
+tagline: Low-code programming for event-driven applications
+description: 'Node-RED is a flow-based low-code development platform that enables
+  creating automation tasks and applications by connecting various nodes. A browser-based
+  editor, simple to use, makes it ideal for users in home automation, industrial control,
+  or other fields to quickly build data processing flows.
+
+
+  Core features include a low-code flow editor and robust data handling. Built on
+  Node.js with an event-driven, non-blocking model, the platform supports real-time
+  data collection, transformation, and visualization. A palette with over 5000 nodes
+  allows users to construct flows via drag-and-drop. A rich text editor enables creating
+  JavaScript functions for enhanced customization.
+
+
+  It stores flows in JSON format, facilitating easy import and export for sharing.
+  A built-in library allows saving useful functions, templates, or flows for reuse,
+  and an online flow library supports sharing top flows globally. With ease of use
+  and efficiency at the core, the platform delivers a modern solution for diverse
+  automation needs.
+
+
+  **Key Features:**
+
+  - Browser-based low-code flow editor with drag-and-drop node connections
+
+  - Real-time data collection, transformation, and visualization
+
+  - Event-driven, non-blocking model with Node.js
+
+  - Palette with over 5000 nodes for extended functionality
+
+  - Rich text editor for creating JavaScript functions
+
+  - JSON-based flow storage for easy sharing
+
+  - Built-in library for saving functions, templates, and flows
+
+  - Online flow library for sharing top flows
+
+
+  **Learn More:**
+
+  - [Node-RED Official Website](https://nodered.org/)
+
+  - [Node-RED GitHub](https://github.com/node-red/node-red)'
+category: Developer
+version: 1.0.0
+developer: Node-RED
+store: official
+icon: icon.png
+port: 1880
+architectures:
+- amd64
+- arm64
+- arm

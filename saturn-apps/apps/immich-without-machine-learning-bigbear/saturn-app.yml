@@ -1,0 +1,14 @@
+id: immich-without-machine-learning-bigbear
+name: Immich without machine learning
+tagline: Immich without machine learning
+description: Self-hosted photo and video storage. This does not include the machine
+  learning part.
+category: AI
+version: 1.0.0
+developer: immich
+store: bigbear
+icon: icon.png
+port: 2283
+architectures:
+- amd64
+- arm64

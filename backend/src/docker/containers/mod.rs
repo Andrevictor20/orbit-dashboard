@@ -79,7 +79,7 @@ pub async fn list_containers(State(state): State<AppState>) -> impl IntoResponse
                                 .as_ref()
                                 .and_then(|l| {
                                     l.get("com.docker.compose.service")
-                                        .or_else(|| l.get("io.casaos.app.name"))
+                                        .or_else(|| l.get("io.saturn.app.name"))
                                 })
                                 .cloned()
                                 .unwrap_or_else(|| short_id.clone())

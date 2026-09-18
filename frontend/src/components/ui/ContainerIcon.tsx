@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { OrbitLogo } from './OrbitLogo';
+import { SaturnLogo } from './SaturnLogo';
 
-interface ContainerIconProps {
+export interface ContainerIconProps {
   src?: string;
   name?: string;
   image?: string;
@@ -22,16 +22,16 @@ export function ContainerIcon({
 
   const cleanName = name.toLowerCase();
   const cleanImage = image.toLowerCase();
-  const isOrbit = 
-    src === '__orbit__' || 
-    src?.includes('orbit.png') || 
-    cleanName.includes('orbit') || 
-    cleanImage.includes('orbit');
+  const isSaturn = 
+    src === '__saturn__' ||
+    src?.includes('saturn.png') || 
+    cleanName.includes('saturn') || 
+    cleanImage.includes('saturn');
 
-  if (isOrbit) {
+  if (isSaturn) {
     return (
       <div className={`flex items-center justify-center shrink-0 overflow-hidden ${className}`}>
-        <OrbitLogo size={size} />
+        <SaturnLogo size={size} />
       </div>
     );
   }

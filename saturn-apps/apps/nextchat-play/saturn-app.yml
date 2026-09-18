@@ -1,0 +1,15 @@
+id: nextchat-play
+name: NextChat
+tagline: Private ChatGPT WebApp
+description: An intelligent chat application based on ChatGPT, supports fast deployment,
+  Markdown, beautiful UI, fluid response, privacy and security, and allows customization
+  of preset roles for quick creation, sharing, and debugging of personalized conversations.
+category: Social
+version: 1.0.0
+developer: Yidadaa
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,15 @@
+id: bitcoin-knots-linuxserver-io-linuxserver
+name: Bitcoin knots (LinuxServer.io)
+tagline: Can be used as a desktop client for regular payments or as a full node server
+  utility for merchants and other payment services.
+description: Bitcoin Knots can be used as a desktop client for regular payments or
+  as a full node server utility for merchants and other payment services.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

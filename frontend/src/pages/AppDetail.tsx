@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download, ArrowLeft, Settings, ChevronDown, Package } from 'lucide-react';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
+import { AppArchitectureBadge } from '../components/appstore/AppArchitectureBadge';
+import { useSystemVersionQuery } from '../queries/useSystemVersionQuery';
 import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
 import { useInstall } from '../contexts/InstallContext';
 
@@ -14,9 +16,12 @@ interface AppStoreItem {
   category: string;
   store: string;
   compose_file: string;
+  architectures?: string[];
 }
 
 export function AppDetail() {
+  const { data: systemVersion } = useSystemVersionQuery();
+  const hostArch = systemVersion?.arch;
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -64,7 +69,7 @@ export function AppDetail() {
     try {
       setInstalling(true);
       setError(null);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
 
       // Intercept port conflicts before 1-click install
       if (!custom) {
@@ -223,6 +228,16 @@ export function AppDetail() {
               <div className="text-xs text-gray-500 uppercase font-semibold">{t('store.store_repo', 'Loja / Repositório')}</div>
               <div className="mt-1 font-medium">{app.store}</div>
             </div>
+            <div>
+              <div className="text-xs text-gray-500 uppercase font-semibold">{t('store.architectures', 'Arquitetura')}</div>
+              <div className="mt-1">
+                <AppArchitectureBadge architectures={app.architectures} hostArch={hostArch} mode="compact" />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-1">
+            <AppArchitectureBadge architectures={app.architectures} hostArch={hostArch} mode="detailed" />
           </div>
 
           <div className="flex gap-4 pt-2">

@@ -2,14 +2,16 @@ pub mod types;
 pub mod parser;
 pub mod catalog;
 pub mod installer;
+pub mod config;
 
 pub use types::*;
 pub use parser::*;
 pub use catalog::*;
 pub use installer::*;
+pub use config::*;
 
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use crate::state::AppState;
@@ -19,6 +21,9 @@ pub fn router() -> Router<AppState> {
         .route("/api/store/apps", get(list_apps))
         .route("/api/store/apps/{id}/config", get(inspect_app_config))
         .route("/api/store/sync", post(sync_apps))
+        .route("/api/store/repositories", get(list_store_repositories).post(add_store_repository))
+        .route("/api/store/repositories/{id}", delete(remove_store_repository))
+        .route("/api/store/repositories/{id}/toggle", post(toggle_store_repository))
         .route("/api/store/install/{id}", post(install_app))
         .route("/api/store/install/custom/{id}", post(install_custom_app))
         .route("/api/store/install/status/{task_id}", get(install_status))

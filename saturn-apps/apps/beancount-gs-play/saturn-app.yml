@@ -1,0 +1,18 @@
+id: beancount-gs-play
+name: beancount-gs
+tagline: A RESTful API service for personal accounting and financial management based
+  on beancount.
+description: This project provides a RESTful API service (including front-end pages)
+  for personal accounting and financial management based on beancount.Beancount is
+  an excellent open-source double-entry bookkeeping tool. Because it is based on text
+  recording, it is difficult to extend to the mobile terminal. This project aims to
+  encapsulate common accounting behaviors into RESTful API.
+category: Finance
+version: 1.0.0
+developer: xdbin
+store: play
+icon: icon.png
+port: 10000
+architectures:
+- arm64
+- amd64

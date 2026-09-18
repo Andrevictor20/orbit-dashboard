@@ -22,8 +22,8 @@ export interface SystemStats {
   docker_memory: number;
   docker_tx: number;
   docker_rx: number;
-  orbit_cpu: number;
-  orbit_memory: number;
+  saturn_cpu: number;
+  saturn_memory: number;
   network_interface?: string;
   network_interface_type?: 'ethernet' | 'wifi' | string;
   gpu_usage?: number;
@@ -38,10 +38,10 @@ export interface MetricHistoryPoint {
   timestamp: number;
   cpu: number;
   dockerCpu: number;
-  orbitCpu: number;
+  saturnCpu: number;
   memory: number;
   dockerMemory: number;
-  orbitMemory: number;
+  saturnMemory: number;
   gpu?: number;
   tx: number;
   rx: number;
@@ -88,10 +88,10 @@ export function StatsProvider({ children }: { children: ReactNode }) {
               timestamp: pointTimestamp,
               cpu: item.cpu_usage || 0,
               dockerCpu: item.docker_cpu || 0,
-              orbitCpu: item.orbit_cpu || 0,
+              saturnCpu: item.saturn_cpu || 0,
               memory: item.memory_used || 0,
               dockerMemory: item.docker_memory || 0,
-              orbitMemory: item.orbit_memory || 0,
+              saturnMemory: item.saturn_memory || 0,
               gpu: item.gpu_usage || 0,
               tx: item.network_tx || 0,
               rx: item.network_rx || 0,
@@ -117,10 +117,10 @@ export function StatsProvider({ children }: { children: ReactNode }) {
           timestamp: pointTimestamp,
           cpu: stats.cpu_usage,
           dockerCpu: stats.docker_cpu,
-          orbitCpu: stats.orbit_cpu,
+          saturnCpu: stats.saturn_cpu,
           memory: stats.memory_used,
           dockerMemory: stats.docker_memory,
-          orbitMemory: stats.orbit_memory,
+          saturnMemory: stats.saturn_memory,
           gpu: stats.gpu_usage || 0,
           tx: stats.network_tx,
           rx: stats.network_rx,

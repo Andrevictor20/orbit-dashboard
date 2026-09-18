@@ -1,0 +1,23 @@
+name: linuxserver-manyfold
+services:
+  app:
+    image: linuxserver/manyfold:0.149.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      DATABASE_URL: ''
+      REDIS_URL: ''
+      SECRET_KEY_BASE: ''
+    ports:
+    - target: 3214
+      published: 3214
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/manyfold/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/manyfold/libraries
+      target: /libraries

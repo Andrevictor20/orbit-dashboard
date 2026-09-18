@@ -1,0 +1,15 @@
+id: speedtest-tracker-linuxserver-io-linuxserver
+name: Speedtest tracker (LinuxServer.io)
+tagline: A self-hosted internet performance tracking application that runs speedtest
+  checks against Ookla's Speedtest service.
+description: Speedtest-tracker is a self-hosted internet performance tracking application
+  that runs speedtest checks against Ookla's Speedtest service.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

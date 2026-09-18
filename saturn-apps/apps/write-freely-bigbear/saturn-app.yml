@@ -1,0 +1,15 @@
+id: write-freely-bigbear
+name: Write Freely
+tagline: Markdown-based publishing platform.
+description: WriteFreely is a clean, minimalist publishing platform made for writers.
+  Start a blog, share knowledge within your organization, or build a community around
+  the shared act of writing.
+category: Social
+version: 1.0.0
+developer: nephatrine
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

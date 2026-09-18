@@ -1,0 +1,16 @@
+id: sscms-play
+name: SiteServer CMS
+tagline: Open-source, free, and enterprise-grade CMS
+description: SiteServer CMS is an open-source, free, enterprise-grade, and commercially
+  available CMS content management system. It allows you to build a full-featured,
+  high-performance, large-scale, and easy-to-maintain website platform with minimal
+  cost, manpower, and time.
+category: Productivity
+version: 1.0.0
+developer: sscms.com
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm64

@@ -68,7 +68,7 @@ export function CloudflareMetrics({
           {t('cloudflare.metric_public_routes', 'Rotas Públicas')}
         </span>
         <div className="mt-2 flex items-center gap-2">
-          <Globe className="w-5 h-5 text-orbit-500" />
+          <Globe className="w-5 h-5 text-saturn-500" />
           <span className="text-xl sm:text-2xl font-black text-primary font-mono">
             {rulesCount}
           </span>

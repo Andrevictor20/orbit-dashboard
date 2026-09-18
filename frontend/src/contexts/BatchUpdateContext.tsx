@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import type { ContainerLike } from '../utils/containerGroups';
 import { type ContainerUpdateState, type ContainerTaskStatus } from '../utils/batchUpdateRunner';
 import { useBatchUpdateRunner, clearBatchSession, loadBatchSession } from './useBatchUpdateRunner';
+import { getAuthToken } from '../utils/auth';
 
 export type { ContainerUpdateState, ContainerTaskStatus };
 
@@ -82,7 +83,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
   const cancelAll = useCallback(async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     clearBatchSession();
-    const token = localStorage.getItem('orbit_token');
+    const token = getAuthToken();
     try {
       await fetch('/api/docker/containers/update/cancel-all', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     } catch {}
@@ -91,7 +92,7 @@ export const BatchUpdateProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const cancelContainer = useCallback(async (id: string) => {
     cancelledIdsRef.current.add(id);
-    const token = localStorage.getItem('orbit_token');
+    const token = getAuthToken();
     try {
       await fetch(`/api/docker/containers/${id}/update/cancel`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     } catch {}

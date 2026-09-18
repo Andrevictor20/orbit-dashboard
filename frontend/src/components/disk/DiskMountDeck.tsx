@@ -50,7 +50,7 @@ export const DiskMountDeck: React.FC<DiskMountDeckProps> = ({
             onClick={() => handleNavigate(st.mount_point)}
             className={`text-left p-3.5 rounded-2xl border transition-all ${
               isSelected
-                ? 'bg-orbit-500/10 border-orbit-500/50 shadow-md ring-2 ring-orbit-500/20'
+                ? 'bg-saturn-500/10 border-saturn-500/50 shadow-md ring-2 ring-saturn-500/20'
                 : 'bg-card border-border/70 hover:bg-accent/60 hover:border-border'
             }`}
           >
@@ -58,7 +58,7 @@ export const DiskMountDeck: React.FC<DiskMountDeckProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <HardDrive
                   className={`w-4 h-4 shrink-0 ${
-                    isSelected ? 'text-orbit-400' : 'text-secondary'
+                    isSelected ? 'text-saturn-400' : 'text-secondary'
                   }`}
                 />
                 <span className="text-xs font-bold text-primary truncate">
@@ -77,7 +77,7 @@ export const DiskMountDeck: React.FC<DiskMountDeckProps> = ({
                     ? 'bg-rose-500'
                     : pct > 70
                     ? 'bg-amber-500'
-                    : 'bg-orbit-500'
+                    : 'bg-saturn-500'
                 }`}
                 style={{ width: `${Math.min(pct, 100)}%` }}
               />

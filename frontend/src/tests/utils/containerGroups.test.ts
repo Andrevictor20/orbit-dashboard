@@ -12,8 +12,8 @@ describe('containerGroups utility', () => {
   const mockContainers = [
     {
       id: 'c1',
-      name: 'orbit',
-      image: 'ghcr.io/andrevictor20/orbit:latest',
+      name: 'saturn',
+      image: 'ghcr.io/andrevictor20/saturn:latest',
       state: 'running',
       status: 'Up 2 days',
       cpu_percent: 1.5,
@@ -112,7 +112,7 @@ describe('containerGroups utility', () => {
     const grouped = groupContainers(mockContainers, {});
 
     // Total grouped items:
-    // 1. Orbit (single)
+    // 1. Saturn (single)
     // 2. Overseerr (single)
     // 3. Ar-Saude (group of 4)
     // 4. Grafana (group of 2)
@@ -145,18 +145,18 @@ describe('containerGroups utility', () => {
   });
 
   it('honors saved preferred primary container in group', () => {
-    localStorage.setItem('orbit_stack_primary_ar-saude', 'as2');
+    localStorage.setItem('saturn_stack_primary_ar-saude', 'as2');
     const groups = groupContainers(mockContainers);
     const arSaudeGroup = groups.find(g => g.type === 'group' && g.id === 'group:ar-saude') as any;
     expect(arSaudeGroup?.primaryContainer.id).toBe('as2');
-    localStorage.removeItem('orbit_stack_primary_ar-saude');
+    localStorage.removeItem('saturn_stack_primary_ar-saude');
   });
 
   it('keeps single containers as single type', () => {
     const groups = groupContainers(mockContainers);
     const singleItems = groups.filter(g => g.type === 'single');
-    expect(singleItems.length).toBe(3); // orbit, overseerr, moodle-tutorial
-    expect(singleItems.some((s: any) => s.container.name === 'orbit')).toBe(true);
+    expect(singleItems.length).toBe(3); // saturn, overseerr, moodle-tutorial
+    expect(singleItems.some((s: any) => s.container.name === 'saturn')).toBe(true);
     expect(singleItems.some((s: any) => s.container.name === 'overseerr')).toBe(true);
     expect(singleItems.some((s: any) => s.container.name === 'moodle-tutorial')).toBe(true);
   });
@@ -219,8 +219,8 @@ describe('containerGroups utility', () => {
       expect(cloudflaredLink).toContain(':14333');
     });
 
-    it('honors CasaOS labels (io.casaos.port.web) and user customLinks', () => {
-      const labels = { 'io.casaos.port.web': '9090' };
+    it('honors Saturn labels (io.saturn.port.web) and user customLinks', () => {
+      const labels = { 'io.saturn.port.web': '9090' };
       const ports = getSortedDeduplicatedPorts([], 'custom/service', 'custom-service', labels);
       expect(ports.length).toBe(1);
       expect(ports[0].public_port).toBe(9090);
@@ -283,7 +283,7 @@ describe('containerGroups utility', () => {
     it('cleans container app names by removing prefixes and suffixes', () => {
       expect(cleanAppName('linuxserver-kavita-app-1')).toBe('kavita');
       expect(cleanAppName('big-bear-pihole')).toBe('pihole');
-      expect(cleanAppName('/orbit-dashboard')).toBe('orbit-dashboard');
+      expect(cleanAppName('/saturn-dashboard')).toBe('saturn-dashboard');
       expect(cleanAppName('forumhub-frontend')).toBe('forumhub');
     });
 

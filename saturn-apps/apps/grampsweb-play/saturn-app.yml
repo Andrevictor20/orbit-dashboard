@@ -1,0 +1,16 @@
+id: grampsweb-play
+name: Gramps Web
+tagline: Collaborate on your family tree with Gramps Web
+description: Gramps Web is a web-based application designed for collaborative family
+  tree building. It can be accessed from any web-enabled device and is ideal for working
+  with others to build your family tree together. Gramps Web is free and open-source
+  software, prioritizing the privacy and control of your data.
+category: Developer
+version: 1.0.0
+developer: Gramps Project
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- arm64
+- amd64

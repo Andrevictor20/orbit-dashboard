@@ -1,0 +1,14 @@
+id: changedetection-io-linuxserver-io-linuxserver
+name: Changedetection. Io (LinuxServer.io)
+tagline: Provides free, open-source web page monitoring, notification and change detection.
+description: Changedetection.io provides free, open-source web page monitoring, notification
+  and change detection.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 5000
+architectures:
+- amd64
+- arm64

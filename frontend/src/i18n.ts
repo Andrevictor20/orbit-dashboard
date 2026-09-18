@@ -5,7 +5,7 @@ import { resources, supportedLanguages } from './locales';
 export { supportedLanguages };
 export type { LanguageOption } from './locales';
 
-const savedLanguage = typeof window !== 'undefined' ? localStorage.getItem('orbit_language') : null;
+const savedLanguage = typeof window !== 'undefined' ? localStorage.getItem('saturn_language') : null;
 const initialLanguage = savedLanguage || 'pt';
 
 const syncDocumentDirection = (lng: string) => {
@@ -33,7 +33,7 @@ i18n
 
 i18n.on('languageChanged', (lng) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('orbit_language', lng);
+    localStorage.setItem('saturn_language', lng);
     syncDocumentDirection(lng);
   }
 });

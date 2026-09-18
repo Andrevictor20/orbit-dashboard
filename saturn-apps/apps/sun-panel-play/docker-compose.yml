@@ -1,0 +1,26 @@
+name: sun-panel
+services:
+  sun-panel:
+    image: hslr/sun-panel
+    container_name: sun-panel
+    deploy:
+      resources:
+        reservations:
+          memory: 32M
+    network_mode: bridge
+    ports:
+    - target: 3002
+      published: 3002
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/sun-panel/conf
+      target: /app/conf
+    - type: bind
+      source: /DATA/AppData/sun-panel/uploads
+      target: /app/uploads
+    - type: bind
+      source: /DATA/AppData/sun-panel/database
+      target: /app/database
+    environment: {}

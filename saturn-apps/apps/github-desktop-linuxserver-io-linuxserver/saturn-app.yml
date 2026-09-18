@@ -1,0 +1,15 @@
+id: github-desktop-linuxserver-io-linuxserver
+name: Github desktop (LinuxServer.io)
+tagline: An open source Electron-based GitHub app. It is written in TypeScript and
+  uses React.
+description: Github Desktop is an open source Electron-based GitHub app. It is written
+  in TypeScript and uses React.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

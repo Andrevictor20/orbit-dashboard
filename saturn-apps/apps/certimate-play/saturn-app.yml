@@ -1,0 +1,15 @@
+id: certimate-play
+name: Certimate
+tagline: A self-hosted SSL certificate management tool.
+description: Certimate is a self-hosted SSL certificate management tool that makes
+  it easy to obtain, renew and deploy SSL certificates from Let's Encrypt, ZeroSSL
+  and more, for free.
+category: Productivity
+version: 1.0.0
+developer: usual2970
+store: play
+icon: icon.png
+port: 8090
+architectures:
+- arm64
+- amd64

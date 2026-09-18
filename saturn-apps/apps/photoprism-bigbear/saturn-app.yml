@@ -1,0 +1,15 @@
+id: photoprism-bigbear
+name: Photoprism
+tagline: AI-Powered Photos App
+description: PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It
+  makes use of the latest technologies to tag and find pictures automatically without
+  getting in your way. You can run it at home, on a private server, or in the cloud.
+category: AI
+version: 1.0.0
+developer: photoprism.app
+store: bigbear
+icon: icon.png
+port: 2342
+architectures:
+- amd64
+- arm64

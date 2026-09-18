@@ -1,0 +1,14 @@
+id: chrome-linuxserver-io-linuxserver
+name: Chrome (LinuxServer.io)
+tagline: The official web browser from Google, built to be fast, secure, and customizable.
+description: Chrome is the official web browser from Google, built to be fast, secure,
+  and customizable.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

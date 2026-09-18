@@ -1,0 +1,14 @@
+id: crafty-controller-bigbear
+name: Crafty Controller
+tagline: Crafty Controller
+description: Crafty 4 is the next iteration of our Minecraft Server Wrapper / Controller
+  / Launcher.
+category: Media
+version: 1.0.0
+developer: crafty-controller
+store: bigbear
+icon: icon.png
+port: 8443
+architectures:
+- amd64
+- arm64

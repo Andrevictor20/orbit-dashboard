@@ -1,0 +1,17 @@
+name: linuxserver-grocy
+services:
+  app:
+    image: linuxserver/grocy:4.7.1
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 9283
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/grocy/config
+      target: /config

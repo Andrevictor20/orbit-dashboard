@@ -1,0 +1,15 @@
+id: bazarr
+name: Bazarr
+tagline: Letter generators for Sonarr and Radarr
+description: Bazarr is a companion application to Sonarr and Radarr. It can manage
+  and download subtitles based on your requirements. You define your preferences by
+  TV show or movie and Bazarr takes care of everything for you.
+category: Media
+version: 1.0.0
+developer: Sabnzbd Team
+store: official
+icon: icon.png
+port: 6767
+architectures:
+- amd64
+- arm64

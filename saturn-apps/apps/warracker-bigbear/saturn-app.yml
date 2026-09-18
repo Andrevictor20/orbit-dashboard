@@ -1,0 +1,13 @@
+id: warracker-bigbear
+name: Warracker
+tagline: A self-hosted warranty tracker
+description: A self-hosted warranty tracker
+category: Others
+version: 1.0.0
+developer: sassanix
+store: bigbear
+icon: icon.png
+port: 8005
+architectures:
+- amd64
+- arm64

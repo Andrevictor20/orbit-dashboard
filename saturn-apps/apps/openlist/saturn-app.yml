@@ -1,0 +1,45 @@
+id: openlist
+name: OpenList
+tagline: Mount your cloud drive on your home NAS
+description: 'OpenList is a community-driven, self-hosted file listing and cloud drive
+  mounting service that supports multiple storage backends in one place.
+
+  It brings local storage plus services like OneDrive, Google Drive, S3, WebDAV, SMB,
+  and many other providers into one browser-based file hub.
+
+  With previews, uploads, sharing, WebDAV, offline download, and package download
+  built in, it works well for home NAS setups, personal cloud libraries, and lightweight
+  team file portals.
+
+
+  **Main Features:**
+
+  - Connect local disks, cloud drives, object storage, and WebDAV or SMB endpoints
+  in one place
+
+  - Preview documents, images, audio, video, code, Markdown, and Office files directly
+  in the browser
+
+  - Upload, move, rename, copy, delete, and batch download files and folders from
+  a single interface
+
+  - Enable WebDAV, protected routes, sharing, dark mode, and multi-language support
+
+  - Support offline downloads, cross-storage file copying, and multi-thread acceleration
+
+
+  **Learn More:**
+
+  - [OpenList Official Website](https://oplist.org/)
+
+  - [OpenList GitHub](https://github.com/OpenListTeam/OpenList)'
+category: Productivity
+version: 1.0.0
+developer: OpenListTeam
+store: official
+icon: icon.png
+port: 5244
+architectures:
+- amd64
+- arm
+- arm64

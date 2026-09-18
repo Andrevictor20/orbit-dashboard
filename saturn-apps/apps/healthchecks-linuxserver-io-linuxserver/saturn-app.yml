@@ -1,0 +1,15 @@
+id: healthchecks-linuxserver-io-linuxserver
+name: Healthchecks (LinuxServer.io)
+tagline: A watchdog for your cron jobs. It's a web server that listens for pings from
+  your cron jobs, plus a web interface.
+description: Healthchecks is a watchdog for your cron jobs. It's a web server that
+  listens for pings from your cron jobs, plus a web interface.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8000
+architectures:
+- amd64
+- arm64

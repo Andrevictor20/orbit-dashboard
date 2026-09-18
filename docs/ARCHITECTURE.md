@@ -1,12 +1,12 @@
-# Arquitetura do Sistema - Orbit Dashboard
+# Arquitetura do Sistema - Saturn
 
-Este documento descreve a arquitetura interna, o modelo de concorrência, a organização de diretórios e os padrões de engenharia adotados no Orbit Dashboard.
+Este documento descreve a arquitetura interna, o modelo de concorrência, a organização de diretórios e os padrões de engenharia adotados no Saturn.
 
 ---
 
 ## 1. Visão Geral da Arquitetura
 
-O Orbit é estruturado segundo uma arquitetura de cliente-servidor em camadas com acoplamento fraco:
+O Saturn é estruturado segundo uma arquitetura de cliente-servidor em camadas com acoplamento fraco:
 
 - **Frontend SPA (Single Page Application):** Interface web desenvolvida em React 19 e TypeScript com Tailwind CSS v4, consumindo dados via chamadas REST HTTP/1.1 e fluxos contínuos via WebSockets.
 - **Backend Daemon (API & Serviços de Fundo):** Servidor assíncrono em Rust baseado no framework Axum e runtime Tokio, comunicando-se diretamente com o Docker Engine via Unix Domain Socket (`/var/run/docker.sock`) e com o kernel Linux através de pseudo-sistemas de arquivos (`/proc` e `/sys`).
@@ -103,7 +103,7 @@ Para cumprir a diretriz de arquivos coesos (< 500 linhas por unidade), o subsist
 
 ### 3.2 Módulo de Sistema (`backend/src/system/`)
 - **`network.rs`:** Identificação determinística da interface primária de internet do host lendo a tabela de rotas do kernel em `/host/proc/1/net/route` (ou `/proc/1/net/route`), selecionando a rota padrão (destino `00000000`) com a menor métrica e descartando adaptadores virtuais (`docker0`, `veth*`, `tailscale*`, `br-*`). Extrai contadores de bytes transmitidos/recebidos via `/host/proc/1/net/dev`.
-- **`processes.rs`:** Monitor de processos com suporte a leitura em `/host/proc`. Agrupa threads do kernel (`kthreadd`), calcula utilização delta de CPU e impõe bloqueios contra terminação (`kill_process`) direcionada ao PID do Orbit, PID 1 e daemons de infraestrutura do sistema.
+- **`processes.rs`:** Monitor de processos com suporte a leitura em `/host/proc`. Agrupa threads do kernel (`kthreadd`), calcula utilização delta de CPU e impõe bloqueios contra terminação (`kill_process`) direcionada ao PID do Saturn, PID 1 e daemons de infraestrutura do sistema.
 - **`disks.rs`:** Varredura e classificação de pontos de montagem, identificando dispositivos físicos (NVMe, SSD SATA, cartões microSD, unidades USB) e volumes de armazenamento.
 
 ### 3.3 Módulo de Telemetria e WebSocket (`backend/src/ws.rs`)
@@ -149,7 +149,7 @@ frontend/src/
 ## 5. Estrutura de Diretórios do Repositório
 
 ```
-Orbit/
+Saturn/
 ├── backend/                  # Código-fonte do daemon e serviços Rust
 │   ├── src/
 │   │   ├── auth/             # Autenticação, Argon2id, JWT e rate limiting

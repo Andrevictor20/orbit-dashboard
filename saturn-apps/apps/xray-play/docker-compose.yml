@@ -1,0 +1,17 @@
+name: xray
+services:
+  xray:
+    container_name: xray
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    hostname: xray
+    image: teddysun/xray:latest
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/xray
+      target: /etc/xray
+    network_mode: host
+    privileged: false

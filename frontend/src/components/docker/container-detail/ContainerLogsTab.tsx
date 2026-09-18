@@ -26,11 +26,11 @@ export function ContainerLogsTab({ logs, onRefresh }: ContainerLogsTabProps) {
       <div className="bg-black/50 p-3 border-b border-border flex justify-between items-center">
         <span className="text-sm font-semibold text-secondary">{t('docker.last_500_lines', 'Logs (Últimas 500 linhas)')}</span>
         <div className="flex gap-2">
-          <button onClick={handleCopyLogs} className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary px-3 py-1.5 rounded transition-colors">
+          <button onClick={handleCopyLogs} className="text-xs flex items-center gap-1 bg-accent hover:bg-saturn-700 text-secondary px-3 py-1.5 rounded transition-colors">
             {copiedLogs ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
             {copiedLogs ? t('common.copied', 'Copiado!') : t('common.copy', 'Copiar')}
           </button>
-          <button onClick={onRefresh} className="text-xs flex items-center gap-1 bg-accent hover:bg-orbit-700 text-secondary px-3 py-1.5 rounded transition-colors">
+          <button onClick={onRefresh} className="text-xs flex items-center gap-1 bg-accent hover:bg-saturn-700 text-secondary px-3 py-1.5 rounded transition-colors">
             <RotateCw className="w-3 h-3" /> {t('docker.refresh_logs', 'Atualizar Logs')}
           </button>
         </div>

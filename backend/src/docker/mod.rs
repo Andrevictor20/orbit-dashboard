@@ -61,7 +61,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/backups/restore/{id}", post(backups::restore_backup_handler))
         .route("/api/backups/{id}", delete(backups::delete_backup_handler))
         .route("/api/backups/download/{id}", get(backups::download_backup_handler))
-        .route("/api/backups/upload", post(backups::upload_backup_handler))
+        .route("/api/backups/upload", post(backups::upload_backup_handler).layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024 * 1024)))
         .route("/api/backups/schedule", get(backups::get_schedule_handler).post(backups::save_schedule_handler))
         .route("/api/docker/images", get(list_images))
         .route("/api/docker/images/{id}", delete(delete_image))
@@ -170,9 +170,9 @@ mod tests {
         assert_eq!(repo, "linuxserver/qbittorrent");
         assert_eq!(tag, "latest");
 
-        let (reg, repo, tag) = parse_image_ref("ghcr.io/andrevmp/orbit:latest");
+        let (reg, repo, tag) = parse_image_ref("ghcr.io/andrevmp/saturn:latest");
         assert_eq!(reg, "ghcr.io");
-        assert_eq!(repo, "andrevmp/orbit");
+        assert_eq!(repo, "andrevmp/saturn");
         assert_eq!(tag, "latest");
 
         let (reg, repo, tag) = parse_image_ref("redis");
@@ -192,7 +192,7 @@ mod tests {
         use std::io::Write;
 
         let unique_suffix = uuid::Uuid::new_v4().to_string();
-        let temp_dir = std::env::temp_dir().join(format!("orbit_compose_test_{}", unique_suffix));
+        let temp_dir = std::env::temp_dir().join(format!("saturn_compose_test_{}", unique_suffix));
         std::fs::create_dir_all(&temp_dir).unwrap();
         let compose_path = temp_dir.join("docker-compose.yml");
         {
@@ -300,9 +300,9 @@ mod tests {
         assert_eq!(ha_result[0].public_port, Some(8123));
         assert_eq!(ha_result[0].private_port, 8123);
 
-        // 2. CasaOS container with io.casaos.port.web label
+        // 2. Saturn container with io.saturn.port.web label
         let mut casa_labels = HashMap::new();
-        casa_labels.insert("io.casaos.port.web".to_string(), "9095".to_string());
+        casa_labels.insert("io.saturn.port.web".to_string(), "9095".to_string());
         let casa_result = crate::docker::containers::process_and_prioritize_ports(
             None,
             &casa_labels,

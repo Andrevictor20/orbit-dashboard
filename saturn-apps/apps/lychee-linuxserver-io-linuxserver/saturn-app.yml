@@ -1,0 +1,18 @@
+id: lychee-linuxserver-io-linuxserver
+name: Lychee (LinuxServer.io)
+tagline: A free photo-management tool, which runs on your server or web-space. Installing
+  is a matter of seconds. Upload, manage and share photos like from a native application.
+  Lychee comes with everything you need and all your photos are stored securely.
+description: Lychee is a free photo-management tool, which runs on your server or
+  web-space. Installing is a matter of seconds. Upload, manage and share photos like
+  from a native application. Lychee comes with everything you need and all your photos
+  are stored securely.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

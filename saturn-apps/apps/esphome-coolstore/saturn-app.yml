@@ -1,0 +1,16 @@
+id: esphome-coolstore
+name: ESPHome
+tagline: ESPHome is a system to control your microcontrollers by simple yet powerful
+  configuration files and control them remotely through Home Automation systems.
+description: ESPHome is a system to control your microcontrollers by simple yet powerful
+  configuration files and control them remotely through Home Automation systems.
+category: Coolstore
+version: 1.0.0
+developer: ESPHome
+store: coolstore
+icon: icon.png
+port: 6052
+architectures:
+- amd64
+- arm64
+- armhf

@@ -1,0 +1,24 @@
+name: linuxserver-code-server
+services:
+  app:
+    image: linuxserver/code-server:4.137.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      PASSWORD: ''
+      HASHED_PASSWORD: ''
+      SUDO_PASSWORD: ''
+      SUDO_PASSWORD_HASH: ''
+      PROXY_DOMAIN: ''
+      DEFAULT_WORKSPACE: ''
+      PWA_APPNAME: ''
+    ports:
+    - target: 8443
+      published: 8443
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/code-server/config
+      target: /config

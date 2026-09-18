@@ -59,7 +59,7 @@ export function HAToolbar({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95 ${
                 isActive
-                  ? 'bg-orbit-500 text-white shadow-sm shadow-orbit-500/25'
+                  ? 'bg-saturn-500 text-white shadow-sm shadow-saturn-500/25'
                   : 'text-secondary hover:text-primary hover:bg-card/70'
               }`}
             >
@@ -89,11 +89,11 @@ export function HAToolbar({
                 onClick={() => setIsAreaDropdownOpen((prev) => !prev)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
                   selectedAreaFilter !== 'all'
-                    ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-700 dark:text-orbit-300 font-semibold'
+                    ? 'bg-saturn-500/15 border-saturn-500/40 text-saturn-700 dark:text-saturn-300 font-semibold'
                     : 'bg-card/60 border-border/70 text-secondary hover:text-primary hover:bg-card'
                 }`}
               >
-                <MapPin className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-saturn-500 shrink-0" />
                 <span className="truncate max-w-[130px]">
                   {selectedAreaFilter === 'all'
                     ? t('homeassistant.all_areas', 'Todas as Áreas')
@@ -120,7 +120,7 @@ export function HAToolbar({
                     }}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                       selectedAreaFilter === 'all'
-                        ? 'bg-orbit-500 text-white font-semibold'
+                        ? 'bg-saturn-500 text-white font-semibold'
                         : 'text-secondary hover:text-primary hover:bg-accent/60'
                     }`}
                   >
@@ -137,7 +137,7 @@ export function HAToolbar({
                       }}
                       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                         selectedAreaFilter.toLowerCase() === areaName.toLowerCase()
-                          ? 'bg-orbit-500 text-white font-semibold'
+                          ? 'bg-saturn-500 text-white font-semibold'
                           : 'text-secondary hover:text-primary hover:bg-accent/60'
                       }`}
                     >
@@ -169,7 +169,7 @@ export function HAToolbar({
               value={deviceSearchQuery}
               onChange={(e) => setDeviceSearchQuery(e.target.value)}
               placeholder={t('homeassistant.search_placeholder', 'Buscar dispositivos...')}
-              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-border/70 bg-card/70 text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-orbit-500/50 transition-all"
+              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-border/70 bg-card/70 text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:ring-2 focus:ring-saturn-500/50 transition-all"
             />
             {deviceSearchQuery && (
               <button

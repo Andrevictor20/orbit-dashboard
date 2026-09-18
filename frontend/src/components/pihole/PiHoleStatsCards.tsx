@@ -22,7 +22,7 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Total DNS Queries */}
-      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-orbit-500/30 group">
+      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-saturn-500/30 group">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium uppercase tracking-wider text-secondary">
             {t('pihole.stats_total_queries')}
@@ -53,7 +53,7 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
       </div>
 
       {/* 2. Queries Blocked */}
-      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-orbit-500/30 group">
+      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-saturn-500/30 group">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium uppercase tracking-wider text-secondary">
             {t('pihole.stats_queries_blocked')}
@@ -73,7 +73,7 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
       </div>
 
       {/* 3. Percentage Blocked */}
-      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-orbit-500/30 group">
+      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-saturn-500/30 group">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium uppercase tracking-wider text-secondary">
             {t('pihole.stats_percent_blocked')}
@@ -96,7 +96,7 @@ export function PiHoleStatsCards({ stats, loading }: PiHoleStatsCardsProps) {
       </div>
 
       {/* 4. Blocklist Domains (Gravity) */}
-      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-orbit-500/30 group">
+      <div className="relative overflow-hidden rounded-2xl border shad-border bg-surface/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 transition-all duration-200 hover:border-saturn-500/30 group">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium uppercase tracking-wider text-secondary">
             {t('pihole.stats_blocklist_count')}

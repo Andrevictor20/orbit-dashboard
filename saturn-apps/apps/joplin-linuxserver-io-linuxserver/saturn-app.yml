@@ -1,0 +1,14 @@
+id: joplin-linuxserver-io-linuxserver
+name: Joplin (LinuxServer.io)
+tagline: A free, open source note taking and to-do application, which can handle a
+  large number of notes organised into notebooks.
+description: Joplin is a free, open source note taking and to-do application, which
+  can handle a large number of notes organised into notebooks.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

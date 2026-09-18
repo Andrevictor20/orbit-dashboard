@@ -1,0 +1,17 @@
+id: pidgin-linuxserver-io-linuxserver
+name: Pidgin (LinuxServer.io)
+tagline: A chat program which lets you log into accounts on multiple chat networks
+  simultaneously. This means that you can be chatting with friends on XMPP and sitting
+  in an IRC channel at the same time.
+description: Pidgin is a chat program which lets you log into accounts on multiple
+  chat networks simultaneously. This means that you can be chatting with friends on
+  XMPP and sitting in an IRC channel at the same time.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,24 @@
+name: heimdall
+services:
+  heimdall:
+    container_name: heimdall
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    environment:
+    - PGID=1000
+    - PUID=1000
+    - TZ=Asia/Shanghai
+    image: linuxserver/heimdall:latest
+    ports:
+    - target: 80
+      published: '80'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/heimdall/config
+      target: /config
+    network_mode: bridge
+    privileged: false

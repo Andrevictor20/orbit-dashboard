@@ -1,0 +1,14 @@
+id: pansou-play
+name: PanSou
+tagline: High-performance network disk resource search API service.
+description: PanSou is a high-performance network disk resource search API service
+  that supports TG search and custom plugin search.
+category: Productivity
+version: 1.0.0
+developer: fish2018
+store: play
+icon: icon.png
+port: 6080
+architectures:
+- amd64
+- arm64

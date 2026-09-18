@@ -1,0 +1,18 @@
+name: nginxwebui
+services:
+  nginxwebui:
+    environment:
+      BOOT_OPTIONS: --server.port=8080
+    image: cym1102/nginxwebui:latest
+    container_name: nginxwebui
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/nginxwebui
+      target: /home/nginxWebUI

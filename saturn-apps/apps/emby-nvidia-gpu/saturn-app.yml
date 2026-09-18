@@ -1,0 +1,15 @@
+id: emby-nvidia-gpu
+name: Emby(Nvidia GPU)
+tagline: TAKE YOUR MEDIA ANYWHERE WITH EMBY
+description: Bringing all of your home videos, music, and photos together into one
+  place has never been easier. Your personal Emby Server automatically converts and
+  streams your media on-the-fly to play on any device.
+category: Media
+version: 1.0.0
+developer: Emby Team
+store: official
+icon: icon.png
+port: 8096
+architectures:
+- amd64
+- arm64

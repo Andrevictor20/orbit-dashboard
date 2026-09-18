@@ -1,0 +1,17 @@
+id: netalertx-v26-bigbear
+name: NetAlertX v26
+tagline: NetAlertX v26 (Latest)
+description: 'WIFI / LAN intruder detector. Scans for devices connected to your network
+  and alerts you if new and unknown devices are found. WARNING: v26 has breaking changes
+  from previous versions — volume paths changed from /app/config and /app/db to /data/config
+  and /data/db. Existing data will NOT be migrated automatically. See the migration
+  docs before upgrading.'
+category: Networking
+version: 1.0.0
+developer: jokobsk
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

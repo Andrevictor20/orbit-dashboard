@@ -1,12 +1,12 @@
 <div align="center">
 
-# Orbit Dashboard
+# Saturn
 
 **Painel de gerenciamento de contêineres Docker, orquestração de stacks Compose e telemetria de hardware para servidores locais e ambientes homelab.**
 
-[![CI Pipeline](https://github.com/Andrevictor20/orbit-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrevictor20/orbit-dashboard/actions/workflows/ci.yml)
-[![Docker Image](https://img.shields.io/badge/GHCR-Multi--Arch%20(amd64%20%7C%20arm64)-blue?logo=docker)](https://github.com/Andrevictor20/orbit-dashboard/pkgs/container/orbit-dashboard)
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-victorandre280%2Forbit--dashboard-2496ED?logo=docker)](https://hub.docker.com/r/victorandre280/orbit-dashboard)
+[![CI Pipeline](https://github.com/Andrevictor20/saturn/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrevictor20/saturn/actions/workflows/ci.yml)
+[![Docker Image](https://img.shields.io/badge/GHCR-Multi--Arch%20(amd64%20%7C%20arm64)-blue?logo=docker)](https://github.com/Andrevictor20/saturn/pkgs/container/saturn)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-victorandre280%2Fsaturn-2496ED?logo=docker)](https://hub.docker.com/r/victorandre280/saturn)
 [![Backend](https://img.shields.io/badge/Backend-Rust%20%2B%20Axum-orange?logo=rust)](https://www.rust-lang.org/)
 [![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite%208-61DAFB?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Style-Tailwind%20CSS%20v4-38B2AC?logo=tailwindcss)](https://tailwindcss.com/)
@@ -26,19 +26,19 @@
 
 ## Demonstração Visual
 
-A interface do Orbit foi desenvolvida para operação ágil em navegadores desktop e móveis, com atualização contínua de estado via WebSockets.
+A interface do Saturn foi desenvolvida para operação ágil em navegadores desktop e móveis, com atualização contínua de estado via WebSockets.
 
 ### Visão Geral do Sistema
 Painel central consolidando estado dos contêineres, utilização de processador, memória, armazenamento e atalhos operacionais.
-![Orbit Overview](./docs/videos/overview.webp)
+![Saturn Overview](./docs/videos/overview.webp)
 
 ### Gerenciamento de Contêineres e Stacks
 Controle de ciclo de vida, inspeção de portas, logs em tempo real e agrupamento por stacks Docker Compose.
-![Orbit Containers](./docs/videos/containers.webp)
+![Saturn Containers](./docs/videos/containers.webp)
 
 ### Catálogo de Aplicativos Integrado
 Instalação orientada a manifestos declarativos, com validação de portas e volumes locais.
-![Orbit App Store](./docs/videos/appstore.webp)
+![Saturn App Store](./docs/videos/appstore.webp)
 
 <details>
 <summary><b>Visualizar capturas de tela adicionais (Métricas, Processos, Armazenamento, Terminal e Temas)</b></summary>
@@ -81,7 +81,7 @@ Instalação orientada a manifestos declarativos, com validação de portas e vo
 
 ### Terminal Web e Console de Diagnóstico
 - **Terminal Web Interativo:** Emulação baseada em `@xterm/xterm` com suporte a WebSockets bidirecionais e alocação de pseudo-terminais (PTY) para acesso direto a contêineres (`docker exec`) ou shell local.
-- **Central de Logs do Sistema:** Consulta em tempo real de buffers circulares de logs de execução do Orbit e de serviços gerenciados, com filtragem por níveis de severidade (ERROR, WARN, INFO, DEBUG).
+- **Central de Logs do Sistema:** Consulta em tempo real de buffers circulares de logs de execução do Saturn e de serviços gerenciados, com filtragem por níveis de severidade (ERROR, WARN, INFO, DEBUG).
 
 ### Ergonomia e Design System
 - **Layout Adaptativo Mobile:** Top bar otimizada para viewports móveis (< 640px) com menu consolidado de preferências e alvos de toque em conformidade com WCAG AA (mínimo de 36x36px).
@@ -95,7 +95,7 @@ Instalação orientada a manifestos declarativos, com validação de portas e vo
 - **Sistema Operacional:** Linux (Kernel 5.4 ou superior).
 - **Arquitetura:** x86_64 (`amd64`) ou ARM64 (`aarch64`, ex.: Raspberry Pi 4/5).
 - **Docker:** Docker Engine 20.10+ e Docker Compose v2+.
-- **Memória:** Mínimo de 512 MB de RAM (consumo do binário Orbit inferior a 25 MB em repouso).
+- **Memória:** Mínimo de 512 MB de RAM (consumo do binário Saturn inferior a 25 MB em repouso).
 
 ---
 
@@ -104,7 +104,7 @@ Instalação orientada a manifestos declarativos, com validação de portas e vo
 O script realiza a detecção de arquitetura, valida os pré-requisitos, instala o Docker caso ausente, cria o diretório de persistência e inicia o serviço:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Andrevictor20/saturn/main/install.sh | bash
 ```
 
 Ao término da execução, acesse `http://<ip-do-servidor>:5172` no navegador.
@@ -113,13 +113,13 @@ Ao término da execução, acesse `http://<ip-do-servidor>:5172` no navegador.
 
 ### Opção 2: Implantação Declarativa via Docker Compose
 
-Para gerenciar o Orbit como um serviço Compose padrão, utilize a configuração abaixo:
+Para gerenciar o Saturn como um serviço Compose padrão, utilize a configuração abaixo:
 
 ```yaml
 services:
-  orbit:
-    image: ghcr.io/andrevictor20/orbit-dashboard:latest
-    container_name: orbit-dashboard
+  saturn:
+    image: ghcr.io/andrevictor20/saturn:latest
+    container_name: saturn
     restart: unless-stopped
     network_mode: bridge
     privileged: true
@@ -132,7 +132,7 @@ services:
       # Comunicação com a API do Docker Engine
       - /var/run/docker.sock:/var/run/docker.sock
       # Persistência de dados locais (credenciais, banco de dados, catálogo)
-      - orbit_data:/app/data
+      - saturn_data:/app/data
       # Leitura de métricas do sistema e pontos de montagem do host
       - /:/host:rslave
       - /mnt:/mnt:rslave
@@ -147,7 +147,7 @@ services:
         max-file: "3"
 
 volumes:
-  orbit_data:
+  saturn_data:
 ```
 
 Execute a inicialização com:
@@ -156,7 +156,7 @@ Execute a inicialização com:
 docker compose up -d
 ```
 
-> **Nota de Arquitetura:** As diretivas `privileged: true`, `pid: host` e o mapeamento `/:/host:rslave` são necessários para que o Orbit colete as tabelas de processos do host, meça temperaturas de hardware, inspecione a tabela de rotas de rede e gerencie volumes montados sem isolamento cego de container.
+> **Nota de Arquitetura:** As diretivas `privileged: true`, `pid: host` e o mapeamento `/:/host:rslave` são necessários para que o Saturn colete as tabelas de processos do host, meça temperaturas de hardware, inspecione a tabela de rotas de rede e gerencie volumes montados sem isolamento cego de container.
 
 ---
 
@@ -169,7 +169,7 @@ docker compose up -d
 +------------------------------+------------------------------+
                                | HTTP/1.1 REST & WebSockets
 +------------------------------v------------------------------+
-|                     Orbit Backend Daemon                    |
+|                     Saturn Backend Daemon                   |
 |             Rust (Edição 2021) + Axum + Tokio Runtime       |
 +------------------------------+------------------------------+
 | Modulos:                                                    |
@@ -196,10 +196,10 @@ docker compose up -d
 
 ## Segurança e Governança
 
-O desenvolvimento do Orbit segue práticas estritas de segurança em software (SSDLC):
+O desenvolvimento do Saturn segue práticas estritas de segurança em software (SSDLC):
 - **Criptografia de Credenciais:** Hashes de senha gerados via algoritmo Argon2id com parâmetros de memória e tempo calibrados contra ataques de GPU/ASIC.
 - **Sessões e Chaves JWT:** Geração de segredos com gerador de números pseudo-aleatórios criptograficamente seguro (CSPRNG) de 64 bytes (`rand::random::<[u8; 64]>()`) na primeira inicialização.
-- **Proteção contra IDOR e Auto-Encerramento:** Bloqueio formal contra comandos de encerramento direcionados ao próprio processo do Orbit, PID 1 e daemons de infraestrutura do host (`systemd`, `sshd`, `dockerd`, `containerd`).
+- **Proteção contra IDOR e Auto-Encerramento:** Bloqueio formal contra comandos de encerramento direcionados ao próprio processo do Saturn, PID 1 e daemons de infraestrutura do host (`systemd`, `sshd`, `dockerd`, `containerd`).
 - **Política de Origem Dinâmica (CORS):** Restrição de conexões a origens locais válidas (endereços RFC 1918, domínios `.local`/`.lan`, rede Tailscale e túneis Cloudflare), rejeitando requisições de origens públicas arbitrárias.
 - **Headers HTTP Defensivos:** Aplicação sistemática de `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` e `Referrer-Policy: strict-origin-when-cross-origin`.
 

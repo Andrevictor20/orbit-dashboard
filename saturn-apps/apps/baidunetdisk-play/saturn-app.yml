@@ -1,0 +1,17 @@
+id: baidunetdisk-play
+name: BaiduNetDisk
+tagline: Run BaiduNetDisk with Crossover and VNC support
+description: Baidu Netdisk is a cloud storage product carefully crafted by Baidu for
+  users, providing huge space. Full format files such as photos, videos, documents,
+  and compressed files can be backed up to the cloud with just one click, providing
+  you with comprehensive data protection. No matter the size of the files, you can
+  share them with others with just one click, improving work and learning efficiency.
+category: Productivity
+version: 1.0.0
+developer: Baidu Inc.
+store: play
+icon: icon.png
+port: 5800
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,14 @@
+id: jellystat-bigbear
+name: Jellystat
+tagline: Jellystat
+description: Jellystat is a free and open source Statistics App for Jellyfin! (This
+  project is still in development - expect some weirdness)
+category: Media
+version: 1.0.0
+developer: cyfershepard
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

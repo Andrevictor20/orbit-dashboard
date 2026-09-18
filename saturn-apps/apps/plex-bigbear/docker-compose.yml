@@ -1,0 +1,17 @@
+name: big-bear-plex
+services:
+  big-bear-plex:
+    container_name: big-bear-plex
+    image: linuxserver/plex:1.43.3@sha256:d5ee6068a20ae57f95060038eaef292cdfd4285efb213ea4daaccdc184e45d1b
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=Etc/UTC
+    - VERSION=docker
+    - PLEX_CLAIM=
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+    - /DATA/AppData/$AppID/config:/config
+    - /DATA/AppData/$AppID/tv:/tv
+    - /DATA/AppData/$AppID/movies:/movies

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, RefreshCw, CheckCircle2, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { OrbitLogo } from '../ui/OrbitLogo';
+import { SaturnLogo } from '../ui/SaturnLogo';
 import { isNewerVersion } from '../../utils/version';
 import { parseReleaseNotes } from './releaseNotesParser';
 import { UpdateProgressView, type UpdateTaskState } from './UpdateProgressView';
@@ -74,7 +74,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
     const pollTaskStatus = async () => {
       try {
-        const token = localStorage.getItem('orbit_token');
+        const token = localStorage.getItem('saturn_token');
         const res = await fetch('/api/system/update/status', {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
@@ -104,7 +104,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             startHealthCheckLoop();
           } else if (data.status === 'done') {
             if (pollInterval) clearInterval(pollInterval);
-            toast.success('Orbit atualizado com sucesso!');
+            toast.success('Saturn atualizado com sucesso!');
             setTimeout(() => {
               window.location.reload();
             }, 1800);
@@ -138,7 +138,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Recarregando painel...'),
                 logs: [...prev.logs, t('system.dashboard_reconnected', { version: healthData.version, defaultValue: `✔ Painel reconectado na nova versão ${healthData.version}.` })]
               }));
-              toast.success(`Orbit v${healthData.version} online!`);
+              toast.success(`Saturn v${healthData.version} online!`);
               setTimeout(() => {
                 window.location.reload();
               }, 1200);
@@ -183,7 +183,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
     if (!window.confirm(t('system.confirm_update_version', {
       version: updateInfo?.latest_version,
-      defaultValue: `Deseja iniciar a atualização do Orbit para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`
+      defaultValue: `Deseja iniciar a atualização do Saturn para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`
     }))) {
       return;
     }
@@ -193,12 +193,12 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
       status: 'pulling',
       progress: 5,
       current_step: t('system.starting_download', 'Iniciando download da imagem mais recente...'),
-      logs: [t('system.update_agent_init', '[Orbit Update Agent] Inicializando atualização...'), `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
+      logs: [t('system.update_agent_init', '[Saturn Update Agent] Inicializando atualização...'), `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
       error: null,
     });
 
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/system/update', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -240,11 +240,11 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         {/* Top Header Card */}
         <div className="px-5 py-4 border-b border-border/80 flex items-center justify-between bg-card">
           <div className="flex items-center gap-3">
-            <OrbitLogo size={36} className="rounded-xl shadow-md shadow-orbit-500/10" />
+            <SaturnLogo size={36} className="rounded-xl shadow-md shadow-saturn-500/10" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-primary leading-tight">
-                  {updating ? t('system.updating_orbit', 'Atualizando Orbit') : t('system.update_title', 'Atualização do Sistema')}
+                  {updating ? t('system.updating_saturn', 'Atualizando Saturn') : t('system.update_title', 'Atualização do Sistema')}
                 </h2>
                 {!updating && updateInfo?.ci_status === 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
@@ -327,7 +327,7 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             ) : (
               <button
                 onClick={handleStartUpdate}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-saturn-500 hover:bg-saturn-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-saturn-500/25 transition-all"
               >
                 <Download className="w-4 h-4" />
                 <span>{t('system.update_to_version', { version: updateInfo?.latest_version, defaultValue: `Atualizar para v${updateInfo?.latest_version}` })}</span>

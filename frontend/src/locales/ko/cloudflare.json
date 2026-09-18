@@ -45,7 +45,7 @@
   "test_success": "연결이 성공적으로 설정되었습니다! 터널: {{name}}({{count}} 노선)",
   "test_failed": "Cloudflare와의 연결을 테스트하지 못했습니다.",
   "tunnel_token_detected": "터널 토큰이 감지되었습니다! 계정 ID와 터널 ID가 자동으로 추출되어 채워졌습니다.",
-  "tunnel_token_notice": "참고: 붙여넣은 토큰은 로컬 커넥터 터널 토큰(eyJh...)입니다. Orbit이 API를 통해 공개 경로를 나열하려면 계정 > Cloudflare Tunnel > 읽기 권한으로 Cloudflare Dashboard에서 생성된 사용자 API 토큰을 제공하세요.",
+  "tunnel_token_notice": "참고: 붙여넣은 토큰은 로컬 커넥터 터널 토큰(eyJh...)입니다. Saturn이 API를 통해 공개 경로를 나열하려면 계정 > Cloudflare Tunnel > 읽기 권한으로 Cloudflare Dashboard에서 생성된 사용자 API 토큰을 제공하세요.",
   "api_token_guide_title": "Cloudflare API 토큰을 얻는 방법은 무엇입니까?",
   "api_token_guide_step1": "dash.cloudflare.com/profile/api-tokens를 방문하세요.",
   "api_token_guide_step2": "'토큰 만들기'를 클릭하고 '맞춤 토큰 만들기'를 선택하세요.",

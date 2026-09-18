@@ -57,7 +57,7 @@ describe('Terminal Page', () => {
     
     const submitButton = screen.getByRole('button', { name: /conectar via ssh/i });
     expect(submitButton).toBeTruthy();
-    expect(submitButton.className).toMatch(/bg-orbit-(500|600)/);
+    expect(submitButton.className).toMatch(/bg-saturn-(500|600)/);
     expect(submitButton.className).toContain('text-white');
   });
 
@@ -117,4 +117,46 @@ describe('Terminal Page', () => {
 
     expect(navigator.clipboard.readText).toHaveBeenCalled();
   });
+
+  it('renders internal terminal direct access button', () => {
+    render(
+      <MemoryRouter>
+        <Terminal />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByText(/Terminal Interno/i).length).toBeGreaterThan(0);
+    const internalBtn = screen.getByRole('button', { name: /conectar ao terminal interno/i });
+    expect(internalBtn).toBeTruthy();
+    expect(internalBtn.className).toContain('bg-emerald-600');
+  });
+
+  it('initiates internal terminal WebSocket connection with auth token', () => {
+    localStorage.setItem('saturn_token', 'terminal-jwt-test');
+
+    const mockWebSocket = {
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+    };
+    const wsConstructor = vi.fn().mockImplementation(function () {
+      return mockWebSocket;
+    });
+    (globalThis as unknown as { WebSocket: unknown }).WebSocket = wsConstructor;
+
+    render(
+      <MemoryRouter>
+        <Terminal />
+      </MemoryRouter>
+    );
+
+    const internalBtn = screen.getByRole('button', { name: /conectar ao terminal interno/i });
+    fireEvent.click(internalBtn);
+
+    expect(wsConstructor).toHaveBeenCalled();
+    const calledUrl = wsConstructor.mock.calls[0][0];
+    expect(calledUrl).toContain('/api/terminal/ws?token=terminal-jwt-test');
+  });
 });
+
+

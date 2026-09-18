@@ -137,9 +137,9 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
       default:
         return {
           icon: Activity,
-          color: 'text-orbit-600 dark:text-orbit-400',
-          bg: 'bg-orbit-500/15 border-orbit-500/30 shadow-orbit-500/10',
-          glow: 'group-hover:border-orbit-500/50',
+          color: 'text-saturn-600 dark:text-saturn-400',
+          bg: 'bg-saturn-500/15 border-saturn-500/30 shadow-saturn-500/10',
+          glow: 'group-hover:border-saturn-500/50',
           label: t('homeassistant.device', 'Dispositivo'),
         };
     }
@@ -190,7 +190,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
                 </span>
               )}
             </div>
-            <h3 className="text-sm font-bold text-primary truncate mt-0.5 group-hover:text-orbit-500 transition-colors">
+            <h3 className="text-sm font-bold text-primary truncate mt-0.5 group-hover:text-saturn-500 transition-colors">
               {device.name}
             </h3>
           </div>
@@ -210,7 +210,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
               title={t('homeassistant.toggle_device', { name: device.name, defaultValue: `Alternar ${device.name}` })}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
                 isPrimaryOn
-                  ? 'bg-orbit-500 border-orbit-400 shadow-md shadow-orbit-500/30'
+                  ? 'bg-saturn-500 border-saturn-400 shadow-md shadow-saturn-500/30'
                   : 'bg-accent border-border/80'
               }`}
             >
@@ -241,7 +241,7 @@ export const DeviceGroupCard: React.FC<DeviceGroupCardProps> = ({
         )}
 
         <span className="inline-flex items-center gap-1.5 text-[11px] text-secondary/60 shrink-0 font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-orbit-500/70" />
+          <span className="w-1.5 h-1.5 rounded-full bg-saturn-500/70" />
           {device.entities.length} {device.entities.length === 1 ? t('homeassistant.entity_singular', 'entidade') : t('homeassistant.entities_grouped_label', 'entidades agrupadas')}
         </span>
       </div>

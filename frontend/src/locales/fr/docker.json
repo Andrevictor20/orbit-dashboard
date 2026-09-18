@@ -19,7 +19,7 @@
   "install_failed": "L'installation a échoué",
   "install_cancelled": "Installation annulée",
   "background_task": "Tâche en arrière-plan",
-  "port_conflict_explanation": "En cliquant sur « Installer avec le port suggéré », Orbit remappe automatiquement les services sur les ports disponibles sans avoir besoin de télécharger à nouveau les images.",
+  "port_conflict_explanation": "En cliquant sur « Installer avec le port suggéré », Saturn remappe automatiquement les services sur les ports disponibles sans avoir besoin de télécharger à nouveau les images.",
   "managed_stack_services": "Pile gérée avec services interconnectés {{count}}",
   "services": "Prestations",
   "image_update_available_tip": "Nouvelle version d'image disponible pour votre appareil. Cliquez pour mettre à jour et redémarrer.",

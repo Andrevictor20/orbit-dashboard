@@ -1,0 +1,51 @@
+id: v2raya
+name: V2rayA
+tagline: A web GUI client of Project V which supports VMess, VLESS, SS, SSR, Trojan,
+  Tuic and Juicity protocols
+description: 'v2rayA is a V2Ray client supporting global transparent proxy, compatible
+  with SS, SSR, Trojan (trojan-go), Tuic, and Juicity protocols. Designed for simplicity,
+  it meets most user needs, ideal for scenarios requiring efficient proxy services.
+
+
+  Core features include global transparent proxy and multi-outbound load balancing
+  with traffic splitting. It provides proxy services for nearly all applications without
+  requiring application-specific proxy support. Support for creating and connecting
+  multiple outbound nodes ensures load balancing and efficient traffic splitting for
+  optimal network performance.
+
+
+  It offers RoutingA, a custom routing language for V2Ray, providing powerful and
+  convenient traffic splitting support. Multiple strategies address DNS pollution,
+  with advanced settings enabling customized configurations. With simplicity and functionality
+  at the core, the platform delivers a modern solution for proxy management.
+
+
+  **Key Features:**
+
+  - Web-based GUI for easy configuration and management
+
+  - Support for multiple protocols: VMess, VLESS, SS, SSR, Trojan, Tuic, Juicity
+
+  - Global transparent proxy for seamless application proxy services
+
+  - Multi-outbound load balancing and traffic splitting
+
+  - RoutingA custom routing for convenient traffic splitting
+
+  - Multiple DNS pollution mitigation strategies with advanced custom settings
+
+
+  **Learn More:**
+
+  - [V2rayA Official Website](https://v2raya.org/)
+
+  - [V2rayA GitHub](https://github.com/v2rayA/v2rayA)'
+category: Networking
+version: 1.0.0
+developer: v2rayA
+store: official
+icon: icon.png
+port: 2017
+architectures:
+- amd64
+- arm64

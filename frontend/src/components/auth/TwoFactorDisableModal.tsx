@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, Loader2, ShieldAlert, Smartphone, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getAuthToken } from '../../utils/auth';
 
 interface TwoFactorDisableModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export function TwoFactorDisableModal({ isOpen, onClose, onSuccess }: TwoFactorD
 
     setDisabling(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = getAuthToken();
       const res = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
         headers: {

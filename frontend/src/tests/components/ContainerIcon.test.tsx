@@ -4,10 +4,10 @@ import { ContainerIcon } from '../../components/ui/ContainerIcon';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 
 describe('ContainerIcon Component', () => {
-  it('renders OrbitLogo for orbit container', () => {
+  it('renders SaturnLogo for saturn container', () => {
     const { container } = render(
       <ThemeProvider>
-        <ContainerIcon src="__orbit__" name="Orbit" />
+        <ContainerIcon src="__saturn__" name="Saturn" />
       </ThemeProvider>
     );
 

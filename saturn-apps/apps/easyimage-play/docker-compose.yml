@@ -1,0 +1,27 @@
+name: easyimage
+services:
+  easyimage:
+    image: ddsderek/easyimage:latest
+    container_name: easyimage
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 80
+      published: '8080'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/easyimage/config
+      target: /app/web/config
+    - type: bind
+      source: /DATA/AppData/easyimage/i
+      target: /app/web/i
+    environment:
+      TZ: Asia/Shanghai
+      PUID: '1000'
+      PGID: '1000'
+      DEBUG: 'false'

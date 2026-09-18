@@ -1,0 +1,38 @@
+name: emby-arm
+services:
+  emby-arm:
+    devices:
+    - /dev/dri:/dev/dri
+    - /dev/vchiq:/dev/vchiq
+    - /dev/video10:/dev/video10
+    - /dev/video11:/dev/video11
+    - /dev/video12:/dev/video12
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: $TZ
+    image: emby/embyserver_arm32v7:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8096
+      published: '8096'
+      protocol: tcp
+    - target: 8920
+      published: '8920'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/emby-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Media/TV Shows
+      target: /data/tvshows
+    - type: bind
+      source: /DATA/Media/Movies
+      target: /data/movies
+    container_name: emby-arm

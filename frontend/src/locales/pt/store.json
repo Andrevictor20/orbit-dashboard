@@ -32,7 +32,7 @@
   "portInUseGeneral": "Em uso no host",
   "portSuggestedBadge": "Livre mais próxima",
   "portAvailable": "Disponível",
-  "portConflictAutoTip": "Ao clicar em \"Instalar com Porta Sugerida\", o Orbit remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.",
+  "portConflictAutoTip": "Ao clicar em \"Instalar com Porta Sugerida\", o Saturn remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.",
   "customizeInstall": "Personalizar",
   "installWithSuggested": "Instalar com Porta Sugerida",
   "cancelDownload": "Cancelar Download",

@@ -1,0 +1,15 @@
+id: nocodb-bigbear
+name: NocoDB
+tagline: 🔥 🔥 🔥 Open Source Airtable Alternative
+description: NocoDB allows building no-code database solutions with ease of spreadsheets.
+  Bring your own database or choose ours! Millions of rows? Not a problem. Your Data.
+  Your rules. You are in control.
+category: Developer
+version: 1.0.0
+developer: nocodb
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

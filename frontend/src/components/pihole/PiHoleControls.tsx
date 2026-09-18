@@ -52,7 +52,7 @@ export function PiHoleControls({
       <button
         type="button"
         onClick={onOpenConfig}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-orbit-600 hover:bg-orbit-500 shadow-md shadow-orbit-500/20 active:scale-95 transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-saturn-600 hover:bg-saturn-500 shadow-md shadow-saturn-500/20 active:scale-95 transition-all"
       >
         <Settings className="w-3.5 h-3.5" />
         <span>{t('pihole.configure')}</span>

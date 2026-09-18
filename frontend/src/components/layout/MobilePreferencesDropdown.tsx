@@ -67,7 +67,7 @@ export function MobilePreferencesDropdown({
     <div className="relative sm:hidden" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-orbit-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary active:scale-95 shadow-sm focus-visible:ring-2 focus-visible:ring-orbit-500 focus-visible:outline-none"
+        className="w-9 h-9 flex items-center justify-center rounded-xl border border-border/70 bg-card/50 hover:bg-card/85 hover:border-saturn-500/40 backdrop-blur-2xl transition-all duration-200 text-secondary hover:text-primary active:scale-95 shadow-sm focus-visible:ring-2 focus-visible:ring-saturn-500 focus-visible:outline-none"
         title={t('header.preferences_tooltip', 'Preferências (Tema e Idioma)')}
         aria-label={t('header.preferences_tooltip', 'Preferências (Tema e Idioma)')}
         aria-expanded={isOpen}
@@ -105,7 +105,7 @@ export function MobilePreferencesDropdown({
                     }}
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left ${
                       color === th.value
-                        ? 'bg-orbit-500/15 text-orbit-500 font-semibold border border-orbit-500/30'
+                        ? 'bg-saturn-500/15 text-saturn-500 font-semibold border border-saturn-500/30'
                         : 'text-primary hover:bg-accent/60'
                     }`}
                   >
@@ -131,7 +131,7 @@ export function MobilePreferencesDropdown({
                     }}
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left ${
                       currentLang === lang.code
-                        ? 'bg-orbit-500/15 text-orbit-500 font-semibold border border-orbit-500/30'
+                        ? 'bg-saturn-500/15 text-saturn-500 font-semibold border border-saturn-500/30'
                         : 'text-primary hover:bg-accent/60'
                     }`}
                   >

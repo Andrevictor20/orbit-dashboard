@@ -34,7 +34,7 @@ export function PiHole() {
   const [activeTab, setActiveTab] = useState<PiHoleTab>('overview');
 
   const getAuthHeaders = () => {
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -273,7 +273,7 @@ export function PiHole() {
       {/* Main Content Area */}
       {loadingConfig ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-orbit-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-saturn-500" />
           <span className="text-xs text-secondary">{t('common.loading')}</span>
         </div>
       ) : !config?.configured || !config.connected ? (
@@ -289,7 +289,7 @@ export function PiHole() {
               onClick={() => setActiveTab('overview')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'overview'
-                  ? 'bg-orbit-500/10 text-orbit-500 border border-orbit-500/20'
+                  ? 'bg-saturn-500/10 text-saturn-500 border border-saturn-500/20'
                   : 'text-secondary hover:text-primary hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }`}
             >
@@ -301,7 +301,7 @@ export function PiHole() {
               onClick={() => setActiveTab('domains')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'domains'
-                  ? 'bg-orbit-500/10 text-orbit-500 border border-orbit-500/20'
+                  ? 'bg-saturn-500/10 text-saturn-500 border border-saturn-500/20'
                   : 'text-secondary hover:text-primary hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }`}
             >

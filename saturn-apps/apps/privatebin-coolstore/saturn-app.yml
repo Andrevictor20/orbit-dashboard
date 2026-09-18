@@ -1,0 +1,16 @@
+id: privatebin-coolstore
+name: Privatebin
+tagline: Privatebin Is A Minimalist, Open Source Online Pastebin Where The Server
+  Has Zero Knowledge Of Pasted Data!
+description: PrivateBin is a minimalist, open source online pastebin where the server
+  has zero knowledge of pasted data!
+category: Coolstore
+version: 1.0.0
+developer: WisdomSky
+store: coolstore
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm
+- arm64

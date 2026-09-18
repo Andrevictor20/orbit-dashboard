@@ -1,0 +1,20 @@
+id: movie-robot-play
+name: MovieRobot
+tagline: Private film and television library automation management tool
+description: 'Movie Robot is a smart movie and TV show automation tool. It connects
+  to your existing media server (Plex, Emby) and downloader, allowing you to subscribe
+  to your favorite movies and TV shows. When there are updates, Movie Robot will notify
+  your downloader to download and organize them into your library.
+
+
+  **NOTE:** This is a paid software, but you can try it for 30 days, you can get the
+  application for trial and purchase license at https://moviebot.fun.'
+category: Media
+version: 1.0.0
+developer: Yee(yipengfei)
+store: play
+icon: icon.png
+port: 1329
+architectures:
+- arm64
+- amd64

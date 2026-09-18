@@ -15,6 +15,7 @@ interface TerminalAuthDialogProps {
   setShowAdvanced: (show: boolean) => void;
   errorMessage: string;
   onConnect: (e: React.FormEvent) => void;
+  onConnectInternal: () => void;
 }
 
 export function TerminalAuthDialog({
@@ -30,6 +31,7 @@ export function TerminalAuthDialog({
   setShowAdvanced,
   errorMessage,
   onConnect,
+  onConnectInternal,
 }: TerminalAuthDialogProps) {
   const { t } = useTranslation();
 
@@ -37,9 +39,41 @@ export function TerminalAuthDialog({
     <div className="absolute inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 z-20">
       <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-center mb-5">
-          <div className="w-14 h-14 rounded-2xl bg-orbit-500/15 border border-orbit-500/30 flex items-center justify-center text-orbit-500 shadow-inner">
+          <div className="w-14 h-14 rounded-2xl bg-saturn-500/15 border border-saturn-500/30 flex items-center justify-center text-saturn-500 shadow-inner">
             <TerminalIcon className="w-7 h-7" />
           </div>
+        </div>
+
+        {/* Quick Connect to Internal Terminal */}
+        <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Terminal Interno (Host / Sistema)
+            </span>
+            <span className="text-[10px] uppercase font-bold text-emerald-300/90 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+              Acesso Direto
+            </span>
+          </div>
+          <p className="text-xs text-secondary">
+            Conecte-se instantaneamente ao shell interativo interno do sistema sem necessidade de SSH.
+          </p>
+          <button
+            type="button"
+            onClick={onConnectInternal}
+            className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-semibold rounded-xl text-sm transition-all shadow-md shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <TerminalIcon className="w-4 h-4" />
+            <span>Conectar ao Terminal Interno</span>
+          </button>
+        </div>
+
+        <div className="relative flex py-1 items-center mb-5">
+          <div className="flex-grow border-t border-border"></div>
+          <span className="flex-shrink mx-3 text-[11px] font-semibold text-secondary uppercase tracking-wider">
+            ou Conexão SSH
+          </span>
+          <div className="flex-grow border-t border-border"></div>
         </div>
 
         <h3 className="text-xl font-bold text-center text-primary mb-1">{t('terminal.ssh_connection', 'Conexão SSH')}</h3>
@@ -64,7 +98,7 @@ export function TerminalAuthDialog({
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="pi ou root"
-                className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all font-mono shadow-sm"
+                className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-saturn-500 focus:ring-2 focus:ring-saturn-500/20 transition-all font-mono shadow-sm"
                 autoFocus
               />
             </div>
@@ -79,7 +113,7 @@ export function TerminalAuthDialog({
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-orbit-500 focus:ring-2 focus:ring-orbit-500/20 transition-all shadow-sm"
+                className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:border-saturn-500 focus:ring-2 focus:ring-saturn-500/20 transition-all shadow-sm"
               />
             </div>
           </div>
@@ -92,7 +126,7 @@ export function TerminalAuthDialog({
               className="w-full px-3.5 py-2.5 text-xs text-secondary hover:text-primary flex items-center justify-between transition-colors font-medium"
             >
               <span className="flex items-center gap-1.5">
-                <Server className="w-3.5 h-3.5 text-orbit-500" />
+                <Server className="w-3.5 h-3.5 text-saturn-500" />
                 {t('terminal.advanced_settings', 'Configurações Avançadas (Host / Port)')}
               </span>
               {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -109,7 +143,7 @@ export function TerminalAuthDialog({
                       value={host}
                       onChange={e => setHost(e.target.value)}
                       placeholder="localhost"
-                      className="w-full bg-background border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-primary focus:outline-none focus:border-orbit-500 font-mono shadow-sm"
+                      className="w-full bg-background border border-border rounded-lg py-1.5 pl-8 pr-2.5 text-xs text-primary focus:outline-none focus:border-saturn-500 font-mono shadow-sm"
                     />
                   </div>
                 </div>
@@ -121,7 +155,7 @@ export function TerminalAuthDialog({
                     value={port}
                     onChange={e => setPort(Number(e.target.value))}
                     placeholder="22"
-                    className="w-full bg-background border border-border rounded-lg py-1.5 px-2.5 text-xs text-primary focus:outline-none focus:border-orbit-500 font-mono shadow-sm"
+                    className="w-full bg-background border border-border rounded-lg py-1.5 px-2.5 text-xs text-primary focus:outline-none focus:border-saturn-500 font-mono shadow-sm"
                   />
                 </div>
               </div>
@@ -130,7 +164,7 @@ export function TerminalAuthDialog({
 
           <button
             type="submit"
-            className="w-full py-2.5 px-4 bg-orbit-600 hover:bg-orbit-500 active:scale-[0.98] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-orbit-900/30 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            className="w-full py-2.5 px-4 bg-saturn-600 hover:bg-saturn-500 active:scale-[0.98] text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-saturn-900/30 flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
             <TerminalIcon className="w-4 h-4" />
             <span>{t('terminal.connect')}</span>

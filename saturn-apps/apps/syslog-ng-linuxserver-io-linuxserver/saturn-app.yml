@@ -1,0 +1,15 @@
+id: syslog-ng-linuxserver-io-linuxserver
+name: Syslog ng (LinuxServer.io)
+tagline: Allows you to flexibly collect, parse, classify, rewrite and correlate logs
+  from across your infrastructure and store or route them to log analysis tools.
+description: syslog-ng allows you to flexibly collect, parse, classify, rewrite and
+  correlate logs from across your infrastructure and store or route them to log analysis
+  tools.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64
+- arm64

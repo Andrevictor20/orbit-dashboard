@@ -1,0 +1,14 @@
+id: pocketbase
+name: PocketBase
+tagline: Open Source realtime backend in 1 file
+description: PocketBase is an open-source backend solution that combines a real-time
+  database, authentication, file storage, and an admin dashboard into a single, portable
+  executable.
+category: Developer
+version: 1.0.0
+developer: Gani Georgiev
+store: official
+icon: icon.png
+port: 8090
+architectures:
+- amd64

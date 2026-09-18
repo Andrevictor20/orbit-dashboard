@@ -48,7 +48,7 @@ async fn main() {
     let _ = std::fs::create_dir_all("data");
 
     // Setup daily rolling log file and prune old logs (keep max 5 days / max 50MB)
-    let file_appender = tracing_appender::rolling::daily("data", "orbit.log");
+    let file_appender = tracing_appender::rolling::daily("data", "saturn.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     backend::logs::prune_old_log_files("data", 5, 50 * 1024 * 1024);
 
@@ -68,7 +68,7 @@ async fn main() {
         .with(stdout_layer)
         .init();
 
-    tracing::info!("Orbit Dashboard Backend Starting...");
+    tracing::info!("Saturn Dashboard Backend Starting...");
 
     // Auto-heal and restore persistent configuration files from legacy/previous volumes if needed
     backend::system::data_migrator::auto_heal_persistent_data();
@@ -110,6 +110,6 @@ async fn main() {
         tracing::error!("FATAL: Server error: {}", e);
         std::process::exit(1);
     } else {
-        tracing::info!("Orbit Dashboard Backend stopped gracefully.");
+        tracing::info!("Saturn Dashboard Backend stopped gracefully.");
     }
 }

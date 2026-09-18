@@ -1,0 +1,14 @@
+id: traefik-coolstore
+name: Traefik
+tagline: Cloud-native Networking Stack That Just Works.
+description: Cloud-Native Networking Stack That Just Works.
+category: Coolstore
+version: 1.0.0
+developer: WisdomSky
+store: coolstore
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm
+- arm64

@@ -1,0 +1,16 @@
+id: openshot-linuxserver-io-linuxserver
+name: Openshot (LinuxServer.io)
+tagline: Video Editor is an award-winning free and open-source video editor for Linux,
+  Mac, and Windows, and is dedicated to delivering high quality video editing and
+  animation solutions to the world.
+description: OpenShot Video Editor is an award-winning free and open-source video
+  editor for Linux, Mac, and Windows, and is dedicated to delivering high quality
+  video editing and animation solutions to the world.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

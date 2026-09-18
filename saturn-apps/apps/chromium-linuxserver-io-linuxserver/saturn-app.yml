@@ -1,0 +1,15 @@
+id: chromium-linuxserver-io-linuxserver
+name: Chromium (LinuxServer.io)
+tagline: An open-source browser project that aims to build a safer, faster, and more
+  stable way for all users to experience the web.
+description: Chromium is an open-source browser project that aims to build a safer,
+  faster, and more stable way for all users to experience the web.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

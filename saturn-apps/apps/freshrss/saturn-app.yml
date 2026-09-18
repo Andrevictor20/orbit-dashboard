@@ -1,0 +1,15 @@
+id: freshrss
+name: FreshRSS
+tagline: A free, self-hostable news aggregator…
+description: FreshRSS is a self-hosted RSS and Atom feed aggregator. It is lightweight,
+  easy to work with, powerful, and customizable.
+category: Productivity
+version: 1.0.0
+developer: FreshRSS
+store: official
+icon: icon.png
+port: 8749
+architectures:
+- amd64
+- arm64
+- arm

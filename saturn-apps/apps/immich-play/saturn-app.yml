@@ -1,0 +1,15 @@
+id: immich-play
+name: immich
+tagline: High performance self-hosted photo and video backup solution
+description: immich is a self-hosted photo and video backup solution for iOS and Android.
+  It offers AI-powered features like object detection, people recognition, and location-based
+  search, giving you complete control over your privacy and data.
+category: Media
+version: 1.0.0
+developer: alextran1502
+store: play
+icon: icon.png
+port: 2283
+architectures:
+- amd64
+- arm64

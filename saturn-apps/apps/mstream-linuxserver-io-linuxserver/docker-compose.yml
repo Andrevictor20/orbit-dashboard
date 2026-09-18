@@ -1,0 +1,20 @@
+name: linuxserver-mstream
+services:
+  app:
+    image: linuxserver/mstream:6.28.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 3000
+      published: 3000
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/mstream/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/mstream/music
+      target: /music

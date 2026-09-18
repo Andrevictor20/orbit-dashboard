@@ -72,10 +72,10 @@ export function ThemeProvider({
   defaultColor = "zinc",
   storageKey = "vite-ui-theme",
   colorStorageKey = "vite-ui-color",
-  avatarStorageKey = "orbit-custom-avatar",
-  wallpaperStorageKey = "orbit-wallpaper-url",
-  wallpaperOpacityKey = "orbit-wallpaper-opacity",
-  wallpaperBlurKey = "orbit-wallpaper-blur",
+  avatarStorageKey = "saturn-custom-avatar",
+  wallpaperStorageKey = "saturn-wallpaper-url",
+  wallpaperOpacityKey = "saturn-wallpaper-opacity",
+  wallpaperBlurKey = "saturn-wallpaper-blur",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
@@ -113,9 +113,9 @@ export function ThemeProvider({
     const root = window.document.documentElement;
 
     if (color !== 'wallpaper') {
-      root.style.removeProperty('--orbit-500');
-      root.style.removeProperty('--orbit-600');
-      root.style.removeProperty('--color-orbit-500');
+      root.style.removeProperty('--saturn-500');
+      root.style.removeProperty('--saturn-600');
+      root.style.removeProperty('--color-saturn-500');
       root.style.removeProperty('--accent');
       root.style.removeProperty('--glass-shadow');
       return;
@@ -128,9 +128,9 @@ export function ThemeProvider({
     if (!wallpaperUrl) {
       const def = DEFAULT_WALLPAPER_PALETTE;
       setWallpaperPalette(def);
-      root.style.setProperty('--orbit-500', def.primary);
-      root.style.setProperty('--orbit-600', def.primaryHover);
-      root.style.setProperty('--color-orbit-500', def.primary);
+      root.style.setProperty('--saturn-500', def.primary);
+      root.style.setProperty('--saturn-600', def.primaryHover);
+      root.style.setProperty('--color-saturn-500', def.primary);
       root.style.setProperty('--accent', def.accent);
       root.style.setProperty('--glass-shadow', def.glassShadow);
       return;
@@ -139,9 +139,9 @@ export function ThemeProvider({
     extractPaletteFromImage(wallpaperUrl, isDark).then((pal) => {
       if (!active) return;
       setWallpaperPalette(pal);
-      root.style.setProperty('--orbit-500', pal.primary);
-      root.style.setProperty('--orbit-600', pal.primaryHover);
-      root.style.setProperty('--color-orbit-500', pal.primary);
+      root.style.setProperty('--saturn-500', pal.primary);
+      root.style.setProperty('--saturn-600', pal.primaryHover);
+      root.style.setProperty('--color-saturn-500', pal.primary);
       root.style.setProperty('--accent', pal.accent);
       root.style.setProperty('--glass-shadow', pal.glassShadow);
     });
@@ -189,7 +189,7 @@ export function ThemeProvider({
       // Fallback to zinc if custom SVG favicon isn't generated for new colors
       const knownSvgs = ["zinc", "rose", "blue", "green", "catppuccin", "tokyonight"];
       const faviconColor = knownSvgs.includes(color) ? color : "zinc";
-      const iconPath = `/icons/orbit/orbit-${faviconColor}-${resolvedTheme}.svg`;
+      const iconPath = `/icons/saturn/saturn-${faviconColor}-${resolvedTheme}.svg`;
       let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
       if (!link) {
         link = document.createElement("link");

@@ -1,0 +1,14 @@
+id: anse-bigbear
+name: Anse
+tagline: Fully optimized UI for AI Chats.
+description: Anse is a fully optimized UI for AI Chats. Supercharged experience for
+  multiple models such as ChatGPT, DALL-E and Stable Diffusion.
+category: AI
+version: 1.0.0
+developer: ddiu8081
+store: bigbear
+icon: icon.png
+port: 8014
+architectures:
+- amd64
+- arm64

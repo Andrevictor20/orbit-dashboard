@@ -1,0 +1,15 @@
+id: cloudflared-web-coolstore
+name: Cloudflared-web
+tagline: Cloudflare tunnel with a simple web-based user interface.
+description: Cloudflared-web packages both Cloudflare tunnel and a simple web-based
+  user interface for easy starting and stopping of cloudflare tunnel.
+category: Coolstore
+version: 1.0.0
+developer: Cloudflare Inc.
+store: coolstore
+icon: icon.png
+port: 14333
+architectures:
+- amd64
+- arm
+- arm64

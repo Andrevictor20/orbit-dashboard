@@ -15,8 +15,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: andrevictor20/orbit-dashboard
-  DOCKERHUB_IMAGE: victorandre280/orbit-dashboard
+  IMAGE_NAME: andrevictor20/saturn
+  DOCKERHUB_IMAGE: victorandre280/saturn
 
 jobs:
   build-and-publish:
@@ -100,7 +100,7 @@ jobs:
           else
             echo "Creating new GitHub Release $TAG_NAME..."
             gh release create "$TAG_NAME" \
-              --title "Orbit Dashboard $TAG_NAME" \
+              --title "Saturn Dashboard $TAG_NAME" \
               --generate-notes \
               --target "${{ github.event.workflow_run.head_sha || github.sha }}" || echo "Release creation completed or skipped."
           fi

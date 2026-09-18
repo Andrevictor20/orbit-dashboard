@@ -1,0 +1,14 @@
+id: vikunja-v2-bigbear
+name: Vikunja v2
+tagline: Vikunja
+description: The open-source, self-hostable to-do app. Organize everything, on all
+  platforms.
+category: Others
+version: 1.0.0
+developer: kolaente
+store: bigbear
+icon: icon.png
+port: 8082
+architectures:
+- amd64
+- arm64

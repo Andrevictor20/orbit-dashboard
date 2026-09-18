@@ -45,7 +45,7 @@
   "test_success": "接続が正常に確立されました。トンネル: {{name}} ({{count}} ルート)",
   "test_failed": "Cloudflareとの接続テストに失敗しました",
   "tunnel_token_detected": "トンネルトークンが検出されました!アカウント ID とトンネル ID は自動的に抽出され、入力されます。",
-  "tunnel_token_notice": "注意: 貼り付けられたトークンは、ローカル コネクタのトンネル トークン (eyJh...) です。 OrbitがAPI経由でパブリックルートをリストするには、Cloudflareダッシュボードで生成されたユーザーAPIトークンをアカウント>Cloudflareトンネル>読み取り権限で提供します。",
+  "tunnel_token_notice": "注意: 貼り付けられたトークンは、ローカル コネクタのトンネル トークン (eyJh...) です。 SaturnがAPI経由でパブリックルートをリストするには、Cloudflareダッシュボードで生成されたユーザーAPIトークンをアカウント>Cloudflareトンネル>読み取り権限で提供します。",
   "api_token_guide_title": "Cloudflare APIトークンを取得するにはどうすればよいですか?",
   "api_token_guide_step1": "dash.cloudflare.com/profile/api-tokens にアクセスしてください",
   "api_token_guide_step2": "「トークンの作成」をクリックし、「カスタムトークンの作成」を選択します。",

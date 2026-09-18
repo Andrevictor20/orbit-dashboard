@@ -31,7 +31,7 @@ export function HAConnectView({
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-orbit-500/10 text-orbit-400 border border-orbit-500/20 shadow-sm">
+          <div className="p-2.5 rounded-2xl bg-saturn-500/10 text-saturn-400 border border-saturn-500/20 shadow-sm">
             <Home className="w-7 h-7" />
           </div>
           <div>
@@ -47,7 +47,7 @@ export function HAConnectView({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-7 bg-card/55 backdrop-blur-3xl saturate-[190%] border border-border/70 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-orbit-500/15 blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-saturn-500/15 blur-3xl pointer-events-none" />
 
           <h2 className="text-lg font-semibold text-primary mb-1">
             {t('homeassistant.connect_title')}
@@ -74,7 +74,7 @@ export function HAConnectView({
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder={t('homeassistant.url_placeholder')}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-border/80 bg-background/70 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500 transition-all"
+                className="w-full px-4 py-2.5 rounded-xl border border-border/80 bg-background/70 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500 transition-all"
               />
             </div>
 
@@ -89,7 +89,7 @@ export function HAConnectView({
                   onChange={(e) => setTokenInput(e.target.value)}
                   placeholder={t('homeassistant.token_placeholder')}
                   required
-                  className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border/80 bg-background/70 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500 transition-all font-mono"
+                  className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border/80 bg-background/70 text-primary text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500 transition-all font-mono"
                 />
                 <button
                   type="button"
@@ -106,7 +106,7 @@ export function HAConnectView({
             <button
               type="submit"
               disabled={isConnecting || !urlInput.trim() || !tokenInput.trim()}
-              className="w-full py-3 px-4 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-[0.98] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-orbit-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-xl bg-saturn-500 hover:bg-saturn-600 active:scale-[0.98] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-saturn-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConnecting ? (
                 <>
@@ -125,27 +125,27 @@ export function HAConnectView({
 
         <div className="lg:col-span-5 bg-card/60 backdrop-blur-xl border border-border/70 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-            <Sparkles className="w-4 h-4 text-orbit-500" />
+            <Sparkles className="w-4 h-4 text-saturn-500" />
             <h3>{t('homeassistant.how_to_get_token')}</h3>
           </div>
 
           <div className="space-y-3.5 text-xs text-secondary leading-relaxed">
             <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-saturn-500/20 text-saturn-700 dark:text-saturn-400 font-bold shrink-0">
                 1
               </span>
               <p>{t('homeassistant.step_1')}</p>
             </div>
 
             <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-saturn-500/20 text-saturn-700 dark:text-saturn-400 font-bold shrink-0">
                 2
               </span>
               <p>{t('homeassistant.step_2')}</p>
             </div>
 
             <div className="flex items-start gap-3 p-3 rounded-xl bg-accent/40 border border-border/50">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-orbit-500/20 text-orbit-700 dark:text-orbit-400 font-bold shrink-0">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-saturn-500/20 text-saturn-700 dark:text-saturn-400 font-bold shrink-0">
                 3
               </span>
               <p>{t('homeassistant.step_3')}</p>

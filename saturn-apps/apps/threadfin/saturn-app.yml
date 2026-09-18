@@ -1,0 +1,15 @@
+id: threadfin
+name: Threadfin
+tagline: M3U proxy server
+description: Threadfin is a M3U proxy server for Plex, Emby, Jellyfin and any client
+  and provider which supports the .TS and .M3U8 (HLS) streaming formats.
+category: Media
+version: 1.0.0
+developer: jdownloader
+store: official
+icon: icon.png
+port: 34400
+architectures:
+- amd64
+- arm64
+- arm

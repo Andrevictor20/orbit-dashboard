@@ -1,0 +1,29 @@
+id: bentopdf
+name: BentoPDF
+tagline: Privacy-first, self-hosted PDF toolkit
+description: '**Your PDFs never leave your device.** BentoPDF is a privacy-first PDF
+  toolkit that runs entirely in your browser. Every merge, split, conversion, and
+  edit happens locally on your machine — no file is ever uploaded to a server. More
+  than 50 tools are bundled into one clean, fast, ad-free interface.
+
+
+  **One app for every PDF job.** Organize and edit your documents (merge, split, reorder,
+  rotate, crop, watermark, page numbers, redaction, annotations and forms), convert
+  to and from PDF (images, Word, Excel, PowerPoint, EPUB, Markdown and more), run
+  OCR, and secure your files with compression, encryption, digital signatures, and
+  metadata cleanup.
+
+
+  **Made for your private cloud.** Self-hosting BentoPDF on a private cloud device
+  like Zima gives your whole household or team a single, ad-free PDF workshop on hardware
+  you control — fast over the local network, with your documents staying private by
+  design.'
+category: Productivity
+version: 1.0.0
+developer: BentoPDF
+store: official
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

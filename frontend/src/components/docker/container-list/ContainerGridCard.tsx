@@ -36,12 +36,12 @@ export function ContainerGridCard({
   return (
     <div 
       onClick={() => navigate(`/containers/${c.id}`)}
-      className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3.5 relative group hover:border-orbit-500/80 hover:shadow-lg transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:z-10 active:scale-[0.99] active:translate-y-0 cursor-pointer shadow-sm overflow-hidden will-change-transform"
+      className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3.5 relative group hover:border-saturn-500/80 hover:shadow-lg transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:z-10 active:scale-[0.99] active:translate-y-0 cursor-pointer shadow-sm overflow-hidden will-change-transform"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-border/80 shadow-sm shrink-0 group-hover:border-orbit-500/30 transition-colors p-1.5">
+          <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center border border-border/80 shadow-sm shrink-0 group-hover:border-saturn-500/30 transition-colors p-1.5">
             <ContainerIcon
               src={getIconForImage(c.image, c.name)}
               name={c.name}
@@ -53,7 +53,7 @@ export function ContainerGridCard({
           <div className="flex flex-col min-w-0">
             <span className="font-semibold text-primary text-sm truncate" title={c.name}>{c.name}</span>
             <span className="text-[11px] text-secondary font-medium truncate" title={c.image}>
-              {c.labels?.['com.docker.compose.service'] || c.labels?.['io.casaos.app.name'] || c.image.split(':')[0].split('/').pop()}
+              {c.labels?.['com.docker.compose.service'] || c.labels?.['io.saturn.app.name'] || c.image.split(':')[0].split('/').pop()}
             </span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className={`w-2 h-2 rounded-full ${c.state?.toLowerCase() === 'running' ? 'bg-emerald-500 animate-pulse' : c.state?.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
@@ -77,15 +77,15 @@ export function ContainerGridCard({
       {/* Resource Metrics */}
       <div className="grid grid-cols-3 gap-2 bg-background/80 p-2.5 rounded-lg border border-border/50">
         <div className="flex flex-col">
-          <span className="text-[10px] text-orbit-600 dark:text-orbit-400 uppercase font-semibold tracking-wider">CPU</span>
+          <span className="text-[10px] text-saturn-600 dark:text-saturn-400 uppercase font-semibold tracking-wider">CPU</span>
           <span className="text-xs text-primary font-mono font-bold">{c.cpu_percent?.toFixed(1) || '0.0'}%</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-orbit-600 dark:text-orbit-400 uppercase font-semibold tracking-wider">RAM</span>
+          <span className="text-[10px] text-saturn-600 dark:text-saturn-400 uppercase font-semibold tracking-wider">RAM</span>
           <span className="text-xs text-primary font-mono font-bold">{formatRAM(c.memory_used)}</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] text-orbit-600 dark:text-orbit-400 uppercase font-semibold tracking-wider">Disco</span>
+          <span className="text-[10px] text-saturn-600 dark:text-saturn-400 uppercase font-semibold tracking-wider">Disco</span>
           <span className="text-xs text-primary font-mono font-bold">{formatBytes(getContainerDiskUsage(c))}</span>
         </div>
       </div>
@@ -106,7 +106,7 @@ export function ContainerGridCard({
                         key={idx}
                         className={`flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded border transition-colors ${
                           isPrimary
-                            ? 'bg-orbit-500/15 border-orbit-500/40 text-orbit-500 font-semibold shadow-xs'
+                            ? 'bg-saturn-500/15 border-saturn-500/40 text-saturn-500 font-semibold shadow-xs'
                             : 'bg-background border-border/50 text-secondary'
                         }`}
                       >
@@ -158,10 +158,10 @@ export function ContainerGridCard({
                     e.stopPropagation();
                     window.open(webLink, '_blank');
                   }}
-                  className="glass-button px-2.5 py-1 text-xs rounded-lg text-orbit-600 dark:text-orbit-400 hover:text-orbit-500 flex items-center gap-1 transition-colors border border-orbit-500/30 font-semibold"
+                  className="glass-button px-2.5 py-1 text-xs rounded-lg text-saturn-600 dark:text-saturn-400 hover:text-saturn-500 flex items-center gap-1 transition-colors border border-saturn-500/30 font-semibold"
                   title={`Abrir ${c.name} (${webLink})`}
                 >
-                  <Globe className="w-3 h-3 text-orbit-600 dark:text-orbit-400" />
+                  <Globe className="w-3 h-3 text-saturn-600 dark:text-saturn-400" />
                   <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
                 </button>
                 <button

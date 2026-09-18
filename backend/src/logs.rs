@@ -12,7 +12,7 @@ use std::path::Path;
 
 #[derive(Deserialize, Debug, Default)]
 pub struct LogsQuery {
-    pub source: Option<String>, // "orbit", "system", "docker", "dmesg", "all"
+    pub source: Option<String>, // "saturn", "system", "docker", "dmesg", "all"
     pub level: Option<String>,  // "all", "info", "warn", "error", "debug"
     pub lines: Option<usize>,   // default 500, max 2000
     pub q: Option<String>,      // search term
@@ -27,7 +27,7 @@ pub struct LogsResponse {
 }
 
 pub async fn get_logs(Query(params): Query<LogsQuery>) -> impl IntoResponse {
-    let source = params.source.as_deref().unwrap_or("orbit");
+    let source = params.source.as_deref().unwrap_or("saturn");
     let level_filter = params.level.as_deref().unwrap_or("all").to_lowercase();
     let max_lines = params.lines.unwrap_or(500).min(2000);
     let search_query = params.q.as_deref().map(|s| s.to_lowercase());
@@ -37,12 +37,12 @@ pub async fn get_logs(Query(params): Query<LogsQuery>) -> impl IntoResponse {
         "docker" => fetch_docker_logs(max_lines).await,
         "dmesg" => fetch_dmesg_logs(max_lines).await,
         "all" => {
-            let mut combined = fetch_orbit_logs(max_lines / 2).await;
+            let mut combined = fetch_saturn_logs(max_lines / 2).await;
             let mut sys = fetch_system_logs(max_lines / 2).await;
             combined.append(&mut sys);
             combined
         },
-        _ => fetch_orbit_logs(max_lines).await,
+        _ => fetch_saturn_logs(max_lines).await,
     };
 
     let filtered_logs: Vec<String> = raw_logs
@@ -58,7 +58,7 @@ pub async fn get_logs(Query(params): Query<LogsQuery>) -> impl IntoResponse {
     };
 
     let available_sources = vec![
-        "orbit".to_string(),
+        "saturn".to_string(),
         "system".to_string(),
         "docker".to_string(),
         "dmesg".to_string(),
@@ -184,8 +184,8 @@ pub fn prune_old_log_files(dir_path: &str, keep_files: usize, max_total_bytes: u
         return 0;
     }
 
-    // Shrink active orbit.log if it exceeds 10MB
-    let active_log = path.join("orbit.log");
+    // Shrink active saturn.log if it exceeds 10MB
+    let active_log = path.join("saturn.log");
     if active_log.exists() {
         let max_active_size = 10 * 1024 * 1024; // 10MB
         shrink_active_log_file(&active_log, max_active_size, 2000);
@@ -197,7 +197,7 @@ pub fn prune_old_log_files(dir_path: &str, keep_files: usize, max_total_bytes: u
         for entry in entries.flatten() {
             let p = entry.path();
             if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with("orbit.log.") {
+                if name.starts_with("saturn.log.") {
                     if let Ok(meta) = entry.metadata() {
                         if meta.is_file() {
                             let modified = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
@@ -229,11 +229,11 @@ pub fn prune_old_log_files(dir_path: &str, keep_files: usize, max_total_bytes: u
 }
 
 pub async fn clear_logs(Query(params): Query<ClearLogsQuery>) -> impl IntoResponse {
-    let source = params.source.as_deref().unwrap_or("orbit");
+    let source = params.source.as_deref().unwrap_or("saturn");
     let mut cleared_sources = Vec::new();
 
-    if source == "orbit" || source == "all" {
-        for p in ["data/orbit.log", "/app/data/orbit.log", "orbit.log"] {
+    if source == "saturn" || source == "all" {
+        for p in ["data/saturn.log", "/app/data/saturn.log", "saturn.log"] {
             let path = Path::new(p);
             if path.exists() {
                 let _ = std::fs::write(path, "");
@@ -242,7 +242,7 @@ pub async fn clear_logs(Query(params): Query<ClearLogsQuery>) -> impl IntoRespon
         for dir in ["data", "/app/data"] {
             let _ = prune_old_log_files(dir, 0, 0);
         }
-        cleared_sources.push("orbit");
+        cleared_sources.push("saturn");
     }
 
     if source == "system" || source == "docker" || source == "all" {
@@ -267,8 +267,8 @@ pub async fn clear_logs(Query(params): Query<ClearLogsQuery>) -> impl IntoRespon
     }))).into_response()
 }
 
-async fn fetch_orbit_logs(max_lines: usize) -> Vec<String> {
-    let candidate_paths = ["data/orbit.log", "/app/data/orbit.log", "orbit.log"];
+async fn fetch_saturn_logs(max_lines: usize) -> Vec<String> {
+    let candidate_paths = ["data/saturn.log", "/app/data/saturn.log", "saturn.log"];
     for p in candidate_paths {
         let log_path = Path::new(p);
         if log_path.exists() {
@@ -283,7 +283,7 @@ async fn fetch_orbit_logs(max_lines: usize) -> Vec<String> {
     for dir in ["data", "/app/data"] {
         if let Ok(entries) = std::fs::read_dir(dir) {
             let mut rotated: Vec<_> = entries.flatten()
-                .filter(|e| e.file_name().to_string_lossy().starts_with("orbit.log"))
+                .filter(|e| e.file_name().to_string_lossy().starts_with("saturn.log"))
                 .collect();
             rotated.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::SystemTime::UNIX_EPOCH));
             if let Some(latest) = rotated.last() {
@@ -297,7 +297,7 @@ async fn fetch_orbit_logs(max_lines: usize) -> Vec<String> {
     }
 
     vec![
-        format!("{} [INFO] Orbit Backend service is active.", chrono_timestamp()),
+        format!("{} [INFO] Saturn Backend service is active.", chrono_timestamp()),
         format!("{} [INFO] Listening for events and system metrics.", chrono_timestamp())
     ]
 }
@@ -466,8 +466,8 @@ mod tests {
 
     #[test]
     fn test_filter_log_line_query() {
-        let line = "2026-08-23T14:00:00Z [INFO] Synchronizing App Store repository from CasaOS";
-        assert!(filter_log_line(line, "all", Some("casaos")));
+        let line = "2026-08-23T14:00:00Z [INFO] Synchronizing App Store repository from Saturn";
+        assert!(filter_log_line(line, "all", Some("saturn")));
         assert!(filter_log_line(line, "all", Some("synchronizing")));
         assert!(!filter_log_line(line, "all", Some("qbittorrent")));
     }

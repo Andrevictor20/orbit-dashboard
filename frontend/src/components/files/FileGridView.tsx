@@ -52,25 +52,25 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
             onDragOver={(e) => {
               if (item.is_dir) {
                 e.preventDefault();
-                e.currentTarget.classList.add('ring-2', 'ring-orbit-500');
+                e.currentTarget.classList.add('ring-2', 'ring-saturn-500');
               }
             }}
             onDragLeave={(e) => {
-              if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+              if (item.is_dir) e.currentTarget.classList.remove('ring-2', 'ring-saturn-500');
             }}
             onDrop={(e) => {
               if (item.is_dir) {
-                e.currentTarget.classList.remove('ring-2', 'ring-orbit-500');
+                e.currentTarget.classList.remove('ring-2', 'ring-saturn-500');
                 handleInternalDrop(e, item.path);
               }
             }}
             onClick={() => handleItemClick(item)}
             className={`group relative flex flex-col items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
               selected
-                ? 'bg-orbit-500/15 border-orbit-500/50 ring-2 ring-orbit-500/30 shadow-lg'
+                ? 'bg-saturn-500/15 border-saturn-500/50 ring-2 ring-saturn-500/30 shadow-lg'
                 : item.is_hidden
                 ? 'bg-card/70 border-border/60 opacity-60 hover:opacity-100 hover:bg-accent/60 hover:border-border'
-                : 'bg-card border-border/70 hover:bg-accent/70 hover:border-orbit-500/40 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
+                : 'bg-card border-border/70 hover:bg-accent/70 hover:border-saturn-500/40 hover:shadow-md hover:-translate-y-0.5 shadow-sm'
             }`}
           >
             {/* Selection Checkbox */}
@@ -78,8 +78,8 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
               onClick={(e) => toggleSelect(e, item)}
               className={`absolute top-2.5 left-2.5 z-10 w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
                 selected
-                  ? 'bg-orbit-500 border-orbit-500 text-white'
-                  : 'border-border bg-card/90 opacity-0 group-hover:opacity-100 text-transparent hover:border-orbit-400'
+                  ? 'bg-saturn-500 border-saturn-500 text-white'
+                  : 'border-border bg-card/90 opacity-0 group-hover:opacity-100 text-transparent hover:border-saturn-400'
               }`}
               title={selected ? 'Desmarcar' : 'Selecionar'}
             >
@@ -94,7 +94,7 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
             {/* Item Metadata */}
             <div className="w-full text-center min-w-0">
               <span 
-                className="block text-xs font-semibold text-primary truncate px-1 group-hover:text-orbit-400 transition-colors"
+                className="block text-xs font-semibold text-primary truncate px-1 group-hover:text-saturn-400 transition-colors"
                 title={item.name}
               >
                 {item.name}
@@ -126,7 +126,7 @@ export const FileGridView: React.FC<FileGridViewProps> = ({
                     e.stopPropagation();
                     onShareSamba(item);
                   }}
-                  className="p-1 rounded text-secondary hover:text-orbit-400 hover:bg-accent"
+                  className="p-1 rounded text-secondary hover:text-saturn-400 hover:bg-accent"
                   title="Compartilhar via Samba (SMB)"
                 >
                   <Network className="w-3 h-3" />

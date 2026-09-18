@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { saveFileToDb, getFileFromDb, removeFileFromDb } from '../utils/uploadDb';
+import { getAuthToken } from '../utils/auth';
 
 export const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk for high throughput & low overhead
 
@@ -44,13 +45,13 @@ interface UploadManagerContextType {
 
 const UploadManagerContext = createContext<UploadManagerContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'orbit_active_uploads';
+const SATURN_STORAGE_KEY = 'saturn_active_uploads';
 
 export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [uploads, setUploads] = useState<UploadItem[]>(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(SATURN_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) return parsed;
@@ -71,8 +72,9 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       // Keep up to 20 recent uploads in metadata
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(uploads.slice(0, 20)));
-    } catch {}
+      const serialized = JSON.stringify(uploads.slice(0, 20));
+      localStorage.setItem(SATURN_STORAGE_KEY, serialized);
+          } catch {}
   }, [uploads]);
 
   const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
@@ -93,7 +95,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
     try {
       // 1. Check server status to resume existing chunks
-      const token = localStorage.getItem('orbit_token');
+      const token = getAuthToken();
       const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       let currentUploadedChunks = [...item.uploadedChunks];
@@ -206,7 +208,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       fileCacheRef.current.delete(item.id);
 
       toast.success(t('files.upload_single_success', { name: file.name, defaultValue: `Upload de "${file.name}" concluído com sucesso!` }));
-      window.dispatchEvent(new CustomEvent('orbit:files_changed', { detail: { path: item.destinationPath } }));
+      window.dispatchEvent(new CustomEvent('saturn:files_changed', { detail: { path: item.destinationPath } }));
     } catch (err: any) {
       if (err?.name === 'AbortError') {
         // Handled by pause/cancel

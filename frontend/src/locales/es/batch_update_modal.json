@@ -43,7 +43,7 @@
   "cancel_container": "Cancelar actualización",
   "cancelled_by_user": "Cancelado por el usuario",
   "ready_for_update": "Contenedor(es) {{count}} listos para actualizar",
-  "update_via_orbit_menu": "Actualizar a través del menú Orbit",
+  "update_via_saturn_menu": "Actualizar a través del menú Saturn",
   "continue_in_background": "Continuar en segundo plano",
   "floating_title_updating": "Actualización en segundo plano",
   "floating_title_failed": "Actualización con fallas",

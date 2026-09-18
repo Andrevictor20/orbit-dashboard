@@ -1,0 +1,15 @@
+id: qdirstat-linuxserver-io-linuxserver
+name: Qdirstat (LinuxServer.io)
+tagline: 'Qt-based directory statistics: KDirStat without any KDE -- from the author
+  of the original KDirStat.'
+description: 'QDirStat Qt-based directory statistics: KDirStat without any KDE --
+  from the author of the original KDirStat.'
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

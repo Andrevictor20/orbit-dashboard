@@ -72,7 +72,7 @@
   "emptying": "Emptying...",
   "empty_trash_action": "Empty Trash",
   "safety_title": "Linux Filesystem Protection Guidelines",
-  "safety_intro": "Orbit blocks the deletion of critical essential directories. Below is the detailed list of what should NEVER be deleted manually via terminal or scripts to prevent irreversible host corruption.",
+  "safety_intro": "Saturn blocks the deletion of critical essential directories. Below is the detailed list of what should NEVER be deleted manually via terminal or scripts to prevent irreversible host corruption.",
   "critical_folders_title": "Critical Folders (Maximum Danger 🔴)",
   "boot_desc": "Contains Linux kernels, Initramfs and Grub. If deleted, the server will not boot.",
   "docker_overlay_desc": "Docker internal storage driver layers. Never use rm -rf directly here. Always use docker system prune.",

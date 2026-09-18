@@ -91,7 +91,7 @@ export function AppStoreSidebar({
           placeholder={t('store.search_placeholder')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm"
+          className="w-full pl-9 pr-3 py-2 bg-accent/50 border border-border rounded-xl text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500/80 transition-all shadow-sm"
         />
         {search && (
           <button
@@ -112,7 +112,7 @@ export function AppStoreSidebar({
           className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-accent/60 border border-border text-xs font-semibold text-primary transition-all hover:bg-accent"
         >
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-orbit-500" />
+            <SlidersHorizontal className="w-4 h-4 text-saturn-500" />
             <span>{t('store.categories', 'Categorias')} ({selectedCategory === 'All' ? t('common.all', 'Todas') : selectedCategory})</span>
           </div>
           <ChevronRight
@@ -136,7 +136,7 @@ export function AppStoreSidebar({
           <select
             value={selectedStore}
             onChange={(e) => onSelectStore(e.target.value)}
-            className="w-full px-3 py-1.5 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-orbit-500/80 transition-all shadow-sm cursor-pointer"
+            className="w-full px-3 py-1.5 bg-accent/50 border border-border rounded-xl text-xs text-primary focus:outline-none focus:border-saturn-500/80 transition-all shadow-sm cursor-pointer"
           >
             {stores.map((store) => (
               <option key={store} value={store}>
@@ -158,7 +158,7 @@ export function AppStoreSidebar({
             }}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
               selectedCategory === 'Discover' && !search
-                ? 'bg-orbit-500 text-white shadow-sm shadow-orbit-500/25 font-semibold'
+                ? 'bg-saturn-500 text-white shadow-sm shadow-saturn-500/25 font-semibold'
                 : 'text-secondary hover:text-primary hover:bg-accent/70'
             }`}
           >
@@ -170,7 +170,7 @@ export function AppStoreSidebar({
               className={`w-3.5 h-3.5 ${
                 selectedCategory === 'Discover' && !search
                   ? 'text-white'
-                  : 'text-orbit-400 opacity-60'
+                  : 'text-saturn-400 opacity-60'
               }`}
             />
           </button>
@@ -182,7 +182,7 @@ export function AppStoreSidebar({
             }}
             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
               selectedCategory === 'All'
-                ? 'bg-orbit-500 text-white shadow-sm shadow-orbit-500/25 font-semibold'
+                ? 'bg-saturn-500 text-white shadow-sm shadow-saturn-500/25 font-semibold'
                 : 'text-secondary hover:text-primary hover:bg-accent/70'
             }`}
           >
@@ -221,7 +221,7 @@ export function AppStoreSidebar({
                   if (showCategoryFilter) setCategoryFilter('');
                 }}
                 className={`p-1 rounded-lg text-secondary hover:text-primary hover:bg-accent transition-colors ${
-                  showCategoryFilter || categoryFilter ? 'text-orbit-500 bg-orbit-500/10' : ''
+                  showCategoryFilter || categoryFilter ? 'text-saturn-500 bg-saturn-500/10' : ''
                 }`}
                 title="Filtrar categorias"
               >
@@ -238,7 +238,7 @@ export function AppStoreSidebar({
                 placeholder="Filtrar lista..."
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full pl-6 pr-6 py-1 bg-accent/40 border border-border rounded-lg text-[11px] text-primary placeholder:text-secondary/50 focus:outline-none focus:border-orbit-500/80 transition-all"
+                className="w-full pl-6 pr-6 py-1 bg-accent/40 border border-border rounded-lg text-[11px] text-primary placeholder:text-secondary/50 focus:outline-none focus:border-saturn-500/80 transition-all"
                 autoFocus
               />
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 -mt-0.5 w-2.5 h-2.5 text-secondary/50" />
@@ -271,7 +271,7 @@ export function AppStoreSidebar({
                     }}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all group ${
                       isSelected
-                        ? 'bg-orbit-500 text-white shadow-sm shadow-orbit-500/25 font-semibold'
+                        ? 'bg-saturn-500 text-white shadow-sm shadow-saturn-500/25 font-semibold'
                         : 'text-secondary hover:text-primary hover:bg-accent/70'
                     }`}
                   >

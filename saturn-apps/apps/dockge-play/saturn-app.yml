@@ -1,0 +1,15 @@
+id: dockge-play
+name: Dockge
+tagline: Stack-oriented manager
+description: A fancy, easy-to-use and reactive self-hosted docker compose.yaml stack-oriented
+  manager.
+category: Developer
+version: 1.0.0
+developer: louislam
+store: play
+icon: icon.png
+port: 5001
+architectures:
+- amd64
+- arm
+- arm64

@@ -87,9 +87,9 @@ fn test_parse_image_ref_and_digests() {
     assert_eq!(tag, "1.2.3");
 
     // GHCR
-    let (reg, repo, tag) = parse_image_ref("ghcr.io/andrevictor20/orbit-dashboard:latest");
+    let (reg, repo, tag) = parse_image_ref("ghcr.io/andrevictor20/saturn:latest");
     assert_eq!(reg, "ghcr.io");
-    assert_eq!(repo, "andrevictor20/orbit-dashboard");
+    assert_eq!(repo, "andrevictor20/saturn");
     assert_eq!(tag, "latest");
 
     // LSCR (LinuxServer Registry)

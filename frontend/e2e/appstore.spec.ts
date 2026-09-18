@@ -12,7 +12,7 @@ test.describe('App Store Flow', () => {
     });
 
     await page.addInitScript(() => {
-      window.localStorage.setItem('orbit_token', 'mocked_token');
+      window.localStorage.setItem('saturn_token', 'mocked_token');
     });
 
     // Mock store apps

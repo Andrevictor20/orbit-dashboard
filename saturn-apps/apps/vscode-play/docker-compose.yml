@@ -1,0 +1,29 @@
+name: vscode
+services:
+  vscode:
+    container_name: vscode
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    environment:
+    - DEFAULT_WORKSPACE=/config/workspace
+    - PASSWORD=saturn
+    - PGID=1000
+    - PUID=1000
+    - SUDO_PASSWORD=password
+    - TZ=Etc/UTC
+    image: linuxserver/code-server:latest
+    ports:
+    - target: 8443
+      published: '8443'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/vscode/config
+      target: /config
+    - type: bind
+      source: /DATA
+      target: /config/workspace/DATA
+    network_mode: bridge

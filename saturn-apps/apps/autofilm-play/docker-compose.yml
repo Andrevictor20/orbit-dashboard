@@ -1,0 +1,23 @@
+name: autofilm
+services:
+  autofilm:
+    container_name: autofilm
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    hostname: autofilm
+    image: akimio/autofilm:latest
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/autofilm/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/autofilm/media
+      target: /media
+    - type: bind
+      source: /DATA/AppData/autofilm/logs
+      target: /logs
+    network_mode: host
+    privileged: false

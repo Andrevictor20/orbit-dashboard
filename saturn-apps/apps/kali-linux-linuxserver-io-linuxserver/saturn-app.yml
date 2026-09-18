@@ -1,0 +1,17 @@
+id: kali-linux-linuxserver-io-linuxserver
+name: Kali linux (LinuxServer.io)
+tagline: is an Advanced Penetration Testing Linux distribution used for Penetration
+  Testing, Ethical Hacking and network security assessments. KALI LINUX ™ is a trademark
+  of OffSec.
+description: Kali-linux - is an Advanced Penetration Testing Linux distribution used
+  for Penetration Testing, Ethical Hacking and network security assessments. KALI
+  LINUX ™ is a trademark of OffSec.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

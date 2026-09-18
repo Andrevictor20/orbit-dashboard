@@ -16,7 +16,7 @@ export function Logs() {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [source, setSource] = useState<LogSource>('orbit');
+  const [source, setSource] = useState<LogSource>('saturn');
   const [level, setLevel] = useState<LogLevel>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [lineLimit, setLineLimit] = useState<number>(500);
@@ -34,7 +34,7 @@ export function Logs() {
     if (showLoading) setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const params = new URLSearchParams({ source, level, lines: lineLimit.toString() });
       if (searchQuery.trim()) params.append('q', searchQuery.trim());
       const res = await fetch(`/api/logs?${params.toString()}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
@@ -77,22 +77,22 @@ export function Logs() {
     const blob = new Blob([logs.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `orbit-${source}-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.log`;
+    a.href = url; a.download = `saturn-${source}-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.log`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     toast.success(t('logs.download_started', 'Download iniciado!'));
   };
   const handleClearLogs = async () => {
-    const isOrbit = source === 'orbit';
-    const confirmMsg = isOrbit
-      ? t('logs.clear_confirm_orbit', 'Deseja realmente limpar os registros de log do Orbit?')
+    const isSaturn = source === 'saturn';
+    const confirmMsg = isSaturn
+      ? t('logs.clear_confirm_saturn', 'Deseja realmente limpar os registros de log do Saturn?')
       : t('logs.clear_confirm_system', 'Deseja executar a limpeza e compactação de logs?');
     if (!window.confirm(confirmMsg)) return;
     setClearing(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch(`/api/logs/clear?source=${source}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.ok) {
-        toast.success(isOrbit ? t('logs.clear_success_orbit', 'Logs do Orbit limpos!') : t('logs.clear_success_system', 'Logs limpos e espaço compactado!'));
+        toast.success(isSaturn ? t('logs.clear_success_saturn', 'Logs do Saturn limpos!') : t('logs.clear_success_system', 'Logs limpos e espaço compactado!'));
         await fetchLogs(true);
       } else {
         toast.error(t('logs.clear_error', 'Erro ao limpar logs.'));
@@ -119,7 +119,7 @@ export function Logs() {
         <>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-orbit-500/10 border border-orbit-500/20 text-orbit-400">
+              <div className="p-2 rounded-xl bg-saturn-500/10 border border-saturn-500/20 text-saturn-400">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
@@ -145,12 +145,12 @@ export function Logs() {
         <div className="h-11 bg-muted/70 border-b border-border/70 px-3 sm:px-4 flex items-center justify-between gap-3 select-none shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${autoRefreshInterval > 0 && !loading ? 'bg-emerald-500 animate-pulse' : 'bg-orbit-500'}`} />
-              <TerminalIcon className="w-3.5 h-3.5 text-orbit-500 shrink-0" />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${autoRefreshInterval > 0 && !loading ? 'bg-emerald-500 animate-pulse' : 'bg-saturn-500'}`} />
+              <TerminalIcon className="w-3.5 h-3.5 text-saturn-500 shrink-0" />
             </div>
             <div className="flex items-center gap-1.5 font-mono text-xs truncate">
-              <span className="text-secondary hidden sm:inline">orbit@host:</span>
-              <span className="text-orbit-600 dark:text-orbit-300 font-semibold px-2 py-0.5 rounded-md bg-orbit-500/10 border border-orbit-500/20">/var/log/{source}</span>
+              <span className="text-secondary hidden sm:inline">saturn@host:</span>
+              <span className="text-saturn-600 dark:text-saturn-300 font-semibold px-2 py-0.5 rounded-md bg-saturn-500/10 border border-saturn-500/20">/var/log/{source}</span>
             </div>
             {logStats.errors > 0 && <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-mono">{logStats.errors} erros</span>}
             {logStats.warnings > 0 && <span className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[10px] font-mono">{logStats.warnings} avisos</span>}
@@ -158,7 +158,7 @@ export function Logs() {
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-2 font-mono text-[11px] text-secondary">
               <span className="px-2 py-0.5 rounded bg-accent border border-border/60 hidden sm:inline">{logs.length} linhas</span>
-              {loading && <span className="text-orbit-500 flex items-center gap-1 text-[11px]"><RefreshCw className="w-3 h-3 animate-spin" /><span className="hidden sm:inline">Atualizando...</span></span>}
+              {loading && <span className="text-saturn-500 flex items-center gap-1 text-[11px]"><RefreshCw className="w-3 h-3 animate-spin" /><span className="hidden sm:inline">Atualizando...</span></span>}
             </div>
             <div className="h-4 w-px bg-border/60 mx-1 hidden sm:block" />
             <button onClick={handleCopyLogs} disabled={logs.length === 0} className="p-1.5 text-secondary hover:text-primary hover:bg-accent rounded-lg transition-colors text-xs flex items-center gap-1 disabled:opacity-40" title="Copiar todos os logs">
@@ -220,7 +220,7 @@ export function Logs() {
         )}
 
         {!autoScroll && logs.length > 50 && (
-          <button onClick={() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })} className="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl bg-orbit-600/90 hover:bg-orbit-500 text-white text-xs font-medium shadow-lg shadow-black/50 border border-orbit-400/30 flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 z-10" title="Ir para o final dos logs">
+          <button onClick={() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })} className="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl bg-saturn-600/90 hover:bg-saturn-500 text-white text-xs font-medium shadow-lg shadow-black/50 border border-saturn-400/30 flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 z-10" title="Ir para o final dos logs">
             <ArrowDown className="w-3.5 h-3.5" />
             <span>Fim dos logs</span>
           </button>

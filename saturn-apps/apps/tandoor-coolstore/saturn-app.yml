@@ -1,0 +1,16 @@
+id: tandoor-coolstore
+name: Tandoor
+tagline: The Recipe Manager That Allows You To Manage Your Ever Growing Collection
+  Of Digital Recipes.
+description: The recipe manager that allows you to manage your ever growing collection
+  of digital recipes.
+category: Coolstore
+version: 1.0.0
+developer: WisdomSky
+store: coolstore
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm
+- arm64

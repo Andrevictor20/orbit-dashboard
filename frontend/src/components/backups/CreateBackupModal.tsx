@@ -12,7 +12,7 @@ import {
   Check
 } from 'lucide-react';
 
-export type BackupScope = 'system_full' | 'orbit_configs' | 'all_containers' | 'single_app';
+export type BackupScope = 'system_full' | 'saturn_configs' | 'all_containers' | 'single_app';
 
 export interface CreateBackupModalProps {
   apps: string[];
@@ -60,14 +60,14 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
     {
       id: 'system_full',
       title: t('backups.scope_full_system', 'Sistema Completo'),
-      desc: t('backups.scope_full_system_desc', 'Configurações do Orbit, credenciais, integrações (HA, Cloudflare, Pi-hole, Samba) e todos os contêineres e volumes'),
+      desc: t('backups.scope_full_system_desc', 'Configurações do Saturn, credenciais, integrações (HA, Cloudflare, Pi-hole, Samba) e todos os contêineres e volumes'),
       icon: Sparkles,
       color: 'text-purple-500 bg-purple-500/10',
       border: 'border-purple-500/30',
       badge: '★ ' + t('common.recommended', 'Recomendado'),
     },
     {
-      id: 'orbit_configs',
+      id: 'saturn_configs',
       title: t('backups.scope_configs_only', 'Configurações & Integrações'),
       desc: t('backups.scope_configs_only_desc', 'Apenas autenticação, 2FA, integrações, links e preferências (instantâneo e leve)'),
       icon: Sliders,
@@ -97,7 +97,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
       <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orbit-500/10 text-orbit-500 rounded-xl border border-orbit-500/20">
+            <div className="p-2.5 bg-saturn-500/10 text-saturn-500 rounded-xl border border-saturn-500/20">
               <Archive className="w-5 h-5" />
             </div>
             <div>
@@ -132,7 +132,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
                     onClick={() => setScope(opt.id)}
                     className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-3 relative ${
                       isSelected
-                        ? 'bg-orbit-500/10 border-orbit-500 shadow-sm'
+                        ? 'bg-saturn-500/10 border-saturn-500 shadow-sm'
                         : 'bg-accent/30 hover:bg-accent/60 border-border/80 text-secondary'
                     }`}
                   >
@@ -156,7 +156,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
                     </div>
                     <div className="absolute right-3 top-3.5">
                       <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected ? 'border-orbit-500 bg-orbit-500 text-white' : 'border-border bg-accent/40'
+                        isSelected ? 'border-saturn-500 bg-saturn-500 text-white' : 'border-border bg-accent/40'
                       }`}>
                         {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                       </div>
@@ -180,7 +180,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
                     value={selectedApp}
                     onChange={(e) => setSelectedApp(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500"
+                    className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500"
                   >
                     {apps.map((app) => (
                       <option key={app} value={app} className="bg-card text-primary">
@@ -191,7 +191,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
                   <button
                     type="button"
                     onClick={() => setUseCustom(true)}
-                    className="text-xs text-orbit-500 hover:underline"
+                    className="text-xs text-saturn-500 hover:underline"
                   >
                     {t('backups.or_enter_manually', 'Ou digite o nome do app manualmente')}
                   </button>
@@ -204,14 +204,14 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
                     value={customApp}
                     onChange={(e) => setCustomApp(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500 font-mono"
+                    className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500 font-mono"
                     required
                   />
                   {apps.length > 0 && (
                     <button
                       type="button"
                       onClick={() => setUseCustom(false)}
-                      className="text-xs text-orbit-500 hover:underline"
+                      className="text-xs text-saturn-500 hover:underline"
                     >
                       {t('backups.back_to_app_list', 'Voltar para lista de aplicativos detectados')}
                     </button>
@@ -222,7 +222,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
           )}
 
           {/* Pause notice for consistency */}
-          {scope !== 'orbit_configs' && (
+          {scope !== 'saturn_configs' && (
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
@@ -243,7 +243,7 @@ export function CreateBackupModal({ apps, onClose, onSubmit }: CreateBackupModal
             <button
               type="submit"
               disabled={loading || (scope === 'single_app' && !effectiveApp)}
-              className="px-5 py-2 bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-95 disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>{loading ? t('backups.compressing', 'Compactando...') : t('backups.start_backup_button', 'Iniciar Backup')}</span>

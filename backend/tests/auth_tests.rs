@@ -6,7 +6,8 @@ use std::fs;
 #[tokio::test]
 async fn test_auth_flow() {
     // 0. Clean up any existing file before test to ensure clean state
-    let _ = fs::remove_file("data/orbit_auth.json");
+    let _ = fs::remove_file("data/saturn_auth.json");
+    let _ = fs::remove_file("data/saturn_auth.json");
 
     unsafe {
         std::env::set_var("JWT_SECRET", "super_secret");
@@ -94,5 +95,6 @@ async fn test_auth_flow() {
     login_new.assert_status_success();
 
     // Clean up
-    let _ = fs::remove_file("data/orbit_auth.json");
+    let _ = fs::remove_file("data/saturn_auth.json");
+    let _ = fs::remove_file("data/saturn_auth.json");
 }

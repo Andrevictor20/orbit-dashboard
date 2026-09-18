@@ -110,7 +110,7 @@ export default function Backups() {
 
   const getItemVisuals = (b: BackupItem) => {
     const isFull = b.target_type === 'system_full' || b.filename.includes('system_full') || b.app_name.includes('Sistema Completo');
-    const isConfigs = b.target_type === 'orbit_configs' || b.filename.includes('orbit_configs') || b.app_name.includes('Configurações Orbit');
+    const isConfigs = b.target_type === 'saturn_configs' || b.filename.includes('saturn_configs') || b.app_name.includes('Configurações Saturn');
     const isAll = b.target_type === 'all_containers' || b.filename.includes('all_containers');
 
     if (isFull) {
@@ -124,7 +124,7 @@ export default function Backups() {
     if (isConfigs) {
       return {
         icon: Sliders,
-        badge: t('backups.badge_orbit_configs', 'Configurações Orbit'),
+        badge: t('backups.badge_saturn_configs', 'Configurações Saturn'),
         badgeColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
         avatarColor: 'bg-blue-500/15 text-blue-600 border-blue-500/30',
       };
@@ -141,7 +141,7 @@ export default function Backups() {
       icon: HardDrive,
       badge: t('backups.badge_single_app', 'Contêiner'),
       badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-      avatarColor: 'bg-orbit-500/10 text-orbit-500 border-orbit-500/20',
+      avatarColor: 'bg-saturn-500/10 text-saturn-500 border-saturn-500/20',
     };
   };
 
@@ -152,7 +152,7 @@ export default function Backups() {
 
     if (typeof param === 'string') {
       appName = param;
-      targetType = param === 'system_full' ? 'system_full' : param === 'orbit_configs' ? 'orbit_configs' : param === 'all_containers' ? 'all_containers' : 'single_app';
+      targetType = param === 'system_full' ? 'system_full' : param === 'saturn_configs' ? 'saturn_configs' : param === 'all_containers' ? 'all_containers' : 'single_app';
     } else {
       targetType = param.targetType;
       appName = param.appName || param.targetType;
@@ -161,8 +161,8 @@ export default function Backups() {
 
     const label = targetType === 'system_full'
       ? t('backups.scope_full_system', 'Sistema Completo')
-      : targetType === 'orbit_configs'
-      ? t('backups.scope_configs_only', 'Configurações Orbit')
+      : targetType === 'saturn_configs'
+      ? t('backups.scope_configs_only', 'Configurações Saturn')
       : targetType === 'all_containers'
       ? t('backups.scope_all_containers', 'Todos os Contêineres')
       : appName;
@@ -210,6 +210,11 @@ export default function Backups() {
       }
       toast.success(t('backups.app_restored_success', { name: backupToRestore.app_name, defaultValue: `App ${backupToRestore.app_name} restaurado com sucesso!` }), { id: toastId });
       loadData();
+      if (backupToRestore.target_type === 'system_full' || backupToRestore.target_type === 'saturn_configs' || backupToRestore.target_type === 'saturn_configs') {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`, { id: toastId });
       throw err;
@@ -264,8 +269,10 @@ export default function Backups() {
         const errorMsg = await res.text();
         throw new Error(errorMsg || 'Falha no upload do arquivo');
       }
+      const uploadedItem: BackupItem = await res.json();
       toast.success('Backup importado com sucesso!', { id: toastId });
       loadData();
+      setBackupToRestore(uploadedItem);
     } catch (err: any) {
       toast.error('Erro no upload: ' + err.message, { id: toastId });
     } finally {
@@ -280,7 +287,7 @@ export default function Backups() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orbit-500/10 text-orbit-500 rounded-xl border border-orbit-500/20">
+            <div className="p-2.5 bg-saturn-500/10 text-saturn-500 rounded-xl border border-saturn-500/20">
               <Archive className="w-6 h-6" />
             </div>
             <div>
@@ -307,7 +314,7 @@ export default function Backups() {
             className="px-3.5 py-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl text-xs font-semibold border border-border transition-colors flex items-center gap-2"
             title={t('backups.import_snapshot_title', 'Importar arquivo .tar.gz existente')}
           >
-            <UploadCloud className="w-4 h-4 text-orbit-500" />
+            <UploadCloud className="w-4 h-4 text-saturn-500" />
             <span>{uploading ? t('backups.uploading', 'Enviando...') : t('backups.import_snapshot', 'Importar Snapshot')}</span>
           </button>
 
@@ -334,7 +341,7 @@ export default function Backups() {
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-95 flex items-center gap-2"
+            className="px-4 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-95 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>{t('backups.new_backup', 'Novo Backup')}</span>
@@ -368,7 +375,7 @@ export default function Backups() {
             placeholder={t('backups.search_placeholder', 'Filtrar por app ou nome do arquivo...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-accent/40 border border-border rounded-xl pl-9 pr-4 py-2 text-xs text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+            className="w-full bg-accent/40 border border-border rounded-xl pl-9 pr-4 py-2 text-xs text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-saturn-500"
           />
         </div>
         <div className="text-xs text-secondary font-medium">
@@ -379,7 +386,7 @@ export default function Backups() {
       {/* Backups List */}
       {filteredBackups.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl p-12 text-center space-y-4">
-          <div className="w-16 h-16 bg-orbit-500/10 text-orbit-500 rounded-2xl mx-auto flex items-center justify-center border border-orbit-500/20">
+          <div className="w-16 h-16 bg-saturn-500/10 text-saturn-500 rounded-2xl mx-auto flex items-center justify-center border border-saturn-500/20">
             <Archive className="w-8 h-8" />
           </div>
           <div className="space-y-1 max-w-md mx-auto">
@@ -390,7 +397,7 @@ export default function Backups() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-2 shadow-sm"
+            className="px-4 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>{t('backups.create_now', 'Criar Snapshot Agora')}</span>

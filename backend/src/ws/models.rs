@@ -23,8 +23,8 @@ pub struct SystemStats {
     pub docker_memory: u64,
     pub docker_tx: u64,
     pub docker_rx: u64,
-    pub orbit_cpu: f32,
-    pub orbit_memory: u64,
+    pub saturn_cpu: f32,
+    pub saturn_memory: u64,
     #[serde(default)]
     pub network_interface: Option<String>,
     #[serde(default)]

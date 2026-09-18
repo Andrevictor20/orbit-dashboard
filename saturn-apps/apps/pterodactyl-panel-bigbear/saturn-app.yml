@@ -1,0 +1,16 @@
+id: pterodactyl-panel-bigbear
+name: Pterodactyl Panel
+tagline: Pterodactyl Panel
+description: Pterodactyl® is a free, open-source game server management panel built
+  with PHP, React, and Go. Designed with security in mind, Pterodactyl runs all game
+  servers in isolated Docker containers while exposing a beautiful and intuitive UI
+  to end users.
+category: Developer
+version: 1.0.0
+developer: pterodactyl
+store: bigbear
+icon: icon.png
+port: 1180
+architectures:
+- amd64
+- arm64

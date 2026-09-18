@@ -1,0 +1,13 @@
+id: rocket-chat-legacy-bigbear
+name: Rocket.Chat (Legacy)
+tagline: The communications platform that puts data protection first.
+description: Rocket.Chat is an open-source fully customizable communications platform
+  [...]
+category: Social
+version: 1.0.0
+developer: rocket.chat
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64

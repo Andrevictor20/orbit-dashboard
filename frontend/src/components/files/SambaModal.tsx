@@ -60,7 +60,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
   const fetchStatusAndShares = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [statusRes, sharesRes] = await Promise.all([
@@ -110,7 +110,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
     if (!status) return;
     try {
       setTogglingService(true);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const nextState = !status.enabled;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -142,7 +142,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
 
     try {
       setIsSubmitting(true);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/samba/shares', {
@@ -182,7 +182,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
     }
 
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`/api/samba/shares/${encodeURIComponent(name)}`, {
         method: 'DELETE',
@@ -213,7 +213,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-accent/30">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/15 text-orbit-500 border border-orbit-500/30">
+            <div className="p-2.5 rounded-xl bg-saturn-500/15 text-saturn-500 border border-saturn-500/30">
               <Network className="w-5 h-5" />
             </div>
             <div>
@@ -269,7 +269,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 <span className="font-mono text-secondary truncate">\\\\{lanIp}</span>
                 <button
                   onClick={() => handleCopy(`\\\\${lanIp}`, 'win_base')}
-                  className="p-1 hover:text-orbit-500 transition-colors ml-2 text-secondary shrink-0"
+                  className="p-1 hover:text-saturn-500 transition-colors ml-2 text-secondary shrink-0"
                   title={t('files.samba_copy_win_shortcut', 'Copiar atalho Windows')}
                 >
                   {copiedKey === 'win_base' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -279,7 +279,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 <span className="font-mono text-secondary truncate">smb://{lanIp}</span>
                 <button
                   onClick={() => handleCopy(`smb://${lanIp}`, 'mac_base')}
-                  className="p-1 hover:text-orbit-500 transition-colors ml-2 text-secondary shrink-0"
+                  className="p-1 hover:text-saturn-500 transition-colors ml-2 text-secondary shrink-0"
                   title={t('files.samba_copy_mac_shortcut', 'Copiar atalho Mac / Linux')}
                 >
                   {copiedKey === 'mac_base' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -291,7 +291,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
           {/* Form to Share Folder */}
           <form onSubmit={handleCreateShare} className="bg-card border border-border/80 rounded-xl p-4 space-y-3 shadow-sm">
             <h3 className="text-xs font-bold text-primary flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-orbit-500" />
+              <Plus className="w-4 h-4 text-saturn-500" />
               {folder ? t('files.samba_share_folder_title', { name: folder.name, defaultValue: `Compartilhar Pasta: ${folder.name}` }) : t('files.samba_create_new_share', 'Criar Novo Compartilhamento')}
             </h3>
 
@@ -305,7 +305,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                   placeholder={t('files.samba_share_name_placeholder', 'ex: public, backups, filmes')}
                   value={shareName}
                   onChange={(e) => setShareName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                  className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500 font-mono"
+                  className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-saturn-500 font-mono"
                   required
                 />
               </div>
@@ -319,7 +319,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                   placeholder={t('files.samba_host_path_placeholder', '/DATA ou caminho da pasta')}
                   value={sharePath}
                   onChange={(e) => setSharePath(e.target.value)}
-                  className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500 font-mono"
+                  className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-saturn-500 font-mono"
                   required
                 />
               </div>
@@ -334,7 +334,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                 placeholder={t('files.samba_comment_placeholder', 'ex: Arquivos e downloads da rede')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-orbit-500"
+                className="w-full bg-accent/50 border border-border rounded-xl px-3 py-1.5 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-saturn-500"
               />
             </div>
 
@@ -345,7 +345,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                     type="checkbox"
                     checked={guestOk}
                     onChange={(e) => setGuestOk(e.target.checked)}
-                    className="rounded border-border text-orbit-500 focus:ring-orbit-500"
+                    className="rounded border-border text-saturn-500 focus:ring-saturn-500"
                   />
                   <span>{t('files.samba_guest_access', 'Acesso Convidado (Sem Senha)')}</span>
                 </label>
@@ -355,7 +355,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                     type="checkbox"
                     checked={readOnly}
                     onChange={(e) => setReadOnly(e.target.checked)}
-                    className="rounded border-border text-orbit-500 focus:ring-orbit-500"
+                    className="rounded border-border text-saturn-500 focus:ring-saturn-500"
                   />
                   <span>{t('files.samba_read_only', 'Somente Leitura')}</span>
                 </label>
@@ -364,7 +364,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-saturn-500/25 transition-all flex items-center gap-1.5"
               >
                 {isSubmitting ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -380,7 +380,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-primary flex items-center justify-between">
               <span>{t('files.samba_active_shares', { count: shares.length, defaultValue: `Compartilhamentos Ativos (${shares.length})` })}</span>
-              {loading && <RefreshCw className="w-3 h-3 animate-spin text-orbit-500" />}
+              {loading && <RefreshCw className="w-3 h-3 animate-spin text-saturn-500" />}
             </h3>
 
             {shares.length === 0 ? (
@@ -396,7 +396,7 @@ export function SambaModal({ folder, isOpen, onClose }: SambaModalProps) {
                   return (
                     <div
                       key={sh.name}
-                      className="bg-card/80 border border-border/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-orbit-500/40 transition-colors"
+                      className="bg-card/80 border border-border/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-saturn-500/40 transition-colors"
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2">

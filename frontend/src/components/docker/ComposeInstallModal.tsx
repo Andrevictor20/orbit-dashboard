@@ -49,7 +49,7 @@ export function ComposeInstallModal({
   const [checkingPorts, setCheckingPorts] = useState(false);
 
   const getAuthHeaders = useCallback((): HeadersInit => {
-    const token = localStorage.getItem('orbit_token');
+    const token = localStorage.getItem('saturn_token');
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -288,7 +288,7 @@ export function ComposeInstallModal({
         {/* Header */}
         <div className="p-4 sm:px-6 border-b border-border flex items-center justify-between bg-muted/20">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-500 border border-orbit-500/20">
+            <div className="p-2.5 rounded-xl bg-saturn-500/10 text-saturn-500 border border-saturn-500/20">
               <FileCode className="w-5 h-5" />
             </div>
             <div>
@@ -318,7 +318,7 @@ export function ComposeInstallModal({
             onClick={() => setModalTab('compose')}
             className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
               modalTab === 'compose'
-                ? 'border-orbit-500 text-orbit-500 font-bold'
+                ? 'border-saturn-500 text-saturn-500 font-bold'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -331,7 +331,7 @@ export function ComposeInstallModal({
             onClick={() => setModalTab('dockerrun')}
             className={`py-3 flex items-center gap-2 border-b-2 transition-all ${
               modalTab === 'dockerrun'
-                ? 'border-orbit-500 text-orbit-500 font-bold'
+                ? 'border-saturn-500 text-saturn-500 font-bold'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -384,7 +384,7 @@ export function ComposeInstallModal({
               onClick={handleNewStack}
               className="px-3 py-1.5 bg-card hover:bg-accent text-secondary hover:text-primary rounded-xl text-xs font-semibold border border-border transition-colors flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5 text-orbit-500" />
+              <Plus className="w-3.5 h-3.5 text-saturn-500" />
               <span>Nova Stack</span>
             </button>
 
@@ -423,7 +423,7 @@ export function ComposeInstallModal({
                   type="button"
                   onClick={handleDeploy}
                   disabled={saving || deploying || loadingContent || !validation.valid}
-                  className="px-4 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-orbit-500/20 flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                  className="px-4 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-saturn-500/20 flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                 >
                   {deploying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                   <span>Salvar & Executar</span>

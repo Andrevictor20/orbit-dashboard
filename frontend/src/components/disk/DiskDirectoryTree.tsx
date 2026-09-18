@@ -95,7 +95,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
               >
                 <button
                   onClick={() => handleNavigate(crumb.path)}
-                  className={`hover:text-orbit-400 transition-colors px-1 py-0.5 rounded ${
+                  className={`hover:text-saturn-400 transition-colors px-1 py-0.5 rounded ${
                     idx === arr.length - 1
                       ? 'font-bold text-primary bg-accent'
                       : 'text-secondary'
@@ -121,7 +121,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
               placeholder={t('disk.filter_placeholder', 'Filtrar nesta pasta...')}
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 w-40 sm:w-52 shadow-sm"
+              className="pl-8 pr-3 py-1.5 rounded-xl bg-background border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500 w-40 sm:w-52 shadow-sm"
             />
           </div>
 
@@ -137,7 +137,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
               }}
               className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
                 sortBy === 'size'
-                  ? 'bg-orbit-500 text-white font-semibold shadow-sm'
+                  ? 'bg-saturn-500 text-white font-semibold shadow-sm'
                   : 'text-secondary hover:text-primary hover:bg-accent/80'
               }`}
             >
@@ -153,7 +153,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
               }}
               className={`px-2.5 py-1 rounded-lg transition-colors font-mono ${
                 sortBy === 'name'
-                  ? 'bg-orbit-500 text-white font-semibold shadow-sm'
+                  ? 'bg-saturn-500 text-white font-semibold shadow-sm'
                   : 'text-secondary hover:text-primary hover:bg-accent/80'
               }`}
             >
@@ -209,18 +209,18 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 space-y-4">
             <div className="relative">
-              <div className="w-12 h-12 rounded-full border-2 border-orbit-500/20 border-t-orbit-500 animate-spin" />
-              <Compass className="w-6 h-6 text-orbit-400 absolute inset-0 m-auto animate-pulse" />
+              <div className="w-12 h-12 rounded-full border-2 border-saturn-500/20 border-t-saturn-500 animate-spin" />
+              <Compass className="w-6 h-6 text-saturn-400 absolute inset-0 m-auto animate-pulse" />
             </div>
             <div className="text-center space-y-1 w-full max-w-sm">
               <p className="text-sm font-semibold text-primary">
                 {t('disk.calculating_usage', 'Calculando uso em')}{' '}
-                <span className="font-mono text-orbit-400">{currentPath}</span>
+                <span className="font-mono text-saturn-400">{currentPath}</span>
               </p>
               {store.totalBytes > 0 && (
                 <div className="w-full h-1.5 bg-neutral-900 rounded-full mt-3 mb-2 overflow-hidden border border-white/5">
                   <div
-                    className="h-full bg-orbit-500 transition-all duration-300 shadow-[0_0_15px_var(--color-orbit-500)]"
+                    className="h-full bg-saturn-500 transition-all duration-300 shadow-[0_0_15px_var(--color-saturn-500)]"
                     style={{
                       width: `${Math.min(
                         100,
@@ -235,7 +235,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
                 {store.totalBytes > 0 ? `/ ${formatBytes(store.totalBytes)}` : ''}
               </p>
               <p className="text-xs text-secondary flex items-center justify-center gap-1.5 pt-2">
-                <Clock className="w-3 h-3 text-orbit-400" />
+                <Clock className="w-3 h-3 text-saturn-400" />
                 {t('disk.elapsed_time', 'Tempo decorrido:')}{' '}
                 <span className="font-mono font-bold text-primary">
                   {elapsedSeconds}s
@@ -269,7 +269,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
               </button>
               <button
                 onClick={() => handleNavigate('/')}
-                className="px-3 py-1.5 rounded-xl bg-orbit-500 text-white text-xs font-semibold shadow-md shadow-orbit-500/20"
+                className="px-3 py-1.5 rounded-xl bg-saturn-500 text-white text-xs font-semibold shadow-md shadow-saturn-500/20"
               >
                 {t('disk.go_to_root', 'Ir para Raiz (/)')}
               </button>
@@ -309,7 +309,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
                       onClick={() => item.is_dir && handleNavigate(item.path)}
                       className={`font-semibold truncate ${
                         item.is_dir
-                          ? 'text-primary hover:text-orbit-500 cursor-pointer underline-offset-2 hover:underline'
+                          ? 'text-primary hover:text-saturn-500 cursor-pointer underline-offset-2 hover:underline'
                           : 'text-primary'
                       }`}
                       title={item.name}
@@ -355,7 +355,7 @@ export const DiskDirectoryTree: React.FC<DiskDirectoryTreeProps> = ({
                     {item.is_dir ? (
                       <button
                         onClick={() => handleNavigate(item.path)}
-                        className="px-2 py-1 rounded bg-accent/80 hover:bg-accent text-orbit-600 dark:text-orbit-400 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-border/70"
+                        className="px-2 py-1 rounded bg-accent/80 hover:bg-accent text-saturn-600 dark:text-saturn-400 text-[11px] font-semibold flex items-center gap-1 transition-colors border border-border/70"
                         title={t('disk.navigate_to_dir', 'Navegar para este diretório')}
                       >
                         <span>{t('disk.open_folder', 'Abrir')}</span>

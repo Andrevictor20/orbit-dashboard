@@ -20,7 +20,7 @@ pub fn generate_totp_setup(username: &str) -> Result<TotpSetup, String> {
         .with_skew(1)
         .with_step_duration(30)
         .with_secret(secret)
-        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .with_issuer(Some("Saturn Dashboard".to_string()))
         .with_account_name(username.to_string())
         .build()
         .map_err(|e| format!("Failed to create TOTP instance: {}", e))?;
@@ -57,7 +57,7 @@ pub fn verify_totp_code(secret_base32: &str, username: &str, code: &str) -> bool
         .with_skew(2)
         .with_step_duration(30)
         .with_secret(secret)
-        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .with_issuer(Some("Saturn Dashboard".to_string()))
         .with_account_name(username.to_string())
         .build()
     {

@@ -1,0 +1,20 @@
+id: gateway-go
+name: gateway-go
+tagline: A third-party client for saturn and zimaOS, remote access management interface,
+  remote access to installed applications.
+description: 'A fast reverse proxy to help you expose a local server behind a NAT
+  or firewall to your client, remote access all your saturn/zimaos apps.
+
+
+  Use OpenIoTHub to scan the following QR code add a gateway,then add host,add saturn/zimaos
+  host''s web page port,finally, enjoy remote control'
+category: Networking
+version: 1.0.0
+developer: iotserv
+store: official
+icon: icon.png
+port: 34323
+architectures:
+- amd64
+- arm
+- arm64

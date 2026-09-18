@@ -1,0 +1,14 @@
+id: filebrowser-bigbear
+name: Filebrowser
+tagline: Access your homeserver files from your browser
+description: Reliable and Performant File Management Desktop Sync and File Sharing
+  Tool.
+category: Others
+version: 1.0.0
+developer: filebrowser
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

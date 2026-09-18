@@ -15,7 +15,7 @@ export function PiHoleTopClients({ clients = [], loading }: PiHoleTopClientsProp
     if (combined.includes('iphone') || combined.includes('android') || combined.includes('phone') || combined.includes('mobile')) {
       return <Smartphone className="w-4 h-4 text-violet-400" />;
     }
-    if (combined.includes('server') || combined.includes('nas') || combined.includes('orbit') || combined.includes('gateway') || ip === '127.0.0.1') {
+    if (combined.includes('server') || combined.includes('nas') || combined.includes('saturn') || combined.includes('gateway') || ip === '127.0.0.1') {
       return <Server className="w-4 h-4 text-amber-400" />;
     }
     return <Laptop className="w-4 h-4 text-blue-400" />;

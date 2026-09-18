@@ -1,0 +1,16 @@
+id: pydio-cells-linuxserver-io-linuxserver
+name: Pydio cells (LinuxServer.io)
+tagline: The nextgen file sharing platform for organizations. It is a full rewrite
+  of the Pydio project using the Go language following a micro-service architecture.
+description: Pydio-cells is the nextgen file sharing platform for organizations. It
+  is a full rewrite of the Pydio project using the Go language following a micro-service
+  architecture.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

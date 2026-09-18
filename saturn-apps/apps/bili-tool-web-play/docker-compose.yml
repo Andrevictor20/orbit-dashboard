@@ -1,0 +1,17 @@
+name: bili-tool-web
+services:
+  bili-tool-web:
+    image: ghcr.io/raywangqvq/bili_tool_web:latest
+    container_name: bili-tool-web
+    ports:
+    - 22330:8080
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+    - /DATA/AppData/bili-tool-web/Logs:/app/Logs
+    - /DATA/AppData/bili-tool-web/config:/app/config
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

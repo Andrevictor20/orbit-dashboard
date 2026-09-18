@@ -104,11 +104,11 @@ describe('Visual Customization & Developer Themes', () => {
 
     fireEvent.click(screen.getByText('Set Avatar'));
     expect(screen.getByTestId('current-avatar').textContent).toBe('data:image/webp;base64,sample');
-    expect(localStorage.getItem('orbit-custom-avatar')).toBe('data:image/webp;base64,sample');
+    expect(localStorage.getItem('saturn-custom-avatar')).toBe('data:image/webp;base64,sample');
 
     fireEvent.click(screen.getByText('Clear Avatar'));
     expect(screen.getByTestId('current-avatar').textContent).toBe('none');
-    expect(localStorage.getItem('orbit-custom-avatar')).toBeNull();
+    expect(localStorage.getItem('saturn-custom-avatar')).toBeNull();
   });
 
   it('manages custom wallpaper, opacity, blur and persists in localStorage', () => {
@@ -122,22 +122,22 @@ describe('Visual Customization & Developer Themes', () => {
 
     fireEvent.click(screen.getByText('Set Wallpaper'));
     expect(screen.getByTestId('current-wallpaper').textContent).toBe('https://example.com/bg.jpg');
-    expect(localStorage.getItem('orbit-wallpaper-url')).toBe('https://example.com/bg.jpg');
+    expect(localStorage.getItem('saturn-wallpaper-url')).toBe('https://example.com/bg.jpg');
 
     fireEvent.click(screen.getByText('Set Opacity'));
     expect(screen.getByTestId('current-opacity').textContent).toBe('0.85');
-    expect(localStorage.getItem('orbit-wallpaper-opacity')).toBe('0.85');
+    expect(localStorage.getItem('saturn-wallpaper-opacity')).toBe('0.85');
 
     fireEvent.click(screen.getByText('Set Blur'));
     expect(screen.getByTestId('current-blur').textContent).toBe('12');
-    expect(localStorage.getItem('orbit-wallpaper-blur')).toBe('12');
+    expect(localStorage.getItem('saturn-wallpaper-blur')).toBe('12');
 
     fireEvent.click(screen.getByText('Clear Wallpaper'));
     expect(screen.getByTestId('current-wallpaper').textContent).toBe('none');
-    expect(localStorage.getItem('orbit-wallpaper-url')).toBeNull();
+    expect(localStorage.getItem('saturn-wallpaper-url')).toBeNull();
   });
 
-  it('renders UserAvatar with default OrbitLogo and switches to custom image', () => {
+  it('renders UserAvatar with default SaturnLogo and switches to custom image', () => {
     const { unmount } = render(
       <ThemeProvider>
         <UserAvatar size={40} alt="Test User" />
@@ -151,7 +151,7 @@ describe('Visual Customization & Developer Themes', () => {
     unmount();
 
     // Now set custom avatar in localStorage
-    localStorage.setItem('orbit-custom-avatar', 'https://example.com/my-avatar.png');
+    localStorage.setItem('saturn-custom-avatar', 'https://example.com/my-avatar.png');
 
     render(
       <ThemeProvider>

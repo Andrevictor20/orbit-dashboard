@@ -1,0 +1,15 @@
+id: requestrr-linuxserver
+name: Requestrr
+tagline: A chatbot used to simplify using services like Sonarr/Radarr/Ombi via the
+  use of chat.
+description: 'Visit homepage: https://github.com/orgs/linuxserver/packages/container/package/requestrr'
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 4545
+architectures:
+- amd64
+- arm
+- arm64

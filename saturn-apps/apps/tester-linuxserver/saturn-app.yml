@@ -1,0 +1,13 @@
+id: tester-linuxserver
+name: Tester
+tagline: This internal tool is used as a desktop sandbox in our CI process to grab
+  a screenshot of a hopefully functional endpoint
+description: This internal tool is used as a desktop sandbox in our CI process to
+  grab a screenshot of a hopefully functional endpoint
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64

@@ -1,0 +1,20 @@
+name: webdav
+services:
+  webdav:
+    environment:
+      USERNAME: admin
+      PASSWORD: admin1234
+    image: derkades/webdav:latest
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 80
+      published: '8081'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - /DATA:/data
+    container_name: webdav

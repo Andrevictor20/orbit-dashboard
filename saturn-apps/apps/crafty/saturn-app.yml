@@ -1,0 +1,15 @@
+id: crafty
+name: Crafty
+tagline: Take control of your Minecraft servers.
+description: Crafty is an open source Minecraft control panel built using Tornado
+  and AdminLTE, featuring server scheduling, a interactive console and the ability
+  to run almost any type of Minecraft server
+category: Media
+version: 1.0.0
+developer: Crafty Team
+store: official
+icon: icon.png
+port: 8111
+architectures:
+- amd64
+- arm64

@@ -1,0 +1,16 @@
+id: pdfmathtranslate-next-play
+name: PDFMathTranslateNext
+tagline: PDF scientific paper translation preserving layouts
+description: PDFMathTranslate is a scientific paper translation and bilingual comparison
+  tool based on BabelDOC. It preserves formulas, charts, tables of contents and annotations,
+  supports multiple languages and diverse translation services, and provides a WebUI
+  that can be deployed with one click through Docker.
+category: Productivity
+version: 1.0.0
+developer: PDFMathTranslate-next
+store: play
+icon: icon.png
+port: 7860
+architectures:
+- amd64
+- arm64

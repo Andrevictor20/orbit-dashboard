@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { getAuthToken } from '../utils/auth';
 
 export type TaskType = 
   | 'app_install' 
@@ -69,14 +70,14 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-const INSTALL_STORAGE_KEY = 'orbit_install_tasks';
-const CURRENT_TASK_ID_KEY = 'orbit_install_current_id';
+const SATURN_INSTALL_STORAGE_KEY = 'saturn_install_tasks';
+const SATURN_CURRENT_TASK_ID_KEY = 'saturn_install_current_id';
 
 export function InstallProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState<InstallTask[]>(() => {
     try {
-      const raw = localStorage.getItem(INSTALL_STORAGE_KEY);
+      const raw = localStorage.getItem(SATURN_INSTALL_STORAGE_KEY);
       if (raw) {
         const parsed: InstallTask[] = JSON.parse(raw);
         if (Array.isArray(parsed)) return parsed;
@@ -87,7 +88,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(() => {
     try {
-      return localStorage.getItem(CURRENT_TASK_ID_KEY) || null;
+      return localStorage.getItem(SATURN_CURRENT_TASK_ID_KEY) || null;
     } catch {
       return null;
     }
@@ -100,10 +101,11 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       if (tasks.length > 0) {
-        localStorage.setItem(INSTALL_STORAGE_KEY, JSON.stringify(tasks.slice(0, 10)));
-      } else {
-        localStorage.removeItem(INSTALL_STORAGE_KEY);
-      }
+        const serialized = JSON.stringify(tasks.slice(0, 10));
+        localStorage.setItem(SATURN_INSTALL_STORAGE_KEY, serialized);
+              } else {
+        localStorage.removeItem(SATURN_INSTALL_STORAGE_KEY);
+              }
     } catch {}
   }, [tasks]);
 
@@ -111,10 +113,10 @@ export function InstallProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       if (currentTaskId) {
-        localStorage.setItem(CURRENT_TASK_ID_KEY, currentTaskId);
-      } else {
-        localStorage.removeItem(CURRENT_TASK_ID_KEY);
-      }
+        localStorage.setItem(SATURN_CURRENT_TASK_ID_KEY, currentTaskId);
+              } else {
+        localStorage.removeItem(SATURN_CURRENT_TASK_ID_KEY);
+              }
     } catch {}
   }, [currentTaskId]);
 
@@ -130,7 +132,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     }
 
     // Consulta tarefas ativas no backend para sincronização completa
-    const token = localStorage.getItem('orbit_token');
+    const token = getAuthToken();
     fetch('/api/store/install/active', {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     })
@@ -206,7 +208,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
     if (!targetId) return;
 
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = getAuthToken();
       const res = await fetch(`/api/store/install/${targetId}/cancel`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -334,7 +336,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
       if (isPolling) return;
       isPolling = true;
       try {
-        const token = localStorage.getItem('orbit_token');
+        const token = getAuthToken();
         for (const id of taskIds) {
           try {
             const res = await fetch(`/api/store/install/status/${id}`, {

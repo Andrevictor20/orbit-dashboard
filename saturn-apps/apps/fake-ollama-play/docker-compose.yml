@@ -1,0 +1,12 @@
+name: fake-ollama
+services:
+  fake-ollama:
+    image: ghcr.io/spoonnotfound/fake-ollama:latest
+    ports:
+    - 11434:11434
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    container_name: fake-ollama

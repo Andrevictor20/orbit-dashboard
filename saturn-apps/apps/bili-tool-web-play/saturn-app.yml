@@ -1,0 +1,15 @@
+id: bili-tool-web-play
+name: BiliTool Web
+tagline: An automated task execution tool for Bilibili.
+description: BiliTool is an automated task execution tool that acts as a helpful assistant,
+  following pre-configured commands to complete planned tasks within specified frequencies
+  and timeframes when we forget to do them.
+category: Productivity
+version: 1.0.0
+developer: raywangqvq
+store: play
+icon: icon.png
+port: 22330
+architectures:
+- amd64
+- arm64

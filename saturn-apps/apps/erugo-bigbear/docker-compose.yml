@@ -1,0 +1,10 @@
+name: big-bear-erugo
+services:
+  big-bear-erugo:
+    container_name: big-bear-erugo
+    image: wardy784/erugo:0.2.15@sha256:0d9d31365e180408baee86172694a420418a7e05badd158fe84eb873a9f77753
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/$AppID/storage:/var/www/html/storage
+    ports:
+    - 9997:80

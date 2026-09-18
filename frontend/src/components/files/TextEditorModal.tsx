@@ -48,15 +48,15 @@ function renderMarkdownToHtml(md: string): string {
   });
 
   // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-zinc-800 text-orbit-400 font-mono text-[12px] border border-zinc-700/50">$1</code>');
+  html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-zinc-800 text-saturn-400 font-mono text-[12px] border border-zinc-700/50">$1</code>');
 
   // Headings
   html = html.replace(/^### (.*$)/gim, '<h3 class="text-base font-bold text-white mt-5 mb-2">$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-white mt-6 mb-3 pb-1 border-b border-zinc-800">$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-extrabold text-white mt-6 mb-4 pb-2 border-b border-zinc-700 bg-gradient-to-r from-orbit-400 to-sky-400 bg-clip-text text-transparent">$1</h1>');
+  html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-extrabold text-white mt-6 mb-4 pb-2 border-b border-zinc-700 bg-gradient-to-r from-saturn-400 to-sky-400 bg-clip-text text-transparent">$1</h1>');
 
   // Blockquotes
-  html = html.replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-orbit-500 pl-4 py-1.5 my-3 bg-orbit-500/10 rounded-r-xl text-zinc-300 italic text-sm">$1</blockquote>');
+  html = html.replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-saturn-500 pl-4 py-1.5 my-3 bg-saturn-500/10 rounded-r-xl text-zinc-300 italic text-sm">$1</blockquote>');
 
   // Task lists
   html = html.replace(/^- \[x\] (.*$)/gim, '<li class="flex items-center gap-2 list-none text-sm text-zinc-300 my-1"><span class="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-[10px]">✓</span> <s>$1</s></li>');
@@ -86,7 +86,7 @@ function renderMarkdownToHtml(md: string): string {
       return text;
     }
     const safeHref = trimmedHref.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="text-orbit-400 hover:underline inline-flex items-center gap-0.5">${text}</a>`;
+    return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="text-saturn-400 hover:underline inline-flex items-center gap-0.5">${text}</a>`;
   });
 
   // Paragraphs / line breaks
@@ -215,7 +215,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         {/* Header */}
         <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-card/90 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shrink-0">
+            <div className="p-2 rounded-xl bg-saturn-500/10 text-saturn-600 dark:text-saturn-400 border border-saturn-500/20 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -233,7 +233,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
               onClick={() => setViewMode('edit')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                 viewMode === 'edit'
-                  ? 'bg-orbit-500 text-white font-semibold shadow-sm'
+                  ? 'bg-saturn-500 text-white font-semibold shadow-sm'
                   : 'text-secondary hover:text-primary'
               }`}
               title={t('files.code_mode', 'Modo Código')}
@@ -249,7 +249,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                   onClick={() => setViewMode('preview')}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                     viewMode === 'preview'
-                      ? 'bg-orbit-500 text-white font-semibold shadow-sm'
+                      ? 'bg-saturn-500 text-white font-semibold shadow-sm'
                       : 'text-secondary hover:text-primary'
                   }`}
                   title={isHtml ? t('files.site_preview', 'Prévia do Site') : t('files.markdown_preview', 'Prévia Markdown')}
@@ -263,7 +263,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                   onClick={() => setViewMode('split')}
                   className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                     viewMode === 'split'
-                      ? 'bg-orbit-500 text-white font-semibold shadow-sm'
+                      ? 'bg-saturn-500 text-white font-semibold shadow-sm'
                       : 'text-secondary hover:text-primary'
                   }`}
                   title={t('files.split_screen', 'Dividir tela (Código + Prévia)')}
@@ -306,7 +306,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
               disabled={isSaving || !isDirty}
               className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all active:scale-95 shadow-sm ${
                 isDirty 
-                  ? 'bg-orbit-500 hover:bg-orbit-600 text-white shadow-orbit-500/25' 
+                  ? 'bg-saturn-500 hover:bg-saturn-600 text-white shadow-saturn-500/25' 
                   : 'bg-accent/50 text-secondary cursor-not-allowed'
               }`}
             >
@@ -329,7 +329,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
         <div className="flex-1 relative overflow-hidden bg-zinc-950 flex flex-col sm:flex-row">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-secondary">
-              <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-saturn-400" />
               <span className="text-sm font-medium">{t('files.loading_content', 'Carregando conteúdo...')}</span>
             </div>
           ) : error ? (
@@ -363,7 +363,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       placeholder={t('files.editor_placeholder', 'Digite seu código ou texto aqui...')}
-                      className="w-full h-full p-4 bg-transparent text-emerald-400 font-mono text-xs sm:text-sm resize-none focus:outline-none leading-relaxed selection:bg-orbit-500/30 overflow-auto"
+                      className="w-full h-full p-4 bg-transparent text-emerald-400 font-mono text-xs sm:text-sm resize-none focus:outline-none leading-relaxed selection:bg-saturn-500/30 overflow-auto"
                       spellCheck={false}
                       autoFocus
                     />
@@ -378,7 +378,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                     <div className="w-full h-full flex flex-col rounded-xl overflow-hidden border border-border shadow-xl bg-white">
                       <div className="bg-card/95 px-4 py-2 flex items-center justify-between text-xs text-secondary border-b border-border">
                         <div className="flex items-center gap-2 font-medium text-primary">
-                          <Globe className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
+                          <Globe className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400" />
                           <span>{t('files.site_preview_live', 'Prévia do Website (Live HTML)')}</span>
                         </div>
                       </div>
@@ -392,7 +392,7 @@ export function TextEditorModal({ file, onClose, onSaved }: TextEditorModalProps
                     </div>
                   ) : isMarkdown ? (
                     <div className="max-w-3xl mx-auto py-2">
-                      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800 text-xs font-semibold text-orbit-600 dark:text-orbit-400">
+                      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-800 text-xs font-semibold text-saturn-600 dark:text-saturn-400">
                         <Sparkles className="w-4 h-4" />
                         <span>{t('files.markdown_preview_styled', 'Prévia Markdown Estilizada')}</span>
                       </div>

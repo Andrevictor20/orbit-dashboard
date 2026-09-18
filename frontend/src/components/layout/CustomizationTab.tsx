@@ -185,7 +185,7 @@ export function CustomizationTab() {
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-xl bg-orbit-500/15 hover:bg-orbit-500/25 border border-orbit-500/30 text-orbit-400 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-saturn-500/15 hover:bg-saturn-500/25 border border-saturn-500/30 text-saturn-400 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>{t('customization.upload_image', 'Carregar Imagem')}</span>
@@ -210,12 +210,12 @@ export function CustomizationTab() {
               placeholder="https://exemplo.com/avatar.jpg"
               value={avatarUrlInput}
               onChange={(e) => setAvatarUrlInput(e.target.value)}
-              className="flex-1 bg-background border border-border rounded-xl py-1.5 px-3 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500"
+              className="flex-1 bg-background border border-border rounded-xl py-1.5 px-3 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500"
             />
             <button
               type="button"
               onClick={handleApplyAvatarUrl}
-              className="px-3 py-1.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-medium transition-all"
+              className="px-3 py-1.5 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-medium transition-all"
             >
               OK
             </button>
@@ -227,7 +227,7 @@ export function CustomizationTab() {
       <div className="space-y-4 p-4 rounded-2xl bg-card/60 border border-border/70">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image className="w-4 h-4 text-orbit-500" />
+            <Image className="w-4 h-4 text-saturn-500" />
             <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
               {t('customization.wallpaper_title', 'Plano de Fundo (Wallpaper)')}
             </span>
@@ -263,7 +263,7 @@ export function CustomizationTab() {
           <button
             type="button"
             onClick={() => wallpaperInputRef.current?.click()}
-            className="px-3 py-1.5 rounded-xl bg-orbit-500/15 hover:bg-orbit-500/25 border border-orbit-500/30 text-orbit-400 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-saturn-500/15 hover:bg-saturn-500/25 border border-saturn-500/30 text-saturn-400 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>{t('customization.upload_wallpaper', 'Carregar Foto')}</span>
@@ -286,12 +286,12 @@ export function CustomizationTab() {
               placeholder="https://exemplo.com/fundo.jpg"
               value={wallpaperUrlInput}
               onChange={(e) => setWallpaperUrlInput(e.target.value)}
-              className="flex-1 bg-background border border-border rounded-xl py-1.5 px-3 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500"
+              className="flex-1 bg-background border border-border rounded-xl py-1.5 px-3 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500"
             />
             <button
               type="button"
               onClick={handleApplyWallpaperUrl}
-              className="px-3 py-1.5 rounded-xl bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-medium transition-all"
+              className="px-3 py-1.5 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-medium transition-all"
             >
               OK
             </button>
@@ -314,8 +314,8 @@ export function CustomizationTab() {
                 }}
                 className={`group relative aspect-video rounded-xl overflow-hidden border transition-all ${
                   wallpaperUrl === preset.url
-                    ? 'border-orbit-500 ring-2 ring-orbit-500/30 shadow-md'
-                    : 'border-border/70 hover:border-orbit-500/50'
+                    ? 'border-saturn-500 ring-2 ring-saturn-500/30 shadow-md'
+                    : 'border-border/70 hover:border-saturn-500/50'
                 }`}
               >
                 <img
@@ -329,7 +329,7 @@ export function CustomizationTab() {
                   </span>
                 </div>
                 {wallpaperUrl === preset.url && (
-                  <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-orbit-500 text-white flex items-center justify-center">
+                  <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-saturn-500 text-white flex items-center justify-center">
                     <Check className="w-2.5 h-2.5" />
                   </div>
                 )}
@@ -368,7 +368,7 @@ export function CustomizationTab() {
               className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
                 color === 'wallpaper'
                   ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-semibold'
-                  : 'bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm'
+                  : 'bg-saturn-500 hover:bg-saturn-600 text-white shadow-sm'
               }`}
             >
               {color === 'wallpaper' ? (
@@ -387,7 +387,7 @@ export function CustomizationTab() {
         {wallpaperUrl && (
           <div className="space-y-3 pt-2 border-t border-border/60">
             <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
-              <Sliders className="w-3.5 h-3.5 text-orbit-500" />
+              <Sliders className="w-3.5 h-3.5 text-saturn-500" />
               <span>{t('customization.adjustments', 'Ajustes de Legibilidade')}</span>
             </div>
 
@@ -405,7 +405,7 @@ export function CustomizationTab() {
                   step="0.05"
                   value={wallpaperOpacity}
                   onChange={(e) => setWallpaperOpacity(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
+                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-saturn-500"
                 />
                 <p className="text-[10px] text-secondary">
                   {t('customization.dimmer_hint', 'Escurece o fundo para garantir contraste e legibilidade com os cards.')}
@@ -425,7 +425,7 @@ export function CustomizationTab() {
                   step="1"
                   value={wallpaperBlur}
                   onChange={(e) => setWallpaperBlur(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-orbit-500"
+                  className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-saturn-500"
                 />
                 <p className="text-[10px] text-secondary">
                   {t('customization.blur_hint', 'Suaviza detalhes para destacar o conteúdo em primeiro plano.')}

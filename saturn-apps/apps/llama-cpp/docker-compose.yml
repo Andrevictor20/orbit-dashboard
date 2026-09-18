@@ -1,0 +1,21 @@
+name: llamacpp
+services:
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: llamacpp
+    ports:
+    - target: 8080
+      published: '18080'
+      protocol: tcp
+    environment:
+    - LLAMA_ARG_N_GPU_LAYERS=999
+    - LLAMA_ARG_CONTEXT_SIZE=8192
+    devices:
+    - /dev/dri:/dev/dri
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/models
+      target: /models
+      bind:
+        create_host_path: true
+    restart: unless-stopped

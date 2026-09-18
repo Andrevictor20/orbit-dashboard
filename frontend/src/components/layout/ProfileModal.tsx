@@ -31,7 +31,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/70 shrink-0">
           <div className="flex items-center gap-2">
-            <Server className="w-5 h-5 text-orbit-500" />
+            <Server className="w-5 h-5 text-saturn-500" />
             <h2 className="font-bold text-base text-primary">
               {t('settings.modal_title', 'Configurações & Perfil')}
             </h2>
@@ -52,7 +52,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             onClick={() => setActiveTab('account')}
             className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'account'
-                ? 'border-orbit-500 text-orbit-500'
+                ? 'border-saturn-500 text-saturn-500'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -65,7 +65,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             onClick={() => setActiveTab('integrations')}
             className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'integrations'
-                ? 'border-orbit-500 text-orbit-500'
+                ? 'border-saturn-500 text-saturn-500'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -78,7 +78,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             onClick={() => setActiveTab('system')}
             className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'system'
-                ? 'border-orbit-500 text-orbit-500'
+                ? 'border-saturn-500 text-saturn-500'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -91,7 +91,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             onClick={() => setActiveTab('customization')}
             className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'customization'
-                ? 'border-orbit-500 text-orbit-500'
+                ? 'border-saturn-500 text-saturn-500'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >

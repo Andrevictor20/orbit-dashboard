@@ -1,0 +1,14 @@
+id: resilio-sync
+name: resilio-sync
+tagline: Unleash the power of seamless file synchronization.
+description: resilio-sync is a Docker-based application that enables fast and secure
+  file synchronization and sharing.
+category: Productivity
+version: 1.0.0
+developer: self
+store: official
+icon: icon.png
+port: 8888
+architectures:
+- amd64
+- arm64

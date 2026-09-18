@@ -51,7 +51,7 @@ describe('Context Persistence & F5 Auto-Resume', () => {
       timestamp: Date.now()
     };
 
-    localStorage.setItem('orbit_batch_update_session', JSON.stringify(fakeSession));
+    localStorage.setItem('saturn_batch_update_session', JSON.stringify(fakeSession));
 
     // Mock fetch to prevent network calls from erroring during auto-resume
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
@@ -93,8 +93,8 @@ describe('Context Persistence & F5 Auto-Resume', () => {
       }
     ];
 
-    localStorage.setItem('orbit_install_tasks', JSON.stringify(fakeTasks));
-    localStorage.setItem('orbit_install_current_id', 'install-task-123');
+    localStorage.setItem('saturn_install_tasks', JSON.stringify(fakeTasks));
+    localStorage.setItem('saturn_install_current_id', 'install-task-123');
 
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/store/install/active')) {

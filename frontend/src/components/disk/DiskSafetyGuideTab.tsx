@@ -16,7 +16,7 @@ export const DiskSafetyGuideTab: React.FC = () => {
           <p className="text-xs text-rose-900/80 dark:text-rose-200/80 leading-relaxed">
             {t(
               'disk.safety_intro',
-              'O Orbit bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que NUNCA deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.'
+              'O Saturn bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que NUNCA deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.'
             )}
           </p>
         </div>

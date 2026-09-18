@@ -84,7 +84,7 @@ export function useFileManagerOperations({
       runner: async (helpers) => {
         helpers.setProgress(40);
         helpers.setStatus('running');
-        const token = localStorage.getItem('orbit_token');
+        const token = localStorage.getItem('saturn_token');
         const res = await fetch(`/api/files/upload?destination=${encodeURIComponent(currentPath)}`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},

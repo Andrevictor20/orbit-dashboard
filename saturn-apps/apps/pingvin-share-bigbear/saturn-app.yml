@@ -1,0 +1,14 @@
+id: pingvin-share-bigbear
+name: Pingvin Share
+tagline: Pingvin Share
+description: Pingvin Share is self-hosted file sharing platform and an alternative
+  for WeTransfer.
+category: Others
+version: 1.0.0
+developer: stonith404
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

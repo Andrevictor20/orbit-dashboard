@@ -1,0 +1,17 @@
+id: rustdesk-server-coolstore
+name: Rustdesk Server
+tagline: RustDesk is a full-featured open source remote control alternative for self-hosting
+  and security with minimal configuration. You have full control of your data, with
+  no concerns about security.
+description: RustDesk is a full-featured open source remote control alternative for
+  self-hosting and security with minimal configuration. You have full control of your
+  data, with no concerns about security.
+category: Coolstore
+version: 1.0.0
+developer: RustDesk
+store: coolstore
+icon: https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Rustdesk.svg/48px-Rustdesk.svg.png
+architectures:
+- amd64
+- arm
+- arm64

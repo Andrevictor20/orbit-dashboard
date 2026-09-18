@@ -1,0 +1,13 @@
+id: brave-bigbear
+name: Brave
+tagline: Brave
+description: This Image contains a browser-accessible version of Brave.
+category: Media
+version: 1.0.0
+developer: kasmweb
+store: bigbear
+icon: icon.png
+port: 6901
+architectures:
+- amd64
+- arm64

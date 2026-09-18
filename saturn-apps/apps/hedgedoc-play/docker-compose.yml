@@ -1,0 +1,44 @@
+version: '3'
+name: hedgedoc
+services:
+  database:
+    image: postgres:13.4-alpine
+    container_name: hedgedoc-db
+    environment:
+    - POSTGRES_USER=hedgedoc
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_DB=hedgedoc
+    volumes:
+    - /DATA/AppData/hedgedoc/database:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+    - hedgedoc
+  hedgedoc:
+    image: quay.io/hedgedoc/hedgedoc:1.9.9-alpine
+    container_name: hedgedoc-app
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    environment:
+    - CMD_CONFIG_FILE=/config/config.json
+    - CMD_DB_URL=postgres://hedgedoc:password@database:5432/hedgedoc
+    - CMD_DOMAIN=
+    - CMD_URL_ADDPORT=true
+    - CMD_CSP_ENABLE=false
+    - CMD_ALLOW_EMAIL_REGISTER=true
+    - CMD_ALLOW_ANONYMOUS=false
+    - CMD_ALLOW_ANONYMOUS_EDITS=true
+    volumes:
+    - /DATA/AppData/hedgedoc/uploads:/hedgedoc/public/uploads
+    - /DATA/AppData/hedgedoc/config:/config
+    ports:
+    - 3000:3000
+    restart: unless-stopped
+    depends_on:
+    - database
+    networks:
+    - hedgedoc
+networks:
+  hedgedoc:
+    name: hedgedoc

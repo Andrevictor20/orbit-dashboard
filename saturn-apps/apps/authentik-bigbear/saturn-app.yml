@@ -1,0 +1,18 @@
+id: authentik-bigbear
+name: Authentik
+tagline: Authentik
+description: Authentik is a self-hosted identity and access management platform that
+  provides a secure and scalable solution for managing user accounts, authentication,
+  and authorization. It offers a range of features, including user management, role-based
+  access control, and multi-factor authentication. Authentik is designed to be easy
+  to use and integrate with your existing systems, making it a great choice for organizations
+  looking to improve their security and compliance.
+category: Others
+version: 1.0.0
+developer: authentik
+store: bigbear
+icon: icon.png
+port: 9443
+architectures:
+- amd64
+- arm64

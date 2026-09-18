@@ -17,21 +17,21 @@ recreated=0
 # 1. Tenta recriar via Docker Compose se projeto/diretório detectado
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
   cd "/host{host_dir}"
-  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "{compose_file}" 2>/dev/null || true
+  sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "{compose_file}" 2>/dev/null || true
   docker compose {project_flag} -f "{compose_file}" pull 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" pull 2>/dev/null || true
   if docker compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null; then
     recreated=1
   fi
-elif [ -f "/host/DATA/orbit/docker-compose.yml" ]; then
-  cd "/host/DATA/orbit"
-  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
+elif [ -f "/host/DATA/saturn/docker-compose.yml" ]; then
+  cd "/host/DATA/saturn"
+  sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
   docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
   if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
     recreated=1
   fi
-elif [ -f "/host/root/orbit/docker-compose.yml" ]; then
-  cd "/host/root/orbit"
-  sed -i -E 's|image:[ \t]*.*orbit-dashboard:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
+elif [ -f "/host/root/saturn/docker-compose.yml" ]; then
+  cd "/host/root/saturn"
+  sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
   docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
   if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
     recreated=1
@@ -45,16 +45,19 @@ if [ "$recreated" -eq 0 ]; then
   docker ps -q --filter "publish=5173" | xargs -r docker stop 2>/dev/null || true
   docker ps -q --filter "publish=5173" | xargs -r docker rm -f 2>/dev/null || true
 
-  for target in "{current_id}" "{current_name}" orbit-dashboard orbit Orbit; do
+  for target in "{current_id}" "{current_name}" saturn saturn-dashboard ; do
     if [ -n "$target" ]; then
       docker stop "$target" 2>/dev/null || true
       docker rm -f "$target" 2>/dev/null || true
     fi
   done
 
-  docker ps -a -q --filter "name=orbit" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
-  docker ps -a -q --filter "name=orbit" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
-  docker ps -a -q --filter "name=orbit" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
+  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
 
   docker run -d --name "{new_container_name}" --restart unless-stopped \
     --privileged \
@@ -74,7 +77,7 @@ fi
 
 sleep 5
 docker image prune -f 2>/dev/null || true
-docker images "ghcr.io/andrevictor20/orbit-dashboard" "victorandre280/orbit-dashboard" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
+docker images "ghcr.io/andrevictor20/saturn" "victorandre280/saturn" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
 )"#,
         host_dir = params.host_dir,
         compose_file = params.compose_file,

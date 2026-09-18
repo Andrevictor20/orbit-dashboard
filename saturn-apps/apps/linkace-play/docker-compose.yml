@@ -1,0 +1,38 @@
+name: linkace
+version: '3'
+services:
+  linkace:
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    image: linkace/linkace:simple
+    restart: unless-stopped
+    depends_on:
+    - linkace-db
+    ports:
+    - 0.0.0.0:8086:80
+    volumes:
+    - /DATA/AppData/linkace/.env:/app/.env
+    - /DATA/AppData/linkace/backups:/app/storage/app/backups
+    - /DATA/AppData/linkace/linkace_logs:/app/storage/logs
+    container_name: linkace-app
+    networks:
+    - linkace-network
+  linkace-db:
+    image: mariadb:10.7
+    restart: unless-stopped
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    environment:
+    - MYSQL_ROOT_PASSWORD=ChangeThisToASecurePassword!
+    - MYSQL_USER=linkace
+    - MYSQL_PASSWORD=ChangeThisToASecurePassword!
+    - MYSQL_DATABASE=linkace
+    volumes:
+    - /DATA/AppData/linkace/mysql:/var/lib/mysql
+    container_name: linkace-db
+    networks:
+    - linkace-network
+networks:
+  linkace-network:
+    driver: bridge

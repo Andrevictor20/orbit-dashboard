@@ -22,7 +22,7 @@ export function PiHoleConnectBanner({ onOpenConfig }: PiHoleConnectBannerProps) 
       <button
         type="button"
         onClick={onOpenConfig}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-orbit-600 hover:bg-orbit-500 shadow-lg shadow-orbit-500/25 active:scale-95 transition-all mt-2"
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-saturn-600 hover:bg-saturn-500 shadow-lg shadow-saturn-500/25 active:scale-95 transition-all mt-2"
       >
         <ShieldCheck className="w-4 h-4" />
         <span>{t('pihole.connect_button_cta')}</span>

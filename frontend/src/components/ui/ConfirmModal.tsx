@@ -38,7 +38,7 @@ export function ConfirmModal({
       <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden animate-slide-up relative my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className={`p-3 rounded-full ${isDestructive ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-orbit-500/15 text-orbit-600 dark:text-orbit-400'}`}>
+            <div className={`p-3 rounded-full ${isDestructive ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-saturn-500/15 text-saturn-600 dark:text-saturn-400'}`}>
               <AlertTriangle className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-primary">{title}</h3>
@@ -75,7 +75,7 @@ export function ConfirmModal({
               className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${
                 isDestructive 
                   ? 'bg-rose-500 hover:bg-rose-600' 
-                  : 'bg-orbit-600 hover:bg-orbit-700'
+                  : 'bg-saturn-600 hover:bg-saturn-700'
               }`}
             >
               {resolvedConfirm}

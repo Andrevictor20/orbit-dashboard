@@ -1,0 +1,22 @@
+name: linuxserver-diskover
+services:
+  app:
+    image: linuxserver/diskover:2.3.5
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      ES_HOST: ''
+      ES_PORT: ''
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/diskover/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/diskover/data
+      target: /data

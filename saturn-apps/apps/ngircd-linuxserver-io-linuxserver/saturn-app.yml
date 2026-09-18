@@ -1,0 +1,21 @@
+id: ngircd-linuxserver-io-linuxserver
+name: Ngircd (LinuxServer.io)
+tagline: A free, portable and lightweight Internet Relay Chat server for small or
+  private networks, developed under the GNU General Public License (GPL). It is easy
+  to configure, can cope with dynamic IP addresses, and supports IPv6, SSL-protected
+  connections as well as PAM for authentication. It is written from scratch and not
+  based on the original IRCd.
+description: Ngircd is a free, portable and lightweight Internet Relay Chat server
+  for small or private networks, developed under the GNU General Public License (GPL).
+  It is easy to configure, can cope with dynamic IP addresses, and supports IPv6,
+  SSL-protected connections as well as PAM for authentication. It is written from
+  scratch and not based on the original IRCd.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 6667
+architectures:
+- amd64
+- arm64

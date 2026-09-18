@@ -1,0 +1,15 @@
+name: myip
+services:
+  myip:
+    container_name: myip
+    image: jason5ng32/myip:latest
+    restart: unless-stopped
+    ports:
+    - target: 18966
+      published: '18966'
+      protocol: tcp
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    network_mode: bridge

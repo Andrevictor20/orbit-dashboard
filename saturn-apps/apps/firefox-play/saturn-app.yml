@@ -1,0 +1,16 @@
+id: firefox-play
+name: Firefox
+tagline: This is a Docker container for Firefox, it can access the intranet
+description: Firefox Browser, is a free and open-source web browser developed by the
+  Mozilla Foundation and its subsidiary, the Mozilla Corporation. Firefox uses the
+  Gecko layout engine to render web pages, which implements current and anticipated
+  web standards.
+category: Productivity
+version: 1.0.0
+developer: LinuxServer.io
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

@@ -19,7 +19,7 @@ describe('ProfileModal and Settings Tabs', () => {
         return Promise.resolve({
           ok: true,
           json: async () => ({
-            server_name: 'Orbit Test',
+            server_name: 'Saturn Test',
             port: 5172,
             default_page: '/',
             metrics_refresh_rate: 5,
@@ -53,7 +53,7 @@ describe('ProfileModal and Settings Tabs', () => {
 
   it('switches to Integrações tab and toggles integration', async () => {
     let currentSettings = {
-      server_name: 'Orbit Test',
+      server_name: 'Saturn Test',
       port: 5172,
       default_page: '/',
       metrics_refresh_rate: 5,
@@ -126,7 +126,7 @@ describe('ProfileModal and Settings Tabs', () => {
         return Promise.resolve({
           ok: true,
           json: async () => ({
-            server_name: 'Orbit Test',
+            server_name: 'Saturn Test',
             port: 5172,
             default_page: '/',
             metrics_refresh_rate: 5,
@@ -151,7 +151,7 @@ describe('ProfileModal and Settings Tabs', () => {
     fireEvent.click(systemTabBtn);
 
     expect(await screen.findByText(/Nome de Exibição do Servidor/i)).toBeTruthy();
-    expect(screen.getByText(/Porta Web do Orbit/i)).toBeTruthy();
+    expect(screen.getByText(/Porta Web do Saturn/i)).toBeTruthy();
 
     const testPortBtn = screen.getByRole('button', { name: /Testar Porta/i });
     fireEvent.click(testPortBtn);
@@ -172,7 +172,7 @@ describe('ProfileModal and Settings Tabs', () => {
         return Promise.resolve({
           ok: true,
           json: async () => ({
-            server_name: 'Orbit Test',
+            server_name: 'Saturn Test',
             port: 5172,
             default_page: '/',
             metrics_refresh_rate: 5,

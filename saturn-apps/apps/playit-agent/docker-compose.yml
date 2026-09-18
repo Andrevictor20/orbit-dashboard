@@ -1,0 +1,7 @@
+name: playit-agent
+services:
+  playit-agent:
+    restart: unless-stopped
+    image: ghcr.io/mafen/playit-docker:latest
+    network_mode: bridge
+    container_name: playit-agent

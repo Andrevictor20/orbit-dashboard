@@ -1,3 +1,4 @@
+import { AppArchitectureBadge } from './AppArchitectureBadge';
 import { Package, CheckCircle2, ExternalLink, Download, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AppStoreItem } from '../../queries/useStoreAppsQuery';
@@ -7,6 +8,7 @@ interface AppStoreCardProps {
   index: number;
   isInstalled: boolean;
   installing: string | null;
+  hostArch?: string;
   onExplore: (id: string) => void;
   onManage: () => void;
   onInstall: (id: string, name: string) => void;
@@ -18,6 +20,7 @@ export function AppStoreCard({
   index,
   isInstalled,
   installing,
+  hostArch,
   onExplore,
   onManage,
   onInstall,
@@ -28,7 +31,7 @@ export function AppStoreCard({
     <div
       key={`${app.store}-${app.id}-${index}`}
       onClick={() => onExplore(app.id)}
-      className="group bg-card hover:bg-card border border-border/80 hover:border-orbit-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 relative"
+      className="group bg-card hover:bg-card border border-border/80 hover:border-saturn-500/50 rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 relative"
     >
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -47,17 +50,22 @@ export function AppStoreCard({
                 <span>Instalado</span>
               </span>
             )}
+            <AppArchitectureBadge
+              architectures={app.architectures}
+              hostArch={hostArch}
+              mode="compact"
+            />
             <span className="text-[10px] font-semibold px-2.5 py-0.5 bg-accent text-primary/80 dark:text-secondary border border-border rounded-full">
               {app.category}
             </span>
-            <span className="text-[10px] font-medium px-2 py-0.5 bg-orbit-500/10 text-orbit-500 border border-orbit-500/20 rounded-full">
+            <span className="text-[10px] font-medium px-2 py-0.5 bg-saturn-500/10 text-saturn-500 border border-saturn-500/20 rounded-full">
               {app.store}
             </span>
           </div>
         </div>
 
         <h3
-          className="font-bold text-base text-primary group-hover:text-orbit-400 transition-colors line-clamp-1"
+          className="font-bold text-base text-primary group-hover:text-saturn-400 transition-colors line-clamp-1"
           title={app.name}
         >
           {app.name}
@@ -94,7 +102,7 @@ export function AppStoreCard({
                 onInstall(app.id, app.name);
               }}
               disabled={installing !== null}
-              className="flex-1 py-2 bg-orbit-500 hover:bg-orbit-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {installing === app.id ? (
                 <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />

@@ -47,7 +47,7 @@ export function CustomLinkModal({
       >
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400">
+            <div className="p-2 rounded-xl bg-saturn-500/10 text-saturn-600 dark:text-saturn-400">
               <Globe className="w-5 h-5" />
             </div>
             <div>
@@ -102,7 +102,7 @@ export function CustomLinkModal({
             onClick={() => setLinkMode('builder')} 
             className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
               linkMode === 'builder' 
-                ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
+                ? 'bg-saturn-500 text-white shadow-sm font-semibold' 
                 : 'text-slate-700 dark:text-secondary hover:text-primary font-medium'
             }`}
           >
@@ -112,7 +112,7 @@ export function CustomLinkModal({
             onClick={() => setLinkMode('raw')} 
             className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] ${
               linkMode === 'raw' 
-                ? 'bg-orbit-500 text-white shadow-sm font-semibold' 
+                ? 'bg-saturn-500 text-white shadow-sm font-semibold' 
                 : 'text-slate-700 dark:text-secondary hover:text-primary font-medium'
             }`}
           >
@@ -128,7 +128,7 @@ export function CustomLinkModal({
                 <input 
                   type="text" 
                   autoFocus
-                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
+                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 transition-all font-mono text-sm"
                   placeholder="meu-app"
                   value={linkSubdomain}
                   onChange={(e) => setLinkSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
@@ -138,7 +138,7 @@ export function CustomLinkModal({
                 <label className="block text-xs font-semibold text-primary/80 dark:text-secondary mb-1.5">{t('docker.base_domain', 'Domínio Base')}</label>
                 <input 
                   type="text" 
-                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
+                  className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 transition-all font-mono text-sm"
                   placeholder="rasppi.cloud"
                   value={linkDomain}
                   onChange={(e) => setLinkDomain(e.target.value.toLowerCase())}
@@ -160,7 +160,7 @@ export function CustomLinkModal({
             <input 
               type="text" 
               autoFocus
-              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-orbit-500/50 focus:border-orbit-500 transition-all font-mono text-sm"
+              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-primary outline-none focus:ring-2 focus:ring-saturn-500/50 focus:border-saturn-500 transition-all font-mono text-sm"
               placeholder="https://exemplo.com:8080/caminho"
               value={linkInput}
               onChange={(e) => setLinkInput(e.target.value)}
@@ -181,7 +181,7 @@ export function CustomLinkModal({
           </button>
           <button 
             onClick={onSave}
-            className="w-full sm:w-auto px-5 py-2.5 bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white rounded-xl transition-all text-sm font-semibold shadow-md shadow-orbit-500/20 text-center"
+            className="w-full sm:w-auto px-5 py-2.5 bg-saturn-500 hover:bg-saturn-600 active:scale-95 text-white rounded-xl transition-all text-sm font-semibold shadow-md shadow-saturn-500/20 text-center"
           >
             {t('docker.save_link', 'Salvar Link')}
           </button>

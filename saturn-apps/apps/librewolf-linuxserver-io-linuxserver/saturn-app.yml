@@ -1,0 +1,18 @@
+id: librewolf-linuxserver-io-linuxserver
+name: Librewolf (LinuxServer.io)
+tagline: A custom and independent version of Firefox, with the primary goals of privacy,
+  security and user freedom. LibreWolf also aims to remove all the telemetry, data
+  collection and annoyances, as well as disabling anti-freedom features like DRM.
+description: LibreWolf is a custom and independent version of Firefox, with the primary
+  goals of privacy, security and user freedom. LibreWolf also aims to remove all the
+  telemetry, data collection and annoyances, as well as disabling anti-freedom features
+  like DRM.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

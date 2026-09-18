@@ -1,0 +1,28 @@
+name: mylar3-arm
+services:
+  mylar3-arm:
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+    image: linuxserver/mylar3:arm32v7-0.7.2
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8090
+      published: '8090'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/mylar3/config
+      target: /config
+    - type: bind
+      source: /path/to/comics
+      target: /comics
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    container_name: mylar3-arm

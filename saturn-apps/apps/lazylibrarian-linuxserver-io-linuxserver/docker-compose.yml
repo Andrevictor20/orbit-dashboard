@@ -1,0 +1,24 @@
+name: linuxserver-lazylibrarian
+services:
+  app:
+    image: linuxserver/lazylibrarian:version-76c2d89c
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      DOCKER_MODS: ''
+    ports:
+    - target: 5299
+      published: 5299
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/lazylibrarian/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/lazylibrarian/downloads
+      target: /downloads
+    - type: bind
+      source: /DATA/AppData/lazylibrarian/books
+      target: /books

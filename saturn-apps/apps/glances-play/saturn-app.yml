@@ -1,0 +1,15 @@
+id: glances-play
+name: Glances
+tagline: A top system monitoring tool.
+description: Glances is a top system monitoring tool. It provides a large amount of
+  information about your system resources, such as CPU usage, memory usage, network
+  traffic, disk I/O, processes, and sensors.
+category: Productivity
+version: 1.0.0
+developer: nicolargo
+store: play
+icon: icon.png
+port: 61208
+architectures:
+- arm64
+- amd64

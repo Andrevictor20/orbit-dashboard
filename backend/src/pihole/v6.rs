@@ -361,7 +361,7 @@ impl V6Client {
         let url = format!("{}/api/domains/{}/exact", base_url, v6_type);
         let payload = json!({
             "domain": domain,
-            "comment": "Added via Orbit Dashboard"
+            "comment": "Added via Saturn Dashboard"
         });
 
         let mut req = client.post(&url).json(&payload);

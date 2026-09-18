@@ -1,0 +1,20 @@
+name: xrayr
+services:
+  xrayr:
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    image: ghcr.io/xrayr-project/xrayr:master
+    container_name: xrayr
+    labels:
+      icon: https://cdn.jsdelivr.net/gh/Cp0204/AppIcon@main/all/xrayr.png
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/xrayr
+      target: /etc/XrayR
+    - type: bind
+      source: /etc/timezone
+      target: /etc/timezone
+    network_mode: host

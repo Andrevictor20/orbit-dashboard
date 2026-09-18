@@ -1,0 +1,81 @@
+name: big-bear-nextcloud-smb
+services:
+  big-bear-nextcloud-smb:
+    container_name: big-bear-nextcloud-smb
+    image: bigbeartechworld/big-bear-nextcloud-with-smbclient:34.0.2@sha256:a8bbd030af0f21205a2bc4d3f9a71820f8565f4555ee26af950beefa73c0553f
+    restart: unless-stopped
+    ports:
+    - 7580:80
+    volumes:
+    - /DATA/AppData/$AppID/html:/var/www/html
+    environment:
+    - POSTGRES_HOST=big-bear-nextcloud-smb-db
+    - REDIS_HOST=big-bear-nextcloud-smb-redis
+    - POSTGRES_PASSWORD=saturn
+    - POSTGRES_USER=saturn
+    - POSTGRES_DB=nextcloud
+    - NEXTCLOUD_ADMIN_USER=saturn
+    - NEXTCLOUD_ADMIN_PASSWORD=saturn
+    - TRUSTED_PROXIES=
+    - OVERWRITEPROTOCOL=http
+    - PHP_MEMORY_LIMIT=1024M
+    - PHP_UPLOAD_LIMIT=1024M
+    depends_on:
+      big-bear-nextcloud-smb-db:
+        condition: service_healthy
+      big-bear-nextcloud-smb-redis:
+        condition: service_healthy
+    networks:
+    - big_bear_nextcloud_network
+  big-bear-nextcloud-smb-db:
+    container_name: big-bear-nextcloud-smb-db
+    image: postgres:14.2@sha256:2c954f8c5d03da58f8b82645b783b56c1135df17e650b186b296fa1bb71f9cfd
+    restart: unless-stopped
+    volumes:
+    - /DATA/AppData/$AppID/pgdata:/var/lib/postgresql/data
+    environment:
+    - POSTGRES_PASSWORD=saturn
+    - POSTGRES_USER=saturn
+    - POSTGRES_DB=nextcloud
+    networks:
+    - big_bear_nextcloud_network
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U saturn -d nextcloud
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  big-bear-nextcloud-smb-redis:
+    container_name: big-bear-nextcloud-smb-redis
+    user: 1000:1000
+    image: redis:6.2.20@sha256:d06ff6ec778c7f2a5c0dfaf58141d598efaa50a89d0e966faedfdf122cef451b
+    restart: on-failure
+    volumes:
+    - /DATA/AppData/$AppID/redis:/data
+    networks:
+    - big_bear_nextcloud_network
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - redis-cli ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  big-bear-nextcloud-smb-cron:
+    container_name: big-bear-nextcloud-smb-cron
+    image: bigbeartechworld/big-bear-nextcloud-with-smbclient:34.0.2@sha256:a8bbd030af0f21205a2bc4d3f9a71820f8565f4555ee26af950beefa73c0553f
+    restart: on-failure
+    volumes:
+    - /DATA/AppData/$AppID/html:/var/www/html
+    entrypoint: /cron.sh
+    depends_on:
+      big-bear-nextcloud-smb-db:
+        condition: service_healthy
+      big-bear-nextcloud-smb-redis:
+        condition: service_healthy
+    networks:
+    - big_bear_nextcloud_network
+networks:
+  big_bear_nextcloud_network:
+    driver: bridge

@@ -20,10 +20,10 @@ export function RestoreConfirmModal({ backup, onClose, onConfirm }: RestoreConfi
   const [confirmedInput, setConfirmedInput] = useState('');
 
   const isFullSystem = backup.target_type === 'system_full' || backup.filename.includes('system_full');
-  const isOrbitConfigs = backup.target_type === 'orbit_configs' || backup.filename.includes('orbit_configs');
+  const isSaturnConfigs = backup.target_type === 'saturn_configs' || backup.target_type === 'saturn_configs' || backup.filename.includes('saturn_configs') || backup.filename.includes('saturn_configs');
   const isAllContainers = backup.target_type === 'all_containers' || backup.filename.includes('all_containers');
 
-  const requiredConfirmation = isFullSystem || isOrbitConfigs || isAllContainers
+  const requiredConfirmation = isFullSystem || isSaturnConfigs || isAllContainers
     ? 'RESTAURAR'
     : backup.app_name;
 
@@ -57,11 +57,11 @@ export function RestoreConfirmModal({ backup, onClose, onConfirm }: RestoreConfi
         </span>
       );
     }
-    if (isOrbitConfigs) {
+    if (isSaturnConfigs) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
           <Sliders className="w-3.5 h-3.5" />
-          {t('backups.badge_orbit_configs', 'Configurações Orbit')}
+          {t('backups.badge_saturn_configs', t('backups.badge_saturn_configs', 'Configurações Saturn'))}
         </span>
       );
     }
@@ -129,9 +129,9 @@ export function RestoreConfirmModal({ backup, onClose, onConfirm }: RestoreConfi
             </div>
             <p>
               {isFullSystem
-                ? t('backups.restore_system_full_warning', 'Esta restauração é global. Ela restaurará todas as credenciais do Orbit, arquivos de integrações e dados de todos os contêineres e stacks gerenciados.')
-                : isOrbitConfigs
-                ? t('backups.restore_configs_warning', 'Esta restauração restaurará todas as credenciais do Orbit, autenticação, usuários e configurações de integrações.')
+                ? t('backups.restore_system_full_warning', 'Esta restauração é global. Ela restaurará todas as credenciais do Saturn, arquivos de integrações e dados de todos os contêineres e stacks gerenciados.')
+                : isSaturnConfigs
+                ? t('backups.restore_configs_warning', 'Esta restauração restaurará todas as credenciais do Saturn, autenticação, usuários e configurações de integrações.')
                 : t('backups.restore_warning_desc', {
                     app: backup.app_name,
                     defaultValue: `A restauração interrompe a stack Docker de ${backup.app_name}, substitui todos os arquivos de configuração e dados persistidos pelos contidos no backup, e reinicia a stack.`

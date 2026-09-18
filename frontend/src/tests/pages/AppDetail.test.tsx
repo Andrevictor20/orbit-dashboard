@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AppDetail } from '../../../src/pages/AppDetail';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { InstallProvider } from '../../../src/contexts/InstallContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockApp = {
   id: 'adguard-home',
@@ -12,16 +13,31 @@ const mockApp = {
   icon: 'https://example.com/icon.png',
   category: 'Network',
   store: 'official',
-  compose_file: '...'
+  compose_file: '...',
+  architectures: ['amd64', 'arm64']
 };
 
 describe('AppDetail', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
     vi.stubGlobal('fetch', vi.fn((url) => {
       if (url === '/api/store/apps') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([mockApp]),
+        });
+      }
+      if (url === '/api/system/version' || url === '/health') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ version: '3.7.0', arch: 'x86_64' }),
         });
       }
       return Promise.reject(new Error('Not found'));
@@ -36,13 +52,15 @@ describe('AppDetail', () => {
     window.history.pushState({}, 'Test', '/store/app/adguard-home');
 
     render(
-      <BrowserRouter>
-        <InstallProvider>
-          <Routes>
-            <Route path="/store/app/:id" element={<AppDetail />} />
-          </Routes>
-        </InstallProvider>
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <InstallProvider>
+            <Routes>
+              <Route path="/store/app/:id" element={<AppDetail />} />
+            </Routes>
+          </InstallProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
     // Should fetch and show app details
@@ -55,5 +73,9 @@ describe('AppDetail', () => {
     
     // Should display category
     expect(screen.getByText('Network')).toBeInTheDocument();
+
+    // Should display architectures
+    expect(screen.getByText(/x86_64/i)).toBeInTheDocument();
+    expect(screen.getByText(/ARM64/i)).toBeInTheDocument();
   });
 });

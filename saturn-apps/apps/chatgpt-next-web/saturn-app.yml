@@ -1,0 +1,15 @@
+id: chatgpt-next-web
+name: ChatGPT Next Web
+tagline: A well-designed cross-platform ChatGPT UI.
+description: An intelligent chat application based on ChatGPT, supports fast deployment,
+  Markdown, beautiful UI, fluid response, privacy and security, and allows customization
+  of preset roles for quick creation, sharing, and debugging of personalized conversations.
+category: AI
+version: 1.0.0
+developer: Yidadaa
+store: official
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

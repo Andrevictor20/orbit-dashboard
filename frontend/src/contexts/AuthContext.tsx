@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getAuthToken, setAuthToken, clearAuthToken } from '../utils/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Se não precisa de setup, checa autenticação normal
-        const token = localStorage.getItem('orbit_token');
+        const token = getAuthToken();
         if (!token) {
           setIsAuthenticated(false);
           setIsLoading(false);
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setIsAuthenticated(true);
             } else {
               setIsAuthenticated(false);
-              localStorage.removeItem('orbit_token');
+              clearAuthToken();
             }
           })
           .catch(() => setIsAuthenticated(false))
@@ -55,14 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (token: string) => {
-    localStorage.setItem('orbit_token', token);
+    setAuthToken(token);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('orbit_token');
+    clearAuthToken();
     setIsAuthenticated(false);
-    // Em um cenário real, também faríamos um call para /api/auth/logout para limpar o cookie
   };
 
   return (

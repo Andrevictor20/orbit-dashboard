@@ -1,0 +1,13 @@
+id: webdav-play
+name: WebDAV
+tagline: Simple WebDAV Server
+description: A simple WebDAV server.
+category: Productivity
+version: 1.0.0
+developer: bytemark
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm64

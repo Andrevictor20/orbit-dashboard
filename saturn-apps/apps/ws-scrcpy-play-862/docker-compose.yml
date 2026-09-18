@@ -1,0 +1,21 @@
+name: ws-scrcpy
+services:
+  ws-scrcpy:
+    devices:
+    - /dev/bus/usb:/dev/bus/usb
+    image: haris132/ws-scrcpy:latest
+    command:
+    - sh
+    - -c
+    - adb connect 172.17.0.1:5555 && node dist/index.js
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8000
+      published: '8000'
+      protocol: tcp
+    restart: unless-stopped
+    container_name: ws-scrcpy

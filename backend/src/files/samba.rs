@@ -32,16 +32,16 @@ impl Default for SambaConfig {
         Self {
             enabled: false,
             workgroup: "WORKGROUP".to_string(),
-            server_string: "Orbit Homelab Storage".to_string(),
-            username: Some("orbit".to_string()),
-            password: Some("orbit".to_string()),
+            server_string: "Saturn Homelab Storage".to_string(),
+            username: Some("saturn".to_string()),
+            password: Some("saturn".to_string()),
             shares: vec![
                 SambaShare {
                     name: "public".to_string(),
                     path: "/DATA".to_string(),
                     read_only: false,
                     guest_ok: true,
-                    comment: Some("Orbit Shared Storage".to_string()),
+                    comment: Some("Saturn Shared Storage".to_string()),
                 }
             ],
         }
@@ -118,9 +118,9 @@ pub async fn get_samba_status(
     let config = load_samba_config();
     let lan_ip = detect_lan_ip();
 
-    // Check if orbit-samba container is running
+    // Check if saturn-samba container is running
     let mut running = false;
-    if let Ok(inspect) = state.docker.inspect_container("orbit-samba", None).await {
+    if let Ok(inspect) = state.docker.inspect_container("saturn-samba", None).await {
         running = inspect.state.and_then(|s| s.running).unwrap_or(false);
     }
 
@@ -236,7 +236,7 @@ pub async fn toggle_samba_service(
         if payload.enabled {
             let _ = apply_samba_container(&docker).await;
         } else {
-            let _ = docker.stop_container("orbit-samba", None).await;
+            let _ = docker.stop_container("saturn-samba", None).await;
         }
     });
 
@@ -248,20 +248,20 @@ pub async fn toggle_samba_service(
 }
 
 async fn apply_samba_container(docker: &bollard::Docker) -> Result<(), bollard::errors::Error> {
-    // Graceful inspection and lifecycle management for orbit-samba container
+    // Graceful inspection and lifecycle management for saturn-samba container
     let config = load_samba_config();
     if !config.enabled {
         return Ok(());
     }
 
     // Try inspecting if container exists
-    if let Ok(inspect) = docker.inspect_container("orbit-samba", None).await {
+    if let Ok(inspect) = docker.inspect_container("saturn-samba", None).await {
         if inspect.state.and_then(|s| s.running).unwrap_or(false) {
             // Container is already running
             return Ok(());
         }
         // Try starting it
-        let _ = docker.start_container("orbit-samba", None::<bollard::query_parameters::StartContainerOptions>).await;
+        let _ = docker.start_container("saturn-samba", None::<bollard::query_parameters::StartContainerOptions>).await;
     }
 
     Ok(())

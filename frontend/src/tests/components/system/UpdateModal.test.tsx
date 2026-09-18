@@ -16,8 +16,8 @@ describe('UpdateModal Component', () => {
     has_update: true,
     platform: 'linux/arm64',
     arch: 'aarch64',
-    release_name: 'Orbit v1.1.0 - Suporte a Multi-Arch e Correções',
-    release_notes: 'Fix container restarting loop\n\n- Add explicit chmod +x for orbit-backend in Dockerfile',
+    release_name: 'Saturn v1.1.0 - Suporte a Multi-Arch e Correções',
+    release_notes: 'Fix container restarting loop\n\n- Add explicit chmod +x for saturn-backend in Dockerfile',
     published_at: '2026-08-28T12:00:00Z',
   };
 
@@ -71,7 +71,7 @@ describe('UpdateModal Component', () => {
       ...mockInfo,
       has_update: true,
       ci_status: 'building',
-      ci_workflow_url: 'https://github.com/Andrevictor20/orbit-dashboard/actions/runs/12345',
+      ci_workflow_url: 'https://github.com/Andrevictor20/saturn/actions/runs/12345',
     };
 
     render(

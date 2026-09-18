@@ -45,7 +45,7 @@
   "test_success": "Connexion établie avec succès ! Tunnel : {{name}} (itinéraires {{count}})",
   "test_failed": "Échec du test de la connexion avec Cloudflare",
   "tunnel_token_detected": "Jeton de tunnel détecté ! L'ID de compte et l'ID de tunnel ont été extraits et remplis automatiquement.",
-  "tunnel_token_notice": "Remarque : Le jeton collé est un jeton de tunnel de connecteur local (eyJh...). Pour qu'Orbit répertorie les routes publiques via l'API, fournissez un jeton d'API utilisateur généré dans le tableau de bord Cloudflare avec l'autorisation Compte > Tunnel Cloudflare > Lecture.",
+  "tunnel_token_notice": "Remarque : Le jeton collé est un jeton de tunnel de connecteur local (eyJh...). Pour qu'Saturn répertorie les routes publiques via l'API, fournissez un jeton d'API utilisateur généré dans le tableau de bord Cloudflare avec l'autorisation Compte > Tunnel Cloudflare > Lecture.",
   "api_token_guide_title": "Comment obtenir un jeton API Cloudflare ?",
   "api_token_guide_step1": "Visitez dash.cloudflare.com/profile/api-tokens",
   "api_token_guide_step2": "Cliquez sur \"Créer un jeton\" et choisissez \"Créer un jeton personnalisé\".",

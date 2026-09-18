@@ -20,13 +20,13 @@ global.fetch = mockFetch;
 describe('Networks Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.setItem('orbit_token', 'fake-token');
+    localStorage.setItem('saturn_token', 'fake-token');
     
     // Default fetch mock for networks list
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([
-        { id: '12345', name: 'orbit_network', driver: 'bridge' },
+        { id: '12345', name: 'saturn_network', driver: 'bridge' },
         { id: '67890', name: 'my_custom_net', driver: 'overlay' }
       ])
     });
@@ -42,7 +42,7 @@ describe('Networks Component', () => {
     expect(screen.getByText('Carregando redes...')).toBeTruthy();
     
     await waitFor(() => {
-      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('saturn_network').length).toBeGreaterThan(0);
     });
     
     expect(screen.getAllByText('my_custom_net').length).toBeGreaterThan(0);
@@ -67,7 +67,7 @@ describe('Networks Component', () => {
     render(<Networks />);
     
     await waitFor(() => {
-      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('saturn_network').length).toBeGreaterThan(0);
     });
 
     // Mock delete endpoint
@@ -76,11 +76,11 @@ describe('Networks Component', () => {
     });
 
     const deleteBtns = screen.getAllByTitle('Remover Rede');
-    fireEvent.click(deleteBtns[0]); // delete orbit_network
+    fireEvent.click(deleteBtns[0]); // delete saturn_network
     
     // Modal opens
     await waitFor(() => {
-      expect(screen.getByText(/Tem certeza que deseja remover a rede orbit_network\?/)).toBeTruthy();
+      expect(screen.getByText(/Tem certeza que deseja remover a rede saturn_network\?/)).toBeTruthy();
     });
     
     // Confirm delete
@@ -99,7 +99,7 @@ describe('Networks Component', () => {
     render(<Networks />);
     
     await waitFor(() => {
-      expect(screen.getAllByText('orbit_network').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('saturn_network').length).toBeGreaterThan(0);
     });
 
     // Mock prune endpoint

@@ -1,0 +1,14 @@
+id: emby-happy-play
+name: Emby Happy
+tagline: Enhanced Emby Server with plugins support
+description: Emby Server brings all of your home videos, music, and photos together
+  into one place. This enhanced version includes emby-erx for UI enhancements, dd-danmaku
+  for adding danmaku support, and embyExternalUrl for using external players.
+category: Media
+version: 1.0.0
+developer: amilys
+store: play
+icon: icon.png
+port: 8096
+architectures:
+- amd64

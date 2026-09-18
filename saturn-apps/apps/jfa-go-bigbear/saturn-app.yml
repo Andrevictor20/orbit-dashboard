@@ -1,0 +1,15 @@
+id: jfa-go-bigbear
+name: jfa-go
+tagline: Manage users in Jellyfin
+description: jfa-go is a user management app for Jellyfin (and Emby as 2nd class)
+  that provides invite-based account creation as well as other features that make
+  one's instance much easier to manage.
+category: Media
+version: 1.0.0
+developer: hrfee
+store: bigbear
+icon: icon.png
+port: 8056
+architectures:
+- amd64
+- arm64

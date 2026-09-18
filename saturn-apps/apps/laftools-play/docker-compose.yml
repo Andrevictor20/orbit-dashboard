@@ -1,0 +1,20 @@
+name: laftools
+services:
+  laftools:
+    image: codegentoolbox/laftools-linux-x64:latest
+    container_name: laftools
+    environment:
+    - LAFREGION=CN
+    - APPLANG=zh_CN
+    volumes:
+    - type: bind
+      source: /DATA/AppData/laftools
+      target: /root/.miaoda
+    ports:
+    - 39899:39899
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge

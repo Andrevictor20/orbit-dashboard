@@ -1,0 +1,38 @@
+version: '3'
+name: vanblog
+services:
+  vanblog:
+    image: mereith/van-blog:latest
+    container_name: vanblog-web
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      EMAIL: someone@mereith.com
+      VAN_BLOG_DATABASE_URL: mongodb://vanblog-mongo:27017/vanBlog?authSource=admin
+    volumes:
+    - /DATA/AppData/$AppID/data/static:/app/static
+    - /DATA/AppData/$AppID/log:/var/log
+    - /DATA/AppData/$AppID/caddy/config:/root/.config/caddy
+    - /DATA/AppData/$AppID/caddy/data:/root/.local/share/caddy
+    ports:
+    - 8880:80
+    - 4443:443
+    networks:
+    - vanblog
+  mongo:
+    image: mongo:4.4.16
+    container_name: vanblog-mongo
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+    - /DATA/AppData/$AppID/data/mongo:/data/db
+    networks:
+    - vanblog
+networks:
+  vanblog:
+    name: vanblog

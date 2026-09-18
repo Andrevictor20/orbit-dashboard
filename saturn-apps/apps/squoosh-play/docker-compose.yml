@@ -1,0 +1,13 @@
+name: squoosh
+services:
+  squoosh:
+    image: dko0/squoosh:1.12.0
+    container_name: squoosh
+    network_mode: bridge
+    ports:
+    - 7701:8080
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

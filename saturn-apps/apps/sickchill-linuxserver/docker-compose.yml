@@ -1,0 +1,23 @@
+name: linuxserver-sickchill
+services:
+  app:
+    image: linuxserver/sickchill:2024.3.1
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 8081
+      published: 8081
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/sickchill/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/sickchill/downloads
+      target: /downloads
+    - type: bind
+      source: /DATA/AppData/sickchill/tv
+      target: /tv

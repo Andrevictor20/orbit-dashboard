@@ -19,7 +19,7 @@
   "install_failed": "Falha na instalação",
   "install_cancelled": "Instalação cancelada",
   "background_task": "Tarefa em Segundo Plano",
-  "port_conflict_explanation": "Ao clicar em \"Instalar com Porta Sugerida\", o Orbit remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.",
+  "port_conflict_explanation": "Ao clicar em \"Instalar com Porta Sugerida\", o Saturn remapeia automaticamente os serviços para as portas disponíveis sem precisar baixar imagens novamente.",
   "managed_stack_services": "Stack gerenciada com {{count}} serviços interconectados",
   "services": "Serviços",
   "image_update_available_tip": "Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar.",

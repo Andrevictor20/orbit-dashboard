@@ -1,0 +1,20 @@
+version: '3.8'
+name: ttydbridge
+services:
+  ttydbridge:
+    image: cp0204/ttydbridge:latest
+    container_name: ttydbridge
+    environment:
+      EXEC_DIR: /opt
+      START_COMMAND: login
+      PORT: '2222'
+    volumes:
+    - /opt:/opt
+    network_mode: bridge
+    pid: host
+    privileged: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 8M

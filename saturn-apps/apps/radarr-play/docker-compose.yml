@@ -1,0 +1,29 @@
+name: radarr-arm
+services:
+  radarr-arm:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/radarr:arm32v7-4.5.2
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 7878
+      published: '7878'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/radarr-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Media/Movies
+      target: /movies
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    container_name: radarr-arm

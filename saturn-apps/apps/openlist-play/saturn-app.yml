@@ -1,0 +1,15 @@
+id: openlist-play
+name: OpenList
+tagline: A new AList Fork to Anti Trust Crisis.
+description: A file list program that supports multiple storages, powered by Gin and
+  SolidJS, fork of AList.
+category: Productivity
+version: 1.0.0
+developer: openlistteam
+store: play
+icon: icon.png
+port: 5244
+architectures:
+- amd64
+- arm64
+- arm

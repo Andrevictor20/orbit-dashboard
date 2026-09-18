@@ -1,0 +1,16 @@
+id: palworld-server-play
+name: Palworld Dedicated Server
+tagline: Easily run a Palworld Dedicated Server
+description: Get started with hosting your own Palworld Dedicated Server. Palworld
+  is an action-adventure, survival, and monster-taming game created and published
+  by Japanese developer Pocket Pair. The game is set in an open world populated with
+  animal-like creatures called "Pals", which players can battle and capture to use
+  for base building, traversal, and combat.
+category: Others
+version: 1.0.0
+developer: thijsvanloef
+store: play
+icon: icon.png
+architectures:
+- amd64
+- arm64

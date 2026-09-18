@@ -1,0 +1,18 @@
+id: fnos-play
+name: fnOS
+tagline: Private Cloud Systems
+description: fnOS is a lightweight and efficient operating system designed for containerized
+  environments. It is based on the latest Linux kernel, compatible with x86 hardware,
+  and supports flexible storage expansion. The system is free and supports lossless
+  updates. It includes features like remote download, automatic scraping for movie
+  posters, 99% accuracy in movie matching, automatic subtitle downloads, and hardware
+  transcoding. It also supports TV-side viewing, making it easy for the whole family
+  to use.
+category: Productivity
+version: 1.0.0
+developer: Teiron Inc/GreenDamTan
+store: play
+icon: icon.png
+port: 5666
+architectures:
+- amd64

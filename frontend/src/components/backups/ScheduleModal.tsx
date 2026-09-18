@@ -65,7 +65,7 @@ export function ScheduleModal({
       <div className="bg-card border border-border w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
         <div className="p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orbit-500/10 text-orbit-500 rounded-xl border border-orbit-500/20">
+            <div className="p-2.5 bg-saturn-500/10 text-saturn-500 rounded-xl border border-saturn-500/20">
               <Clock className="w-5 h-5" />
             </div>
             <div>
@@ -97,7 +97,7 @@ export function ScheduleModal({
                 onChange={(e) => setConfig({ ...config, enabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orbit-500"></div>
+              <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-saturn-500"></div>
             </label>
           </div>
 
@@ -146,7 +146,7 @@ export function ScheduleModal({
                 onClick={() => setConfig({ ...config, schedule_scope: 'selected' })}
                 className={`p-2.5 rounded-xl border text-left transition-all ${
                   config.schedule_scope === 'selected'
-                    ? 'bg-orbit-500/15 border-orbit-500 text-orbit-700 dark:text-orbit-300 font-semibold'
+                    ? 'bg-saturn-500/15 border-saturn-500 text-saturn-700 dark:text-saturn-300 font-semibold'
                     : 'bg-accent/30 hover:bg-accent/60 border-border/80 text-secondary'
                 } disabled:opacity-50`}
               >
@@ -162,14 +162,14 @@ export function ScheduleModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-secondary mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-orbit-500" />
+                <Calendar className="w-3.5 h-3.5 text-saturn-500" />
                 <span>{t('backups.execution_interval', 'Intervalo de Execução')}</span>
               </label>
               <select
                 value={config.interval_hours}
                 onChange={(e) => setConfig({ ...config, interval_hours: Number(e.target.value) })}
                 disabled={!config.enabled}
-                className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500 disabled:opacity-50"
+                className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500 disabled:opacity-50"
               >
                 <option value={6} className="bg-card">{t('backups.every_6_hours', 'A cada 6 horas')}</option>
                 <option value={12} className="bg-card">{t('backups.every_12_hours', 'A cada 12 horas')}</option>
@@ -188,7 +188,7 @@ export function ScheduleModal({
                 value={config.max_backups_per_app}
                 onChange={(e) => setConfig({ ...config, max_backups_per_app: Number(e.target.value) })}
                 disabled={!config.enabled}
-                className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500 disabled:opacity-50"
+                className="w-full bg-accent/50 border border-border text-primary rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500 disabled:opacity-50"
               >
                 <option value={2} className="bg-card">{t('backups.keep_last_2', 'Manter últimos 2')}</option>
                 <option value={3} className="bg-card">{t('backups.keep_last_3', 'Manter últimos 3')}</option>
@@ -214,7 +214,7 @@ export function ScheduleModal({
                     type="button"
                     onClick={handleSelectAll}
                     disabled={!config.enabled}
-                    className="text-orbit-500 hover:underline disabled:opacity-50"
+                    className="text-saturn-500 hover:underline disabled:opacity-50"
                   >
                     {t('backups.select_all', 'Selecionar Todos')}
                   </button>
@@ -240,7 +240,7 @@ export function ScheduleModal({
                       <label
                         key={app}
                         className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                          isSelected ? 'bg-orbit-500/10 text-primary' : 'hover:bg-accent text-secondary'
+                          isSelected ? 'bg-saturn-500/10 text-primary' : 'hover:bg-accent text-secondary'
                         }`}
                       >
                         <span className="font-mono font-medium">{app}</span>
@@ -249,7 +249,7 @@ export function ScheduleModal({
                           checked={isSelected}
                           onChange={() => toggleApp(app)}
                           disabled={!config.enabled}
-                          className="rounded border-border text-orbit-500 focus:ring-orbit-500"
+                          className="rounded border-border text-saturn-500 focus:ring-saturn-500"
                         />
                       </label>
                     );
@@ -271,7 +271,7 @@ export function ScheduleModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-orbit-500 hover:bg-orbit-600 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-orbit-500/20 hover:shadow-orbit-500/30 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-95 disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>{t('backups.save_schedule_button', 'Salvar Agendamento')}</span>

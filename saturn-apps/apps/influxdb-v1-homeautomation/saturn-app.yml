@@ -1,0 +1,20 @@
+id: influxdb-v1-homeautomation
+name: InfluxDB v1
+tagline: Manage all types of time series data in a single, purpose-built database.
+description: 'Visit [Influx Data](https://www.influxdata.com/influxdb/) for more details.
+  Check the [documentation](https://docs.influxdata.com/influxdb/v1.8/) for further
+  settings.
+
+
+  🚨 Note: This app will always stay on the latest version of 1.x. If you want to upgrade
+  always to the latest version install `InfluxDB` instead.'
+category: Database
+version: 1.0.0
+developer: Influx Data
+store: homeautomation
+icon: icon.png
+port: 8091
+architectures:
+- amd64
+- arm64
+- arm

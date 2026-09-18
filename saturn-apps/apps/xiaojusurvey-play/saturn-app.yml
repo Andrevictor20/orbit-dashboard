@@ -1,0 +1,15 @@
+id: xiaojusurvey-play
+name: XIAOJUSURVEY
+tagline: Lightweight and safe questionnaire system base
+description: XIAOJUSURVEY is a lightweight and secure questionnaire system base, providing
+  individuals and enterprises with a one-stop product-level solution to quickly meet
+  various online survey scenarios.
+category: Productivity
+version: 1.0.0
+developer: didi.cn
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- arm64
+- amd64

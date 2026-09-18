@@ -1,0 +1,13 @@
+id: chrome-bigbear
+name: chrome
+tagline: chrome
+description: This Image contains a browser-accessible version of chrome.
+category: Media
+version: 1.0.0
+developer: kasmweb
+store: bigbear
+icon: icon.png
+port: 6902
+architectures:
+- amd64
+- arm64

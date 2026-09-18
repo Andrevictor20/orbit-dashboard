@@ -72,7 +72,7 @@
   "emptying": "Esvaziando...",
   "empty_trash_action": "Esvaziar Lixeira",
   "safety_title": "Diretrizes de Proteção do Sistema de Arquivos Linux",
-  "safety_intro": "O Orbit bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que NUNCA deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.",
+  "safety_intro": "O Saturn bloqueia a exclusão de diretórios críticos essenciais. Abaixo está a lista detalhada do que NUNCA deve ser apagado manualmente via terminal ou scripts para evitar corrupção irreversível do host.",
   "critical_folders_title": "Pastas Críticas (Perigo Máximo 🔴)",
   "boot_desc": "Contém os kernels do Linux, Initramfs e Grub. Se apagado, o servidor não inicializará.",
   "docker_overlay_desc": "Camadas internas do Docker. Nunca use rm -rf diretamente aqui. Use sempre docker system prune.",

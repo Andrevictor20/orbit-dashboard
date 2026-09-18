@@ -127,13 +127,13 @@ pub fn detect_well_known_web_port(image: &str, name: &str) -> Option<u16> {
     }
 }
 
-/// Helper to parse web port from container labels (e.g. CasaOS, Traefik).
+/// Helper to parse web port from container labels (e.g. Saturn, Traefik).
 pub fn detect_label_web_port(labels: &HashMap<String, String>) -> Option<u16> {
     const LABEL_KEYS: &[&str] = &[
-        "io.casaos.port.web",
-        "io.casaos.app.port",
-        "io.casaos.app.main_port",
-        "dev.casaos.app.port",
+        "io.saturn.port.web",
+        "io.saturn.app.port",
+        "io.saturn.app.main_port",
+        "dev.saturn.app.port",
         "webui.port",
         "web.port",
         "port",
@@ -173,7 +173,7 @@ pub fn score_port(port: &PortInfo, label_port: Option<u16>, well_known: Option<u
     let priv_p = port.private_port;
     let is_tcp = port.typ.eq_ignore_ascii_case("tcp");
 
-    // 1. Matches explicit CasaOS/Traefik label port
+    // 1. Matches explicit Saturn/Traefik label port
     if let Some(lp) = label_port {
         if pub_p == Some(lp) || priv_p == lp {
             return 10000;
@@ -222,7 +222,7 @@ pub fn score_port(port: &PortInfo, label_port: Option<u16>, well_known: Option<u
 }
 
 /// Deduplicates ports (collapsing IPv4 0.0.0.0 and IPv6 :: into a single entry),
-/// enriches missing public ports in host network mode or CasaOS labels,
+/// enriches missing public ports in host network mode or Saturn labels,
 /// and orders ports placing primary web ports first.
 pub fn process_and_prioritize_ports(
     raw_ports: Option<Vec<PortSummary>>,

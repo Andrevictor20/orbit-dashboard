@@ -65,7 +65,7 @@ export function TopProcessesCardView({
       <div className="my-1.5 space-y-1.5 flex-1 overflow-y-auto max-h-[170px] pr-0.5 custom-scrollbar">
         {loading && processes.length === 0 ? (
           <div className="py-6 flex flex-col items-center justify-center text-secondary gap-1.5">
-            <RefreshCw className="w-4 h-4 animate-spin text-orbit-500" />
+            <RefreshCw className="w-4 h-4 animate-spin text-saturn-500" />
             <span className="text-[11px] font-medium">Carregando processos...</span>
           </div>
         ) : processes.length === 0 ? (
@@ -180,7 +180,7 @@ export function TopProcessesCardView({
         </span>
         <Link
           to="/metrics"
-          className="flex items-center gap-1 text-[10px] font-semibold text-orbit-600 dark:text-orbit-400 hover:underline"
+          className="flex items-center gap-1 text-[10px] font-semibold text-saturn-600 dark:text-saturn-400 hover:underline"
         >
           <span>{t('dashboard.view_all_processes', 'Ver monitor')}</span>
           <ExternalLink className="w-2.5 h-2.5" />

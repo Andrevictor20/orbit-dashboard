@@ -1,0 +1,17 @@
+name: linuxserver-freshrss
+services:
+  app:
+    image: linuxserver/freshrss:1.30.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/freshrss/config
+      target: /config

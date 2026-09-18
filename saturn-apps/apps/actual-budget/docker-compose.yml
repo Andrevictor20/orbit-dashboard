@@ -1,0 +1,18 @@
+name: actualbudget
+services:
+  actualbudget:
+    image: actualbudget/actual-server:26.5.2
+    container_name: actualbudget
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID
+      target: /data
+    ports:
+    - target: 5006
+      published: '15006'
+      protocol: tcp

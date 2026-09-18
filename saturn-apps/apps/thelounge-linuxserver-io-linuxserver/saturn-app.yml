@@ -1,0 +1,14 @@
+id: thelounge-linuxserver-io-linuxserver
+name: Thelounge (LinuxServer.io)
+tagline: (a fork of shoutIRC) is a web IRC client that you host on your own server.
+description: Thelounge (a fork of shoutIRC) is a web IRC client that you host on your
+  own server.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: https://raw.githubusercontent.com/thelounge/thelounge/master/client/img/logo-vertical-transparent-bg.svg?sanitize=true
+port: 9000
+architectures:
+- amd64
+- arm64

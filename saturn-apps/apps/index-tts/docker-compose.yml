@@ -1,0 +1,14 @@
+name: index-tts
+services:
+  index-tts:
+    image: icewhaletech/index-tts:2.0
+    container_name: index-tts
+    restart: unless-stopped
+    ports:
+    - target: 7860
+      published: '17869'
+      protocol: tcp
+    deploy:
+      resources:
+        reservations:
+          memory: 12G

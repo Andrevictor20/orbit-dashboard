@@ -1,0 +1,15 @@
+id: nextcloud-bigbear
+name: Nextcloud
+tagline: The productivity platform that keeps you in control
+description: Nextcloud puts your data at your fingertips, under your control. Store
+  your documents, calendar, contacts and photos on a server at home, at one of our
+  providers or in a data center you trust.
+category: Media
+version: 1.0.0
+developer: nextcloud
+store: bigbear
+icon: icon.png
+port: 7580
+architectures:
+- amd64
+- arm64

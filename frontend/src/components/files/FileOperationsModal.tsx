@@ -125,11 +125,11 @@ export function FileOperationsModal({
   const getIcon = () => {
     switch (type) {
       case 'new_folder':
-        return <FolderPlus className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
+        return <FolderPlus className="w-5 h-5 text-saturn-600 dark:text-saturn-400" />;
       case 'new_file':
-        return <FilePlus className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
+        return <FilePlus className="w-5 h-5 text-saturn-600 dark:text-saturn-400" />;
       case 'rename':
-        return <Edit3 className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />;
+        return <Edit3 className="w-5 h-5 text-saturn-600 dark:text-saturn-400" />;
       case 'delete':
         return <Trash2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />;
     }
@@ -140,7 +140,7 @@ export function FileOperationsModal({
       <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl border ${type === 'delete' ? 'bg-rose-500/15 border-rose-500/30' : 'bg-orbit-500/15 border-orbit-500/30'}`}>
+            <div className={`p-2.5 rounded-xl border ${type === 'delete' ? 'bg-rose-500/15 border-rose-500/30' : 'bg-saturn-500/15 border-saturn-500/30'}`}>
               {getIcon()}
             </div>
             <h3 className="font-bold text-primary text-base">{getTitle()}</h3>
@@ -186,7 +186,7 @@ export function FileOperationsModal({
                 placeholder={type === 'new_file' ? 'exemplo.txt' : t('files.item_name_placeholder', 'Nome do item')}
                 autoFocus
                 required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-primary placeholder:text-secondary/60 text-sm focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-primary placeholder:text-secondary/60 text-sm focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500 transition-all"
               />
             </div>
           )}
@@ -205,7 +205,7 @@ export function FileOperationsModal({
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-white transition-all active:scale-95 shadow-md disabled:opacity-50 ${
                 type === 'delete'
                   ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
-                  : 'bg-orbit-500 hover:bg-orbit-600 shadow-orbit-500/25'
+                  : 'bg-saturn-500 hover:bg-saturn-600 shadow-saturn-500/25'
               }`}
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}

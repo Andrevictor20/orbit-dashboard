@@ -1,0 +1,19 @@
+name: songloft
+services:
+  songloft:
+    image: songloft/songloft:latest
+    container_name: songloft
+    restart: unless-stopped
+    ports:
+    - 58091:58091
+    volumes:
+    - /DATA/AppData/songloft/music:/app/music
+    - /DATA/AppData/songloft/data:/app/data
+    environment:
+    - ADMIN_USERNAME=admin
+    - ADMIN_PASSWORD=your_strong_password
+    - LISTEN_PORT=58091
+    deploy:
+      resources:
+        reservations:
+          memory: 128M

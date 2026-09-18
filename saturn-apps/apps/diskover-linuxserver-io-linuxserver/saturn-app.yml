@@ -1,0 +1,15 @@
+id: diskover-linuxserver-io-linuxserver
+name: Diskover (LinuxServer.io)
+tagline: An open source file system indexer that uses Elasticsearch to index and manage
+  data across heterogeneous storage systems.
+description: Diskover is an open source file system indexer that uses Elasticsearch
+  to index and manage data across heterogeneous storage systems.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

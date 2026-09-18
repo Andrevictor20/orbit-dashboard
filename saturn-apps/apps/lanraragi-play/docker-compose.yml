@@ -1,0 +1,23 @@
+name: lanraragi
+services:
+  lanraragi:
+    deploy:
+      resources:
+        reservations:
+          memory: 128M
+    image: difegue/lanraragi
+    ports:
+    - target: 3000
+      published: '3000'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/lanraragi/content
+      target: /home/koyomi/lanraragi/content
+    - type: bind
+      source: /DATA/AppData/lanraragi/database
+      target: /home/koyomi/lanraragi/database
+    network_mode: bridge
+    privileged: false
+    container_name: lanraragi

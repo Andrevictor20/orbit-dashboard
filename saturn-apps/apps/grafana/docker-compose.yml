@@ -1,0 +1,19 @@
+name: grafana
+services:
+  grafana:
+    image: grafana/grafana:13.0.1-security-01
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 3000
+      published: '3003'
+      protocol: tcp
+    restart: always
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/data
+      target: /var/lib/grafana
+    container_name: grafana

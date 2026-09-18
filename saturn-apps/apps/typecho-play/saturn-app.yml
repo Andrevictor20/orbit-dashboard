@@ -1,0 +1,15 @@
+id: typecho-play
+name: typecho
+tagline: A PHP Blogging Platform. Simple and Powerful
+description: Typecho is a PHP-based blog software and is designed to be the most powerful
+  blog engine in the world. Typecho is released under the GNU General Public License
+  2.0.
+category: Social
+version: 1.0.0
+developer: Typecho
+store: play
+icon: icon.png
+port: 8080
+architectures:
+- arm64
+- amd64

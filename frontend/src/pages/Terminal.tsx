@@ -48,8 +48,8 @@ export function Terminal() {
           <div>
             <div className="flex items-center gap-2.5">
               <h2 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">{t('sidebar.terminal', 'Terminal Web')}</h2>
-              <span className="px-2 py-0.5 rounded-full bg-orbit-500/15 border border-orbit-500/30 text-orbit-400 text-xs font-semibold flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-orbit-400" />
+              <span className="px-2 py-0.5 rounded-full bg-saturn-500/15 border border-saturn-500/30 text-saturn-400 text-xs font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-saturn-400" />
                 {t('terminal.secure_ssh', 'SSH Seguro')}
               </span>
             </div>
@@ -60,7 +60,7 @@ export function Terminal() {
 
       {/* Main Terminal Frame with Tab Bar */}
       <div className={`flex-1 w-full bg-card border border-border/80 rounded-xl overflow-hidden shadow-2xl flex flex-col relative ${
-        isFullscreen ? 'h-full border-orbit-500/40' : ''
+        isFullscreen ? 'h-full border-saturn-500/40' : ''
       }`}>
         
         {/* Browser-style Tab Bar */}
@@ -75,7 +75,7 @@ export function Terminal() {
                   : 'bg-muted/40 border-transparent text-secondary hover:bg-accent hover:text-primary mb-[1px]'
               }`}
             >
-              <div className={`w-2 h-2 rounded-full shrink-0 ${activeTab === tab.id ? 'bg-orbit-500' : 'bg-muted-foreground/50 group-hover:bg-muted-foreground'}`} />
+              <div className={`w-2 h-2 rounded-full shrink-0 ${activeTab === tab.id ? 'bg-saturn-500' : 'bg-muted-foreground/50 group-hover:bg-muted-foreground'}`} />
               <span className="text-xs font-medium truncate flex-1">{tab.title}</span>
               {tabs.length > 1 && (
                 <button

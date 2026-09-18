@@ -1,0 +1,29 @@
+name: sonarr-arm
+services:
+  sonarr-arm:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/sonarr:arm32v7-3.0.9
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: bridge
+    ports:
+    - target: 8989
+      published: '8989'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/sonarr-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Media/TV Shows
+      target: /tv
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    container_name: sonarr-arm

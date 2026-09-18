@@ -1,0 +1,14 @@
+id: ente-photos-bigbear
+name: Ente Photos
+tagline: End-to-end encrypted photo storage
+description: Ente is a self-hosted, end-to-end encrypted platform to store, share,
+  and rediscover your photos and videos across all your devices.
+category: Media
+version: 1.0.0
+developer: ente-io
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

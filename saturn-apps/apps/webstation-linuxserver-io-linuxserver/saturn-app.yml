@@ -1,0 +1,12 @@
+id: webstation-linuxserver-io-linuxserver
+name: Webstation (LinuxServer.io)
+tagline: A web native emulation focused LXQt desktop based on Ubuntu.
+description: Webstation is a web native emulation focused LXQt desktop based on Ubuntu.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

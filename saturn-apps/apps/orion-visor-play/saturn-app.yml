@@ -1,0 +1,15 @@
+id: orion-visor-play
+name: Orion Visor
+tagline: A high-value, modern intelligent operation and maintenance & lightweight
+  bastion platform.
+description: Orion Visor is a high-value, modern intelligent operation and maintenance
+  & lightweight bastion platform. Orion-visor provides a one-stop server operation
+  and maintenance solution.
+category: Productivity
+version: 1.0.0
+developer: lijiahangmax
+store: play
+icon: icon.png
+port: 1081
+architectures:
+- amd64

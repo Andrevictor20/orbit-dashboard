@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  ____       _     _ _   
-# / __ \_____| |__ (_) |_ 
-#/ / / / ___/| '_ \| | __|
-#/ /_/ / /    | |_) | | |_ 
-#\____/_/     |_.__/|_|\__|
+#   _____       _                     
+#  / ____|     | |                    
+# | (___   __ _| |_ _   _ _ __ _ __   
+#  \___ \ / _` | __| | | | '__| '_ \  
+#  ____) | (_| | |_| |_| | |  | | | | 
+# |_____/ \__,_|\__|\__,_|_|  |_| |_| 
 #
-# Orbit Dashboard — Universal Automated Installer, Updater & Manager
+# Saturn — Universal Automated Installer, Updater & Manager
 # Supported: x86_64, aarch64 (ARM64), armv7l (Raspberry Pi 3/4/5, PC, Cloud VPS)
 #
 # Usage:
-#   Instalação:   curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash
-#   Atualização:  curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash -s -- --update
-#   Desinstalação: curl -fsSL https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/install.sh | bash -s -- --uninstall
+#   Instalação:   curl -fsSL https://raw.githubusercontent.com/Andrevictor20/saturn/main/install.sh | bash
+#   Atualização:  curl -fsSL https://raw.githubusercontent.com/Andrevictor20/saturn/main/install.sh | bash -s -- --update
+#   Desinstalação: curl -fsSL https://raw.githubusercontent.com/Andrevictor20/saturn/main/install.sh | bash -s -- --uninstall
 # =============================================================================
 set -euo pipefail
 
@@ -24,7 +25,7 @@ RED='\033[0;31m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-REPO="Andrevictor20/orbit-dashboard"
+REPO="Andrevictor20/saturn"
 IMAGE="ghcr.io/${REPO}:latest"
 
 # ── Logging Helpers ──────────────────────────────────────────────────────────
@@ -59,15 +60,9 @@ read_tty() {
 
 # ── Install Dir Detection ────────────────────────────────────────────────────
 detect_install_dir() {
-  if [ -d "/DATA/orbit" ]; then
-    INSTALL_DIR="/DATA/orbit"
-  elif [ -d "${HOME:-/root}/orbit" ]; then
-    INSTALL_DIR="${HOME:-/root}/orbit"
-  elif [ -d "/DATA" ] && [ -w "/DATA" ]; then
-    INSTALL_DIR="/DATA/orbit"
-  else
-    INSTALL_DIR="${HOME:-/root}/orbit"
-  fi
+  if [ -d "/DATA/saturn" ]; then
+    INSTALL_DIR="/DATA/saturn"
+fi
 }
 detect_install_dir
 
@@ -149,7 +144,8 @@ apply_storage_policy() {
   fi
 
   if [ -d /etc/systemd/journald.conf.d ]; then
-    echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | $SUDO tee /etc/systemd/journald.conf.d/00-orbit.conf > /dev/null
+    echo -e "[Journal]\nSystemMaxUse=100M\nSystemMaxFileSize=20M" | $SUDO tee /etc/systemd/journald.conf.d/00-saturn.conf > /dev/null
+    $SUDO rm -f /etc/systemd/journald.conf.d/00-saturn.conf 2>/dev/null || true
     $SUDO systemctl restart systemd-journald 2>/dev/null || true
     $SUDO journalctl --vacuum-size=50M 2>/dev/null || true
   fi
@@ -160,15 +156,15 @@ create_compose_file() {
   log_info "Gerando arquivo de configuração docker-compose.yml..."
   cat << 'EOF' > docker-compose.yml
 services:
-  orbit:
-    image: ghcr.io/andrevictor20/orbit-dashboard:latest
-    container_name: orbit-dashboard
+  saturn:
+    image: ghcr.io/andrevictor20/saturn:latest
+    container_name: saturn
     restart: unless-stopped
     ports:
       - "5172:5172"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - orbit_data:/app/data
+      - saturn_data:/app/data
       - /:/host:rslave
       - /mnt:/mnt:rslave
       - /media:/media:rslave
@@ -179,8 +175,8 @@ services:
         max-file: "3"
 
 volumes:
-  orbit_data:
-    name: orbit_data
+  saturn_data:
+    name: saturn_data
 EOF
   log_success "docker-compose.yml configurado com sucesso."
 }
@@ -198,8 +194,8 @@ detect_local_ip() {
 }
 
 # ── Status Check ─────────────────────────────────────────────────────────────
-is_orbit_installed() {
-  if $SUDO docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Eq '^(orbit-dashboard|orbit|Orbit)$'; then
+is_saturn_installed() {
+  if $SUDO docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Eq '^(saturn|saturn-dashboard|saturn_old_dummy)$'; then
     return 0
   fi
   if [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
@@ -208,28 +204,36 @@ is_orbit_installed() {
   return 1
 }
 
-# ── Free Ports and Stop Orbit ────────────────────────────────────────────────
-stop_and_clear_orbit_instances() {
+# Legacy alias
+is_saturn_installed() {
+  is_saturn_installed
+}
+
+# ── Free Ports and Stop Saturn ─────────────────────────────────────────
+stop_and_clear_saturn_instances() {
   log_info "Liberando portas de rede (5172/5173) e parando instâncias antigas..."
   $SUDO docker ps -q --filter "publish=5172" 2>/dev/null | xargs -r $SUDO docker stop 2>/dev/null || true
   $SUDO docker ps -q --filter "publish=5172" 2>/dev/null | xargs -r $SUDO docker rm -f 2>/dev/null || true
   $SUDO docker ps -q --filter "publish=5173" 2>/dev/null | xargs -r $SUDO docker stop 2>/dev/null || true
   $SUDO docker ps -q --filter "publish=5173" 2>/dev/null | xargs -r $SUDO docker rm -f 2>/dev/null || true
 
-  for c in orbit-dashboard orbit Orbit; do
+  for c in saturn saturn-dashboard ; do
     $SUDO docker stop "$c" 2>/dev/null || true
     $SUDO docker rm -f "$c" 2>/dev/null || true
   done
 
   # Remove dead or exited duplicates (prevents "1/2 ativos")
-  $SUDO docker ps -a -q --filter "name=orbit" --filter "status=exited" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
-  $SUDO docker ps -a -q --filter "name=orbit" --filter "status=created" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
-  $SUDO docker ps -a -q --filter "name=orbit" --filter "status=dead" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn" --filter "status=exited" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn" --filter "status=created" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn" --filter "status=dead" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=exited" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=created" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
+  $SUDO docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=dead" 2>/dev/null | xargs -r $SUDO docker rm 2>/dev/null || true
 }
 
 # ── Action: Install ──────────────────────────────────────────────────────────
 do_install() {
-  log_info "Iniciando instalação do Orbit Dashboard..."
+  log_info "Iniciando instalação do Saturn..."
   fix_docker_config
   check_architecture_and_os
   check_docker
@@ -240,17 +244,17 @@ do_install() {
   cd "${INSTALL_DIR}"
   create_compose_file
 
-  stop_and_clear_orbit_instances
+  stop_and_clear_saturn_instances
 
   log_info "Baixando imagem multi-arch mais recente (${IMAGE})..."
   $SUDO docker compose pull || $SUDO docker pull "${IMAGE}"
 
-  log_info "Iniciando container do Orbit Dashboard..."
+  log_info "Iniciando container do Saturn..."
   $SUDO docker compose up -d || $SUDO docker compose up -d --force-recreate
 
   detect_local_ip
   echo -e "\n${GREEN}${BOLD}======================================================${NC}"
-  echo -e "${GREEN}${BOLD}🎉 Parabéns! O Orbit Dashboard foi instalado com sucesso!${NC}"
+  echo -e "${GREEN}${BOLD}🎉 Parabéns! O Saturn foi instalado com sucesso!${NC}"
   echo -e "${GREEN}${BOLD}======================================================${NC}\n"
   echo -e "  🌐 ${BOLD}Acesse pelo navegador em:${NC}"
   echo -e "     ${CYAN}${BOLD}http://${LOCAL_IP}:5172${NC}\n"
@@ -267,7 +271,7 @@ do_install() {
 # ── Action: Update ───────────────────────────────────────────────────────────
 do_update() {
   echo -e "\n${CYAN}${BOLD}======================================================${NC}"
-  echo -e "${CYAN}${BOLD}🚀 ATUALIZAÇÃO DO ORBIT DASHBOARD${NC}"
+  echo -e "${CYAN}${BOLD}🚀 ATUALIZAÇÃO DO SATURN${NC}"
   echo -e "${CYAN}${BOLD}======================================================${NC}\n"
 
   log_info "Verificando ambiente e dependências..."
@@ -282,9 +286,9 @@ do_update() {
   log_info "Baixando imagem multi-arch mais recente (${IMAGE})..."
   $SUDO docker compose pull 2>/dev/null || $SUDO docker pull "${IMAGE}"
 
-  stop_and_clear_orbit_instances
+  stop_and_clear_saturn_instances
 
-  log_info "Reiniciando serviço Orbit Dashboard na nova versão..."
+  log_info "Reiniciando serviço Saturn na nova versão..."
   $SUDO docker compose up -d || $SUDO docker compose up -d --force-recreate
 
   log_info "Limpando imagens antigas e dangling..."
@@ -292,7 +296,7 @@ do_update() {
 
   detect_local_ip
   echo -e "\n${GREEN}${BOLD}======================================================${NC}"
-  echo -e "${GREEN}${BOLD}✅ O Orbit Dashboard foi atualizado com sucesso!${NC}"
+  echo -e "${GREEN}${BOLD}✅ O Saturn foi atualizado com sucesso!${NC}"
   echo -e "${GREEN}${BOLD}======================================================${NC}\n"
   echo -e "  🌐 ${BOLD}Acesse pelo navegador em:${NC}"
   echo -e "     ${CYAN}${BOLD}http://${LOCAL_IP}:5172${NC}\n"
@@ -306,12 +310,12 @@ do_uninstall() {
   local keep_data="${KEEP_DATA:-}"
 
   echo -e "\n${RED}${BOLD}======================================================${NC}"
-  echo -e "${RED}${BOLD}🗑️  DESINSTALAÇÃO DO ORBIT DASHBOARD${NC}"
+  echo -e "${RED}${BOLD}🗑️  DESINSTALAÇÃO DO SATURN${NC}"
   echo -e "${RED}${BOLD}======================================================${NC}\n"
 
   if [ "$ASSUME_YES" = false ] && [ -c /dev/tty ]; then
     local confirm
-    confirm="$(read_tty "Tem certeza de que deseja desinstalar o Orbit Dashboard? [s/N]: " "n")"
+    confirm="$(read_tty "Tem certeza de que deseja desinstalar o Saturn? [s/N]: " "n")"
     if [[ ! "$confirm" =~ ^[sSyY]$ ]]; then
       log_info "Desinstalação cancelada pelo usuário."
       exit 0
@@ -319,9 +323,9 @@ do_uninstall() {
 
     if [ -z "$keep_apps" ]; then
       echo ""
-      echo -e "${BOLD}O que deseja fazer com os aplicativos e containers gerenciados pelo Orbit?${NC}"
+      echo -e "${BOLD}O que deseja fazer com os aplicativos e containers gerenciados pelo Saturn?${NC}"
       echo -e "  1) ${GREEN}${BOLD}Manter todos os containers instalados${NC} (Recomendado — Pi-hole, Plex, Jellyfin, etc. continuam rodando)"
-      echo -e "  2) ${RED}${BOLD}Remover todos os containers instalados via Orbit${NC} (Para e remove apps da App Store)"
+      echo -e "  2) ${RED}${BOLD}Remover todos os containers instalados via Saturn${NC} (Para e remove apps da App Store)"
       local opt_apps
       opt_apps="$(read_tty "Escolha uma opção [1/2, padrão 1]: " "1")"
       if [ "$opt_apps" = "2" ]; then
@@ -333,9 +337,9 @@ do_uninstall() {
 
     if [ -z "$keep_data" ]; then
       echo ""
-      echo -e "${BOLD}O que deseja fazer com os dados e senhas do Orbit (volume 'orbit_data')?${NC}"
+      echo -e "${BOLD}O que deseja fazer com os dados e senhas do Saturn (volume 'saturn_data')?${NC}"
       echo -e "  1) ${GREEN}${BOLD}Manter dados e senhas${NC} (Permite restaurar tudo ao reinstalar no futuro)"
-      echo -e "  2) ${RED}${BOLD}Excluir completamente todos os dados do Orbit${NC}"
+      echo -e "  2) ${RED}${BOLD}Excluir completamente todos os dados do Saturn${NC}"
       local opt_data
       opt_data="$(read_tty "Escolha uma opção [1/2, padrão 1]: " "1")"
       if [ "$opt_data" = "2" ]; then
@@ -350,16 +354,16 @@ do_uninstall() {
     keep_data="${keep_data:-true}"
   fi
 
-  log_info "Parando e removendo o contêiner do Orbit Dashboard..."
+  log_info "Parando e removendo o contêiner do Saturn..."
   if [ -d "${INSTALL_DIR}" ] && [ -f "${INSTALL_DIR}/docker-compose.yml" ]; then
     (cd "${INSTALL_DIR}" && $SUDO docker compose down 2>/dev/null || true)
   fi
 
-  stop_and_clear_orbit_instances
+  stop_and_clear_saturn_instances
 
   # Handle associated app containers
   if [ "$keep_apps" = false ]; then
-    log_warn "Removendo contêineres e aplicativos instalados via Orbit App Store..."
+    log_warn "Removendo contêineres e aplicativos instalados via Saturn App Store..."
     if [ -d "${INSTALL_DIR}/data/apps" ]; then
       for app_compose in "${INSTALL_DIR}/data/apps"/*/docker-compose.yml; do
         if [ -f "$app_compose" ]; then
@@ -376,34 +380,34 @@ do_uninstall() {
 
   # Handle configuration & data volume
   if [ "$keep_data" = false ]; then
-    log_warn "Removendo volume de dados e arquivos de configuração..."
-    $SUDO docker volume rm orbit_data 2>/dev/null || true
+    log_warn "Removendo volumes de dados e arquivos de configuração..."
+    $SUDO docker volume rm saturn_data saturn_old_data 2>/dev/null || true
     $SUDO rm -rf "${INSTALL_DIR}"
     log_success "Volume e diretório ${INSTALL_DIR} removidos com sucesso."
   else
-    log_success "Volume de dados ('orbit_data') e diretório ${INSTALL_DIR} foram preservados."
+    log_success "Volumes de dados ('saturn_data') e diretório ${INSTALL_DIR} foram preservados."
   fi
 
-  log_info "Removendo imagens locais do Orbit..."
-  $SUDO docker rmi "${IMAGE}" "victorandre280/orbit-dashboard:latest" 2>/dev/null || true
+  log_info "Removendo imagens locais do Saturn..."
+  $SUDO docker rmi "${IMAGE}" "victorandre280/saturn:latest" 2>/dev/null || true
 
   echo -e "\n${GREEN}${BOLD}======================================================${NC}"
-  echo -e "${GREEN}${BOLD}✅ O Orbit Dashboard foi desinstalado com sucesso!${NC}"
+  echo -e "${GREEN}${BOLD}✅ O Saturn foi desinstalado com sucesso!${NC}"
   echo -e "${GREEN}${BOLD}======================================================${NC}\n"
 }
 
 # ── Help / Usage ─────────────────────────────────────────────────────────────
 show_help() {
-  echo -e "${BOLD}Orbit Dashboard — Script de Gerenciamento Unificado${NC}"
+  echo -e "${BOLD}Saturn — Script de Gerenciamento Unificado${NC}"
   echo -e "Uso: ./install.sh [OPÇÕES]\n"
   echo -e "Opções:"
-  echo -e "  ${CYAN}--install${NC}         Instala o Orbit Dashboard (padrão se não estiver instalado)"
-  echo -e "  ${CYAN}-u, --update${NC}      Atualiza o Orbit Dashboard para a versão mais recente preservando dados"
-  echo -e "  ${CYAN}-d, --uninstall${NC}   Desinstala o Orbit Dashboard"
+  echo -e "  ${CYAN}--install${NC}         Instala o Saturn (padrão se não estiver instalado)"
+  echo -e "  ${CYAN}-u, --update${NC}      Atualiza o Saturn para a versão mais recente preservando dados"
+  echo -e "  ${CYAN}-d, --uninstall${NC}   Desinstala o Saturn"
   echo -e "  ${CYAN}--keep-apps${NC}       Mantém outros contêineres e aplicativos da App Store rodando (padrão)"
-  echo -e "  ${CYAN}--purge-apps${NC}      Para e remove todos os aplicativos instalados via Orbit"
-  echo -e "  ${CYAN}--keep-data${NC}       Mantém o volume de dados ('orbit_data') e senhas (padrão)"
-  echo -e "  ${CYAN}--purge-data${NC}      Exclui permanentemente o volume 'orbit_data' e pasta de instalação"
+  echo -e "  ${CYAN}--purge-apps${NC}      Para e remove todos os aplicativos instalados via Saturn"
+  echo -e "  ${CYAN}--keep-data${NC}       Mantém o volume de dados ('saturn_data') e senhas (padrão)"
+  echo -e "  ${CYAN}--purge-data${NC}      Exclui permanentemente o volume 'saturn_data' e pasta de instalação"
   echo -e "  ${CYAN}-y, --yes${NC}         Assume 'sim' para todas as confirmações não interativas"
   echo -e "  ${CYAN}-h, --help${NC}        Exibe esta mensagem de ajuda\n"
   echo -e "Exemplos:"
@@ -467,13 +471,14 @@ done
 clear 2>/dev/null || true
 echo -e "${CYAN}${BOLD}"
 cat << "EOF"
-  ____       _     _ _   
- / __ \_____| |__ (_) |_ 
-/ / / / ___/| '_ \| | __|
-/ /_/ / /    | |_) | | |_ 
-\____/_/     |_.__/|_|\__|
+   _____       _                     
+  / ____|     | |                    
+ | (___   __ _| |_ _   _ _ __ _ __   
+  \___ \ / _` | __| | | | '__| '_ \  
+  ____) | (_| | |_| |_| | |  | | | | 
+ |_____/ \__,_|\__|\__,_|_|  |_| |_| 
 EOF
-echo -e "${NC}${BOLD}Orbit Dashboard — Zero-Config Homelab & Docker Manager${NC}"
+echo -e "${NC}${BOLD}Saturn — Zero-Config Homelab & Docker Manager${NC}"
 echo -e "${CYAN}======================================================${NC}\n"
 
 # If an explicit action was requested via flag, run it directly
@@ -486,13 +491,13 @@ if [ -n "$ACTION" ]; then
   exit 0
 fi
 
-# If Orbit is already installed and interactive TTY is available, display menu
-if is_orbit_installed && [ "$ASSUME_YES" = false ] && [ -c /dev/tty ]; then
-  echo -e "${YELLOW}ℹ️  O Orbit Dashboard já está instalado neste sistema (${INSTALL_DIR}).${NC}\n"
+# If Saturn is already installed and interactive TTY is available, display menu
+if is_saturn_installed && [ "$ASSUME_YES" = false ] && [ -c /dev/tty ]; then
+  echo -e "${YELLOW}ℹ️  O Saturn já está instalado neste sistema (${INSTALL_DIR}).${NC}\n"
   echo -e "${BOLD}O que você deseja fazer?${NC}"
-  echo -e "  1) ${CYAN}${BOLD}Atualizar o Orbit Dashboard${NC} (Recomendado — baixa versão mais recente)"
+  echo -e "  1) ${CYAN}${BOLD}Atualizar o Saturn${NC} (Recomendado — baixa versão mais recente)"
   echo -e "  2) ${GREEN}${BOLD}Reinstalar / Reparar${NC} (Recria containers e valida portas)"
-  echo -e "  3) ${RED}${BOLD}Desinstalar o Orbit Dashboard${NC}"
+  echo -e "  3) ${RED}${BOLD}Desinstalar o Saturn${NC}"
   echo -e "  4) ${BOLD}Sair${NC}"
   
   choice="$(read_tty "Escolha uma opção [1-4, padrão 1]: " "1")"

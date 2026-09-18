@@ -120,15 +120,15 @@ pub async fn update_container(
     let name = inspect.name.clone().unwrap_or_else(|| id.clone());
     let clean_name = name.trim_start_matches('/').to_string();
 
-    if clean_name == "orbit-dashboard" || clean_name == "orbit" {
+    if clean_name == "saturn" || clean_name == "saturn-dashboard" {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({
                 "id": id,
                 "name": clean_name,
                 "status": "error",
-                "message": "O Orbit Dashboard possui um ciclo de vida próprio e não pode ser recriado diretamente nesta fila para não derrubar a sessão ativa. Utilize o Atualizador do Sistema no topo da página.",
-                "details": "Orbit container cannot self-terminate in batch updates"
+                "message": "O Saturn possui um ciclo de vida próprio e não pode ser recriado diretamente nesta fila para não derrubar a sessão ativa. Utilize o Atualizador do Sistema no topo da página.",
+                "details": "Saturn container cannot self-terminate in batch updates"
             })),
         )
             .into_response();

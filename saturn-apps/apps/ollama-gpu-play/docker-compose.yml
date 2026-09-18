@@ -1,0 +1,22 @@
+name: ollama-gpu
+services:
+  ollama-gpu:
+    container_name: ollama-gpu
+    deploy:
+      resources:
+        reservations:
+          memory: 1024M
+          devices:
+          - capabilities:
+            - gpu
+    hostname: ollama
+    image: ollama/ollama:latest
+    ports:
+    - 11434:11434
+    restart: unless-stopped
+    environment:
+    - OLLAMA_ORIGINS=*
+    volumes:
+    - /DATA/AppData/ollama:/root/.ollama
+    network_mode: bridge
+    privileged: false

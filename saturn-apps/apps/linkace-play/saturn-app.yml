@@ -1,0 +1,14 @@
+id: linkace-play
+name: LinkAce
+tagline: Manage Your Bookmarks and Links
+description: Manage your bookmarks, links, and reading list with ease using LinkAce.
+  Access your links from anywhere with a web browser.
+category: Developer
+version: 1.0.0
+developer: linkace
+store: play
+icon: icon.png
+port: 8086
+architectures:
+- amd64
+- arm64

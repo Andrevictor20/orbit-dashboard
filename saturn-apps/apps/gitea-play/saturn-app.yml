@@ -1,0 +1,13 @@
+id: gitea-play
+name: Gitea
+tagline: Git with a cup of tea
+description: Gitea is a community managed lightweight code hosting solution written
+  in Go.
+category: Developer
+version: 1.0.0
+developer: Gitea
+store: play
+icon: icon.png
+port: 3002
+architectures:
+- arm

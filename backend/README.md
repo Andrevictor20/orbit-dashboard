@@ -1,4 +1,4 @@
-# Orbit Backend
+# Saturn Backend
 
 ## Testes de Carga (Load Testing)
 
@@ -21,5 +21,5 @@ k6 run load-tests/load_test.js
 
 Você pode passar variáveis de ambiente se a API estiver rodando em outra URL:
 ```bash
-k6 run -e BASE_URL=http://api.staging.orbit.com load-tests/smoke_test.js
+k6 run -e BASE_URL=http://api.staging.saturn.local load-tests/smoke_test.js
 ```

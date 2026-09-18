@@ -1,0 +1,21 @@
+id: glances-bigbear
+name: Glances
+tagline: Glances
+description: Glances is an open-source system cross-platform monitoring tool. It allows
+  real-time monitoring of various aspects of your system such as CPU, memory, disk,
+  network usage etc. It also allows monitoring of running processes, logged in users,
+  temperatures, voltages, fan speeds etc. It also supports container monitoring, it
+  supports different container management systems such as Docker, LXC. The information
+  is presented in an easy to read dashboard and can also be used for remote monitoring
+  of systems via a web interface or command line interface. It is easy to install
+  and use and can be customized to show only the information that you are interested
+  in.
+category: Networking
+version: 1.0.0
+developer: nicolargo
+store: bigbear
+icon: icon.png
+port: 61208
+architectures:
+- amd64
+- arm64

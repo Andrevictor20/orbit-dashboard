@@ -1,0 +1,16 @@
+id: pdfmathtranslate-play
+name: PDFMathTranslate
+tagline: Translate scientific PDFs with ease and precision.
+description: PDF scientific paper translation and bilingual comparison. Preserve formulas,
+  charts, table of contents, and annotations (preview). Support multiple languages,
+  and diverse translation services. Provides commandline tool, interactive user interface,
+  and Docker.
+category: Productivity
+version: 1.0.0
+developer: byaidu
+store: play
+icon: icon.png
+port: 7860
+architectures:
+- arm64
+- amd64

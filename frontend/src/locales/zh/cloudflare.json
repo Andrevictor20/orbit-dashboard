@@ -45,7 +45,7 @@
   "test_success": "连接建立成功！隧道：{{name}}（{{count}}路线）",
   "test_failed": "无法测试与 Cloudflare 的连接",
   "tunnel_token_detected": "检测到隧道令牌！自动提取并填充帐户 ID 和隧道 ID。",
-  "tunnel_token_notice": "注意：粘贴的令牌是本地连接器隧道令牌（eyJh...）。要让 Orbit 通过 API 列出公共路由，请提供在 Cloudflare Dashboard 中生成的用户 API 令牌，并具有帐户 > Cloudflare Tunnel > 读取权限。",
+  "tunnel_token_notice": "注意：粘贴的令牌是本地连接器隧道令牌（eyJh...）。要让 Saturn 通过 API 列出公共路由，请提供在 Cloudflare Dashboard 中生成的用户 API 令牌，并具有帐户 > Cloudflare Tunnel > 读取权限。",
   "api_token_guide_title": "如何获取 Cloudflare API 令牌？",
   "api_token_guide_step1": "访问 dash.cloudflare.com/profile/api-tokens",
   "api_token_guide_step2": "单击“创建令牌”并选择“创建自定义令牌”",

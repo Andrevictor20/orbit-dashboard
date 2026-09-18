@@ -117,7 +117,7 @@ export function OverviewTelemetryCards({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-stretch">
       {/* 1. CPU & Temp Card */}
-      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
+      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
         {cpuView === 'top5' ? (
           <TopProcessesCardView
             type="cpu"
@@ -179,7 +179,7 @@ export function OverviewTelemetryCards({
       </div>
 
       {/* 2. Memory RAM Card */}
-      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
+      <div className="relative group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between overflow-hidden">
         {ramView === 'top5' ? (
           <TopProcessesCardView
             type="ram"
@@ -241,7 +241,7 @@ export function OverviewTelemetryCards({
       {/* 3. GPU Usage Card */}
       <Link
         to="/metrics"
-        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
+        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
       >
         <div className="space-y-1">
           <div className="flex items-center justify-between text-secondary">
@@ -297,19 +297,19 @@ export function OverviewTelemetryCards({
       {/* 4. Storage Multi-Drive Card (Cleaned & De-duplicated) */}
       <Link
         to="/disk-analyzer"
-        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between relative overflow-hidden"
+        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between relative overflow-hidden"
         title={t('dashboard.view_disk_analyzer', 'Ver Analisador de Disco')}
       >
         <div className="flex items-center justify-between text-secondary mb-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium">{t('dashboard.storage', 'Armazenamento')}</span>
             {uniqueDisks.length > 1 && (
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orbit-500/15 text-orbit-700 dark:text-orbit-400 border border-orbit-500/30">
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-saturn-500/15 text-saturn-700 dark:text-saturn-400 border border-saturn-500/30">
                 {uniqueDisks.length} {t('dashboard.drives', 'unidades')}
               </span>
             )}
           </div>
-          <div className="p-1.5 rounded-lg bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 group-hover:scale-110 transition-transform">
+          <div className="p-1.5 rounded-lg bg-saturn-500/10 text-saturn-600 dark:text-saturn-400 group-hover:scale-110 transition-transform">
             <HardDrive className="w-4 h-4" />
           </div>
         </div>
@@ -326,7 +326,7 @@ export function OverviewTelemetryCards({
             </div>
             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden my-3">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-orbit-500'}`}
+                className={`h-full rounded-full transition-all duration-300 ${parseFloat(diskPercent) > 85 ? 'bg-rose-500' : 'bg-saturn-500'}`}
                 style={{ width: `${Math.min(parseFloat(diskPercent), 100)}%` }}
               />
             </div>
@@ -358,7 +358,7 @@ export function OverviewTelemetryCards({
                       {info.category === 'sdcard' ? (
                         <CreditCard className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                       ) : info.category === 'nvme' ? (
-                        <Zap className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400 shrink-0" />
+                        <Zap className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400 shrink-0" />
                       ) : info.category === 'usb' ? (
                         <Usb className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       ) : (
@@ -380,7 +380,7 @@ export function OverviewTelemetryCards({
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
-                        isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : info.category === 'nvme' ? 'bg-orbit-500' : info.category === 'sdcard' ? 'bg-amber-500' : 'bg-sky-500'
+                        isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : info.category === 'nvme' ? 'bg-saturn-500' : info.category === 'sdcard' ? 'bg-amber-500' : 'bg-sky-500'
                       }`}
                       style={{ width: `${Math.min(percentNum, 100)}%` }}
                     />
@@ -401,7 +401,7 @@ export function OverviewTelemetryCards({
       {/* 5. Network & Containers Card */}
       <Link
         to="/metrics"
-        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-orbit-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
+        className="group bg-card/60 backdrop-blur-3xl saturate-[190%] hover:bg-accent/70 border border-border/80 hover:border-saturn-500/40 rounded-2xl p-4 sm:p-5 transition-all duration-200 shadow-sm hover:shadow-md h-full min-h-[180px] flex flex-col justify-between block relative overflow-hidden"
       >
         <div className="space-y-1">
           <div className="flex items-center justify-between text-secondary">

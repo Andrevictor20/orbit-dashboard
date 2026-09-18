@@ -17,7 +17,7 @@ interface ContainerSelectionPhaseProps {
   onSelectAll: () => void;
   onStart: () => void;
   onClose: () => void;
-  isOrbitSelf: (c: ContainerLike) => boolean;
+  isSaturnSelf: (c: ContainerLike) => boolean;
 }
 
 interface ExecutionPhaseProps {
@@ -45,7 +45,7 @@ interface ExecutionPhaseProps {
 
 export function ContainerSelectionPhase({
   displayedContainers, updatableContainers, updatesMap, selectedIds,
-  onToggle, onSelectAll, onStart, onClose, isOrbitSelf,
+  onToggle, onSelectAll, onStart, onClose, isSaturnSelf,
 }: ContainerSelectionPhaseProps) {
   const { t } = useTranslation();
 
@@ -56,7 +56,7 @@ export function ContainerSelectionPhase({
           {t('batch_update_modal.ready_for_update', { count: updatableContainers.length, defaultValue: `${updatableContainers.length} container(s) pronto(s) para atualização` })}
         </span>
         <div className="flex items-center space-x-2">
-          <button onClick={onSelectAll} className="text-xs text-orbit-600 dark:text-orbit-400 hover:text-orbit-500 font-semibold px-2 py-1 rounded hover:bg-orbit-500/10 transition-colors">
+          <button onClick={onSelectAll} className="text-xs text-saturn-600 dark:text-saturn-400 hover:text-saturn-500 font-semibold px-2 py-1 rounded hover:bg-saturn-500/10 transition-colors">
             {selectedIds.length === updatableContainers.length ? t('batch_update_modal.deselect_all') : t('batch_update_modal.select_all')}
           </button>
           <span className="text-xs text-slate-700 dark:text-secondary font-mono font-medium">
@@ -73,21 +73,21 @@ export function ContainerSelectionPhase({
       ) : (
         <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
           {displayedContainers.map(c => {
-            const isOrbit = isOrbitSelf(c);
+            const isSaturn = isSaturnSelf(c);
             const isSelected = selectedIds.includes(c.id);
             const hasUpdate = updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update;
             const cleanName = c.name.replace(/^\//, '');
             const stackName = (c as any).labels?.['com.docker.compose.project'];
 
             return (
-              <div key={c.id} onClick={() => !isOrbit && onToggle(c.id)} className={`group relative flex items-center justify-between p-3.5 rounded-xl border transition-all ${isOrbit ? 'bg-card/60 border-border/70 opacity-80 cursor-default' : isSelected ? 'bg-orbit-500/10 border-orbit-500/40 cursor-pointer' : 'bg-card border-border hover:bg-accent hover:border-border cursor-pointer'}`}>
+              <div key={c.id} onClick={() => !isSaturn && onToggle(c.id)} className={`group relative flex items-center justify-between p-3.5 rounded-xl border transition-all ${isSaturn ? 'bg-card/60 border-border/70 opacity-80 cursor-default' : isSelected ? 'bg-saturn-500/10 border-saturn-500/40 cursor-pointer' : 'bg-card border-border hover:bg-accent hover:border-border cursor-pointer'}`}>
                 <div className="flex items-center space-x-3.5 min-w-0">
-                  <input type="checkbox" checked={isSelected} disabled={isOrbit} onChange={() => {}} className="w-4 h-4 rounded border-border bg-background text-orbit-600 focus:ring-orbit-500 disabled:opacity-40 cursor-pointer" />
+                  <input type="checkbox" checked={isSelected} disabled={isSaturn} onChange={() => {}} className="w-4 h-4 rounded border-border bg-background text-saturn-600 focus:ring-saturn-500 disabled:opacity-40 cursor-pointer" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-primary truncate">{cleanName}</span>
-                      {hasUpdate && !isOrbit && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">{t('containers.update_available')}</span>}
-                      {isOrbit && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"><Sparkles className="w-2.5 h-2.5" />{t('batch_update_modal.update_via_orbit_menu', 'Atualize pelo menu do Orbit')}</span>}
+                      {hasUpdate && !isSaturn && <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">{t('containers.update_available')}</span>}
+                      {isSaturn && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25"><Sparkles className="w-2.5 h-2.5" />{t('batch_update_modal.update_via_saturn_menu', 'Atualize pelo menu do Saturn')}</span>}
                       {stackName && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-accent text-slate-700 dark:text-zinc-300 border border-border font-medium"><Layers className="w-2.5 h-2.5" />{stackName}</span>}
                     </div>
                     <p className="text-xs text-slate-600 dark:text-secondary font-mono truncate mt-0.5">{c.image}</p>
@@ -109,7 +109,7 @@ export function ContainerSelectionPhase({
         <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent rounded-xl transition-colors">
           {t('batch_update_modal.cancel')}
         </button>
-        <button onClick={onStart} disabled={selectedIds.length === 0} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orbit-600 hover:bg-orbit-500 rounded-xl transition-all shadow-lg shadow-orbit-600/20 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]">
+        <button onClick={onStart} disabled={selectedIds.length === 0} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-saturn-600 hover:bg-saturn-500 rounded-xl transition-all shadow-lg shadow-saturn-600/20 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]">
           <ArrowUpCircle className="w-4 h-4" />
           {t('batch_update_modal.start_update', { count: selectedIds.length })}
         </button>
@@ -133,19 +133,19 @@ export function ExecutionPhase({
       <div className="p-4 rounded-xl bg-accent/60 border border-border space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            {isUpdating ? <RefreshCw className="w-5 h-5 text-orbit-500 animate-spin" /> : failedCount > 0 ? <AlertCircle className="w-5 h-5 text-amber-500" /> : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+            {isUpdating ? <RefreshCw className="w-5 h-5 text-saturn-500 animate-spin" /> : failedCount > 0 ? <AlertCircle className="w-5 h-5 text-amber-500" /> : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
             <span className="text-sm font-semibold text-primary">{isUpdating ? t('batch_update_modal.updating_title') : t('batch_update_modal.summary_title')}</span>
           </div>
           <span className="text-xs font-mono text-slate-700 dark:text-secondary font-medium">{completedTasks} / {totalTasks} ({progressPercent}%)</span>
         </div>
         <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-border/50">
-          <div className="h-full bg-orbit-500 transition-all duration-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+          <div className="h-full bg-saturn-500 transition-all duration-500 rounded-full" style={{ width: `${progressPercent}%` }} />
         </div>
         <div className="flex flex-wrap items-center gap-4 text-xs font-medium pt-1">
           <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 font-semibold"><CheckCircle2 className="w-3.5 h-3.5" />{successCount} {t('batch_update_modal.status_success')}</span>
           {failedCount > 0 && <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1.5 font-semibold"><AlertCircle className="w-3.5 h-3.5" />{failedCount} {t('batch_update_modal.status_error')}</span>}
           {cancelledCount > 0 && <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1.5 font-semibold"><Ban className="w-3.5 h-3.5" />{cancelledCount} {t('batch_update_modal.status_cancelled')}</span>}
-          {isUpdating && <span className="text-orbit-700 dark:text-orbit-400 flex items-center gap-1.5 font-semibold"><DownloadCloud className="w-3.5 h-3.5 animate-pulse" />{totalTasks - completedTasks} {t('batch_update_modal.status_pending')}</span>}
+          {isUpdating && <span className="text-saturn-700 dark:text-saturn-400 flex items-center gap-1.5 font-semibold"><DownloadCloud className="w-3.5 h-3.5 animate-pulse" />{totalTasks - completedTasks} {t('batch_update_modal.status_pending')}</span>}
         </div>
       </div>
 
@@ -157,16 +157,16 @@ export function ExecutionPhase({
             error: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/30',
             success: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30',
             cancelled: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/30',
-            pulling: 'bg-orbit-500/10 border-orbit-500/40 ring-1 ring-orbit-500/20',
-            recreating: 'bg-orbit-500/10 border-orbit-500/40 ring-1 ring-orbit-500/20',
+            pulling: 'bg-saturn-500/10 border-saturn-500/40 ring-1 ring-saturn-500/20',
+            recreating: 'bg-saturn-500/10 border-saturn-500/40 ring-1 ring-saturn-500/20',
           };
           return (
             <div key={task.id} className={`p-3.5 rounded-xl border transition-colors ${stateStyles[task.state] || 'bg-card border-border'}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center space-x-3 min-w-0">
                   {task.state === 'pending' && <Clock className="w-4 h-4 text-secondary shrink-0" />}
-                  {task.state === 'pulling' && <DownloadCloud className="w-4 h-4 text-orbit-500 animate-bounce shrink-0" />}
-                  {task.state === 'recreating' && <RefreshCw className="w-4 h-4 text-orbit-500 animate-spin shrink-0" />}
+                  {task.state === 'pulling' && <DownloadCloud className="w-4 h-4 text-saturn-500 animate-bounce shrink-0" />}
+                  {task.state === 'recreating' && <RefreshCw className="w-4 h-4 text-saturn-500 animate-spin shrink-0" />}
                   {task.state === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                   {task.state === 'error' && <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
                   {task.state === 'cancelled' && <Ban className="w-4 h-4 text-amber-500 shrink-0" />}
@@ -176,7 +176,7 @@ export function ExecutionPhase({
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 shrink-0">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${task.state === 'success' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : task.state === 'error' ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400' : task.state === 'cancelled' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-orbit-500/15 text-orbit-700 dark:text-orbit-400'}`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${task.state === 'success' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : task.state === 'error' ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400' : task.state === 'cancelled' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : 'bg-saturn-500/15 text-saturn-700 dark:text-saturn-400'}`}>
                     {t(`batch_update_modal.status_${task.state}`)}
                   </span>
                   {task.state === 'error' && <button onClick={() => onToggleError(task.id)} className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors">{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>}
@@ -197,7 +197,7 @@ export function ExecutionPhase({
       {/* Console Log */}
       <div className="rounded-xl border border-zinc-800 dark:border-border bg-zinc-950 dark:bg-black/90 text-zinc-100 overflow-hidden shadow-inner">
         <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/95 border-b border-zinc-800 text-zinc-300">
-          <div className="flex items-center space-x-2 text-xs font-medium"><Terminal className="w-3.5 h-3.5 text-orbit-400" /><span>{t('batch_update_modal.operation_logs')}</span></div>
+          <div className="flex items-center space-x-2 text-xs font-medium"><Terminal className="w-3.5 h-3.5 text-saturn-400" /><span>{t('batch_update_modal.operation_logs')}</span></div>
           <div className="flex items-center space-x-2">
             <button onClick={onCopyLogs} className="p-1 text-zinc-400 hover:text-zinc-100 rounded hover:bg-zinc-800 transition-colors">{copiedLogs ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}</button>
             <button onClick={onToggleShowLogs} className="text-xs text-zinc-400 hover:text-zinc-100 flex items-center gap-1">
@@ -230,7 +230,7 @@ export function ExecutionPhase({
           {isUpdating && (
             <>
               <button onClick={onCancelAll} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-colors"><StopCircle className="w-4 h-4" />{t('batch_update_modal.cancel_all')}</button>
-              <button onClick={onMinimize} className="px-4 py-2 text-sm font-semibold text-orbit-700 dark:text-orbit-300 hover:bg-orbit-500/10 rounded-xl transition-colors border border-orbit-500/20">{t('batch_update_modal.continue_in_background', 'Continuar em Segundo Plano')}</button>
+              <button onClick={onMinimize} className="px-4 py-2 text-sm font-semibold text-saturn-700 dark:text-saturn-300 hover:bg-saturn-500/10 rounded-xl transition-colors border border-saturn-500/20">{t('batch_update_modal.continue_in_background', 'Continuar em Segundo Plano')}</button>
             </>
           )}
         </div>

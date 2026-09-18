@@ -15,7 +15,7 @@ pub fn get_trash_dir() -> PathBuf {
     if fs::create_dir_all(&candidate).is_ok() {
         candidate
     } else {
-        let fallback = std::env::temp_dir().join("orbit_trash");
+        let fallback = std::env::temp_dir().join("saturn_trash");
         let _ = fs::create_dir_all(&fallback);
         fallback
     }

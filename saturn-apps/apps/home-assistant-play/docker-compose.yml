@@ -1,0 +1,19 @@
+name: homeassistant-arm
+services:
+  homeassistant-arm:
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    image: linuxserver/homeassistant:arm32v7-2023.4.6
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/homeassistant-arm/config
+      target: /config
+    container_name: homeassistant-arm

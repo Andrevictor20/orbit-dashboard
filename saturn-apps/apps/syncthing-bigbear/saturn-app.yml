@@ -1,0 +1,15 @@
+id: syncthing-bigbear
+name: Syncthing
+tagline: Peer-to-peer file synchronization between your devices
+description: Syncthing is a continuous file synchronization program. It synchronizes
+  files between two or more computers. We strive to fulfill the goals below. The goals
+  are listed in order of importance, the most important one being the first.
+category: Others
+version: 1.0.0
+developer: syncthing
+store: bigbear
+icon: icon.png
+port: 8384
+architectures:
+- amd64
+- arm64

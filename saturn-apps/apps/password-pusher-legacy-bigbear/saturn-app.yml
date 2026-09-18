@@ -1,0 +1,15 @@
+id: password-pusher-legacy-bigbear
+name: Password Pusher (Legacy)
+tagline: Give your users the tools to be secure by default.
+description: Password Pusher is an open source application to communicate passwords
+  over the web. Links to passwords expire after a certain number of views and/or time
+  has passed.
+category: Others
+version: 1.0.0
+developer: pglombardo
+store: bigbear
+icon: icon.png
+port: 5100
+architectures:
+- amd64
+- arm64

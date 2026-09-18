@@ -1,0 +1,13 @@
+id: immich-bigbear
+name: Immich
+tagline: Immich
+description: Self-hosted photo and video storage.
+category: Media
+version: 1.0.0
+developer: immich-app
+store: bigbear
+icon: icon.png
+port: 2283
+architectures:
+- amd64
+- arm64

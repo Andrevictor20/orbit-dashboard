@@ -1,0 +1,29 @@
+name: duplicati-arm
+services:
+  duplicati-arm:
+    environment:
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/duplicati:arm32v7-2.0.6
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 8200
+      published: '8200'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/duplicati-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Duplicati/backups
+      target: /backups
+    - type: bind
+      source: /DATA/Duplicati/source
+      target: /source
+    container_name: duplicati-arm

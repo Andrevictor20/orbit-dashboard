@@ -1,0 +1,15 @@
+id: cloudbeaver
+name: CloudBeaver
+tagline: Cloud Database Manager.
+description: CloudBeaver is a web-based database GUI tool which provides rich web
+  interface. You can use it to manage PostgreSQL, MySQL, MariaDB, SQL Server, Oracle,
+  DB2, Firebird, H2, Trino.
+category: Developer
+version: 1.0.0
+developer: dbeaver
+store: official
+icon: icon.png
+port: 8978
+architectures:
+- amd64
+- arm64

@@ -28,7 +28,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
     setIsLoading(true);
     setError(null);
 
-    const token = localStorage.getItem('orbit_token');
+    const token = localStorage.getItem('saturn_token');
     fetch(pdfUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
@@ -133,7 +133,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               href={pdfUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex sm:hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-orbit-500 text-white hover:bg-orbit-600 transition-colors text-xs font-semibold shadow-sm"
+              className="flex sm:hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-saturn-500 text-white hover:bg-saturn-600 transition-colors text-xs font-semibold shadow-sm"
               title={t('files.open_in_mobile_reader', 'Abrir no leitor nativo do celular')}
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -145,7 +145,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
               data-testid="download-pdf-btn"
               href={downloadUrl}
               download={file.name}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 hover:bg-orbit-500/20 transition-colors text-xs font-semibold"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-saturn-500/10 text-saturn-600 dark:text-saturn-400 border border-saturn-500/20 hover:bg-saturn-500/20 transition-colors text-xs font-semibold"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Download</span>
@@ -178,7 +178,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
         <div className="flex-1 w-full h-full bg-zinc-950 overflow-hidden relative flex items-center justify-center">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 text-secondary">
-              <Loader2 className="w-8 h-8 animate-spin text-orbit-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-saturn-400" />
               <span className="text-sm font-medium">{t('files.loading_pdf', 'Carregando PDF...')}</span>
             </div>
           ) : error ? (
@@ -189,7 +189,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                 href={pdfUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 rounded-xl bg-orbit-500 text-white text-xs font-semibold hover:bg-orbit-600 transition-colors"
+                className="px-4 py-2 rounded-xl bg-saturn-500 text-white text-xs font-semibold hover:bg-saturn-600 transition-colors"
               >
                 {t('files.open_in_new_tab', 'Abrir em nova aba')}
               </a>
@@ -214,7 +214,7 @@ export function PdfViewerModal({ file, onClose }: PdfViewerModalProps) {
                       href={pdfUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded-xl bg-orbit-500/20 text-orbit-600 dark:text-orbit-400 border border-orbit-500/30 text-xs font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-saturn-500/20 text-saturn-600 dark:text-saturn-400 border border-saturn-500/30 text-xs font-semibold"
                     >
                       {t('files.open_in_new_tab', 'Abrir em nova aba')}
                     </a>

@@ -1,0 +1,20 @@
+id: sun-panel-play
+name: Sun-Panel
+tagline: NAS navigation panel
+description: 'A server , NAS navigation panel , Homepage , browser homepage . Features:
+  simple , LAN internal and external network link switching , docker deployment ,
+  support for arm system , easy to get started , no modification of code , no need
+  to connect to external databases , rich icon free with ( text icon + svg icon +
+  built-in three-way icon library ) , support for web pages built-in small window
+  to open ( part of the site to block this feature ) , small resource consumption
+  .'
+category: Productivity
+version: 1.0.0
+developer: hslr-s
+store: play
+icon: icon.png
+port: 3002
+architectures:
+- amd64
+- arm
+- arm64

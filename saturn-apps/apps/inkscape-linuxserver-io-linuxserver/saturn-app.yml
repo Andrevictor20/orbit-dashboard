@@ -1,0 +1,15 @@
+id: inkscape-linuxserver-io-linuxserver
+name: Inkscape (LinuxServer.io)
+tagline: Professional quality vector graphics software which runs on Linux, Mac OS
+  X and Windows desktop computers.
+description: Inkscape is professional quality vector graphics software which runs
+  on Linux, Mac OS X and Windows desktop computers.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

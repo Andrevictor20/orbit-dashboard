@@ -43,7 +43,7 @@
   "cancel_container": "更新をキャンセルする",
   "cancelled_by_user": "ユーザーによりキャンセルされました",
   "ready_for_update": "{{count}} コンテナーは更新の準備ができています",
-  "update_via_orbit_menu": "Orbit メニューから更新する",
+  "update_via_saturn_menu": "Saturn メニューから更新する",
   "continue_in_background": "バックグラウンドで続行",
   "floating_title_updating": "バックグラウンドで更新中",
   "floating_title_failed": "失敗を伴うアップデート",

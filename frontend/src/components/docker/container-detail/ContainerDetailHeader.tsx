@@ -75,7 +75,7 @@ export function ContainerDetailHeader({
             target="_blank"
             rel="noreferrer"
             title={t('containers.open_app_title', 'Abrir Aplicação')}
-            className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-orbit-700 hover:text-white hover:border-orbit-600 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all"
+            className="px-3 sm:px-4 py-2 bg-accent border border-border hover:bg-saturn-700 hover:text-white hover:border-saturn-600 rounded-md text-secondary font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all"
           >
             <ExternalLink className="w-4 h-4" /> {t('containers.open_app', 'Abrir')}
           </a>
@@ -114,7 +114,7 @@ export function ContainerDetailHeader({
           className={`px-3 sm:px-4 py-2 rounded-md text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all shadow-lg relative ${
             hasUpdate
               ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 ring-2 ring-violet-400/50 shadow-violet-900/30'
-              : 'bg-orbit-600 hover:bg-orbit-500 shadow-orbit-900/20'
+              : 'bg-saturn-600 hover:bg-saturn-500 shadow-saturn-900/20'
           }`}
           title={hasUpdate ? t('containers.new_version_available_tip', 'Nova versão disponível! Clique para atualizar.') : t('containers.fetch_new_image_tip', 'Buscar nova imagem e reiniciar')}
         >

@@ -1,0 +1,15 @@
+id: jpom-play
+name: Jpom
+tagline: Simple and lightweight low-invasive online build, automated deployment, daily
+  operations, and project monitoring software.
+description: Jpom is a low-invasive online construction, automatic deployment, daily
+  operation and maintenance, project monitoring software.
+category: Developer
+version: 1.0.0
+developer: dromara
+store: play
+icon: icon.png
+port: 2122
+architectures:
+- arm64
+- amd64

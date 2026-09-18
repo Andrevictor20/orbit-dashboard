@@ -1,0 +1,23 @@
+name: linuxserver-sickgear
+services:
+  app:
+    image: linuxserver/sickgear:3.36.6
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 8081
+      published: 8081
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/sickgear/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/sickgear/tv
+      target: /tv
+    - type: bind
+      source: /DATA/AppData/sickgear/downloads
+      target: /downloads

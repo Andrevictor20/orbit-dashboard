@@ -15,9 +15,15 @@ export interface BatchUpdateModalProps {
   initialSelectedId?: string;
 }
 
-const isOrbitSelf = (c: ContainerLike): boolean => {
+const isSaturnSelf = (c: ContainerLike): boolean => {
   const cleanName = c.name.replace(/^\//, '');
-  return cleanName === 'orbit' || cleanName === 'orbit-dashboard' || Boolean(c.image?.includes('orbit-dashboard'));
+  return (
+    cleanName === 'saturn' ||
+    cleanName === 'saturn-dashboard' ||
+    Boolean(c.image?.includes('saturn')) ||
+        cleanName === 'saturn-dashboard' ||
+    Boolean(c.image?.includes('saturn-dashboard'))
+  );
 };
 
 export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
@@ -34,12 +40,12 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
     containers.filter(c => updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update),
     [containers, updatesMap]
   );
-  const updatableContainers = useMemo(() => outdatedContainers.filter(c => !isOrbitSelf(c)), [outdatedContainers]);
+  const updatableContainers = useMemo(() => outdatedContainers.filter(c => !isSaturnSelf(c)), [outdatedContainers]);
 
   useEffect(() => {
     if (isOpen && !batch.isUpdating && !batch.isCompleted) {
       setExpandedErrors({});
-      if (initialSelectedId && outdatedContainers.find(c => c.id === initialSelectedId && !isOrbitSelf(c))) {
+      if (initialSelectedId && outdatedContainers.find(c => c.id === initialSelectedId && !isSaturnSelf(c))) {
         batch.setSelectedIds([initialSelectedId]);
       } else {
         batch.setSelectedIds(updatableContainers.map(c => c.id));
@@ -56,7 +62,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
 
   const handleToggle = (id: string) => {
     const target = containers.find(c => c.id === id);
-    if (target && isOrbitSelf(target)) return;
+    if (target && isSaturnSelf(target)) return;
     batch.toggleSelectContainer(id);
   };
 
@@ -90,7 +96,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-10 shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-orbit-500/15 text-orbit-500">
+            <div className="p-2.5 rounded-xl bg-saturn-500/15 text-saturn-500">
               <RefreshCw className={`w-5 h-5 ${isUpdating ? 'animate-spin' : ''}`} />
             </div>
             <div>
@@ -120,7 +126,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
               onSelectAll={handleSelectAll}
               onStart={handleStartUpdate}
               onClose={handleClose}
-              isOrbitSelf={isOrbitSelf}
+              isSaturnSelf={isSaturnSelf}
             />
           ) : (
             <ExecutionPhase

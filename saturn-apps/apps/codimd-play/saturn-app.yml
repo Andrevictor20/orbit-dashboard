@@ -1,0 +1,15 @@
+id: codimd-play
+name: CodiMD
+tagline: Realtime collaborative markdown notes on all platforms.
+description: CodiMD lets you collaborate in real-time with markdown. Built on HackMD
+  source code, CodiMD lets you host and control your team's content with speed and
+  ease.
+category: Productivity
+version: 1.0.0
+developer: hackmd.io
+store: play
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

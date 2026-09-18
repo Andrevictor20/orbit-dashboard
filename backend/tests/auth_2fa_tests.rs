@@ -29,7 +29,7 @@ fn test_totp_generation_and_verification() {
         .with_step_duration(30)
         .with_secret(secret)
         .with_account_name("admin".to_string())
-        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .with_issuer(Some("Saturn Dashboard".to_string()))
         .build()
         .expect("Failed to build TOTP instance");
 
@@ -71,11 +71,11 @@ fn test_recovery_codes_single_use() {
 #[tokio::test]
 async fn test_2fa_full_lifecycle_and_anti_bypass() {
     let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-    let test_auth_path = "data/orbit_auth_2fa_test.json";
+    let test_auth_path = "data/saturn_auth_2fa_test.json";
     let _ = fs::remove_file(test_auth_path);
 
     unsafe {
-        std::env::set_var("ORBIT_AUTH_FILE", test_auth_path);
+        std::env::set_var("SATURN_AUTH_FILE", test_auth_path);
         std::env::set_var("JWT_SECRET", "super_secret_jwt_key_for_testing");
     }
 
@@ -135,7 +135,7 @@ async fn test_2fa_full_lifecycle_and_anti_bypass() {
         .with_step_duration(30)
         .with_secret(secret)
         .with_account_name("admin".to_string())
-        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .with_issuer(Some("Saturn Dashboard".to_string()))
         .build()
         .unwrap();
 
@@ -299,11 +299,11 @@ async fn test_2fa_full_lifecycle_and_anti_bypass() {
 #[tokio::test]
 async fn test_2fa_disable_with_totp_code() {
     let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
-    let test_auth_path = "data/orbit_auth_2fa_totp_disable_test.json";
+    let test_auth_path = "data/saturn_auth_2fa_totp_disable_test.json";
     let _ = fs::remove_file(test_auth_path);
 
     unsafe {
-        std::env::set_var("ORBIT_AUTH_FILE", test_auth_path);
+        std::env::set_var("SATURN_AUTH_FILE", test_auth_path);
         std::env::set_var("JWT_SECRET", "super_secret_jwt_key_for_testing");
     }
 
@@ -339,7 +339,7 @@ async fn test_2fa_disable_with_totp_code() {
         .with_step_duration(30)
         .with_secret(secret)
         .with_account_name("admin".to_string())
-        .with_issuer(Some("Orbit Dashboard".to_string()))
+        .with_issuer(Some("Saturn Dashboard".to_string()))
         .build()
         .unwrap();
 

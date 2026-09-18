@@ -1,0 +1,30 @@
+name: lazylibrarian-arm
+services:
+  lazylibrarian-arm:
+    environment:
+      DOCKER_MODS: linuxserver/calibre-web:calibre|linuxserver/mods:lazylibrarian-ffmpeg
+      PGID: '1000'
+      PUID: '1000'
+      TZ: Europe/London
+    image: linuxserver/lazylibrarian:arm32v7-version-f066b525
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    network_mode: bridge
+    ports:
+    - target: 5299
+      published: '5299'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    - type: bind
+      source: /path/to/data
+      target: /books
+    - type: bind
+      source: /DATA/AppData/lazylibrarian/config
+      target: /config
+    container_name: lazylibrarian-arm

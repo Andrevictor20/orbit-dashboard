@@ -1,0 +1,15 @@
+id: keepassxc-linuxserver-io-linuxserver
+name: Keepassxc (LinuxServer.io)
+tagline: A free and open-source password manager. It started as a community fork of
+  KeePassX (itself a cross-platform port of KeePass).
+description: KeePassXC is a free and open-source password manager. It started as a
+  community fork of KeePassX (itself a cross-platform port of KeePass).
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

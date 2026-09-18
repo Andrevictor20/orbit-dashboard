@@ -1,0 +1,16 @@
+id: hrconvert2-coolstore
+name: HRConvert2
+tagline: HRConvert2 is a self-hosted drag-and-drop file conversion server & file sharing
+  tool that supports 86 file formats with 4 color schemes & 13 end-user selctable
+  languages.
+description: HRConvert2 is a self-hosted drag-and-drop file conversion server & file
+  sharing tool that supports 86 file formats with 4 color schemes & 13 end-user selctable
+  languages.
+category: Coolstore
+version: 1.0.0
+developer: zelon88
+store: coolstore
+icon: icon.png
+port: 8085
+architectures:
+- amd64

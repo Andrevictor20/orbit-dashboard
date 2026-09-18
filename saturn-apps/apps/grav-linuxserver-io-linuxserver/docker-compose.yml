@@ -1,0 +1,17 @@
+name: linuxserver-grav
+services:
+  app:
+    image: linuxserver/grav:2.1.5
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 80
+      published: 80
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/grav/config
+      target: /config

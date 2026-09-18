@@ -1,0 +1,15 @@
+id: rpcs3-linuxserver-io-linuxserver
+name: Rpcs3 (LinuxServer.io)
+tagline: A multi-platform open-source Sony PlayStation 3 emulator and debugger written
+  in C++ for Windows, Linux, macOS and FreeBSD.
+description: RPCS3 is a multi-platform open-source Sony PlayStation 3 emulator and
+  debugger written in C++ for Windows, Linux, macOS and FreeBSD.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

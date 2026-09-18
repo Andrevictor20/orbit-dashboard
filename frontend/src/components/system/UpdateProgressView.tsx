@@ -32,18 +32,18 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
               {taskState.status === 'recreating' ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
               ) : (
-                <Download className="w-4 h-4 text-orbit-500 animate-bounce" />
+                <Download className="w-4 h-4 text-saturn-500 animate-bounce" />
               )}
               {taskState.current_step || t('system.running_update', 'Executando atualização...')}
             </span>
-            <span className="text-orbit-600 dark:text-orbit-400 font-mono text-xs tabular-nums font-bold">
+            <span className="text-saturn-600 dark:text-saturn-400 font-mono text-xs tabular-nums font-bold">
               {taskState.progress}%
             </span>
           </div>
 
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border/50">
             <div
-              className="bg-orbit-500 h-full rounded-full transition-all duration-500 ease-out"
+              className="bg-saturn-500 h-full rounded-full transition-all duration-500 ease-out"
               style={{ width: `${Math.max(taskState.progress, 5)}%` }}
             />
           </div>
@@ -62,7 +62,7 @@ export const UpdateProgressView: React.FC<UpdateProgressViewProps> = ({
         <div className="rounded-2xl bg-neutral-950 border border-border/80 overflow-hidden font-mono text-xs shadow-inner">
           <div className="px-3.5 py-2 bg-neutral-900 border-b border-border/60 flex items-center justify-between text-[11px] text-secondary">
             <div className="flex items-center gap-2">
-              <Terminal className="w-3.5 h-3.5 text-orbit-400" />
+              <Terminal className="w-3.5 h-3.5 text-saturn-400" />
               <span className="font-medium text-zinc-300">
                 {t('system.update_terminal', 'Terminal de Atualização')}
               </span>

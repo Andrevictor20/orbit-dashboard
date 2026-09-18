@@ -67,7 +67,7 @@ export const DeviceCardSwitch: React.FC<DeviceCardSwitchProps> = ({
           title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
         >
           {pending ? (
-            <Loader2 className="w-6 h-6 animate-spin text-orbit-600 dark:text-orbit-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-saturn-600 dark:text-saturn-400" />
           ) : isOn ? (
             <ToggleRight className="w-6 h-6" />
           ) : (

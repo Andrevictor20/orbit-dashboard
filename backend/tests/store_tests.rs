@@ -42,10 +42,12 @@ async fn test_store_endpoints_exist() {
     
     // Parse the JSON response to get the first app's ID
     let apps: serde_json::Value = response.json();
-    let first_app_id = apps.as_array()
+    let first_app = apps.as_array()
         .expect("Expected JSON array")
         .get(0)
-        .expect("Expected at least one app in the store")
+        .expect("Expected at least one app in the store");
+    assert!(first_app.get("architectures").is_some(), "Expected app to have architectures field");
+    let first_app_id = first_app
         .get("id")
         .expect("Expected app to have an id")
         .as_str()
@@ -70,4 +72,44 @@ async fn test_store_endpoints_exist() {
         .await;
         
     response.assert_status_ok();
+
+    // 5. GET /api/store/repositories
+    let response = server.get("/api/store/repositories")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    response.assert_status_ok();
+    let repos: Vec<serde_json::Value> = response.json();
+    assert!(!repos.is_empty(), "Should return at least the official repository");
+    assert_eq!(repos[0]["id"], "official");
+
+    // 6. POST /api/store/repositories (Add community repo)
+    let payload = serde_json::json!({
+        "name": "Integration Test Store",
+        "url": "https://example.com/test-store/catalog.json"
+    });
+    let response = server.post("/api/store/repositories")
+        .add_cookie(auth_cookie.clone())
+        .json(&payload)
+        .await;
+    response.assert_status(axum::http::StatusCode::CREATED);
+    let added_data: serde_json::Value = response.json();
+    let repo_id = added_data["repository"]["id"].as_str().unwrap();
+
+    // 7. POST /api/store/repositories/:id/toggle
+    let response = server.post(&format!("/api/store/repositories/{}/toggle", repo_id))
+        .add_cookie(auth_cookie.clone())
+        .await;
+    response.assert_status_ok();
+
+    // 8. DELETE /api/store/repositories/:id
+    let response = server.delete(&format!("/api/store/repositories/{}", repo_id))
+        .add_cookie(auth_cookie.clone())
+        .await;
+    response.assert_status_ok();
+
+    // 9. Cannot delete official repo
+    let response = server.delete("/api/store/repositories/official")
+        .add_cookie(auth_cookie.clone())
+        .await;
+    response.assert_status(axum::http::StatusCode::BAD_REQUEST);
 }

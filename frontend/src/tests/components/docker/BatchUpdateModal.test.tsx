@@ -20,8 +20,8 @@ describe('BatchUpdateModal Component', () => {
     },
     {
       id: 'c2',
-      name: '/orbit-dashboard',
-      image: 'ghcr.io/andrevmp/orbit-dashboard:latest',
+      name: '/saturn-dashboard',
+      image: 'ghcr.io/andrevmp/saturn-dashboard:latest',
       state: 'running',
       status: 'Up 10 hours',
     }
@@ -58,10 +58,10 @@ describe('BatchUpdateModal Component', () => {
       </BatchUpdateProvider>
     );
     expect(screen.getByText('nginx-proxy')).toBeTruthy();
-    expect(screen.getByText('orbit-dashboard')).toBeTruthy();
+    expect(screen.getByText('saturn-dashboard')).toBeTruthy();
   });
 
-  it('displays orbit self-protection badge and disables checkbox for orbit container', () => {
+  it('displays saturn self-protection badge and disables checkbox for saturn container', () => {
     render(
       <BatchUpdateProvider>
         <BatchUpdateModal
@@ -72,7 +72,7 @@ describe('BatchUpdateModal Component', () => {
         />
       </BatchUpdateProvider>
     );
-    expect(screen.getByText('Atualize pelo menu do Orbit')).toBeTruthy();
+    expect(screen.getByText(/Atualize pelo menu do Saturn/)).toBeTruthy();
   });
 
   it('renders high contrast terminal header and logs container', () => {

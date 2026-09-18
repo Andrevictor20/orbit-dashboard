@@ -1,0 +1,14 @@
+id: 0-dkturbo-play
+name: dkTurbo
+tagline: Non-Chinese users don’t need to use
+description: Docker image accelerator, automatically test the speed and apply the
+  fastest image source. **Non-Chinese users don’t need to use**
+category: Productivity
+version: 1.0.0
+developer: Cp0204
+store: play
+icon: icon.png
+architectures:
+- arm
+- arm64
+- amd64

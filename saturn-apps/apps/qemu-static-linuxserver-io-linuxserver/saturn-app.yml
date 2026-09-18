@@ -1,0 +1,15 @@
+id: qemu-static-linuxserver-io-linuxserver
+name: Qemu static (LinuxServer.io)
+tagline: This container needs special attention. Please check https://hub. Docker.
+  Com/r/linuxserver/qemu-static for details.
+description: This container needs special attention. Please check https://hub.docker.com/r/linuxserver/qemu-static
+  for details.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 80
+architectures:
+- amd64
+- arm64

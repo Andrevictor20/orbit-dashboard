@@ -1,9 +1,9 @@
 /**
  * Returns an icon URL for a Docker image based on its name or container name.
- * Returns special '__orbit__' token for Orbit itself, or falls back to parsed image name.
+ * Returns special '__saturn__' token for Saturn itself, or falls back to parsed image name.
  */
 const IMAGE_ICONS: [string[], string][] = [
-  [['orbit-dashboard', 'orbit', 'andrevictor20/orbit'], '__orbit__'],
+  [['saturn', 'saturn-dashboard', 'andrevictor20/saturn'], '__saturn__'],
   [['nginx', 'linuxserver/nginx'], 'nginx'],
   [['redis'], 'redis'],
   [['node-red', 'nodered'], 'node-red'],
@@ -63,7 +63,7 @@ export function getIconForImage(image: string, containerName?: string): string {
 
   for (const [keywords, icon] of IMAGE_ICONS) {
     if (keywords.some((kw) => img.includes(kw) || cname.includes(kw))) {
-      if (icon === '__orbit__') return '__orbit__';
+      if (icon === '__saturn__') return '__saturn__';
       return `${BASE_URL}/${icon}.png`;
     }
   }
@@ -73,8 +73,8 @@ export function getIconForImage(image: string, containerName?: string): string {
   let lastPart = parts[parts.length - 1].split(':')[0];
   lastPart = lastPart.replace('docker-', '').replace('-docker', '');
 
-  if (lastPart === 'orbit' || lastPart === 'orbit-dashboard') {
-    return '__orbit__';
+  if (lastPart === 'saturn' || lastPart === 'saturn-dashboard' ) {
+    return '__saturn__';
   }
 
   return `${BASE_URL}/${lastPart}.png`;

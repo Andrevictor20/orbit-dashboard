@@ -1,0 +1,14 @@
+id: maybe-finance-bigbear
+name: Maybe Finance
+tagline: maybe-finance
+description: Maybe is a fully* open-source OS for your personal finances built by
+  a small team alongside an incredible community Discord
+category: Finance
+version: 1.0.0
+developer: Maybe Finance
+store: bigbear
+icon: icon.png
+port: 4000
+architectures:
+- amd64
+- arm64

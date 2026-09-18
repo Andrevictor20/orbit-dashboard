@@ -13,9 +13,6 @@ brain/
 *.key
 *.cert
 
-# Diretórios que não devem subir (Mencionado pelo usuário)
-CasaOS-main/
-orbit-data/
 
 # Arquivos temporários e patches
 *.patch

@@ -28,7 +28,7 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
           <Flame className="w-4 h-4 text-rose-400" />
           <h3 className="text-sm font-bold text-primary">
             {t('disk.top_consumers_title', 'Top Maiores Consumidores de Espaço em')}{' '}
-            <span className="font-mono text-orbit-400">{currentPath}</span>
+            <span className="font-mono text-saturn-400">{currentPath}</span>
           </h3>
         </div>
         <span className="text-xs text-secondary font-mono">
@@ -52,12 +52,12 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
               onClick={() => item.is_dir && handleNavigate(item.path)}
               className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
                 item.is_dir
-                  ? 'bg-card border-border/80 hover:border-orbit-500/50 hover:bg-accent/60 cursor-pointer group shadow-sm hover:shadow-md'
+                  ? 'bg-card border-border/80 hover:border-saturn-500/50 hover:bg-accent/60 cursor-pointer group shadow-sm hover:shadow-md'
                   : 'bg-card/70 border-border/60'
               }`}
             >
               <div className="flex items-center justify-between gap-1 mb-2">
-                <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-orbit-500/10 text-orbit-600 dark:text-orbit-300 border border-orbit-500/20">
+                <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-saturn-500/10 text-saturn-600 dark:text-saturn-300 border border-saturn-500/20">
                   {medal}
                 </span>
                 <span className="text-xs font-mono font-bold text-rose-500 dark:text-rose-400">
@@ -68,7 +68,7 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
               <div className="flex items-center gap-2 mb-2 min-w-0">
                 {getItemIcon(item.name, item.is_dir)}
                 <span
-                  className="text-xs font-bold text-primary truncate group-hover:text-orbit-400 transition-colors"
+                  className="text-xs font-bold text-primary truncate group-hover:text-saturn-400 transition-colors"
                   title={item.name}
                 >
                   {item.name}
@@ -87,7 +87,7 @@ export const DiskTopConsumers: React.FC<DiskTopConsumersProps> = ({
                   {formatBytes(item.size)}
                 </span>
                 {item.is_dir && (
-                  <span className="text-orbit-500 dark:text-orbit-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                  <span className="text-saturn-500 dark:text-saturn-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
                     {t('disk.explore', 'Explorar')} <CornerDownRight className="w-3 h-3" />
                   </span>
                 )}

@@ -1,0 +1,14 @@
+id: financial-freedom-bigbear
+name: Financial Freedom
+tagline: Financial Freedom
+description: Keep investors and their buyers out of your financial data. Own 100%
+  of your data and start building financial wealth.
+category: Others
+version: 1.0.0
+developer: serversideup
+store: bigbear
+icon: icon.png
+port: 8443
+architectures:
+- amd64
+- arm64

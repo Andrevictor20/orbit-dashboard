@@ -8,7 +8,7 @@ import { getFriendlyDiskName } from '../utils/format';
 import { getIconForImage } from '../utils/icons';
 import { groupContainers, type GroupContainerItem } from '../utils/containerGroups';
 import { AppGroupModal } from '../components/docker/AppGroupModal';
-import { OrbitLogo } from '../components/ui/OrbitLogo';
+import { SaturnLogo } from '../components/ui/SaturnLogo';
 import { useSettings } from '../contexts/SettingsContext';
 import { AppCardItem, type OverviewContainer } from '../components/dashboard/OverviewAppCard';
 import { OverviewTelemetryCards } from '../components/dashboard/OverviewTelemetryCards';
@@ -116,7 +116,7 @@ export function Overview() {
 
   // Real-time clock with 12h / 24h toggle and timezone
   const [timeFormat, setTimeFormat] = useState<'24h' | '12h'>(() => {
-    return (localStorage.getItem('orbit_time_format') as '24h' | '12h') || '24h';
+    return (localStorage.getItem('saturn_time_format') as '24h' | '12h') || '24h';
   });
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
@@ -128,7 +128,7 @@ export function Overview() {
   const toggleTimeFormat = () => {
     const next = timeFormat === '24h' ? '12h' : '24h';
     setTimeFormat(next);
-    localStorage.setItem('orbit_time_format', next);
+    localStorage.setItem('saturn_time_format', next);
   };
 
   const formattedTime = useMemo(() => {
@@ -173,12 +173,12 @@ export function Overview() {
         {/* Left: Welcome Greeting & Live Clock */}
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <OrbitLogo size={30} className="rounded-xl shrink-0" />
+            <SaturnLogo size={30} className="rounded-xl shrink-0" />
             <h1 className="text-xl sm:text-2xl font-extrabold text-primary tracking-tight">
               {t('dashboard.welcome', 'Boas-vindas')}
             </h1>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-mono font-semibold bg-accent/60 border border-border text-primary shadow-inner">
-              <Clock className="w-4 h-4 text-orbit-500" />
+              <Clock className="w-4 h-4 text-saturn-500" />
               <span className="tracking-tight">{formattedTime}</span>
               <span className="text-xs text-secondary font-normal">({timezoneOffsetStr})</span>
               <button
@@ -205,7 +205,7 @@ export function Overview() {
 
         {/* Right: Quick Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap self-end lg:self-center shrink-0">
-          <Link to="/store" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orbit-500 hover:bg-orbit-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-orbit-500/25 transition-all">
+          <Link to="/store" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-saturn-500/25 transition-all">
             <Plus className="w-3.5 h-3.5" />
             <span>{t('store.install_app', 'Instalar Aplicativo')}</span>
           </Link>
@@ -251,7 +251,7 @@ export function Overview() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <LayoutGrid className="w-5 h-5 text-orbit-500" />
+              <LayoutGrid className="w-5 h-5 text-saturn-500" />
               <h2 className="text-base sm:text-lg font-bold text-primary tracking-tight">
                 {t('dashboard.apps_grid', 'Aplicativos Instalados')}
               </h2>
@@ -270,7 +270,7 @@ export function Overview() {
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
                     className={`px-2.5 py-1 rounded-lg transition-colors font-medium ${
-                      activeFilter === filter ? 'bg-orbit-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
+                      activeFilter === filter ? 'bg-saturn-500 text-white shadow-sm' : 'text-secondary hover:text-primary'
                     }`}
                   >
                     {labels[filter]}
@@ -285,7 +285,7 @@ export function Overview() {
                 placeholder="Filtrar apps..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-card border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-orbit-500 shadow-sm"
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-card border border-border text-xs text-primary placeholder:text-secondary/60 focus:outline-none focus:border-saturn-500 shadow-sm"
               />
             </div>
           </div>
@@ -303,9 +303,9 @@ export function Overview() {
           ))}
           <div
             onClick={() => navigate('/store')}
-            className="border-2 border-dashed border-border/80 hover:border-orbit-500/60 bg-card hover:bg-accent/60 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px] shadow-sm"
+            className="border-2 border-dashed border-border/80 hover:border-saturn-500/60 bg-card hover:bg-accent/60 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center transition-all duration-150 cursor-pointer group min-h-[120px] shadow-sm"
           >
-            <div className="w-10 h-10 rounded-xl bg-accent border border-border flex items-center justify-center text-secondary group-hover:text-orbit-500 group-hover:border-orbit-500/40 transition-colors mb-1.5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-accent border border-border flex items-center justify-center text-secondary group-hover:text-saturn-500 group-hover:border-saturn-500/40 transition-colors mb-1.5 shadow-sm">
               <Plus className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-secondary group-hover:text-primary transition-colors">

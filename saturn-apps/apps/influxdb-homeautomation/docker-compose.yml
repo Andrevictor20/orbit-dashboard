@@ -1,0 +1,25 @@
+name: influxdb
+services:
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    labels:
+      icon: https://raw.githubusercontent.com/mr-manuel/saturn-HomeAutomation-AppStore/latest/Apps/InfluxDB/icon.png
+    network_mode: bridge
+    ports:
+    - target: 8086
+      published: '8086'
+      protocol: tcp
+    restart: unless-stopped
+    healthcheck:
+      test: curl --fail -s http://localhost:8086/health || exit 1
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    volumes:
+    - type: bind
+      source: /DATA/AppData/$AppID/config
+      target: /etc/influxdb2
+    - type: bind
+      source: /DATA/AppData/$AppID/data
+      target: /var/lib/influxdb2

@@ -1,0 +1,13 @@
+id: melonds-linuxserver-io-linuxserver
+name: Melonds (LinuxServer.io)
+tagline: Aims at providing fast and accurate Nintendo DS emulation.
+description: melonDS aims at providing fast and accurate Nintendo DS emulation.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

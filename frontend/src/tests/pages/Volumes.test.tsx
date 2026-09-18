@@ -22,7 +22,7 @@ describe('Volumes component', () => {
     window.confirm = vi.fn(() => true);
     
     // Set a fake token
-    localStorage.setItem('orbit_token', 'test_token');
+    localStorage.setItem('saturn_token', 'test_token');
   });
   
   afterEach(() => {

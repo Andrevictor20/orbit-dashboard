@@ -54,7 +54,7 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
     <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-3xl saturate-[190%] p-4 sm:p-5 shadow-xl space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-orbit-400" />
+          <Filter className="w-4 h-4 text-saturn-400" />
           <h3 className="text-sm font-bold text-primary">
             {t('homeassistant.tab_raw_entities')}
           </h3>
@@ -71,7 +71,7 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
               setDomainFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2.5 py-1.5 rounded-xl border border-border/70 bg-card text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+            className="px-2.5 py-1.5 rounded-xl border border-border/70 bg-card text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500"
           >
             <option value="all">{t('homeassistant.tab_all')}</option>
             {domains.map((dom) => (
@@ -92,7 +92,7 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
                 setPage(1);
               }}
               placeholder={t('homeassistant.search_placeholder')}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-border/70 bg-card text-xs text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-border/70 bg-card text-xs text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500"
             />
           </div>
         </div>
@@ -144,9 +144,9 @@ export const RawEntitiesTable: React.FC<RawEntitiesTableProps> = ({
                         title={isOn ? t('homeassistant.state_on') : t('homeassistant.state_off')}
                       >
                         {pending ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-orbit-600 dark:text-orbit-400" />
+                          <Loader2 className="w-4 h-4 animate-spin text-saturn-600 dark:text-saturn-400" />
                         ) : isOn ? (
-                          <ToggleRight className="w-5 h-5 text-orbit-600 dark:text-orbit-400" />
+                          <ToggleRight className="w-5 h-5 text-saturn-600 dark:text-saturn-400" />
                         ) : (
                           <ToggleLeft className="w-5 h-5" />
                         )}

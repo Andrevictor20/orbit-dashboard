@@ -1,0 +1,17 @@
+id: nzbhydra2-linuxserver-io-linuxserver
+name: Nzbhydra2 (LinuxServer.io)
+tagline: A meta search application for NZB indexers, the spiritual successor to NZBmegasearcH,
+  and an evolution of the original application NZBHydra. It provides easy access to
+  a number of raw and newznab based indexers.
+description: Nzbhydra2 is a meta search application for NZB indexers, the spiritual
+  successor to NZBmegasearcH, and an evolution of the original application NZBHydra.
+  It provides easy access to a number of raw and newznab based indexers.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 5076
+architectures:
+- amd64
+- arm64

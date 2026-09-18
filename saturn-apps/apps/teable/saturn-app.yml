@@ -1,0 +1,41 @@
+id: teable
+name: Teable
+tagline: Teable adopts a concise spreadsheet interface, yet creates powerful database
+  applications
+description: 'Teable is a new generation open-source database platform. It provides
+  an intuitive spreadsheet-like experience, while being powered by a high-performance
+  Postgres database underneath, combining ease of use with powerful data processing
+  capabilities.
+
+
+  **Key Features:**
+
+  - **High Performance**: Built on the Postgres core, it effortlessly handles millions
+  of records with extremely fast response times.
+
+  - **Modern Interface**: Offers multiple views including grid, kanban, gallery, and
+  forms, with a clean and user-friendly design.
+
+  - **Real-time Collaboration**: Supports multi-user online collaboration with real-time
+  data synchronisation.
+
+  - **Automation & API**: Provides powerful RESTful APIs to enable flexible integration
+  and automation.
+
+
+  **Learn More:**
+
+  - [Teable Official Website](https://teable.ai)
+
+  - [Teable GitHub Repository](https://github.com/teableio/teable)
+
+  - [Help Documentation](https://help.teable.ai)'
+category: Productivity
+version: 1.0.0
+developer: teableio
+store: official
+icon: icon.png
+port: 3200
+architectures:
+- amd64
+- arm64

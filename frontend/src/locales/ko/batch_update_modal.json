@@ -43,7 +43,7 @@
   "cancel_container": "업데이트 취소",
   "cancelled_by_user": "사용자가 취소함",
   "ready_for_update": "{{count}} 컨테이너 업데이트 준비 완료",
-  "update_via_orbit_menu": "궤도 메뉴를 통한 업데이트",
+  "update_via_saturn_menu": "궤도 메뉴를 통한 업데이트",
   "continue_in_background": "백그라운드에서 계속",
   "floating_title_updating": "백그라운드에서 업데이트 중",
   "floating_title_failed": "실패로 업데이트",

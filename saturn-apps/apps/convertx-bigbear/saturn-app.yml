@@ -1,0 +1,14 @@
+id: convertx-bigbear
+name: ConvertX
+tagline: 💾 Self-hosted online file converter. Supports 1000+ formats ⚙️
+description: A self-hosted online file converter. Supports over a thousand different
+  formats. Written with TypeScript, Bun and Elysia.
+category: Others
+version: 1.0.0
+developer: C4illin
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

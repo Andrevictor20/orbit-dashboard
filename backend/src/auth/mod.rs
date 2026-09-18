@@ -27,12 +27,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
 pub fn get_auth_file_path() -> String {
-    std::env::var("ORBIT_AUTH_FILE").unwrap_or_else(|_| {
-        crate::system::data_migrator::get_active_data_dir()
-            .join("orbit_auth.json")
-            .to_string_lossy()
-            .to_string()
-    })
+    std::env::var("SATURN_AUTH_FILE")
+        .or_else(|_| std::env::var("SATURN_AUTH_FILE"))
+        .unwrap_or_else(|_| {
+            let data_dir = crate::system::data_migrator::get_active_data_dir();
+            let saturn_path = data_dir.join("saturn_auth.json");
+saturn_path.to_string_lossy().to_string()
+        })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,6 +307,19 @@ pub async fn require_auth(
                         None
                     }
                 })
+        })
+        .or_else(|| {
+            req.uri().query().and_then(|q| {
+                for pair in q.split('&') {
+                    if let Some((k, v)) = pair.split_once('=') {
+                        if k == "token" && !v.is_empty() {
+                            let decoded = v.replace("%2B", "+").replace("%2F", "/").replace("%3D", "=");
+                            return Some(decoded);
+                        }
+                    }
+                }
+                None
+            })
         })
         .ok_or(StatusCode::UNAUTHORIZED)?;
 

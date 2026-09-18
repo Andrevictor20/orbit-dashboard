@@ -10,7 +10,7 @@ test.describe('Visual Regression Guardian', () => {
       await route.fulfill({ status: 200, json: { username: 'admin' } });
     });
     await page.addInitScript(() => {
-      window.localStorage.setItem('orbit_token', 'mocked_token');
+      window.localStorage.setItem('saturn_token', 'mocked_token');
     });
 
     // Mock data for all routes

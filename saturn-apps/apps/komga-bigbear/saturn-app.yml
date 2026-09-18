@@ -1,0 +1,13 @@
+id: komga-bigbear
+name: Komga
+tagline: A media server for your comics, mangas, BDs, magazines and eBooks.
+description: A media server for your comics, mangas, BDs, magazines and eBooks.
+category: Media
+version: 1.0.0
+developer: gotson
+store: bigbear
+icon: icon.png
+port: 25600
+architectures:
+- amd64
+- arm64

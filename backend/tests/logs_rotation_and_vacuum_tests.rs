@@ -57,7 +57,7 @@ fn test_read_last_n_lines_bounded() {
 fn test_shrink_large_active_log_file() {
     let test_dir = "data/test_shrink_logs";
     let _ = fs::create_dir_all(test_dir);
-    let file_path = format!("{}/orbit.log", test_dir);
+    let file_path = format!("{}/saturn.log", test_dir);
 
     // Create a 2MB log file with 5,000 lines
     {
@@ -92,7 +92,7 @@ fn test_prune_old_logs() {
 
     // Create 7 dummy log files
     for i in 1..=7 {
-        let p = format!("{}/orbit.log.2026-08-0{}", test_dir, i);
+        let p = format!("{}/saturn.log.2026-08-0{}", test_dir, i);
         let mut f = File::create(&p).unwrap();
         writeln!(f, "Old log content for day {}", i).unwrap();
     }
@@ -116,19 +116,19 @@ async fn test_clear_logs_endpoint_with_source() {
 
     // 1. Unauthenticated request must be rejected (SEC-003 verification)
     let unauth_res = server.post("/api/logs/clear")
-        .add_query_param("source", "orbit")
+        .add_query_param("source", "saturn")
         .await;
     unauth_res.assert_status_unauthorized();
 
     // 2. Create a dummy log file
     let _ = fs::create_dir_all("data");
-    let dummy_log = "data/orbit.log";
+    let dummy_log = "data/saturn.log";
     fs::write(dummy_log, "some old log line 1\nsome old log line 2\n").unwrap();
 
     // 3. Authenticated request succeeds
     let res = server.post("/api/logs/clear")
         .add_cookie(get_test_cookie())
-        .add_query_param("source", "orbit")
+        .add_query_param("source", "saturn")
         .await;
     res.assert_status_success();
 

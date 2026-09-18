@@ -17,7 +17,7 @@ describe('wallpaperPalette utility', () => {
   });
 
   it('handles simulated image load failure gracefully by returning fallback palette', async () => {
-    const result = await extractPaletteFromImage('https://invalid-non-existent-domain-orbit.xyz/test.jpg');
+    const result = await extractPaletteFromImage('https://invalid-non-existent-domain-saturn.xyz/test.jpg');
     expect(result).toBeDefined();
     expect(result.primary).toMatch(/^#[0-9a-f]{6}$/i);
   });

@@ -87,8 +87,8 @@ mod tests {
             docker_memory: 0,
             docker_rx: 0,
             docker_tx: 0,
-            orbit_cpu: 0.0,
-            orbit_memory: 0,
+            saturn_cpu: 0.0,
+            saturn_memory: 0,
             ..Default::default()
         };
 
@@ -146,8 +146,8 @@ mod tests {
             docker_memory: 0,
             docker_rx: 0,
             docker_tx: 0,
-            orbit_cpu: 0.0,
-            orbit_memory: 0,
+            saturn_cpu: 0.0,
+            saturn_memory: 0,
             ..Default::default()
         };
 

@@ -19,7 +19,7 @@
   "install_failed": "インストールに失敗しました",
   "install_cancelled": "インストールがキャンセルされました",
   "background_task": "バックグラウンドタスク",
-  "port_conflict_explanation": "[推奨ポートでインストール] をクリックすると、Orbit はイメージを再度ダウンロードすることなく、利用可能なポートにサービスを自動的に再マッピングします。",
+  "port_conflict_explanation": "[推奨ポートでインストール] をクリックすると、Saturn はイメージを再度ダウンロードすることなく、利用可能なポートにサービスを自動的に再マッピングします。",
   "managed_stack_services": "{{count}} 相互接続サービスを備えたマネージド スタック",
   "services": "サービス",
   "image_update_available_tip": "お使いのデバイスで利用できる新しいイメージ バージョン。クリックして更新し、再起動します。",

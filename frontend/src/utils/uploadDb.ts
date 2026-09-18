@@ -2,7 +2,7 @@
  * IndexedDB storage for resumable large file uploads across page reloads (F5 resistance).
  */
 
-const DB_NAME = 'orbit_uploads_db';
+const DB_NAME = 'saturn_uploads_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'files';
 

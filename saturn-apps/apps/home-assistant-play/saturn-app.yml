@@ -1,0 +1,14 @@
+id: home-assistant-play
+name: Home Assistant
+tagline: Awaken your home
+description: Open source home automation that puts local control and privacy first.
+  Powered by a worldwide community of tinkerers and DIY enthusiasts. Perfect to run
+  on a Raspberry Pi or a local server.
+category: Home Automation
+version: 1.0.0
+developer: Home Assistant
+store: play
+icon: icon.png
+port: 8123
+architectures:
+- arm

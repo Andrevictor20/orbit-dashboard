@@ -77,7 +77,7 @@ export function useContainerDetailMutations(
         setEnvSaving(true);
         setEnvError(null);
         try {
-          const token = localStorage.getItem('orbit_token');
+          const token = localStorage.getItem('saturn_token');
           const fullEnvVariables = [...envVariables, ...hiddenEnvVariables];
           const response = await fetch(`/api/docker/containers/${container.id}/env`, {
             method: 'POST',
@@ -137,7 +137,7 @@ export function useContainerDetailMutations(
         setVolumeSaving(true);
         setVolumeError(null);
         try {
-          const token = localStorage.getItem('orbit_token');
+          const token = localStorage.getItem('saturn_token');
           const response = await fetch(`/api/docker/containers/${container.id}/volumes`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

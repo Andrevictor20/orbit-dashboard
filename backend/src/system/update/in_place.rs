@@ -11,7 +11,7 @@ use crate::docker::get_host_platform;
 use crate::state::AppState;
 use super::checker::{get_app_version, get_system_update_info};
 use super::{append_task_log, SystemUpdateTask, SYSTEM_UPDATE_TASK, UPDATE_CACHE};
-use super::detector::{discover_compose_context, find_active_orbit_container};
+use super::detector::{discover_compose_context, find_active_saturn_container};
 use super::script_generator::{generate_helper_script, HelperScriptParams};
 
 pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoResponse {
@@ -56,7 +56,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             progress: 5,
             current_step: "Iniciando verificação e download...".to_string(),
             logs: vec![
-                "🚀 [INFO] Iniciando atualização transparente do Orbit Dashboard...".to_string(),
+                "🚀 [INFO] Iniciando atualização transparente do Saturn Dashboard...".to_string(),
             ],
             error: None,
         };
@@ -67,7 +67,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
     // Spawn background worker
     tokio::spawn(async move {
         let platform = get_host_platform();
-        let detected_container = find_active_orbit_container(&docker).await;
+        let detected_container = find_active_saturn_container(&docker).await;
         let image_name = detected_container.image_name;
         let current_container_id = detected_container.id;
         let current_container_name = detected_container.name;
@@ -207,7 +207,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             };
             task.status = "recreating".to_string();
             task.progress = 95;
-            task.current_step = "Reiniciando serviço Orbit com a nova versão...".to_string();
+            task.current_step = "Reiniciando serviço Saturn com a nova versão...".to_string();
             task.logs.push(
                 "⚙️ [RESTART] Aplicando nova imagem ao contêiner em segundo plano...".to_string(),
             );
@@ -232,7 +232,9 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
 
         let new_container_name = match current_container_name.as_deref() {
             Some(name)
-                if name.eq_ignore_ascii_case("orbit") || name == "orbit-dashboard" =>
+                if name.eq_ignore_ascii_case("saturn")
+                    || name == "saturn-dashboard"
+                     =>
             {
                 name.to_string()
             }
@@ -241,7 +243,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             {
                 name.to_string()
             }
-            _ => "orbit-dashboard".to_string(),
+            _ => "saturn".to_string(),
         };
         let current_id_val = current_container_id.unwrap_or_default();
         let current_name_val = current_container_name.unwrap_or_default();

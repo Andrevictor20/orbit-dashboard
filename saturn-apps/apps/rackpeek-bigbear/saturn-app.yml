@@ -1,0 +1,15 @@
+id: rackpeek-bigbear
+name: RackPeek
+tagline: Document Your Home Lab
+description: A webui and CLI tool to discover, manage, and document your home lab
+  and small-scale IT infrastructure. Track hardware, services, networks, and their
+  relationships using open, non-proprietary YAML.
+category: Networking
+version: 1.0.0
+developer: timmoth
+store: bigbear
+icon: icon.png
+port: 8095
+architectures:
+- amd64
+- arm64

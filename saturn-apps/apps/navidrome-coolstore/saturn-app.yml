@@ -1,0 +1,18 @@
+id: navidrome-coolstore
+name: Navidrome
+tagline: Navidrome allows you to enjoy your music collection from anywhere, by making
+  it available through a modern Web UI and through a wide range of third-party compatible
+  mobile apps, for both iOS and Android devices.
+description: Navidrome allows you to enjoy your music collection from anywhere, by
+  making it available through a modern Web UI and through a wide range of third-party
+  compatible mobile apps, for both iOS and Android devices.
+category: Coolstore
+version: 1.0.0
+developer: Navidrome
+store: coolstore
+icon: icon.png
+port: 4533
+architectures:
+- amd64
+- arm32v6
+- i386

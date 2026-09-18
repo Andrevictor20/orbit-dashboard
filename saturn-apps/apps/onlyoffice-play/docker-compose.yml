@@ -1,0 +1,31 @@
+name: onlyoffice
+services:
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice
+    deploy:
+      resources:
+        reservations:
+          memory: 4096M
+    restart: unless-stopped
+    ports:
+    - 6080:80
+    - 6443:443
+    volumes:
+    - type: bind
+      source: /DATA/AppData/onlyoffice/DocumentServer/data
+      target: /var/www/onlyoffice/Data
+    - type: bind
+      source: /DATA/AppData/onlyoffice/DocumentServer/logs
+      target: /var/log/onlyoffice
+    - type: bind
+      source: /DATA/AppData/onlyoffice/DocumentServer/lib
+      target: /var/lib/onlyoffice
+    - type: bind
+      source: /DATA/AppData/onlyoffice/DocumentServer/db
+      target: /var/lib/postgresql
+    environment:
+    - JWT_ENABLED=true
+    - JWT_SECRET=your_secret_key
+    - JWT_HEADER=Authorization
+    network_mode: bridge

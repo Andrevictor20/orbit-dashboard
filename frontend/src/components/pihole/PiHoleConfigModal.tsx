@@ -93,7 +93,7 @@ export function PiHoleConfigModal({
           {/* URL Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-orbit-500" />
+              <Globe className="w-3.5 h-3.5 text-saturn-500" />
               <span>{t('pihole.url_label')}</span>
             </label>
             <input
@@ -101,7 +101,7 @@ export function PiHoleConfigModal({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="http://192.168.1.100 ou http://pi.hole"
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface dark:bg-zinc-800/90 border border-border focus:border-orbit-500 focus:outline-none transition-colors font-mono"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface dark:bg-zinc-800/90 border border-border focus:border-saturn-500 focus:outline-none transition-colors font-mono"
             />
             <p className="text-[11px] text-secondary">
               {t('pihole.url_hint')}
@@ -125,7 +125,7 @@ export function PiHoleConfigModal({
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder={t('pihole.token_placeholder')}
-                className="w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl bg-surface dark:bg-zinc-800/90 border border-border focus:border-orbit-500 focus:outline-none transition-colors font-mono"
+                className="w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl bg-surface dark:bg-zinc-800/90 border border-border focus:border-saturn-500 focus:outline-none transition-colors font-mono"
               />
               <button
                 type="button"
@@ -145,7 +145,7 @@ export function PiHoleConfigModal({
               className="w-full flex items-center justify-between text-xs font-medium text-secondary hover:text-primary transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-orbit-500" />
+                <HelpCircle className="w-3.5 h-3.5 text-saturn-500" />
                 <span>{t('pihole.how_to_get_token')}</span>
               </span>
               {showHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -172,7 +172,7 @@ export function PiHoleConfigModal({
             <button
               type="submit"
               disabled={isConnecting}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-orbit-600 hover:bg-orbit-500 shadow-md shadow-orbit-500/20 active:scale-95 disabled:opacity-50 transition-all"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-saturn-600 hover:bg-saturn-500 shadow-md shadow-saturn-500/20 active:scale-95 disabled:opacity-50 transition-all"
             >
               {isConnecting ? (
                 <>

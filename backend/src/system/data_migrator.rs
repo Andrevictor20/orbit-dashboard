@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 
 /// Files that contain persistent configuration and must be preserved across updates
 pub const CONFIG_FILES: &[&str] = &[
-    "orbit_auth.json",
+    "saturn_auth.json",
+    "stores.json",
     "custom_links.json",
     "settings.json",
     "pihole.json",
@@ -14,9 +15,9 @@ pub const CONFIG_FILES: &[&str] = &[
     "config/samba.json",
 ];
 
-/// Returns the primary active data directory for Orbit
+/// Returns the primary active data directory for Saturn
 pub fn get_active_data_dir() -> PathBuf {
-    if let Ok(custom) = std::env::var("ORBIT_DATA_DIR") {
+    if let Ok(custom) = std::env::var("SATURN_DATA_DIR") {
         if !custom.trim().is_empty() {
             return PathBuf::from(custom);
         }
@@ -25,13 +26,13 @@ pub fn get_active_data_dir() -> PathBuf {
 }
 
 /// Scans candidate legacy or detached directories and auto-migrates config files
-/// if the active target directory does not yet contain `orbit_auth.json`.
+/// if the active target directory does not yet contain authentication data.
 pub fn auto_heal_persistent_data() -> bool {
     let target_dir = get_active_data_dir();
-    let auth_file = target_dir.join("orbit_auth.json");
+    let saturn_auth = target_dir.join("saturn_auth.json");
 
     // If active data directory already has authentication data, no healing is needed
-    if auth_file.exists() {
+    if saturn_auth.exists() {
         return false;
     }
 
@@ -55,18 +56,18 @@ pub fn auto_heal_persistent_data() -> bool {
 }
 
 /// Migrates configuration files from a specific candidate directory to the target directory.
-/// Returns true if at least one critical configuration file (`orbit_auth.json` or `custom_links.json`) was restored.
+/// Returns true if at least one critical configuration file (`saturn_auth.json` or `custom_links.json`) was restored.
 pub fn scan_and_migrate_from_dir(candidate_dir: &Path, target_dir: &Path) -> bool {
-    let candidate_auth = candidate_dir.join("orbit_auth.json");
+    let candidate_saturn_auth = candidate_dir.join("saturn_auth.json");
     let candidate_links = candidate_dir.join("custom_links.json");
 
     // Must have at least one critical credential/link file to qualify as a valid backup
-    if !candidate_auth.exists() && !candidate_links.exists() {
+    if !candidate_saturn_auth.exists() && !candidate_links.exists() {
         return false;
     }
 
     // Safety guard: never overwrite existing credentials in the target directory
-    if target_dir.join("orbit_auth.json").exists() {
+    if target_dir.join("saturn_auth.json").exists() {
         return false;
     }
 
@@ -96,17 +97,16 @@ pub fn scan_and_migrate_from_dir(candidate_dir: &Path, target_dir: &Path) -> boo
 }
 
 /// Returns a prioritized list of host and Docker volume locations where previous
-/// installations or compose runs may have stored Orbit data.
+/// installations or compose runs may have stored Saturn data.
 pub fn get_candidate_data_dirs() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
     // 1. Docker volume mount points accessible via /host
     let volume_candidates = [
-        "/host/var/lib/docker/volumes/orbit_orbit_data/_data",
-        "/host/var/lib/docker/volumes/orbit-dashboard_orbit_data/_data",
-        "/host/var/lib/docker/volumes/orbit_data/_data",
-        "/host/var/lib/docker/volumes/orbit-data/_data",
-    ];
+        "/host/var/lib/docker/volumes/saturn_saturn_data/_data",
+        "/host/var/lib/docker/volumes/saturn_data/_data",
+        "/host/var/lib/docker/volumes/saturn-data/_data",
+                                    ];
     for v in volume_candidates {
         let p = PathBuf::from(v);
         if p.exists() {
@@ -114,13 +114,13 @@ pub fn get_candidate_data_dirs() -> Vec<PathBuf> {
         }
     }
 
-    // 2. Discover any other custom named volume matching *orbit*
+    // 2. Discover any other custom named volume matching *saturn*
     if let Ok(entries) = fs::read_dir("/host/var/lib/docker/volumes") {
         for entry in entries.flatten() {
             let path = entry.path();
             if let Some(fname) = path.file_name() {
                 let name = fname.to_string_lossy();
-                if name.contains("orbit") {
+                if name.contains("saturn") {
                     let data_path = path.join("_data");
                     if data_path.exists() && !candidates.contains(&data_path) {
                         candidates.push(data_path);
@@ -132,12 +132,12 @@ pub fn get_candidate_data_dirs() -> Vec<PathBuf> {
 
     // 3. Known host directories
     let host_paths = [
-        "/host/DATA/orbit/data",
-        "/host/data/orbit/data",
-        "/host/root/orbit/data",
-        "/host/opt/orbit/data",
-        "/host/srv/orbit/data",
-    ];
+        "/host/DATA/saturn/data",
+        "/host/data/saturn/data",
+        "/host/root/saturn/data",
+        "/host/opt/saturn/data",
+        "/host/srv/saturn/data",
+                                            ];
     for h in host_paths {
         let p = PathBuf::from(h);
         if p.exists() && !candidates.contains(&p) {
@@ -145,12 +145,14 @@ pub fn get_candidate_data_dirs() -> Vec<PathBuf> {
         }
     }
 
-    // 4. Scan /host/home/*/orbit/data
+    // 4. Scan /host/home/*/saturn/data
     if let Ok(entries) = fs::read_dir("/host/home") {
         for entry in entries.flatten() {
-            let p = entry.path().join("orbit").join("data");
-            if p.exists() && !candidates.contains(&p) {
-                candidates.push(p);
+            for sub in &["saturn"] {
+                let p = entry.path().join(sub).join("data");
+                if p.exists() && !candidates.contains(&p) {
+                    candidates.push(p);
+                }
             }
         }
     }

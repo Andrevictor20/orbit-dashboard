@@ -1,0 +1,14 @@
+id: zotero-bigbear
+name: Zotero
+tagline: Zotero
+description: Zotero is a free, easy-to-use tool to help you collect, organize, annotate,
+  cite, and share research.
+category: Others
+version: 1.0.0
+developer: linuxserver
+store: bigbear
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

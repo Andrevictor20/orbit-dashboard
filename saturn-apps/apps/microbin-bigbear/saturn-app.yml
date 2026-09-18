@@ -1,0 +1,13 @@
+id: microbin-bigbear
+name: Microbin
+tagline: Pastebin alternative with encryption
+description: Self-hosted, encrypted pastebin alternative with configurable features.
+category: Others
+version: 1.0.0
+developer: danielszabo99
+store: bigbear
+icon: icon.png
+port: 8888
+architectures:
+- amd64
+- arm64

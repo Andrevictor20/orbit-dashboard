@@ -69,8 +69,8 @@ describe('Metrics Component', () => {
       docker_memory: 2 * 1024 * 1024 * 1024,
       docker_tx: 256 * 1024, // 256 KB/s
       docker_rx: 200 * 1024, // 200 KB/s
-      orbit_cpu: 0.5,
-      orbit_memory: 50 * 1024 * 1024,
+      saturn_cpu: 0.5,
+      saturn_memory: 50 * 1024 * 1024,
       network_interface: 'eth0',
       network_interface_type: 'ethernet',
     };
@@ -81,10 +81,10 @@ describe('Metrics Component', () => {
         timestamp: Date.now() - 1000,
         cpu: 12.5,
         dockerCpu: 8.0,
-        orbitCpu: 0.5,
+        saturnCpu: 0.5,
         memory: 4000000000,
         dockerMemory: 2000000000,
-        orbitMemory: 50000000,
+        saturnMemory: 50000000,
         tx: 512 * 1024,
         rx: 1024 * 1024,
         dockerTx: 256 * 1024,

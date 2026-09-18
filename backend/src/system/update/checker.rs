@@ -47,17 +47,21 @@ pub fn is_newer_version(latest: &str, current: &str) -> bool {
 
 pub fn get_app_version() -> String {
     std::env::var("APP_VERSION")
-        .or_else(|_| std::env::var("ORBIT_VERSION"))
+        .or_else(|_| std::env::var("SATURN_VERSION"))
+        
         .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string())
 }
 
-pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> bool {
+pub async fn check_ghcr_image_manifest_for_repo(
+    client: &reqwest::Client,
+    repo: &str,
+    tag: &str,
+) -> bool {
     let clean_tag = tag.trim_start_matches('v');
     let tags_to_check = [format!("v{}", clean_tag), clean_tag.to_string()];
 
-    // Get anonymous token for ghcr.io
-    let token_url = "https://ghcr.io/token?service=ghcr.io&scope=repository:andrevictor20/orbit-dashboard:pull";
-    let token = match client.get(token_url).send().await {
+    let token_url = format!("https://ghcr.io/token?service=ghcr.io&scope=repository:{}:pull", repo);
+    let token = match client.get(&token_url).send().await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(json) = resp.json::<serde_json::Value>().await {
                 json.get("token")
@@ -73,10 +77,7 @@ pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> b
     let accept_header = "application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json";
 
     for t in &tags_to_check {
-        let manifest_url = format!(
-            "https://ghcr.io/v2/andrevictor20/orbit-dashboard/manifests/{}",
-            t
-        );
+        let manifest_url = format!("https://ghcr.io/v2/{}/manifests/{}", repo, t);
         let mut req = client.head(&manifest_url).header("Accept", accept_header);
         if let Some(ref tok) = token {
             req = req.header("Authorization", format!("Bearer {}", tok));
@@ -90,6 +91,10 @@ pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> b
     }
 
     false
+}
+
+pub async fn check_ghcr_image_manifest(client: &reqwest::Client, tag: &str) -> bool {
+    check_ghcr_image_manifest_for_repo(client, "andrevictor20/saturn", tag).await
 }
 
 pub async fn get_system_update_info() -> SystemUpdateInfo {
@@ -110,10 +115,10 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     let platform = get_host_platform().to_string();
     let arch = std::env::consts::ARCH.to_string();
 
-    const DEFAULT_RELEASE_NOTES: &str = "# Orbit Dashboard\n\n### ✨ Novidades\n- **Painel Geral Modernizado:** Novo visual com monitoramento em tempo real e lançador de aplicativos com busca instantânea.\n- **Analisador de Espaço em Disco:** Nova aba para descobrir facilmente o que mais consome espaço no armazenamento e atalhos para examinar qualquer pasta.\n- **Gerenciador de Arquivos & Loja de Aplicativos:** Visual remodelado, navegação mais ágil e organizada.\n\n### ⚡ Desempenho\n- **Sistema Muito Mais Rápido:** Redução drástica no uso de processador (CPU) e memória em segundo plano.\n- **Rolagem e Animações Suaves:** Interface fluida a 60 FPS sem travamentos ou engasgos.\n\n### 🛠️ Correções\n- **Reconhecimento de HDs e Armazenamento:** Identificação correta de HDs externos e cartões de memória.\n- **Estabilidade Geral:** Fim de travamentos durante análises de disco e melhorias de segurança.\n";
+    const DEFAULT_RELEASE_NOTES: &str = "# Saturn Dashboard\n\n### ✨ Novidades\n- **Painel Geral Modernizado:** Novo visual com monitoramento em tempo real e lançador de aplicativos com busca instantânea.\n- **Analisador de Espaço em Disco:** Nova aba para descobrir facilmente o que mais consome espaço no armazenamento e atalhos para examinar qualquer pasta.\n- **Gerenciador de Arquivos & Loja de Aplicativos:** Visual remodelado, navegação mais ágil e organizada.\n\n### ⚡ Desempenho\n- **Sistema Muito Mais Rápido:** Redução drástica no uso de processador (CPU) e memória em segundo plano.\n- **Rolagem e Animações Suaves:** Interface fluida a 60 FPS sem travamentos ou engasgos.\n\n### 🛠️ Correções\n- **Reconhecimento de HDs e Armazenamento:** Identificação correta de HDs externos e cartões de memória.\n- **Estabilidade Geral:** Fim de travamentos durante análises de disco e melhorias de segurança.\n";
 
     let mut latest_version = current_version.clone();
-    let mut release_name = format!("Orbit Dashboard v{}", current_version);
+    let mut release_name = format!("Saturn Dashboard v{}", current_version);
 
     // Check local filesystem first
     let mut release_notes = std::fs::read_to_string("/app/LATEST_RELEASE.md")
@@ -129,12 +134,13 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
     // Fetch from GitHub Releases API with robust timeout
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(5))
-        .user_agent("Orbit-Dashboard")
+        .user_agent("Saturn-Dashboard")
         .build();
 
     if let Ok(client) = client {
         // 1. Try fetching latest curated human-friendly release notes from GitHub main branch
-        let raw_notes_url = "https://raw.githubusercontent.com/Andrevictor20/orbit-dashboard/main/LATEST_RELEASE.md";
+        let raw_notes_url = "https://raw.githubusercontent.com/Andrevictor20/saturn/main/LATEST_RELEASE.md";
+        let fallback_notes_url = "https://raw.githubusercontent.com/Andrevictor20/saturn/main/LATEST_RELEASE.md";
         if let Ok(resp) = client.get(raw_notes_url).send().await {
             if resp.status().is_success() {
                 if let Ok(text) = resp.text().await {
@@ -144,27 +150,40 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
                 }
             }
         }
+        if release_notes.is_empty() {
+            if let Ok(resp) = client.get(fallback_notes_url).send().await {
+                if resp.status().is_success() {
+                    if let Ok(text) = resp.text().await {
+                        if !text.trim().is_empty() {
+                            release_notes = text;
+                        }
+                    }
+                }
+            }
+        }
 
         // 2. Try releases/latest for tag version and release metadata
-        let release_url =
-            "https://api.github.com/repos/Andrevictor20/orbit-dashboard/releases/latest";
-        if let Ok(resp) = client.get(release_url).send().await {
-            if resp.status().is_success() {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(tag) = json.get("tag_name").and_then(|v| v.as_str()) {
-                        let clean_tag = tag.trim_start_matches('v');
-                        latest_version = clean_tag.to_string();
-                        if let Some(name) = json.get("name").and_then(|v| v.as_str()) {
-                            release_name = name.to_string();
-                        }
-                        if let Some(pub_at) = json.get("published_at").and_then(|v| v.as_str()) {
-                            published_at = Some(pub_at.to_string());
-                        }
+        for repo in &["Andrevictor20/saturn"] {
+            let release_url = format!("https://api.github.com/repos/{}/releases/latest", repo);
+            if let Ok(resp) = client.get(&release_url).send().await {
+                if resp.status().is_success() {
+                    if let Ok(json) = resp.json::<serde_json::Value>().await {
+                        if let Some(tag) = json.get("tag_name").and_then(|v| v.as_str()) {
+                            let clean_tag = tag.trim_start_matches('v');
+                            latest_version = clean_tag.to_string();
+                            if let Some(name) = json.get("name").and_then(|v| v.as_str()) {
+                                release_name = name.to_string();
+                            }
+                            if let Some(pub_at) = json.get("published_at").and_then(|v| v.as_str()) {
+                                published_at = Some(pub_at.to_string());
+                            }
 
-                        if is_newer_version(clean_tag, &current_version) {
-                            has_update = true;
-                        } else {
-                            has_update = false;
+                            if is_newer_version(clean_tag, &current_version) {
+                                has_update = true;
+                            } else {
+                                has_update = false;
+                            }
+                            break;
                         }
                     }
                 }
@@ -175,25 +194,37 @@ pub async fn get_system_update_info() -> SystemUpdateInfo {
         if has_update {
             let image_ready_on_ghcr = check_ghcr_image_manifest(&client, &latest_version).await;
 
-            let cd_actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/workflows/cd.yml/runs?branch=main&per_page=1";
             let mut latest_cd_run = None;
-            if let Ok(resp) = client.get(cd_actions_url).send().await {
-                if resp.status().is_success() {
-                    if let Ok(json) = resp.json::<serde_json::Value>().await {
-                        if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
-                            latest_cd_run = runs.first().cloned();
-                        }
-                    }
-                }
-            }
-
-            if latest_cd_run.is_none() {
-                let general_actions_url = "https://api.github.com/repos/Andrevictor20/orbit-dashboard/actions/runs?branch=main&per_page=3";
-                if let Ok(resp) = client.get(general_actions_url).send().await {
+            for repo in &["Andrevictor20/saturn"] {
+                let cd_actions_url = format!(
+                    "https://api.github.com/repos/{}/actions/workflows/cd.yml/runs?branch=main&per_page=1",
+                    repo
+                );
+                if let Ok(resp) = client.get(&cd_actions_url).send().await {
                     if resp.status().is_success() {
                         if let Ok(json) = resp.json::<serde_json::Value>().await {
                             if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
-                                latest_cd_run = runs.first().cloned();
+                                if let Some(first) = runs.first() {
+                                    latest_cd_run = Some(first.clone());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let general_actions_url = format!(
+                    "https://api.github.com/repos/{}/actions/runs?branch=main&per_page=3",
+                    repo
+                );
+                if let Ok(resp) = client.get(&general_actions_url).send().await {
+                    if resp.status().is_success() {
+                        if let Ok(json) = resp.json::<serde_json::Value>().await {
+                            if let Some(runs) = json.get("workflow_runs").and_then(|v| v.as_array()) {
+                                if let Some(first) = runs.first() {
+                                    latest_cd_run = Some(first.clone());
+                                    break;
+                                }
                             }
                         }
                     }

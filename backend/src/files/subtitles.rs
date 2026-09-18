@@ -122,14 +122,21 @@ pub fn srt_or_ass_to_vtt(content: &str) -> String {
     vtt
 }
 
+fn vtt_response_headers() -> HeaderMap {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
+    headers.insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+    headers.insert(header::ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("*"));
+    headers.insert(header::ACCESS_CONTROL_ALLOW_METHODS, HeaderValue::from_static("GET, OPTIONS"));
+    headers
+}
+
 pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl IntoResponse, StatusCode> {
     // 1. Check in-memory cache first (instant 0.01ms response)
     if let Ok(cache) = SUBTITLE_VTT_CACHE.read() {
         if let Some(cached_vtt) = cache.get(&q.path) {
-            let mut headers = HeaderMap::new();
-            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
-            headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
-            return Ok((StatusCode::OK, headers, cached_vtt.clone()));
+            return Ok((StatusCode::OK, vtt_response_headers(), cached_vtt.clone()));
         }
     }
 
@@ -143,10 +150,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
             if let Ok(mut cache) = SUBTITLE_VTT_CACHE.write() {
                 cache.insert(q.path.clone(), disk_content.clone());
             }
-            let mut headers = HeaderMap::new();
-            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
-            headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
-            return Ok((StatusCode::OK, headers, disk_content));
+            return Ok((StatusCode::OK, vtt_response_headers(), disk_content));
         }
     }
 
@@ -172,10 +176,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
                 if let Ok(mut cache) = SUBTITLE_VTT_CACHE.write() {
                     cache.insert(q.path.clone(), disk_content.clone());
                 }
-                let mut headers = HeaderMap::new();
-                headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
-                headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
-                return Ok((StatusCode::OK, headers, disk_content));
+                return Ok((StatusCode::OK, vtt_response_headers(), disk_content));
             }
         }
 
@@ -212,10 +213,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
             cache.insert(q.path.clone(), cleaned_vtt.clone());
         }
 
-        let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
-        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
-        return Ok((StatusCode::OK, headers, cleaned_vtt));
+        return Ok((StatusCode::OK, vtt_response_headers(), cleaned_vtt));
     }
 
     // 4. Read external subtitle file (.srt, .vtt, .ass)
@@ -235,17 +233,18 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
         cache.insert(q.path.clone(), vtt.clone());
     }
 
-    let mut headers = HeaderMap::new();
-    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/vtt; charset=utf-8"));
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=86400"));
-    Ok((StatusCode::OK, headers, vtt))
+    Ok((StatusCode::OK, vtt_response_headers(), vtt))
 }
 
-pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<SubtitlesResponse>, StatusCode> {
+pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoResponse, StatusCode> {
+    let mut cors_headers = HeaderMap::new();
+    cors_headers.insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
+    cors_headers.insert(header::ACCESS_CONTROL_ALLOW_HEADERS, HeaderValue::from_static("*"));
+
     // 1. Check if subtitle list is already cached
     if let Ok(cache) = SUBTITLES_LIST_CACHE.read() {
         if let Some(cached_list) = cache.get(&q.path) {
-            return Ok(Json(SubtitlesResponse { subtitles: cached_list.clone() }));
+            return Ok((cors_headers, Json(SubtitlesResponse { subtitles: cached_list.clone() })));
         }
     }
 
@@ -406,5 +405,5 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<Json<Subtit
         cache.insert(q.path.clone(), subtitles.clone());
     }
 
-    Ok(Json(SubtitlesResponse { subtitles }))
+    Ok((cors_headers, Json(SubtitlesResponse { subtitles })))
 }

@@ -1,0 +1,10 @@
+# playit.gg
+
+playit.gg is a global proxy that allows anyone to host a server without port forwarding. We use tunneling. Only the server needs to run the program, not every player!
+
+- **Categoria:** Networking
+- **Desenvolvedor:** Dysta
+- **Origem:** bigbear
+
+## Como usar no Saturn
+Instale este aplicativo diretamente através do Saturn Dashboard.

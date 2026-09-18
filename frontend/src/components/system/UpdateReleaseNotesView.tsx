@@ -80,7 +80,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
         {/* Architecture & Date */}
         <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-card border border-border/70 text-xs">
           <div className="flex items-center gap-1.5 text-slate-600 dark:text-secondary">
-            <Cpu className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
+            <Cpu className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400" />
             <span>{t('system.architecture', 'Arquitetura:')}</span>
             <strong className="text-primary font-mono">
               {updateInfo
@@ -117,7 +117,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
           <div
             className={`p-3.5 rounded-2xl border flex flex-col justify-between shadow-sm ${
               hasNewVersion
-                ? 'bg-orbit-500/10 border-orbit-500/40'
+                ? 'bg-saturn-500/10 border-saturn-500/40'
                 : 'bg-card border-border/80'
             }`}
           >
@@ -127,7 +127,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
             <span
               className={`text-xl font-bold font-mono mt-1 ${
                 hasNewVersion
-                  ? 'text-orbit-600 dark:text-orbit-400'
+                  ? 'text-saturn-600 dark:text-saturn-400'
                   : 'text-primary'
               }`}
             >
@@ -137,7 +137,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
                 '1.9.9'}
             </span>
             <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-secondary mt-1 font-mono">
-              <GitBranch className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
+              <GitBranch className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400" />
               <span>ghcr.io:latest</span>
             </div>
           </div>
@@ -147,7 +147,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
       {/* Title & Refresh */}
       <div className="px-5 pt-2 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-          <Sparkles className="w-3.5 h-3.5 text-orbit-600 dark:text-orbit-400" />
+          <Sparkles className="w-3.5 h-3.5 text-saturn-600 dark:text-saturn-400" />
           <span>{t('system.what_changed', 'O que mudou nesta versão')}</span>
         </div>
 
@@ -189,7 +189,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
                       key={iIdx}
                       className="text-xs leading-relaxed flex items-start gap-2"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-orbit-500 dark:bg-orbit-400 shrink-0 mt-1.5" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-saturn-500 dark:bg-saturn-400 shrink-0 mt-1.5" />
                       <div className="text-slate-900 dark:text-zinc-100 font-normal">
                         {item.title && (
                           <strong className="text-slate-950 dark:text-white font-bold mr-1">
@@ -210,7 +210,7 @@ export const UpdateReleaseNotesView: React.FC<UpdateReleaseNotesViewProps> = ({
           <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-card border border-border/60 text-slate-600 dark:text-secondary text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mb-1" />
             <p className="text-sm font-semibold text-primary">
-              {t('system.orbit_up_to_date', 'Orbit 100% Atualizado')}
+              {t('system.saturn_up_to_date', 'Saturn 100% Atualizado')}
             </p>
             <p className="text-xs text-slate-600 dark:text-secondary">
               {t('system.running_latest_desc', 'Você está rodando a versão mais recente com todas as melhorias e correções aplicadas.')}

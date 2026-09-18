@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Folder, 
   File, 
@@ -6,7 +6,8 @@ import {
   Film, 
   Music, 
   Archive, 
-  Code 
+  Code,
+  Play
 } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import { 
@@ -20,6 +21,14 @@ interface FileBadgeVisualProps {
 }
 
 export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
+  const [imgError, setImgError] = useState(false);
+  const [videoThumbError, setVideoThumbError] = useState(false);
+  const [pdfThumbError, setPdfThumbError] = useState(false);
+
+  const token = typeof window !== 'undefined'
+    ? (localStorage.getItem('saturn_token') || localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
+    : '';
+
   if (item.is_dir) {
     return (
       <div className="relative group-hover:scale-105 transition-transform">
@@ -35,26 +44,37 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
   }
 
   const ext = item.extension.toLowerCase();
+  const queryToken = token ? `&token=${encodeURIComponent(token)}` : '';
 
+  // 1. Image Thumbnail Preview
   if (IMAGE_EXTENSIONS.includes(ext)) {
-    return (
-      <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-border/70 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
-        <img
-          src={`/api/files/raw?path=${encodeURIComponent(item.path)}`}
-          alt={item.name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            (e.currentTarget as HTMLElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 rounded text-[9px] font-bold text-violet-300 uppercase">
-          {ext}
+    if (!imgError) {
+      const thumbUrl = `/api/files/thumbnail?path=${encodeURIComponent(item.path)}${queryToken}`;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-border/70 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
+          <img
+            src={thumbUrl}
+            alt={item.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+          <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 backdrop-blur-sm rounded text-[9px] font-bold text-violet-300 uppercase">
+            {ext}
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 via-purple-600/30 to-black border border-violet-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+        <File className="w-6 h-6 text-violet-400" />
+        <span className="text-[9px] font-bold text-violet-300 uppercase mt-0.5">{ext}</span>
       </div>
     );
   }
 
+  // 2. Audio Badge
   if (['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a'].includes(ext)) {
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 via-purple-600/30 to-black border border-violet-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
@@ -64,7 +84,31 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     );
   }
 
-  if (['mp4', 'webm', 'mkv', 'mov', 'avi'].includes(ext)) {
+  // 3. Video Thumbnail Preview
+  if (['mp4', 'webm', 'mkv', 'mov', 'avi', 'flv', 'wmv', 'm4v', 'ts'].includes(ext)) {
+    if (!videoThumbError) {
+      const videoThumbUrl = `/api/files/thumbnail?path=${encodeURIComponent(item.path)}${queryToken}`;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-rose-500/30 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
+          <img
+            src={videoThumbUrl}
+            alt={item.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setVideoThumbError(true)}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/10 transition-colors pointer-events-none">
+            <div className="p-1 rounded-full bg-black/60 backdrop-blur-sm text-white/90 shadow-sm">
+              <Play className="w-3 h-3 fill-current ml-0.5" />
+            </div>
+          </div>
+          <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/70 backdrop-blur-sm rounded text-[9px] font-bold text-rose-300 uppercase">
+            {ext}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 via-orange-600/30 to-black border border-rose-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
         <Film className="w-6 h-6 text-rose-400" />
@@ -73,6 +117,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     );
   }
 
+  // 4. Archive Badge
   if (ARCHIVE_EXTENSIONS.includes(ext)) {
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-orange-500/20 via-amber-600/30 to-black border border-orange-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
@@ -82,7 +127,26 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     );
   }
 
+  // 5. PDF Thumbnail Preview
   if (ext === 'pdf') {
+    if (!pdfThumbError) {
+      const pdfThumbUrl = `/api/files/thumbnail?path=${encodeURIComponent(item.path)}${queryToken}`;
+      return (
+        <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl overflow-hidden bg-neutral-900 border border-red-500/30 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform relative">
+          <img
+            src={pdfThumbUrl}
+            alt={item.name}
+            className="w-full h-full object-cover bg-white"
+            loading="lazy"
+            onError={() => setPdfThumbError(true)}
+          />
+          <div className="absolute bottom-1 right-1 px-1 py-0.2 bg-red-950/80 backdrop-blur-sm border border-red-500/40 rounded text-[9px] font-bold text-red-200 uppercase">
+            PDF
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-red-500/20 via-rose-700/30 to-black border border-red-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
         <FileText className="w-6 h-6 text-red-400" />
@@ -91,6 +155,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     );
   }
 
+  // 6. Code Badge
   if (CODE_EXTENSIONS.includes(ext)) {
     return (
       <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-700/30 to-black border border-emerald-500/30 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
@@ -100,6 +165,7 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     );
   }
 
+  // 7. Generic File
   return (
     <div className="w-14 h-12 sm:w-16 sm:h-14 rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-black border border-border/70 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform">
       <File className="w-6 h-6 text-zinc-400" />
@@ -107,3 +173,4 @@ export const FileBadgeVisual: React.FC<FileBadgeVisualProps> = ({ item }) => {
     </div>
   );
 };
+

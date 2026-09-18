@@ -1,0 +1,14 @@
+id: thunder-play
+name: Thunder
+tagline: Popular download manager in China
+description: Thunder, a veteran download software in China, supports HTTP/FTP/BT and
+  other protocols.
+category: Productivity
+version: 1.0.0
+developer: Xunlei Limited
+store: play
+icon: icon.png
+port: 2345
+architectures:
+- amd64
+- arm64

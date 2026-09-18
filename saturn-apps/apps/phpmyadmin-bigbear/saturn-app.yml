@@ -1,0 +1,13 @@
+id: phpmyadmin-bigbear
+name: phpMyAdmin
+tagline: phpMyAdmin
+description: phpMyAdmin - A web interface for MySQL and MariaDB.
+category: Others
+version: 1.0.0
+developer: phpMyAdmin
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

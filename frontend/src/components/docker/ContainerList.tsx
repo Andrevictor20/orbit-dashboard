@@ -63,7 +63,7 @@ export function ContainerList() {
       setLoading(true);
     }
     try {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch('/api/docker/containers', { headers, credentials: 'include' });
@@ -159,12 +159,14 @@ export function ContainerList() {
         const rules = data.rules || [];
         setCloudflareRoutes(rules);
 
-        if (!localStorage.getItem('orbit_base_domain') && rules.length > 0) {
+        if (!localStorage.getItem('saturn_base_domain') && !localStorage.getItem('saturn_base_domain') && rules.length > 0) {
           for (const r of rules) {
             if (r.hostname && r.hostname.includes('.')) {
               const parts = r.hostname.split('.');
               if (parts.length >= 2) {
-                localStorage.setItem('orbit_base_domain', parts.slice(1).join('.'));
+                const dom = parts.slice(1).join('.');
+                localStorage.setItem('saturn_base_domain', dom);
+                localStorage.setItem('saturn_base_domain', dom);
                 break;
               }
             }
@@ -213,7 +215,7 @@ export function ContainerList() {
               if (r.hostname && r.hostname.includes('.')) {
                 const parts = r.hostname.toLowerCase().split('.');
                 const sub = parts[0];
-                const genericSubs = ['www', 'app', 'web', 'api', 'dashboard', 'orbit', 'proxy'];
+                const genericSubs = ['www', 'app', 'web', 'api', 'dashboard', 'saturn', 'proxy'];
                 if (sub && sub.length >= 3 && !genericSubs.includes(sub)) {
                   setLink(sub, url);
                 }
@@ -256,7 +258,7 @@ export function ContainerList() {
 
   const fetchUpdates = async () => {
     try {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('orbit_token') : null;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('saturn_token') : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch('/api/docker/containers/check-updates', {
         headers,
@@ -282,7 +284,7 @@ export function ContainerList() {
   };
 
   const handleSelectStackPrimary = (groupKey: string, containerId: string, containerName: string) => {
-    localStorage.setItem(`orbit_stack_primary_${groupKey}`, containerId);
+    localStorage.setItem(`saturn_stack_primary_${groupKey}`, containerId);
     toast.success(t('containers.primary_selected', { name: containerName }));
     setPrimarySelectorModal({ isOpen: false, group: null });
     // Force re-render of groups
@@ -300,8 +302,8 @@ export function ContainerList() {
       fetchUpdates();
       fetchCloudflareRoutes();
     };
-    window.addEventListener('orbit:containers-updated', handleContainersUpdated);
-    return () => window.removeEventListener('orbit:containers-updated', handleContainersUpdated);
+    window.addEventListener('saturn:containers-updated', handleContainersUpdated);
+    return () => window.removeEventListener('saturn:containers-updated', handleContainersUpdated);
   }, []);
 
   useEffect(() => {

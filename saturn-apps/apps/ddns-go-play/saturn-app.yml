@@ -1,0 +1,18 @@
+id: ddns-go-play
+name: ddns-go
+tagline: Automatically obtain your public IPv4 or IPv6 address and resolve it to the
+  corresponding domain name service
+description: A simple and easy-to-use DDNS (Dynamic Domain Name System) that automatically
+  updates your domain name resolution to your public IP address. It supports various
+  cloud services such as Alibaba Cloud, Tencent Cloud, Dnspod, Cloudflare, Callback,
+  Huawei Cloud, Baidu Cloud, Porkbun, GoDaddy, and Google Domain.
+category: Networking
+version: 1.0.0
+developer: jeessy2
+store: play
+icon: icon.png
+port: 9876
+architectures:
+- amd64
+- arm
+- arm64

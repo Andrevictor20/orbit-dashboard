@@ -10,11 +10,14 @@ use std::path::PathBuf;
 use crate::files::path_utils::sanitize_path;
 
 fn get_chunks_base_dir() -> PathBuf {
-    if std::path::Path::new("/data").is_dir() {
-        PathBuf::from("/data/.orbit_chunks")
+    let base = if std::path::Path::new("/data").is_dir() {
+        "/data"
     } else {
-        PathBuf::from("data/.orbit_chunks")
-    }
+        "data"
+    };
+    let saturn_dir = PathBuf::from(format!("{}/.saturn_chunks", base));
+
+    saturn_dir
 }
 
 #[derive(Debug, Deserialize)]

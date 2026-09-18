@@ -1,0 +1,15 @@
+id: pd3f-bigbear
+name: PD3F
+tagline: PD3F
+description: pd3f is a PDF text extraction pipeline that is self-hosted, local-first
+  and Docker-based. It reconstructs the original continuous text with the help of
+  machine learning.
+category: AI
+version: 1.0.0
+developer: pd3f
+store: bigbear
+icon: icon.png
+port: 1616
+architectures:
+- amd64
+- arm64

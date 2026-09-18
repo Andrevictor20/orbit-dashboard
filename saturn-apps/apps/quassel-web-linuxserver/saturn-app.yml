@@ -1,0 +1,14 @@
+id: quassel-web-linuxserver
+name: Quassel web
+tagline: A web client for Quassel. Note that a Quassel-Core instance is required,
+  we have a container available here.
+description: 'Visit homepage: https://hub.docker.com/r/linuxserver/quassel-web/'
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 64080
+architectures:
+- amd64
+- arm64

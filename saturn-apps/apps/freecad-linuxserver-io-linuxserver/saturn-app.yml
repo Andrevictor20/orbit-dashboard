@@ -1,0 +1,17 @@
+id: freecad-linuxserver-io-linuxserver
+name: Freecad (LinuxServer.io)
+tagline: A general-purpose parametric 3D computer-aided design (CAD) modeler and a
+  building information modeling (BIM) software application with finite element method
+  (FEM) support.
+description: FreeCAD is a general-purpose parametric 3D computer-aided design (CAD)
+  modeler and a building information modeling (BIM) software application with finite
+  element method (FEM) support.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64
+- arm64

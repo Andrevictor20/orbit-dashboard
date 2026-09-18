@@ -1,0 +1,14 @@
+id: sftpgo-bigbear
+name: SFTPGO
+tagline: SFTPGO
+description: Full-featured and highly configurable SFTP, HTTP/S, FTP/S and WebDAV
+  server - S3, Google Cloud Storage, Azure Blob
+category: Others
+version: 1.0.0
+developer: drakkan
+store: bigbear
+icon: icon.png
+port: 8080
+architectures:
+- amd64
+- arm64

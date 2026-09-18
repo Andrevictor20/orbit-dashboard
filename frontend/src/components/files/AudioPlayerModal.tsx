@@ -99,7 +99,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-orbit-500/10 text-orbit-600 dark:text-orbit-400 border border-orbit-500/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-saturn-500/10 text-saturn-600 dark:text-saturn-400 border border-saturn-500/20 shrink-0">
               <Music className="w-5 h-5" />
             </div>
             <div className="truncate">
@@ -123,9 +123,9 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
 
         {/* Vinyl / Cover visualizer animation */}
         <div className="flex items-center justify-center py-4">
-          <div className={`w-32 h-32 rounded-full border-4 border-orbit-500/30 flex items-center justify-center bg-gradient-to-tr from-zinc-900 to-zinc-800 shadow-xl ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '6s' }}>
-            <div className="w-10 h-10 rounded-full bg-orbit-500/20 border-2 border-orbit-500/40 flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-orbit-400" />
+          <div className={`w-32 h-32 rounded-full border-4 border-saturn-500/30 flex items-center justify-center bg-gradient-to-tr from-zinc-900 to-zinc-800 shadow-xl ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '6s' }}>
+            <div className="w-10 h-10 rounded-full bg-saturn-500/20 border-2 border-saturn-500/40 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-saturn-400" />
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
             step="0.1"
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-orbit-500"
+            className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-saturn-500"
           />
           <div className="flex justify-between text-xs text-secondary">
             <span>{formatTime(currentTime)}</span>
@@ -162,7 +162,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
             <button
               data-testid="play-pause-btn"
               onClick={togglePlay}
-              className="p-3.5 rounded-full bg-orbit-500 text-white hover:bg-orbit-600 active:scale-95 shadow-lg shadow-orbit-500/25 transition-all"
+              className="p-3.5 rounded-full bg-saturn-500 text-white hover:bg-saturn-600 active:scale-95 shadow-lg shadow-saturn-500/25 transition-all"
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
             </button>
@@ -189,7 +189,7 @@ export function AudioPlayerModal({ file, onClose }: AudioPlayerModalProps) {
               step="0.05"
               value={isMuted ? 0 : volume}
               onChange={handleVolume}
-              className="w-20 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-orbit-500"
+              className="w-20 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-saturn-500"
             />
           </div>
         </div>

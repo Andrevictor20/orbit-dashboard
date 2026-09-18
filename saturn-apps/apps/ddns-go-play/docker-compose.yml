@@ -1,0 +1,16 @@
+name: ddns-go
+services:
+  ddns-go:
+    image: jeessy/ddns-go:latest
+    container_name: ddns-go
+    deploy:
+      resources:
+        reservations:
+          memory: 32M
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/ddns-go
+      target: /root

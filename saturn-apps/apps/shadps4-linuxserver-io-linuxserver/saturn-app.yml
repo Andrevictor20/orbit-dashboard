@@ -1,0 +1,13 @@
+id: shadps4-linuxserver-io-linuxserver
+name: Shadps4 (LinuxServer.io)
+tagline: An early PlayStation 4 emulator for Windows, Linux and macOS written in C++.
+description: shadPS4 is an early PlayStation 4 emulator for Windows, Linux and macOS
+  written in C++.
+category: Home
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+port: 3000
+architectures:
+- amd64

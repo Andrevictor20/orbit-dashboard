@@ -1,0 +1,16 @@
+name: minecraft-server
+services:
+  minecraft-server:
+    image: itzg/minecraft-server:latest
+    container_name: minecraft-server
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    ports:
+    - 25565:25565
+    environment:
+      EULA: 'TRUE'
+      ONLINE_MODE: 'FALSE'
+      MEMORY: 1g
+    volumes:
+    - /DATA/AppData/minecraft-server/data:/data

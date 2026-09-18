@@ -1,0 +1,23 @@
+name: linuxserver-radarr
+services:
+  app:
+    image: linuxserver/radarr:6.3.0
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    ports:
+    - target: 7878
+      published: 7878
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /DATA/AppData/radarr/config
+      target: /config
+    - type: bind
+      source: /DATA/AppData/radarr/movies
+      target: /movies
+    - type: bind
+      source: /DATA/AppData/radarr/downloads
+      target: /downloads

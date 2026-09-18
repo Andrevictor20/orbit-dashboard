@@ -36,7 +36,7 @@ describe('ContainerDetail component', () => {
     }));
     
     window.confirm = vi.fn(() => true);
-    localStorage.setItem('orbit_token', 'test_token');
+    localStorage.setItem('saturn_token', 'test_token');
   });
   
   afterEach(() => {

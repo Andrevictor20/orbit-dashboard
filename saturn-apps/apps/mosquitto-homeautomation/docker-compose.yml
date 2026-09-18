@@ -1,0 +1,30 @@
+name: mosquitto
+services:
+  mosquitto:
+    container_name: mosquitto
+    command: "sh -c '\n  if [ ! -f \"/mosquitto/config/mosquitto.conf\" ]; then\n\
+      \    echo -n \"No config file found. Create one... \"\n    {\n      echo \"\
+      # config generated on $(date +%Y.%m.%d\\ %H:%M:%S)\"\n      echo \"allow_anonymous\
+      \ true\"\n      echo \"listener 1883\"\n      echo \"persistence true\"\n  \
+      \    echo \"persistence_location /mosquitto/data/\"\n      echo \"log_dest file\
+      \ /mosquitto/log/mosquitto.log\"\n    } > /mosquitto/config/mosquitto.conf\n\
+      \    if [ $? -eq 0 ]; then\n      echo \"done.\"\n    else\n      echo \"error.\"\
+      \n      exit 1\n    fi\n  fi\n  echo \"Starting Mosquitto\"\n  /usr/sbin/mosquitto\
+      \ -c /mosquitto/config/mosquitto.conf'\n"
+    image: eclipse-mosquitto:2
+    labels:
+      icon: https://raw.githubusercontent.com/mr-manuel/saturn-HomeAutomation-AppStore/latest/Apps/Mosquitto/icon.png
+      traefik.enable: false
+    network_mode: bridge
+    ports:
+    - target: 1883
+      published: '1883'
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /DATA/AppData/mosquitto/config
+      target: /mosquitto/config
+    - type: bind
+      source: /DATA/AppData/mosquitto/data
+      target: /mosquitto/data

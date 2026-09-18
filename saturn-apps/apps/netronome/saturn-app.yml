@@ -1,0 +1,15 @@
+id: netronome
+name: Netronome
+tagline: Monitor, analyze, and alert on network performance.
+description: Netronome is a complete network performance monitoring solution with
+  speed tests, continuous packet-loss monitoring, distributed server agents, automated
+  alerts, visualizations, and historical tracking.
+category: Networking
+version: 1.0.0
+developer: autobrr
+store: official
+icon: icon.png
+port: 7575
+architectures:
+- amd64
+- arm64

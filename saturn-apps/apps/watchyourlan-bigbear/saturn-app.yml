@@ -1,0 +1,14 @@
+id: watchyourlan-bigbear
+name: WatchYourLAN
+tagline: WatchYourLAN
+description: Lightweight network IP scanner. Can be used to notify about new hosts
+  and monitor host online/offline history
+category: Networking
+version: 1.0.0
+developer: ajnart
+store: bigbear
+icon: icon.png
+port: 8840
+architectures:
+- amd64
+- arm64

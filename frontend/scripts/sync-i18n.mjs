@@ -22,7 +22,7 @@ const langDirs = fs.readdirSync(localesDir).filter(f => {
   return fs.statSync(full).isDirectory() && f !== 'en';
 }).sort();
 
-console.log(`\n🌐 Orbit i18n Synchronizer`);
+console.log(`\n🌐 Saturn i18n Synchronizer`);
 console.log(`Found ${domainFiles.length} domain files in canonical "en". Auditing ${langDirs.length} languages...\n`);
 
 let totalMissingAll = 0;

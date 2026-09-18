@@ -1,0 +1,30 @@
+name: pyload-arm
+services:
+  pyload-arm:
+    container_name: pyload-arm
+    image: linuxserver/pyload-ng:arm32v7-0.5.0
+    deploy:
+      resources:
+        reservations:
+          memory: 256M
+    environment:
+      PGID: $PGID
+      PUID: $PUID
+      TZ: $TZ
+    restart: unless-stopped
+    network_mode: bridge
+    privileged: false
+    volumes:
+    - type: bind
+      source: /DATA/AppData/pyload-arm/config
+      target: /config
+    - type: bind
+      source: /DATA/Downloads
+      target: /downloads
+    ports:
+    - target: 8000
+      published: '8000'
+      protocol: tcp
+    - target: 9666
+      published: '9666'
+      protocol: tcp

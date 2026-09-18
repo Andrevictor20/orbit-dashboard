@@ -1,0 +1,15 @@
+id: jenkins-builder-linuxserver
+name: Jenkins builder
+tagline: This container needs special attention. Please check https://hub. Docker.
+  Com/r/linuxserver/jenkins-builder for details.
+description: This container needs special attention. Please check https://hub.docker.com/r/linuxserver/jenkins-builder
+  for details.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: ''
+port: 80
+architectures:
+- amd64
+- arm64

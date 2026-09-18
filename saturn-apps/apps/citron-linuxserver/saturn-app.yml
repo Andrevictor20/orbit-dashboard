@@ -1,0 +1,11 @@
+id: citron-linuxserver
+name: Citron
+tagline: A feature rich Switch 1 emulator for homebrew.
+description: Citron is a feature rich Switch 1 emulator for homebrew.
+category: LinuxServer.io
+version: 1.0.0
+developer: LinuxServer.io
+store: linuxserver
+icon: icon.png
+architectures:
+- amd64

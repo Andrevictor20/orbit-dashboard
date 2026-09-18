@@ -42,7 +42,11 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const videoSrc = `/api/files/stream?path=${encodeURIComponent(file.path)}`;
+  const token = typeof window !== 'undefined'
+    ? (localStorage.getItem('saturn_token') || localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
+    : '';
+
+  const videoSrc = `/api/files/stream?path=${encodeURIComponent(file.path)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
   const handleCopyStreamLink = () => {
     const fullUrl = `${window.location.origin}${videoSrc}`;
@@ -52,10 +56,17 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }).catch(() => {});
   };
 
-  // Fetch companion and embedded subtitles
+  // Fetch companion and embedded subtitles with auth token and credentials
   useEffect(() => {
-    fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}`)
-      .then(res => res.json())
+    const queryToken = token ? `&token=${encodeURIComponent(token)}` : '';
+    fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}${queryToken}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      credentials: 'include'
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
           setSubtitlesList(data.subtitles);
@@ -66,19 +77,24 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         }
       })
       .catch(() => {});
-  }, [file.path]);
+  }, [file.path, token]);
 
   const handleSubtitleChange = (subPath: string) => {
     setActiveSubtitle(subPath);
   };
 
   useEffect(() => {
-    if (videoRef.current && videoRef.current.textTracks && activeSubtitle !== 'off') {
-      for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-        videoRef.current.textTracks[i].mode = 'showing';
+    if (videoRef.current && videoRef.current.textTracks) {
+      const tracks = videoRef.current.textTracks;
+      for (let i = 0; i < tracks.length; i++) {
+        if (activeSubtitle === 'off') {
+          tracks[i].mode = 'disabled';
+        } else {
+          tracks[i].mode = 'showing';
+        }
       }
     }
-  }, [activeSubtitle]);
+  }, [activeSubtitle, subtitlesList]);
 
   const handleCustomSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileUploaded = e.target.files?.[0];
@@ -138,18 +154,15 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     const handleLoadedMetadata = () => {
       setDuration(video.duration || 0);
       setIsBuffering(false);
-      video.play().catch(() => {});
     };
 
     const handleLoadedData = () => {
       setIsBuffering(false);
-      video.play().catch(() => {});
     };
 
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => {
       setIsBuffering(false);
-      video.play().catch(() => {});
     };
     const handlePlaying = () => {
       setIsBuffering(false);
@@ -307,7 +320,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         {/* Header Overlay */}
         <div className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orbit-500/20 text-orbit-400 border border-orbit-500/30">
+            <div className="p-2 rounded-lg bg-saturn-500/20 text-saturn-400 border border-saturn-500/30">
               <Film className="w-5 h-5" />
             </div>
             <div>
@@ -346,7 +359,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             ref={videoRef}
             data-testid="video-element"
             src={videoSrc}
-            preload="auto"
+            preload="metadata"
             autoPlay
             playsInline
             crossOrigin="anonymous"
@@ -356,14 +369,24 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             {activeSubtitle !== 'off' && (() => {
               const currentTrack = subtitlesList.find(s => s.path === activeSubtitle);
               if (!currentTrack) return null;
+              const trackSrc = currentTrack.path.startsWith('blob:') 
+                ? currentTrack.path 
+                : `/api/files/subtitles/vtt?path=${encodeURIComponent(currentTrack.path)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+
               return (
                 <track
                   key={currentTrack.path}
                   kind="subtitles"
-                  src={currentTrack.path.startsWith('blob:') ? currentTrack.path : `/api/files/subtitles/vtt?path=${encodeURIComponent(currentTrack.path)}`}
-                  srcLang={currentTrack.lang}
+                  src={trackSrc}
+                  srcLang={currentTrack.lang || 'und'}
                   label={currentTrack.label}
                   default
+                  onLoad={(e) => {
+                    const trackElem = e.currentTarget as HTMLTrackElement;
+                    if (trackElem.track) {
+                      trackElem.track.mode = 'showing';
+                    }
+                  }}
                 />
               );
             })()}
@@ -373,7 +396,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           {isBuffering && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
               <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/70 text-white shadow-2xl border border-white/10">
-                <Loader2 className="w-8 h-8 text-orbit-400 animate-spin" />
+                <Loader2 className="w-8 h-8 text-saturn-400 animate-spin" />
                 <span className="text-xs text-zinc-300 font-medium">{t('files.optimizing_stream', 'Otimizando fluxo...')}</span>
               </div>
             </div>
@@ -395,7 +418,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
                 <a
                   href={`/api/files/download?path=${encodeURIComponent(file.path)}`}
                   download={file.name}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-orbit-600 hover:bg-orbit-500 text-white rounded-xl text-xs font-medium transition-colors shadow-lg shadow-orbit-600/30"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-saturn-600 hover:bg-saturn-500 text-white rounded-xl text-xs font-medium transition-colors shadow-lg shadow-saturn-600/30"
                 >
                   <Download className="w-4 h-4" /> {t('files.download_file', 'Baixar Arquivo')}
                 </a>
@@ -406,7 +429,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           {/* Big Center Play Icon when paused and not buffering */}
           {!isPlaying && !isBuffering && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="p-5 rounded-full bg-orbit-500/90 text-white shadow-2xl backdrop-blur-sm transform scale-110">
+              <div className="p-5 rounded-full bg-saturn-500/90 text-white shadow-2xl backdrop-blur-sm transform scale-110">
                 <Play className="w-10 h-10 fill-current ml-1" />
               </div>
             </div>

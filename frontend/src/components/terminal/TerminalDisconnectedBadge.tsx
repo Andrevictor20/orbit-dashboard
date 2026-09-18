@@ -29,7 +29,7 @@ export function TerminalDisconnectedBadge({
       <div className="flex items-center gap-2">
         <button
           onClick={onReconnect}
-          className="px-3 py-1.5 bg-orbit-600 hover:bg-orbit-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+          className="px-3 py-1.5 bg-saturn-600 hover:bg-saturn-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           {t('terminal.reconnect')}

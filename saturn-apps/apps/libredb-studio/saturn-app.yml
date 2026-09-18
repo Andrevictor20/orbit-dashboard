@@ -1,0 +1,17 @@
+id: libredb-studio
+name: LibreDB Studio
+tagline: Open-source self-hosted SQL IDE.
+description: LibreDB Studio is an open-source (MIT), self-hosted SQL IDE. It provides
+  a modern web-based interface to connect to 16 database engines (PostgreSQL, MySQL,
+  MongoDB, Redis, ClickHouse and more), browse schemas, write and run SQL queries,
+  and manage your data from any browser on your LAN. Data is stored locally in a SQLite
+  database, so everything stays under your control.
+category: Developer
+version: 1.0.0
+developer: libredb
+store: official
+icon: icon.png
+port: 3016
+architectures:
+- amd64
+- arm64

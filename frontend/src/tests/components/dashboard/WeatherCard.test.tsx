@@ -95,7 +95,8 @@ describe('WeatherCard', () => {
     await waitFor(() => {
       expect(screen.getByText('Curitiba')).toBeInTheDocument();
       expect(screen.getByText('18°C')).toBeInTheDocument();
-      expect(localStorage.getItem('orbit_weather_city')).toBe('Curitiba');
+      expect(localStorage.getItem('saturn_weather_city')).toBe('Curitiba');
+      expect(localStorage.getItem('saturn_weather_city')).toBe('Curitiba');
     });
 
     expect(fetchSpy).toHaveBeenCalledWith('/api/system/weather?city=Curitiba');

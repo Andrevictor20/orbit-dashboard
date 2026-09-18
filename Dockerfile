@@ -78,7 +78,9 @@ RUN apt-get update && \
         ca-certificates \
         libssl3 \
         sshpass \
-        openssh-client && \
+        openssh-client \
+        ffmpeg \
+        poppler-utils && \
     apt-get clean && \
     rm -rf \
         /var/lib/apt/lists/* \
@@ -93,7 +95,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy compiled backend binary from builder
-COPY --from=backend-builder /app/backend-bin /usr/local/bin/orbit-backend
+COPY --from=backend-builder /app/backend-bin /usr/local/bin/saturn-backend
 
 # Copy Docker CLI & Compose plugin
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/
@@ -102,7 +104,7 @@ COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr
 RUN ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose && \
     mkdir -p /root/.docker/cli-plugins && \
     ln -sf /usr/local/libexec/docker/cli-plugins/docker-compose /root/.docker/cli-plugins/docker-compose && \
-    chmod +x /usr/local/bin/orbit-backend /usr/local/bin/docker /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/saturn-backend /usr/local/bin/docker /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
 # Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist ./public
@@ -116,4 +118,4 @@ EXPOSE 5172
 ENV RUST_LOG=info
 ENV PORT=5172
 
-CMD ["orbit-backend"]
+CMD ["saturn-backend"]

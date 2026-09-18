@@ -1,0 +1,19 @@
+name: openlist
+services:
+  openlist:
+    image: openlistteam/openlist:latest
+    container_name: openlist
+    deploy:
+      resources:
+        reservations:
+          memory: 64M
+    volumes:
+    - /DATA/AppData/openlist/data:/opt/openlist/data
+    ports:
+    - 5244:5244
+    environment:
+    - PUID=0
+    - PGID=0
+    - UMASK=022
+    restart: unless-stopped
+    network_mode: bridge

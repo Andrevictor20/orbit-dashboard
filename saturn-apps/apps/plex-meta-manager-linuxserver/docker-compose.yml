@@ -1,0 +1,18 @@
+name: linuxserver-plex-meta-manager
+services:
+  app:
+    image: linuxserver/plex-meta-manager:1.21.1
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      PMM_CONFIG: ''
+      PMM_TIME: ''
+      PMM_RUN: ''
+      PMM_TEST: ''
+      PMM_NO_MISSING: ''
+    volumes:
+    - type: bind
+      source: /DATA/AppData/plex-meta-manager/config
+      target: /config

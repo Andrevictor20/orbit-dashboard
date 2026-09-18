@@ -18,10 +18,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   starting: 'text-slate-600 dark:text-secondary',
-  preparing: 'text-orbit-600 dark:text-orbit-400',
-  pulling: 'text-orbit-600 dark:text-orbit-400',
-  installing: 'text-orbit-600 dark:text-orbit-400',
-  running: 'text-orbit-600 dark:text-orbit-400',
+  preparing: 'text-saturn-600 dark:text-saturn-400',
+  pulling: 'text-saturn-600 dark:text-saturn-400',
+  installing: 'text-saturn-600 dark:text-saturn-400',
+  running: 'text-saturn-600 dark:text-saturn-400',
   done: 'text-emerald-600 dark:text-emerald-400',
   error: 'text-rose-600 dark:text-rose-400',
   cancelled: 'text-amber-600 dark:text-amber-400',
@@ -63,7 +63,7 @@ export function InstallProgressModal() {
     ? 'bg-amber-500'
     : task?.status === 'done'
     ? 'bg-emerald-500'
-    : 'bg-orbit-500';
+    : 'bg-saturn-500';
 
   const isDone = task?.status === 'done';
   const isError = task?.status === 'error';
@@ -93,7 +93,7 @@ export function InstallProgressModal() {
             {isDone && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />}
             {isError && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />}
             {isCancelled && <Ban className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />}
-            {isInProgress && <Loader2 className="w-5 h-5 text-orbit-600 dark:text-orbit-400 animate-spin flex-shrink-0" />}
+            {isInProgress && <Loader2 className="w-5 h-5 text-saturn-600 dark:text-saturn-400 animate-spin flex-shrink-0" />}
             <div className="min-w-0">
               <h3 className="font-semibold text-primary text-sm sm:text-base truncate">{modalTitle}</h3>
               <p className={`text-xs sm:text-sm mt-0.5 ${task ? STATUS_COLORS[task.status] || 'text-secondary' : 'text-secondary'}`}>
@@ -177,7 +177,7 @@ export function InstallProgressModal() {
                     className={`leading-relaxed whitespace-pre-wrap break-all ${
                       isErrLine ? 'text-rose-400' :
                       isSuccessLine ? 'text-emerald-400 font-semibold' :
-                      isInfoLine ? 'text-orbit-400' :
+                      isInfoLine ? 'text-saturn-400' :
                       isPullLine ? 'text-sky-400' :
                       isPruneLine ? 'text-amber-400' :
                       isFileLine ? 'text-indigo-400' :

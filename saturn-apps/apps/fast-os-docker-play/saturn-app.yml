@@ -1,0 +1,17 @@
+id: fast-os-docker-play
+name: FAST OS DOCKER
+tagline: Docker Management Tool
+description: FAST OS DOCKER is a graphical management tool for Docker, providing users
+  with Docker overview, local container management, remote image pulling, server disk
+  mapping, server network management, and more. It can meet the container management
+  needs of small to medium-sized organizations.
+category: Productivity
+version: 1.0.0
+developer: wangbinxingkong
+store: play
+icon: icon.png
+port: 8081
+architectures:
+- amd64
+- arm
+- arm64

@@ -22,7 +22,7 @@ export function AccountTab() {
   const fetch2FAStatus = async () => {
     try {
       setLoading2FA(true);
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/auth/2fa/status', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: 'include',
@@ -47,7 +47,7 @@ export function AccountTab() {
     e.preventDefault();
     setIsChangingPassword(true);
     try {
-      const token = localStorage.getItem('orbit_token');
+      const token = localStorage.getItem('saturn_token');
       const res = await fetch('/api/auth/password', {
         method: 'PUT',
         headers: {
@@ -76,12 +76,12 @@ export function AccountTab() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-3">
-        <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-lg shadow-orbit-500/10 flex items-center justify-center">
+        <div className="p-1 rounded-3xl bg-card border border-border/80 shadow-lg shadow-saturn-500/10 flex items-center justify-center">
           <UserAvatar size={76} showGlow className="rounded-2xl" />
         </div>
         <div className="text-center">
           <h3 className="font-bold text-lg text-primary">Admin</h3>
-          <span className="text-xs text-secondary">Orbit Administrator</span>
+          <span className="text-xs text-secondary">Saturn Administrator</span>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export function AccountTab() {
             <div className={`p-2.5 rounded-xl shrink-0 ${
               twoFactorEnabled 
                 ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                : 'bg-orbit-500/10 text-orbit-500 border border-orbit-500/20'
+                : 'bg-saturn-500/10 text-saturn-500 border border-saturn-500/20'
             }`}>
               {twoFactorEnabled ? <ShieldCheck className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
             </div>
@@ -150,7 +150,7 @@ export function AccountTab() {
             <button
               type="button"
               onClick={() => setIsSetupModalOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-orbit-500 hover:bg-orbit-600 text-white shadow-sm shadow-orbit-500/20 transition-all flex items-center gap-1.5 active:scale-95"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-saturn-500 hover:bg-saturn-600 text-white shadow-sm shadow-saturn-500/20 transition-all flex items-center gap-1.5 active:scale-95"
             >
               <span>{t('two_factor.enable_action', 'Configurar 2FA')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -171,7 +171,7 @@ export function AccountTab() {
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all font-mono"
+              className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500 transition-all font-mono"
               required
             />
           </div>
@@ -187,7 +187,7 @@ export function AccountTab() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-orbit-500/30 focus:border-orbit-500 transition-all font-mono"
+              className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-saturn-500/30 focus:border-saturn-500 transition-all font-mono"
               required
               minLength={6}
             />
@@ -197,7 +197,7 @@ export function AccountTab() {
         <button
           type="submit"
           disabled={isChangingPassword}
-          className="w-full bg-orbit-500 hover:bg-orbit-600 text-white font-semibold py-2.5 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md shadow-orbit-500/20 text-sm disabled:opacity-50"
+          className="w-full bg-saturn-500 hover:bg-saturn-600 text-white font-semibold py-2.5 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md shadow-saturn-500/20 text-sm disabled:opacity-50"
         >
           {isChangingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
           <span>{t('profile.change_password', 'Alterar Senha')}</span>
