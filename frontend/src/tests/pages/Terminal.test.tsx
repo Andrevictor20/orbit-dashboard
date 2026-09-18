@@ -118,20 +118,20 @@ describe('Terminal Page', () => {
     expect(navigator.clipboard.readText).toHaveBeenCalled();
   });
 
-  it('renders internal terminal direct access button', () => {
+  it('renders SSH connection form with username and password fields', () => {
     render(
       <MemoryRouter>
         <Terminal />
       </MemoryRouter>
     );
 
-    expect(screen.getAllByText(/Terminal Interno/i).length).toBeGreaterThan(0);
-    const internalBtn = screen.getByRole('button', { name: /conectar ao terminal interno/i });
-    expect(internalBtn).toBeTruthy();
-    expect(internalBtn.className).toContain('bg-emerald-600');
+    expect(screen.getByText(/Conexão SSH/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/pi ou root/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/••••••••/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /conectar/i })).toBeInTheDocument();
   });
 
-  it('initiates internal terminal WebSocket connection with auth token', () => {
+  it('initiates SSH WebSocket connection with auth token when form is submitted', () => {
     localStorage.setItem('saturn_token', 'terminal-jwt-test');
 
     const mockWebSocket = {
@@ -150,8 +150,13 @@ describe('Terminal Page', () => {
       </MemoryRouter>
     );
 
-    const internalBtn = screen.getByRole('button', { name: /conectar ao terminal interno/i });
-    fireEvent.click(internalBtn);
+    const userInput = screen.getByPlaceholderText(/pi ou root/i);
+    const passInput = screen.getByPlaceholderText(/••••••••/i);
+    const connectBtn = screen.getByRole('button', { name: /conectar/i });
+
+    fireEvent.change(userInput, { target: { value: 'saturn-user' } });
+    fireEvent.change(passInput, { target: { value: 'secret' } });
+    fireEvent.click(connectBtn);
 
     expect(wsConstructor).toHaveBeenCalled();
     const calledUrl = wsConstructor.mock.calls[0][0];

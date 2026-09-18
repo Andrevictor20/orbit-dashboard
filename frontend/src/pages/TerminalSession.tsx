@@ -162,27 +162,23 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
     }
   }, [isLight]);
 
-  const lastModeRef = useRef<'local' | 'ssh'>('local');
+  const lastModeRef = useRef<'ssh'>('ssh');
 
   // Connect WebSocket & Terminal / SSH
-  const connect = useCallback((e?: React.FormEvent, forceMode?: 'local' | 'ssh') => {
+  const connect = useCallback((e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const mode = forceMode || (username.trim() ? 'ssh' : 'local');
+    const mode = 'ssh';
     lastModeRef.current = mode;
 
-    if (mode === 'ssh' && !username.trim()) {
+    if (!username.trim()) {
       setErrorMessage(t('terminal.user_required', 'Informe o nome de usuário'));
       return;
     }
 
     setConnState('connecting');
     setErrorMessage('');
-    if (mode === 'ssh') {
-      localStorage.setItem('saturn_ssh_user', username);
-      localStorage.setItem('saturn_ssh_user', username);
-      localStorage.setItem('saturn_ssh_host', host);
-      localStorage.setItem('saturn_ssh_host', host);
-    }
+    localStorage.setItem('saturn_ssh_user', username);
+    localStorage.setItem('saturn_ssh_host', host);
 
     // Retrieve active JWT token for WebSocket URL query param authentication
     const token = getAuthToken() || '';
@@ -215,9 +211,7 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
         const msg = JSON.parse(evt.data);
         if (msg.type === 'connected') {
           setConnState('connected');
-          const title = mode === 'local' 
-            ? 'saturn@host' 
-            : `${username}@${host === 'localhost' ? 'saturn' : host}`;
+          const title = `${username}@${host === 'localhost' ? 'saturn' : host}`;
           onTitleChange(id, title);
           if (xtermRef.current) {
             xtermRef.current.focus();
@@ -428,15 +422,14 @@ export function TerminalSession({ id, isActive, isFullscreen, onToggleFullscreen
               showAdvanced={showAdvanced}
               setShowAdvanced={setShowAdvanced}
               errorMessage={errorMessage}
-              onConnect={(e) => connect(e, 'ssh')}
-              onConnectInternal={() => connect(undefined, 'local')}
+              onConnect={(e) => connect(e)}
             />
           )}
 
           {/* Disconnected / Dropped Overlay (retaining terminal history) */}
           <TerminalDisconnectedBadge
             connState={connState}
-            onReconnect={() => connect(undefined, lastModeRef.current)}
+            onReconnect={() => connect()}
             onReset={() => setConnState('idle')}
           />
         </div>
