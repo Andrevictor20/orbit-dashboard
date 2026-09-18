@@ -18,7 +18,7 @@ const IO_BUFFER_CAPACITY: usize = 32 * 1024;
 // Global semaphore to throttle concurrent thumbnail extractions
 // Prevents I/O queue thrashing on external USB and mechanical hard drives
 static THUMBNAIL_SEMAPHORE: LazyLock<tokio::sync::Semaphore> =
-    LazyLock::new(|| tokio::sync::Semaphore::new(2));
+    LazyLock::new(|| tokio::sync::Semaphore::new(4));
 
 fn get_thumbnail_cache_dir() -> PathBuf {
     let base = if Path::new("/data").is_dir() {
@@ -210,75 +210,25 @@ async fn serve_file_directly(file_path: &Path, content_type: &'static str) -> Re
     Ok((StatusCode::OK, resp_headers, body).into_response())
 }
 
-async fn get_video_duration(path: &Path) -> Option<f64> {
-    let output = tokio::time::timeout(
-        std::time::Duration::from_secs(6),
-        tokio::process::Command::new("ffprobe")
-            .args([
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
-            ])
-            .arg(path)
-            .output(),
-    )
-    .await
-    .ok()?
-    .ok()?;
-
-    if output.status.success() {
-        let text = String::from_utf8_lossy(&output.stdout);
-        text.trim().parse::<f64>().ok()
-    } else {
-        None
-    }
-}
-
 async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
-    let duration = get_video_duration(path).await;
-
-    // Determine target seek positions to capture a real scene, avoiding initial title/bumper cards
-    let mut seek_points: Vec<String> = Vec::new();
-
-    if let Some(dur) = duration {
-        if dur >= 60.0 {
-            // For longer videos (anime/series/movies), sample ~12% into the video
-            // e.g. 24min episode (1440s) -> ~172s (~2m52s) - well past OP and intro cards!
-            let scene_sec = (dur * 0.12).clamp(15.0, 180.0);
-            seek_points.push(format!("{:.1}", scene_sec));
-            // Secondary fallback: 10s into the video (past initial bumper)
-            if dur > 30.0 {
-                seek_points.push("10.0".to_string());
-            }
-        } else if dur >= 10.0 {
-            seek_points.push(format!("{:.1}", dur * 0.15));
-            seek_points.push("3.0".to_string());
-        } else if dur > 2.0 {
-            seek_points.push("1.0".to_string());
-        }
-    } else {
-        seek_points.push("15.0".to_string());
-        seek_points.push("3.0".to_string());
-    }
-
-    // Always keep 1s and 0s as last resorts
-    seek_points.push("1.0".to_string());
-    seek_points.push("0.0".to_string());
+    // Fast keyframe extraction near the start of the file (3s -> 1s -> 0s)
+    // Avoids seeking deep into large 1.5GB+ MKV files on external HDDs, reducing I/O latency to < 300ms
+    let seek_points = ["3.0", "1.0", "0.0"];
 
     for seek in seek_points {
         let ok = tokio::time::timeout(
-            std::time::Duration::from_secs(8),
+            std::time::Duration::from_secs(4),
             tokio::process::Command::new("ffmpeg")
                 .args([
                     "-v", "error",
                     "-y",
                     "-noaccurate_seek",
-                    "-ss", &seek,
+                    "-ss", seek,
                     "-i",
                 ])
                 .arg(path)
                 .args([
-                    "-map", "0:V:0",
+                    "-map", "0:v:0",
                     "-vframes", "1",
                     "-an",
                     "-sn",

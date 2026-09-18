@@ -10,7 +10,7 @@ pub use super::update_runner::*;
 pub use super::updates::*;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -23,7 +23,10 @@ use super::types::{
 };
 use crate::state::AppState;
 
-pub async fn list_containers(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn list_containers(
+    State(state): State<AppState>,
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+) -> impl IntoResponse {
     let is_first_scan = {
         size_cache::LAST_SIZE_SCAN
             .read()
@@ -119,6 +122,15 @@ pub async fn list_containers(State(state): State<AppState>) -> impl IntoResponse
                         size_root_fs,
                     }
                 })
+                .filter(|c| {
+                    if let Some(Extension(ref claims)) = claims_opt {
+                        if claims.role == "member" {
+                            return !super::visibility::is_container_hidden(&c.id)
+                                && !super::visibility::is_container_hidden(&c.name);
+                        }
+                    }
+                    true
+                })
                 .collect();
             (StatusCode::OK, Json(info)).into_response()
         }
@@ -130,22 +142,46 @@ pub async fn list_containers(State(state): State<AppState>) -> impl IntoResponse
 
 pub async fn inspect_container(
     State(state): State<AppState>,
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role == "member" && super::visibility::is_container_hidden(&id) {
+            return (StatusCode::NOT_FOUND, "Container not found").into_response();
+        }
+    }
+
     match state
         .docker
         .inspect_container(&id, None::<bollard::query_parameters::InspectContainerOptions>)
         .await
     {
-        Ok(info) => (StatusCode::OK, Json(info)).into_response(),
+        Ok(info) => {
+            if let Some(Extension(ref claims)) = claims_opt {
+                if claims.role == "member" {
+                    let name = info.name.as_deref().unwrap_or("");
+                    if super::visibility::is_container_hidden(name) {
+                        return (StatusCode::NOT_FOUND, "Container not found").into_response();
+                    }
+                }
+            }
+            (StatusCode::OK, Json(info)).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 pub async fn container_logs(
     State(state): State<AppState>,
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role == "member" && super::visibility::is_container_hidden(&id) {
+            return (StatusCode::NOT_FOUND, "Container not found").into_response();
+        }
+    }
+
     let options = Some(bollard::query_parameters::LogsOptions {
         stdout: true,
         stderr: true,
@@ -171,9 +207,19 @@ pub async fn container_logs(
 
 pub async fn delete_container(
     State(state): State<AppState>,
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
     Path(id): Path<String>,
     Query(query): Query<DeleteContainerQuery>,
 ) -> impl IntoResponse {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return (
+                StatusCode::FORBIDDEN,
+                "Acesso negado: apenas administradores podem excluir contêineres.",
+            )
+                .into_response();
+        }
+    }
     let docker = state.docker.clone();
     let container_id = id.clone();
     let remove_volumes = query.v.unwrap_or(false);
@@ -264,8 +310,15 @@ pub async fn delete_container(
 
 pub async fn container_action(
     State(state): State<AppState>,
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
     Path((id, action)): Path<(String, String)>,
 ) -> impl IntoResponse {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role == "member" && super::visibility::is_container_hidden(&id) {
+            return (StatusCode::NOT_FOUND, "Container not found").into_response();
+        }
+    }
+
     let docker = &state.docker;
 
     let res = match action.as_str() {

@@ -4,6 +4,8 @@ use axum::{
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use std::collections::HashMap;
+use std::sync::{LazyLock, RwLock};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
 use super::path_utils::{get_mime_type, sanitize_path};
@@ -15,7 +17,6 @@ use super::types::{DownloadQuery, TranscodeQuery};
 // metadata / moov atom instantly and can start playback without waiting to download the full file.
 
 const IO_BUFFER_CAPACITY: usize = 64 * 1024; // 64KB async I/O buffer to reduce syscalls
-const DEFAULT_CHUNK_SIZE: u64 = 4 * 1024 * 1024; // 4MB per progressive stream chunk
 
 pub async fn stream_media(
     headers: HeaderMap,
@@ -61,9 +62,9 @@ pub async fn stream_media(
                 let end = if let Some(e) = raw_end {
                     e.min(total_size.saturating_sub(1))
                 } else {
-                    // Open-ended range (bytes=X-): stream 4MB chunk so player starts immediately
-                    // and requests subsequent chunks progressively without buffering stalls
-                    (start + DEFAULT_CHUNK_SIZE - 1).min(total_size.saturating_sub(1))
+                    // Open-ended range (bytes=X-): stream continuously until EOF or client disconnect
+                    // Browser buffers progressively according to TCP flow control without artificial cutoff
+                    total_size.saturating_sub(1)
                 };
                 (start, end)
             } else {
@@ -116,18 +117,30 @@ pub async fn stream_media(
     Ok((StatusCode::OK, resp_headers, body).into_response())
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct MediaStreamInfo {
     can_copy_video: bool,
     can_copy_audio: bool,
 }
 
+static STREAM_INFO_CACHE: LazyLock<RwLock<HashMap<String, MediaStreamInfo>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
 async fn probe_media_stream_info(path: &std::path::Path) -> MediaStreamInfo {
+    let key = path.to_string_lossy().to_string();
+    if let Ok(cache) = STREAM_INFO_CACHE.read() {
+        if let Some(info) = cache.get(&key) {
+            return info.clone();
+        }
+    }
+
     let output = tokio::time::timeout(
-        std::time::Duration::from_secs(8),
+        std::time::Duration::from_secs(6),
         tokio::process::Command::new("ffprobe")
             .args([
                 "-v", "error",
+                "-probesize", "10M",
+                "-analyzeduration", "2M",
                 "-show_entries", "stream=codec_type,codec_name,pix_fmt",
                 "-of", "json",
             ])
@@ -163,6 +176,10 @@ async fn probe_media_stream_info(path: &std::path::Path) -> MediaStreamInfo {
         }
     }
 
+    if let Ok(mut cache) = STREAM_INFO_CACHE.write() {
+        cache.insert(key, info.clone());
+    }
+
     info
 }
 
@@ -178,19 +195,19 @@ pub async fn stream_transcode_media(
 
     let mut cmd = tokio::process::Command::new("ffmpeg");
     cmd.args(["-v", "error"]);
-    cmd.args(["-fflags", "+genpts+nobuffer", "-flags", "low_delay"]);
+    cmd.args(["-fflags", "+genpts+discardcorrupt"]);
 
     if let Some(ss) = q.start {
         if ss > 0.0 {
             // Fast input seek before -i using keyframes for instant seeking
-            cmd.args(["-noaccurate_seek", "-ss", &format!("{:.2}", ss)]);
+            cmd.args(["-ss", &format!("{:.2}", ss)]);
         }
     }
 
     cmd.arg("-i").arg(&path);
 
     // Map first video and first audio stream (exclude attachment fonts, cover arts, and extra subtitles)
-    cmd.args(["-map", "0:V:0", "-map", "0:a:0?"]);
+    cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
 
     if stream_info.can_copy_video {
         cmd.args(["-c:v", "copy"]);
@@ -220,7 +237,6 @@ pub async fn stream_transcode_media(
     ])
     .stdout(std::process::Stdio::piped())
     .stderr(std::process::Stdio::null());
-
 
     let mut child = cmd.spawn().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let stdout = child.stdout.take().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { X, KeyRound, Palette, Server, Cpu } from 'lucide-react';
+import { X, KeyRound, Palette, Server, Cpu, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
 import { AccountTab } from './AccountTab';
+import { UsersTab } from './UsersTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { SystemSettingsTab } from './SystemSettingsTab';
 import { CustomizationTab } from './CustomizationTab';
@@ -11,10 +13,11 @@ interface ProfileModalProps {
   onClose: () => void;
 }
 
-type SettingsTabType = 'account' | 'integrations' | 'system' | 'customization';
+type SettingsTabType = 'account' | 'users' | 'integrations' | 'system' | 'customization';
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTabType>('account');
 
   if (!isOpen) return null;
@@ -60,6 +63,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <span>{t('profile.tab_account', 'Conta')}</span>
           </button>
 
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('users')}
+              className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+                activeTab === 'users'
+                  ? 'border-saturn-500 text-saturn-500'
+                  : 'border-transparent text-secondary hover:text-primary'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>{t('profile.tab_users', 'Usuários')}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setActiveTab('integrations')}
@@ -73,18 +91,20 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <span>{t('profile.tab_integrations', 'Integrações')}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('system')}
-            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
-              activeTab === 'system'
-                ? 'border-saturn-500 text-saturn-500'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <Server className="w-4 h-4" />
-            <span>{t('profile.tab_system', 'Servidor & Porta')}</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('system')}
+              className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+                activeTab === 'system'
+                  ? 'border-saturn-500 text-saturn-500'
+                  : 'border-transparent text-secondary hover:text-primary'
+              }`}
+            >
+              <Server className="w-4 h-4" />
+              <span>{t('profile.tab_system', 'Servidor & Porta')}</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -103,8 +123,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         {/* Modal Scrollable Body */}
         <div className="p-5 sm:p-6 overflow-y-auto flex-1">
           {activeTab === 'account' && <AccountTab />}
+          {activeTab === 'users' && isAdmin && <UsersTab />}
           {activeTab === 'integrations' && <IntegrationsTab onCloseModal={onClose} />}
-          {activeTab === 'system' && <SystemSettingsTab />}
+          {activeTab === 'system' && isAdmin && <SystemSettingsTab />}
           {activeTab === 'customization' && <CustomizationTab />}
         </div>
       </div>

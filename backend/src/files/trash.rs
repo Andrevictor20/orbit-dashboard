@@ -1,4 +1,5 @@
 use axum::{
+    extract::Extension,
     http::StatusCode,
     Json,
 };
@@ -63,7 +64,15 @@ pub fn move_path_or_copy(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-pub async fn move_to_trash(Json(req): Json<MoveToTrashRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn move_to_trash(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<MoveToTrashRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     let trash_dir = get_trash_dir();
     let mut items = load_trash_items();
     let now = time::OffsetDateTime::now_utc()
@@ -100,7 +109,15 @@ pub async fn move_to_trash(Json(req): Json<MoveToTrashRequest>) -> Result<Json<s
     Ok(Json(serde_json::json!({ "success": true, "count": req.paths.len() })))
 }
 
-pub async fn restore_trash(Json(req): Json<RestoreTrashRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn restore_trash(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<RestoreTrashRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     let mut items = load_trash_items();
     let mut restored_count = 0;
 
@@ -123,7 +140,14 @@ pub async fn restore_trash(Json(req): Json<RestoreTrashRequest>) -> Result<Json<
     Ok(Json(serde_json::json!({ "success": true, "restored": restored_count })))
 }
 
-pub async fn empty_trash() -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn empty_trash(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     let trash_dir = get_trash_dir();
     let items = load_trash_items();
 

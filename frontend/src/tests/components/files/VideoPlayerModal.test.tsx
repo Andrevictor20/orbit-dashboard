@@ -147,6 +147,23 @@ describe('VideoPlayerModal Component', () => {
     expect(pauseSpy).toHaveBeenCalled();
     expect(loadSpy).toHaveBeenCalled();
   });
+
+  it('updates duration from subtitles API response when available', async () => {
+    vi.stubGlobal('fetch', vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          subtitles: [],
+          duration: 3600,
+        }),
+      })
+    ));
+
+    render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+
+    expect(await screen.findByText(/1:00:00/)).toBeTruthy();
+  });
 });
+
 
 

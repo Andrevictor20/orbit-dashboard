@@ -2,7 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Play, Square, RotateCw, Pause, PlayCircle, ExternalLink, Settings2, Globe, DownloadCloud 
+  Play, Square, RotateCw, Pause, PlayCircle, ExternalLink, Settings2, Globe, DownloadCloud,
+  Eye, EyeOff
 } from 'lucide-react';
 import { formatRAM, formatBytes } from '../../../utils/format';
 import { getIconForImage } from '../../../utils/icons';
@@ -19,6 +20,9 @@ export interface ContainerGridCardProps {
   onAction: (e: React.MouseEvent, id: string, action: 'start' | 'stop' | 'restart' | 'pause' | 'unpause') => void;
   onUpdateContainer: (e: React.MouseEvent, id: string) => void;
   onSetCustomLink: (e: React.MouseEvent, id: string) => void;
+  isAdmin?: boolean;
+  isHidden?: boolean;
+  onToggleVisibility?: (e: React.MouseEvent, id: string) => void;
 }
 
 export function ContainerGridCard({
@@ -29,6 +33,9 @@ export function ContainerGridCard({
   onAction,
   onUpdateContainer,
   onSetCustomLink,
+  isAdmin,
+  isHidden,
+  onToggleVisibility,
 }: ContainerGridCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -51,7 +58,14 @@ export function ContainerGridCard({
             />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-primary text-sm truncate" title={c.name}>{c.name}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-primary text-sm truncate" title={c.name}>{c.name}</span>
+              {isHidden && isAdmin && (
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-medium border border-amber-500/20 shrink-0">
+                  {t('docker.hidden_badge', 'Oculto')}
+                </span>
+              )}
+            </div>
             <span className="text-[11px] text-secondary font-medium truncate" title={c.image}>
               {c.labels?.['com.docker.compose.service'] || c.labels?.['io.saturn.app.name'] || c.image.split(':')[0].split('/').pop()}
             </span>
@@ -62,16 +76,32 @@ export function ContainerGridCard({
           </div>
         </div>
 
-        {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
-          <button
-            onClick={(e) => onUpdateContainer(e, c.id)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
-            title={t('docker.new_version_available_tip', 'Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar.')}
-          >
-            <DownloadCloud className="w-3.5 h-3.5" />
-            <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {isAdmin && onToggleVisibility && (
+            <button
+              onClick={(e) => onToggleVisibility(e, c.id)}
+              className={`p-1.5 rounded-lg border text-xs transition-all ${
+                isHidden 
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25' 
+                  : 'bg-card text-muted-foreground hover:text-primary border-border/60 hover:bg-accent'
+              }`}
+              title={isHidden ? t('docker.visibility_hidden_tip', 'Oculto para membros. Clique para tornar visível.') : t('docker.visibility_visible_tip', 'Visível para membros. Clique para ocultar.')}
+            >
+              {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          )}
+
+          {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
+            <button
+              onClick={(e) => onUpdateContainer(e, c.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/40 text-[11px] font-semibold hover:bg-violet-500/30 transition-all shadow-sm shrink-0"
+              title={t('docker.new_version_available_tip', 'Nova versão da imagem disponível para seu dispositivo. Clique para atualizar e reiniciar.')}
+            >
+              <DownloadCloud className="w-3.5 h-3.5" />
+              <span>{t('batch_update_modal.badge_update', { defaultValue: 'Atualizar' })}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Resource Metrics */}

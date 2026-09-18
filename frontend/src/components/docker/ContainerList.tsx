@@ -18,6 +18,7 @@ import {
   ContainerSkeletonGrid,
   useFilteredContainers,
   useContainerCustomLinks,
+  useContainerVisibility,
 } from './container-list';
 import { CONTAINERS_QUERY_KEY } from '../../queries';
 import { queryClient } from '../../lib/queryClient';
@@ -57,6 +58,11 @@ export function ContainerList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'cpu' | 'ram' | 'disk'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const { isAdmin, isContainerHidden, toggleVisibility } = useContainerVisibility();
+  const handleToggleVisibility = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    toggleVisibility(id);
+  };
 
   const fetchContainers = async (showLoading = true) => {
     if (showLoading && (!globalContainerCache || globalContainerCache.length === 0)) {
@@ -90,20 +96,8 @@ export function ContainerList() {
             if (Array.isArray(statsData)) {
               setContainers(prev => {
                 const merged = prev.map(c => {
-                  const stat = statsData.find((s: any) => 
-                    s.id && (s.id === c.id || c.id.startsWith(s.id) || s.id.startsWith(c.id))
-                  );
-                  if (stat) {
-                    return {
-                      ...c,
-                      cpu_percent: stat.cpu_percent,
-                      memory_used: stat.memory_used,
-                      memory_limit: stat.memory_limit,
-                      size_rw: stat.size_rw !== undefined ? stat.size_rw : c.size_rw,
-                      size_root_fs: stat.size_root_fs !== undefined ? stat.size_root_fs : c.size_root_fs,
-                    };
-                  }
-                  return c;
+                  const s = statsData.find((st: any) => st.id && (st.id === c.id || c.id.startsWith(st.id) || st.id.startsWith(c.id)));
+                  return s ? { ...c, cpu_percent: s.cpu_percent, memory_used: s.memory_used, memory_limit: s.memory_limit, size_rw: s.size_rw ?? c.size_rw, size_root_fs: s.size_root_fs ?? c.size_root_fs } : c;
                 });
                 globalContainerCache = merged;
                 return merged;
@@ -159,14 +153,12 @@ export function ContainerList() {
         const rules = data.rules || [];
         setCloudflareRoutes(rules);
 
-        if (!localStorage.getItem('saturn_base_domain') && !localStorage.getItem('saturn_base_domain') && rules.length > 0) {
+        if (!localStorage.getItem('saturn_base_domain') && rules.length > 0) {
           for (const r of rules) {
             if (r.hostname && r.hostname.includes('.')) {
               const parts = r.hostname.split('.');
               if (parts.length >= 2) {
-                const dom = parts.slice(1).join('.');
-                localStorage.setItem('saturn_base_domain', dom);
-                localStorage.setItem('saturn_base_domain', dom);
+                localStorage.setItem('saturn_base_domain', parts.slice(1).join('.'));
                 break;
               }
             }
@@ -414,6 +406,9 @@ export function ContainerList() {
                 onAction={handleAction}
                 onUpdateContainer={handleUpdateContainer}
                 onSetCustomLink={handleSetCustomLink}
+                isAdmin={isAdmin}
+                isHidden={isContainerHidden(item.container.id, item.container.name)}
+                onToggleVisibility={handleToggleVisibility}
               />
             );
           })}
@@ -433,6 +428,9 @@ export function ContainerList() {
           onAction={handleAction}
           onUpdateContainer={handleUpdateContainer}
           onSetCustomLink={handleSetCustomLink}
+          isAdmin={isAdmin}
+          isContainerHidden={isContainerHidden}
+          onToggleVisibility={handleToggleVisibility}
         />
       )}
 

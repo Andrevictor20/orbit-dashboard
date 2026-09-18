@@ -62,7 +62,7 @@ export function parseWebVtt(vttContent: string): SubtitleCue[] {
 }
 
 export function formatVideoTime(secs: number): string {
-  if (isNaN(secs) || secs < 0) return '0:00';
+  if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = Math.floor(secs % 60);

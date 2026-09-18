@@ -5,6 +5,34 @@ use std::sync::OnceLock;
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
+    #[serde(default = "default_role")]
+    pub role: String,
+    #[serde(default)]
+    pub uid: Option<String>,
+}
+
+fn default_role() -> String {
+    "admin".to_string()
+}
+
+impl Claims {
+    pub fn new(sub: impl Into<String>, exp: usize, role: impl Into<String>, uid: Option<String>) -> Self {
+        Self {
+            sub: sub.into(),
+            exp,
+            role: role.into(),
+            uid,
+        }
+    }
+
+    pub fn admin(sub: impl Into<String>, exp: usize) -> Self {
+        Self {
+            sub: sub.into(),
+            exp,
+            role: "admin".to_string(),
+            uid: None,
+        }
+    }
 }
 
 pub fn get_jwt_secret() -> &'static [u8] {

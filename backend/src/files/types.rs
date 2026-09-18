@@ -128,9 +128,11 @@ pub struct SubtitleItem {
     pub lang: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubtitlesResponse {
     pub subtitles: Vec<SubtitleItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]

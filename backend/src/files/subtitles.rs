@@ -15,7 +15,7 @@ use super::types::{DownloadQuery, SubtitleItem, SubtitlesResponse};
 static SUBTITLE_VTT_CACHE: LazyLock<RwLock<HashMap<String, String>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
-static SUBTITLES_LIST_CACHE: LazyLock<RwLock<HashMap<String, Vec<SubtitleItem>>>> =
+static SUBTITLES_LIST_CACHE: LazyLock<RwLock<HashMap<String, SubtitlesResponse>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 static EXTRACTION_MUTEX: LazyLock<tokio::sync::Mutex<()>> =
@@ -245,8 +245,8 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
 
     // 1. Check if subtitle list is already cached
     if let Ok(cache) = SUBTITLES_LIST_CACHE.read() {
-        if let Some(cached_list) = cache.get(&q.path) {
-            return Ok((cors_headers, Json(SubtitlesResponse { subtitles: cached_list.clone() })));
+        if let Some(cached_resp) = cache.get(&q.path) {
+            return Ok((cors_headers, Json(cached_resp.clone())));
         }
     }
 
@@ -309,7 +309,9 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
         }
     }
 
-    // 3. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe
+    let mut duration = None;
+
+    // 3. Probing internal embedded subtitles (MKV/MP4/WebM) and duration via ffprobe
     // Use 15s timeout to allow waking up sleeping external hard drives under load
     let ffprobe_result = tokio::time::timeout(
         std::time::Duration::from_secs(15),
@@ -317,7 +319,7 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
             .args([
                 "-v", "error",
                 "-select_streams", "s",
-                "-show_entries", "stream=index,codec_name:stream_tags=language,title",
+                "-show_entries", "format=duration:stream=index,codec_name:stream_tags=language,title",
                 "-of", "json",
             ])
             .arg(&video_path)
@@ -327,6 +329,14 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
     if let Ok(Ok(ref output)) = ffprobe_result {
         if output.status.success() {
             if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                if let Some(dur_str) = json_val.get("format").and_then(|f| f.get("duration")).and_then(|d| d.as_str()) {
+                    if let Ok(d) = dur_str.parse::<f64>() {
+                        if d > 0.0 && d.is_finite() {
+                            duration = Some(d);
+                        }
+                    }
+                }
+
                 if let Some(streams) = json_val.get("streams").and_then(|s| s.as_array()) {
                     for (stream_order, stream) in streams.iter().enumerate() {
                         let codec_name = stream.get("codec_name").and_then(|c| c.as_str()).unwrap_or("").to_lowercase();
@@ -403,13 +413,17 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
         }
     }
 
-    // Only cache if subtitles were actually found, avoiding sticky empty caches on busy external HDDs
-    if !subtitles.is_empty() {
+    let response = SubtitlesResponse {
+        subtitles,
+        duration,
+    };
+
+    // Cache if subtitles were found or duration was obtained
+    if !response.subtitles.is_empty() || response.duration.is_some() {
         if let Ok(mut cache) = SUBTITLES_LIST_CACHE.write() {
-            cache.insert(q.path.clone(), subtitles.clone());
+            cache.insert(q.path.clone(), response.clone());
         }
     }
 
-
-    Ok((cors_headers, Json(SubtitlesResponse { subtitles })))
+    Ok((cors_headers, Json(response)))
 }

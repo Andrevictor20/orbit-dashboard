@@ -1,19 +1,26 @@
 use axum::{
-    extract::Query,
+    extract::{Extension, Query},
     http::StatusCode,
     Json,
 };
 use std::fs::{self, File};
 use std::path::Path;
-use super::path_utils::{get_mime_type, sanitize_path, to_display_path};
+use super::path_utils::{get_mime_type, sanitize_path, to_display_path, validate_user_storage_access};
 use super::types::{
     CopyMoveRequest, CreateFileRequest, DeleteRequest, FileItem, ListFilesQuery, ListFilesResponse,
     MkdirRequest, RenameRequest,
 };
 
-pub async fn list_files(Query(q): Query<ListFilesQuery>) -> Result<Json<ListFilesResponse>, StatusCode> {
+pub async fn list_files(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Query(q): Query<ListFilesQuery>,
+) -> Result<Json<ListFilesResponse>, StatusCode> {
     let target_dir = q.path.as_deref().unwrap_or("/");
     let path = sanitize_path(target_dir)?;
+
+    if let Some(Extension(ref claims)) = claims_opt {
+        validate_user_storage_access(&path, &claims.role)?;
+    }
 
     if !path.exists() {
         return Err(StatusCode::NOT_FOUND);
@@ -101,8 +108,14 @@ pub async fn list_files(Query(q): Query<ListFilesQuery>) -> Result<Json<ListFile
     }))
 }
 
-pub async fn mkdir(Json(req): Json<MkdirRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn mkdir(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<MkdirRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let path = sanitize_path(&req.path)?;
+    if let Some(Extension(ref claims)) = claims_opt {
+        validate_user_storage_access(&path, &claims.role)?;
+    }
     if path.exists() {
         return Err(StatusCode::CONFLICT);
     }
@@ -110,8 +123,14 @@ pub async fn mkdir(Json(req): Json<MkdirRequest>) -> Result<Json<serde_json::Val
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn create_file(Json(req): Json<CreateFileRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn create_file(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<CreateFileRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let path = sanitize_path(&req.path)?;
+    if let Some(Extension(ref claims)) = claims_opt {
+        validate_user_storage_access(&path, &claims.role)?;
+    }
     if path.exists() {
         return Err(StatusCode::CONFLICT);
     }
@@ -122,7 +141,15 @@ pub async fn create_file(Json(req): Json<CreateFileRequest>) -> Result<Json<serd
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn rename_file(Json(req): Json<RenameRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn rename_file(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<RenameRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     let old_p = sanitize_path(&req.old_path)?;
     let new_p = sanitize_path(&req.new_path)?;
     if !old_p.exists() {
@@ -146,9 +173,16 @@ pub fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-pub async fn copy_file(Json(req): Json<CopyMoveRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn copy_file(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<CopyMoveRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let src = sanitize_path(&req.source)?;
     let dst = sanitize_path(&req.destination)?;
+    if let Some(Extension(ref claims)) = claims_opt {
+        validate_user_storage_access(&src, &claims.role)?;
+        validate_user_storage_access(&dst, &claims.role)?;
+    }
     if !src.exists() {
         return Err(StatusCode::NOT_FOUND);
     }
@@ -163,7 +197,15 @@ pub async fn copy_file(Json(req): Json<CopyMoveRequest>) -> Result<Json<serde_js
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn move_file(Json(req): Json<CopyMoveRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn move_file(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<CopyMoveRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     let src = sanitize_path(&req.source)?;
     let dst = sanitize_path(&req.destination)?;
     if !src.exists() {
@@ -185,7 +227,15 @@ pub async fn move_file(Json(req): Json<CopyMoveRequest>) -> Result<Json<serde_js
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub async fn delete_files(Json(req): Json<DeleteRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+pub async fn delete_files(
+    claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
+    Json(req): Json<DeleteRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(Extension(ref claims)) = claims_opt {
+        if claims.role != "admin" {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
     for p_str in &req.paths {
         let path = sanitize_path(p_str)?;
         if path.exists() {

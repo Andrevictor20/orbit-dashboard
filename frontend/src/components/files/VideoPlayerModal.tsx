@@ -40,16 +40,12 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [cues, setCues] = useState<SubtitleCue[]>([]);
   const [currentCueText, setCurrentCueText] = useState<string>('');
 
-  const isTranscodeModeRef = useRef(isTranscodeMode);
-  isTranscodeModeRef.current = isTranscodeMode;
-
   const cuesRef = useRef<SubtitleCue[]>([]);
   cuesRef.current = cues;
-
+  const isTranscodeModeRef = useRef(isTranscodeMode);
+  isTranscodeModeRef.current = isTranscodeMode;
   const transcodeSeekRef = useRef(transcodeSeekTime);
   transcodeSeekRef.current = transcodeSeekTime;
-
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,8 +66,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }).catch(() => {});
   };
 
-
-  // Fetch available companion and embedded subtitle tracks
+  // Fetch available companion and embedded subtitle tracks + duration
   useEffect(() => {
     const queryToken = token ? `&token=${encodeURIComponent(token)}` : '';
     fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}${queryToken}`, {
@@ -83,6 +78,9 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         return res.json();
       })
       .then(data => {
+        if (data.duration && typeof data.duration === 'number' && Number.isFinite(data.duration) && data.duration > 0) {
+          setDuration(data.duration);
+        }
         if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
           setSubtitlesList(data.subtitles);
           const preferred = data.subtitles.find((s: SubtitleItem) => 
@@ -159,7 +157,10 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().catch(() => {});
+      try {
+        const p = videoRef.current.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch {}
       setIsPlaying(true);
     }
   }, [isPlaying]);
@@ -193,8 +194,8 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     };
     
     const handleLoadedMetadata = () => {
-      if (!isTranscodeModeRef.current || duration === 0) {
-        setDuration(video.duration || 0);
+      if (Number.isFinite(video.duration) && video.duration > 0 && (!isTranscodeModeRef.current || duration === 0)) {
+        setDuration(video.duration);
       }
       setIsBuffering(false);
     };
@@ -202,10 +203,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     const handleLoadedData = () => setIsBuffering(false);
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
-    const handlePlaying = () => {
-      setIsBuffering(false);
-      setIsPlaying(true);
-    };
+    const handlePlaying = () => { setIsBuffering(false); setIsPlaying(true); };
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
     const handleError = () => {
@@ -246,6 +244,22 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       } catch {}
     };
   }, [duration]);
+
+  // Attempt auto-playback gracefully on source change
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          setIsBuffering(false);
+        });
+      }
+    } catch {
+      setIsBuffering(false);
+    }
+  }, [videoSrc]);
 
   const toggleMute = () => {
     if (!videoRef.current) return;
@@ -295,14 +309,8 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-        return;
-      }
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         togglePlay();

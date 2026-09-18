@@ -8,6 +8,8 @@ vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     token: 'test_token',
     username: 'admin',
+    role: 'admin',
+    isAdmin: true,
     isAuthenticated: true,
   }),
 }));

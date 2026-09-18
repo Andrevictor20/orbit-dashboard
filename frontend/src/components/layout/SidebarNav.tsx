@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useInstall } from '../../contexts/InstallContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../utils/navigation';
 
 interface SidebarNavProps {
@@ -51,6 +52,7 @@ function SidebarItem({ icon: Icon, label, to, isCollapsed, onClick }: { icon: Re
 export function SidebarNav({ isSidebarOpen, isMobileMenuOpen, onClose }: SidebarNavProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const { isAdmin } = useAuth();
   const { appName, task, maximize } = useInstall();
   const isCollapsed = !isSidebarOpen && !isMobileMenuOpen;
 
@@ -62,14 +64,14 @@ export function SidebarNav({ isSidebarOpen, isMobileMenuOpen, onClose }: Sidebar
           <SidebarItem icon={Package} label={t('sidebar.store')} to="/store" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={Box} label={t('sidebar.containers')} to="/containers" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={FolderOpen} label={t('sidebar.files')} to="/files" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={isCollapsed} onClick={onClose} />
+          {isAdmin && <SidebarItem icon={Terminal} label={t('sidebar.terminal')} to="/terminal" isCollapsed={isCollapsed} onClick={onClose} />}
           <SidebarItem icon={Activity} label={t('sidebar.metrics')} to="/metrics" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={PieChart} label={t('sidebar.disk_analyzer')} to="/disk-analyzer" isCollapsed={isCollapsed} onClick={onClose} />
           <SidebarItem icon={FileText} label={t('sidebar.logs')} to="/logs" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={Archive} label={t('sidebar.backups')} to="/backups" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={Network} label={t('sidebar.networks')} to="/networks" isCollapsed={isCollapsed} onClick={onClose} />
-          <SidebarItem icon={HardDrive} label={t('sidebar.volumes')} to="/volumes" isCollapsed={isCollapsed} onClick={onClose} />
+          {isAdmin && <SidebarItem icon={Archive} label={t('sidebar.backups')} to="/backups" isCollapsed={isCollapsed} onClick={onClose} />}
+          {isAdmin && <SidebarItem icon={HardDrive} label={t('sidebar.images')} to="/images" isCollapsed={isCollapsed} onClick={onClose} />}
+          {isAdmin && <SidebarItem icon={Network} label={t('sidebar.networks')} to="/networks" isCollapsed={isCollapsed} onClick={onClose} />}
+          {isAdmin && <SidebarItem icon={HardDrive} label={t('sidebar.volumes')} to="/volumes" isCollapsed={isCollapsed} onClick={onClose} />}
         </div>
 
         {(settings.integrations.homeassistant || settings.integrations.pihole || (settings.integrations.cloudflare ?? true)) && (

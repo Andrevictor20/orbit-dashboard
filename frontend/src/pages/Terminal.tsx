@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { TerminalSession } from './TerminalSession';
-import { ShieldCheck, Plus, X } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Plus, X, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TabData {
   id: string;
@@ -10,6 +12,8 @@ interface TabData {
 
 export function Terminal() {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [tabs, setTabs] = useState<TabData[]>([{ id: '1', title: 'Terminal 1' }]);
   const [activeTab, setActiveTab] = useState<string>('1');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -35,6 +39,27 @@ export function Terminal() {
   const updateTabTitle = (id: string, title: string) => {
     setTabs(prev => prev.map(t => t.id === id ? { ...t, title } : t));
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 mb-4 shadow-lg shadow-rose-500/5">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-primary mb-2">{t('terminal.restricted_title', 'Acesso Restrito')}</h2>
+        <p className="text-secondary max-w-md text-sm mb-6 leading-relaxed">
+          {t('terminal.restricted_desc', 'O Terminal Web e a linha de comando do host são de uso exclusivo de Administradores do Saturn.')}
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-sm font-semibold shadow-md shadow-saturn-500/25 transition-all active:scale-95"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{t('common.back_to_dashboard', 'Voltar ao Dashboard')}</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col animate-in fade-in zoom-in-95 duration-300 ${

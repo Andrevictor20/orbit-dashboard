@@ -8,3 +8,5 @@ export * from './ContainerListToolbar';
 export * from './useContainerCustomLinks';
 export * from './ContainerSkeletonGrid';
 export * from './useFilteredContainers';
+export * from './useContainerVisibility';
+

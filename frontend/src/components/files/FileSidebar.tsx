@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { MountItem, ShortcutPlace, TrashItem } from '../../types/fileManager';
 import { formatStorage, getFriendlyDiskName } from '../../utils/format';
+import { useAuth } from '../../contexts/AuthContext';
 
 const getPlaceIcon = (iconName: string) => {
   switch (iconName.toLowerCase()) {
@@ -92,6 +93,24 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
   loadFiles,
 }) => {
   const { t } = useTranslation();
+  const auth = useAuth();
+  const isAdmin = auth.isAdmin ?? (auth.role ? auth.role === 'admin' : true);
+
+  const displayPlaces = React.useMemo(() => {
+    if (isAdmin) return places;
+    return places.filter(p => {
+      const pLower = p.path.toLowerCase();
+      return pLower !== '/' && !pLower.startsWith('/host/root') && !pLower.startsWith('/host/etc');
+    });
+  }, [isAdmin, places]);
+
+  const displayStorages = React.useMemo(() => {
+    if (isAdmin) return storages;
+    return storages.filter(st => {
+      const mp = st.mount_point.toLowerCase();
+      return mp !== '/' && mp !== '/host' && !mp.startsWith('/host/etc') && !mp.startsWith('/host/root');
+    });
+  }, [isAdmin, storages]);
 
   return (
     <aside
@@ -154,7 +173,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
             <Sparkles className="w-3 h-3 text-amber-400/70" />
           </h3>
           <div className="space-y-0.5">
-            {places.map((place) => {
+            {displayPlaces.map((place) => {
               const Icon = getPlaceIcon(place.icon);
               const isActive = !isTrashView && currentPath === place.path;
               const colorClass = getPlaceColorClass(place.icon, isActive);
@@ -220,7 +239,7 @@ export const FileSidebar: React.FC<FileSidebarProps> = ({
 
           {/* Mounted Disks List */}
           <div className="space-y-1.5">
-            {storages.map((st, idx) => {
+            {displayStorages.map((st, idx) => {
               const usedFormatted = formatStorage(st.used_bytes, 1);
               const totalFormatted = formatStorage(st.total_bytes, 1);
               const pct = st.total_bytes > 0 ? Math.round((st.used_bytes / st.total_bytes) * 100) : 0;

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import type { FileItem } from '../../types/fileManager';
 import type { OperationType } from './FileOperationsModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface FileToolbarProps {
   setIsStorageDrawerOpen: (open: boolean) => void;
@@ -104,6 +105,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
   onOpenSamba,
 }) => {
   const { t } = useTranslation();
+  const { isAdmin } = useAuth();
 
   return (
     <>
@@ -203,14 +205,16 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
                 <PieChart className="w-4 h-4" />
               </Link>
 
-              {/* Open in Terminal Button */}
-              <Link
-                to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
-                className="p-2 rounded-xl border border-border/80 bg-card text-slate-700 dark:text-secondary hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-accent transition-colors shadow-sm"
-                title={t('files.open_terminal_here', 'Abrir Terminal Aqui')}
-              >
-                <Terminal className="w-4 h-4" />
-              </Link>
+              {/* Open in Terminal Button (Admin only) */}
+              {isAdmin && (
+                <Link
+                  to={`/terminal?cwd=${encodeURIComponent(currentPath)}`}
+                  className="p-2 rounded-xl border border-border/80 bg-card text-slate-700 dark:text-secondary hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-accent transition-colors shadow-sm"
+                  title={t('files.open_terminal_here', 'Abrir Terminal Aqui')}
+                >
+                  <Terminal className="w-4 h-4" />
+                </Link>
+              )}
 
               {/* Samba Network Sharing Button */}
               {onOpenSamba && (
@@ -303,7 +307,7 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
             </>
           )}
 
-          {isTrashView && (
+          {isTrashView && isAdmin && (
             <button
               onClick={handleEmptyTrash}
               disabled={trashItemsCount === 0}
@@ -347,19 +351,23 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
             >
               <Copy className="w-3.5 h-3.5" /> <span className="hidden xs:inline">{t('common.copy', 'Copiar')}</span>
             </button>
-            <button
-              onClick={() => handleCut(selectedItems)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
-            >
-              <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">{t('files.cut', 'Recortar')}</span>
-            </button>
-            <button
-              onClick={() => handleMoveToTrash(selectedItems)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
-              title={t('files.move_trash_title', 'Mover itens para a lixeira')}
-            >
-              <Trash2 className="w-3.5 h-3.5" /> <span>{t('files.trash', 'Lixeira')}</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => handleCut(selectedItems)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card border border-border text-primary hover:bg-accent transition-colors font-medium"
+              >
+                <Scissors className="w-3.5 h-3.5" /> <span className="hidden xs:inline">{t('files.cut', 'Recortar')}</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => handleMoveToTrash(selectedItems)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 transition-colors font-medium"
+                title={t('files.move_trash_title', 'Mover itens para a lixeira')}
+              >
+                <Trash2 className="w-3.5 h-3.5" /> <span>{t('files.trash', 'Lixeira')}</span>
+              </button>
+            )}
             <button
               onClick={() => setSelectedItems([])}
               className="p-1 rounded-lg text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent ml-1"

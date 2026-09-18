@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronDown, ChevronRight, Layers, RefreshCw, RotateCw, Square, Play, PlayCircle, Pause, 
-  Globe, Settings2, DownloadCloud 
+  Globe, Settings2, DownloadCloud, Eye, EyeOff 
 } from 'lucide-react';
 import { formatRAM, formatBytes } from '../../../utils/format';
 import { getIconForImage } from '../../../utils/icons';
@@ -23,6 +23,9 @@ export interface ContainerTableViewProps {
   onAction: (e: React.MouseEvent, id: string, action: 'start' | 'stop' | 'restart' | 'pause' | 'unpause') => void;
   onUpdateContainer: (e: React.MouseEvent, id: string) => void;
   onSetCustomLink: (e: React.MouseEvent, id: string) => void;
+  isAdmin?: boolean;
+  isContainerHidden?: (id: string, name?: string) => boolean;
+  onToggleVisibility?: (e: React.MouseEvent, id: string) => void;
 }
 
 export function ContainerTableView({
@@ -37,6 +40,9 @@ export function ContainerTableView({
   onAction,
   onUpdateContainer,
   onSetCustomLink,
+  isAdmin,
+  isContainerHidden,
+  onToggleVisibility,
 }: ContainerTableViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -174,76 +180,101 @@ export function ContainerTableView({
                   </tr>
 
                   {/* Expanded Sub-container Rows */}
-                  {isExpanded && group.containers.map(c => (
-                    <tr 
-                      key={c.id} 
-                      onClick={() => navigate(`/containers/${c.id}`)} 
-                      className="border-b border-border/60 bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer text-xs"
-                    >
-                      <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-saturn-500/50">
-                        <ContainerIcon
-                          src={getIconForImage(c.image, c.name)}
-                          name={c.name}
-                          image={c.image}
-                          size={20}
-                        />
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-primary">{c.name}</span>
-                            {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
-                              <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
-                                {t('docker.update', 'Atualização')}
-                              </span>
+                  {isExpanded && group.containers.map(c => {
+                    const isHidden = isContainerHidden ? isContainerHidden(c.id, c.name) : false;
+                    return (
+                      <tr 
+                        key={c.id} 
+                        onClick={() => navigate(`/containers/${c.id}`)} 
+                        className="border-b border-border/60 bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer text-xs"
+                      >
+                        <td className="px-4 py-3 pl-12 font-medium text-primary flex items-center gap-3 border-l-2 border-saturn-500/50">
+                          <ContainerIcon
+                            src={getIconForImage(c.image, c.name)}
+                            name={c.name}
+                            image={c.image}
+                            size={20}
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-primary">{c.name}</span>
+                              {isHidden && isAdmin && (
+                                <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
+                                  {t('docker.hidden_badge', 'Oculto')}
+                                </span>
+                              )}
+                              {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
+                                <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
+                                  {t('docker.update', 'Atualização')}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-secondary font-mono">{c.image}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            <span className="capitalize text-secondary text-xs">{c.state}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 font-mono text-primary">
+                          {c.cpu_percent?.toFixed(1) || '0.0'}%
+                        </td>
+
+                        <td className="px-4 py-3 font-mono text-primary">
+                          {formatRAM(c.memory_used)}
+                        </td>
+
+                        <td className="px-4 py-3 font-mono text-primary">
+                          {formatBytes(getContainerDiskUsage(c))}
+                        </td>
+
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-1.5 items-center">
+                            {isAdmin && onToggleVisibility && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleVisibility(e, c.id);
+                                }}
+                                className={`p-1 rounded glass-button transition-colors text-xs flex items-center ${
+                                  isHidden
+                                    ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30'
+                                    : 'text-secondary hover:text-primary'
+                                }`}
+                                title={isHidden ? t('docker.visibility_hidden_tip', 'Oculto para membros. Clique para tornar visível.') : t('docker.visibility_visible_tip', 'Visível para membros. Clique para ocultar.')}
+                              >
+                                {isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </button>
+                            )}
+                            {c.state === 'running' ? (
+                              <>
+                                <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title={t('docker.stop_container', 'Parar')}>
+                                  <Square className="w-3 h-3" />
+                                </button>
+                                <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400" title={t('docker.restart_container', 'Reiniciar')}>
+                                  <RotateCw className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-700 dark:text-emerald-400 font-semibold" title={t('docker.start_container', 'Iniciar')}>
+                                <Play className="w-3 h-3" />
+                              </button>
                             )}
                           </div>
-                          <span className="text-[10px] text-secondary font-mono">{c.image}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${c.state === 'running' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                          <span className="capitalize text-secondary text-xs">{c.state}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 font-mono text-primary">
-                        {c.cpu_percent?.toFixed(1) || '0.0'}%
-                      </td>
-
-                      <td className="px-4 py-3 font-mono text-primary">
-                        {formatRAM(c.memory_used)}
-                      </td>
-
-                      <td className="px-4 py-3 font-mono text-primary">
-                        {formatBytes(getContainerDiskUsage(c))}
-                      </td>
-
-                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1.5 items-center">
-                          {c.state === 'running' ? (
-                            <>
-                              <button onClick={(e) => onAction(e, c.id, 'stop')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-rose-400" title={t('docker.stop_container', 'Parar')}>
-                                <Square className="w-3 h-3" />
-                              </button>
-                              <button onClick={(e) => onAction(e, c.id, 'restart')} disabled={actionLoading === c.id} className="p-1 rounded glass-button hover:text-emerald-600 dark:hover:text-emerald-400" title={t('docker.restart_container', 'Reiniciar')}>
-                                <RotateCw className="w-3 h-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={(e) => onAction(e, c.id, 'start')} disabled={actionLoading === c.id} className="p-1 rounded glass-button text-emerald-700 dark:text-emerald-400 font-semibold" title={t('docker.start_container', 'Iniciar')}>
-                              <Play className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </Fragment>
               );
             }
 
             const c = item.container;
+            const isHidden = isContainerHidden ? isContainerHidden(c.id, c.name) : false;
             return (
               <tr key={c.id} onClick={() => navigate(`/containers/${c.id}`)} className="border-b border-border hover:bg-accent/40 transition-colors cursor-pointer">
                 <td className="px-4 py-4 font-medium text-primary flex items-center gap-3">
@@ -256,6 +287,11 @@ export function ContainerTableView({
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-primary leading-tight">{c.name}</span>
+                      {isHidden && isAdmin && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
+                          {t('docker.hidden_badge', 'Oculto')}
+                        </span>
+                      )}
                       {(updatesMap[c.id]?.has_update || updatesMap[c.id?.substring(0, 12)]?.has_update) && (
                         <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-700 dark:text-violet-300 text-[10px] font-bold border border-violet-500/30">
                           {t('docker.update', 'Atualização')}
@@ -310,6 +346,23 @@ export function ContainerTableView({
                     >
                       <Settings2 className="w-3.5 h-3.5" />
                     </button>
+
+                    {isAdmin && onToggleVisibility && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleVisibility(e, c.id);
+                        }}
+                        className={`p-1.5 rounded glass-button transition-colors text-xs flex items-center gap-1 ${
+                          isHidden
+                            ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30'
+                            : 'text-muted-foreground hover:text-primary'
+                        }`}
+                        title={isHidden ? t('docker.visibility_hidden_tip', 'Oculto para membros. Clique para tornar visível.') : t('docker.visibility_visible_tip', 'Visível para membros. Clique para ocultar.')}
+                      >
+                        {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
 
                     <div className="w-px h-4 bg-border mx-1"></div>
 

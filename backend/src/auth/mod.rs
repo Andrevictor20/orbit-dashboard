@@ -1,12 +1,16 @@
 pub mod jwt;
+pub mod permissions;
 pub mod rate_limit;
 pub mod totp;
 pub mod two_factor;
+pub mod users_api;
 
 pub use jwt::{get_jwt_secret, Claims};
+pub use permissions::*;
 pub use rate_limit::{check_rate_limit, clear_attempts, record_failed_attempt};
 pub use totp::*;
 pub use two_factor::*;
+pub use users_api::*;
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -14,7 +18,6 @@ use argon2::{
 };
 use axum::{
     http::StatusCode,
-    response::Response,
     routing::{get, post, put},
     Json, Router,
 };
@@ -26,13 +29,21 @@ use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
+pub fn get_users_file_path() -> String {
+    std::env::var("SATURN_USERS_FILE")
+        .unwrap_or_else(|_| {
+            let data_dir = crate::system::data_migrator::get_active_data_dir();
+            let saturn_path = data_dir.join("saturn_users.json");
+            saturn_path.to_string_lossy().to_string()
+        })
+}
+
 pub fn get_auth_file_path() -> String {
     std::env::var("SATURN_AUTH_FILE")
-        .or_else(|_| std::env::var("SATURN_AUTH_FILE"))
         .unwrap_or_else(|_| {
             let data_dir = crate::system::data_migrator::get_active_data_dir();
             let saturn_path = data_dir.join("saturn_auth.json");
-saturn_path.to_string_lossy().to_string()
+            saturn_path.to_string_lossy().to_string()
         })
 }
 
@@ -48,22 +59,98 @@ pub struct AuthData {
     pub recovery_codes: Vec<String>,
 }
 
-pub fn get_auth_data() -> Option<AuthData> {
-    if let Ok(content) = fs::read_to_string(get_auth_file_path()) {
-        serde_json::from_str(&content).ok()
-    } else {
-        None
+pub fn load_users() -> Vec<User> {
+    let users_path = get_users_file_path();
+    if let Ok(content) = fs::read_to_string(&users_path) {
+        if let Ok(users) = serde_json::from_str::<Vec<User>>(&content) {
+            return users;
+        }
     }
+
+    // Auto-migration from legacy saturn_auth.json
+    let legacy_auth_path = get_auth_file_path();
+    if let Ok(content) = fs::read_to_string(&legacy_auth_path) {
+        if let Ok(auth_data) = serde_json::from_str::<AuthData>(&content) {
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let admin = User {
+                id: uuid::Uuid::new_v4().to_string(),
+                username: auth_data.username,
+                display_name: Some("Administrator".to_string()),
+                hash: auth_data.hash,
+                role: UserRole::Admin,
+                allowed_modules: None,
+                is_active: true,
+                totp_secret: auth_data.totp_secret,
+                totp_enabled: auth_data.totp_enabled,
+                recovery_codes: auth_data.recovery_codes,
+                created_at: now,
+            };
+            let users = vec![admin];
+            let _ = save_users(&users);
+            tracing::info!("Auto-migrated legacy auth to saturn_users.json successfully");
+            return users;
+        }
+    }
+
+    Vec::new()
+}
+
+pub fn save_users(users: &[User]) -> Result<(), StatusCode> {
+    let users_path = get_users_file_path();
+    if let Some(parent) = Path::new(&users_path).parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let json = serde_json::to_string(users).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    fs::write(&users_path, json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(())
+}
+
+pub fn get_user_by_username(username: &str) -> Option<User> {
+    load_users().into_iter().find(|u| u.username.eq_ignore_ascii_case(username))
+}
+
+pub fn get_auth_data() -> Option<AuthData> {
+    let users = load_users();
+    users.into_iter().find(|u| u.role.is_admin()).map(|u| AuthData {
+        username: u.username,
+        hash: u.hash,
+        totp_secret: u.totp_secret,
+        totp_enabled: u.totp_enabled,
+        recovery_codes: u.recovery_codes,
+    })
 }
 
 pub fn save_auth_data(auth_data: &AuthData) -> Result<(), StatusCode> {
-    let auth_file = get_auth_file_path();
-    if let Some(parent) = Path::new(&auth_file).parent() {
-        let _ = fs::create_dir_all(parent);
+    let mut users = load_users();
+    if let Some(admin) = users.iter_mut().find(|u| u.role.is_admin()) {
+        admin.username = auth_data.username.clone();
+        admin.hash = auth_data.hash.clone();
+        admin.totp_secret = auth_data.totp_secret.clone();
+        admin.totp_enabled = auth_data.totp_enabled;
+        admin.recovery_codes = auth_data.recovery_codes.clone();
+    } else {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        users.push(User {
+            id: uuid::Uuid::new_v4().to_string(),
+            username: auth_data.username.clone(),
+            display_name: Some("Administrator".to_string()),
+            hash: auth_data.hash.clone(),
+            role: UserRole::Admin,
+            allowed_modules: None,
+            is_active: true,
+            totp_secret: auth_data.totp_secret.clone(),
+            totp_enabled: auth_data.totp_enabled,
+            recovery_codes: auth_data.recovery_codes.clone(),
+            created_at: now,
+        });
     }
-    let json = serde_json::to_string(auth_data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    fs::write(&auth_file, json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(())
+    save_users(&users)
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,7 +166,7 @@ pub struct ChangePasswordPayload {
 }
 
 pub async fn status() -> Result<Json<serde_json::Value>, StatusCode> {
-    let needs_setup = !Path::new(&get_auth_file_path()).exists();
+    let needs_setup = load_users().is_empty();
     Ok(Json(serde_json::json!({ "needs_setup": needs_setup })))
 }
 
@@ -87,8 +174,8 @@ pub async fn setup(
     jar: CookieJar,
     Json(payload): Json<LoginPayload>,
 ) -> Result<(CookieJar, Json<serde_json::Value>), StatusCode> {
-    let auth_file = get_auth_file_path();
-    if Path::new(&auth_file).exists() {
+    let users = load_users();
+    if !users.is_empty() {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -102,15 +189,26 @@ pub async fn setup(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .to_string();
 
-    let auth_data = AuthData {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let admin_user = User {
+        id: uuid::Uuid::new_v4().to_string(),
         username: payload.username.clone(),
+        display_name: Some("Administrator".to_string()),
         hash,
+        role: UserRole::Admin,
+        allowed_modules: None,
+        is_active: true,
         totp_secret: None,
         totp_enabled: false,
         recovery_codes: Vec::new(),
+        created_at: now,
     };
 
-    save_auth_data(&auth_data)?;
+    save_users(&[admin_user.clone()])?;
 
     let expiration = SystemTime::now()
         .checked_add(Duration::from_secs(2 * 3600))
@@ -122,6 +220,8 @@ pub async fn setup(
     let claims = Claims {
         sub: payload.username,
         exp: expiration,
+        role: "admin".to_string(),
+        uid: Some(admin_user.id),
     };
 
     let token = encode(
@@ -156,26 +256,28 @@ pub async fn login(
         return Err(StatusCode::TOO_MANY_REQUESTS);
     }
 
-    let auth_data = match get_auth_data() {
-        Some(data) => data,
+    let users = load_users();
+    let found_user = users.into_iter().find(|u| {
+        if u.username.len() == payload.username.len() {
+            u.username.as_bytes().ct_eq(payload.username.as_bytes()).unwrap_u8() == 1
+        } else {
+            false
+        }
+    });
+
+    let user = match found_user {
+        Some(u) => u,
         None => {
             record_failed_attempt(&client_ip);
             return Err(StatusCode::UNAUTHORIZED);
         }
     };
 
-    let user_match = if payload.username.len() == auth_data.username.len() {
-        payload.username.as_bytes().ct_eq(auth_data.username.as_bytes())
-    } else {
-        subtle::Choice::from(0)
-    };
-
-    if user_match.unwrap_u8() == 0 {
-        record_failed_attempt(&client_ip);
-        return Err(StatusCode::UNAUTHORIZED);
+    if !user.is_active {
+        return Err(StatusCode::FORBIDDEN);
     }
 
-    let parsed_hash = match PasswordHash::new(&auth_data.hash) {
+    let parsed_hash = match PasswordHash::new(&user.hash) {
         Ok(h) => h,
         Err(_) => {
             record_failed_attempt(&client_ip);
@@ -188,7 +290,7 @@ pub async fn login(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    if auth_data.totp_enabled {
+    if user.totp_enabled {
         let expiration = SystemTime::now()
             .checked_add(Duration::from_secs(300))
             .unwrap()
@@ -197,8 +299,10 @@ pub async fn login(
             .as_secs() as usize;
 
         let claims = Claims {
-            sub: format!("2fa_temp:{}", auth_data.username),
+            sub: format!("2fa_temp:{}", user.username),
             exp: expiration,
+            role: user.role.as_str().to_string(),
+            uid: Some(user.id.clone()),
         };
 
         let temp_token = encode(
@@ -226,8 +330,10 @@ pub async fn login(
         .as_secs() as usize;
 
     let claims = Claims {
-        sub: auth_data.username.clone(),
+        sub: user.username.clone(),
         exp: expiration,
+        role: user.role.as_str().to_string(),
+        uid: Some(user.id.clone()),
     };
 
     let token = encode(
@@ -286,58 +392,6 @@ pub async fn change_password(
     Ok(Json(serde_json::json!({ "message": "password updated" })))
 }
 
-pub async fn require_auth(
-    jar: CookieJar,
-    mut req: axum::extract::Request,
-    next: axum::middleware::Next,
-) -> Result<Response, StatusCode> {
-    let token = jar
-        .get("auth_token")
-        .map(|cookie| cookie.value().to_string())
-        .or_else(|| {
-            req.headers()
-                .get(axum::http::header::AUTHORIZATION)
-                .and_then(|h| h.to_str().ok())
-                .and_then(|h| {
-                    if let Some(stripped) = h.strip_prefix("Bearer ") {
-                        Some(stripped.trim().to_string())
-                    } else if let Some(stripped) = h.strip_prefix("bearer ") {
-                        Some(stripped.trim().to_string())
-                    } else {
-                        None
-                    }
-                })
-        })
-        .or_else(|| {
-            req.uri().query().and_then(|q| {
-                for pair in q.split('&') {
-                    if let Some((k, v)) = pair.split_once('=') {
-                        if k == "token" && !v.is_empty() {
-                            let decoded = v.replace("%2B", "+").replace("%2F", "/").replace("%3D", "=");
-                            return Some(decoded);
-                        }
-                    }
-                }
-                None
-            })
-        })
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-
-    let token_data = decode::<Claims>(
-        &token,
-        &DecodingKey::from_secret(get_jwt_secret()),
-        &Validation::default(),
-    ).map_err(|_| StatusCode::UNAUTHORIZED)?;
-
-    // Reject temporary 2FA token from accessing regular protected resources
-    if token_data.claims.sub.starts_with("2fa_temp:") {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    req.extensions_mut().insert(token_data.claims);
-    Ok(next.run(req).await)
-}
-
 pub async fn me(jar: CookieJar) -> Result<Json<serde_json::Value>, StatusCode> {
     let token = jar
         .get("auth_token")
@@ -354,7 +408,20 @@ pub async fn me(jar: CookieJar) -> Result<Json<serde_json::Value>, StatusCode> {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    Ok(Json(serde_json::json!({ "authenticated": true, "username": token_data.claims.sub })))
+    let user = get_user_by_username(&token_data.claims.sub);
+    let role = user.as_ref().map(|u| u.role.as_str()).unwrap_or(token_data.claims.role.as_str());
+    let display_name = user.as_ref().and_then(|u| u.display_name.clone());
+    let uid = user.as_ref().map(|u| u.id.clone()).or(token_data.claims.uid);
+    let is_admin = role == "admin";
+
+    Ok(Json(serde_json::json!({
+        "authenticated": true,
+        "username": token_data.claims.sub,
+        "display_name": display_name,
+        "role": role,
+        "uid": uid,
+        "is_admin": is_admin
+    })))
 }
 
 pub fn public_router() -> Router {
@@ -401,11 +468,9 @@ mod tests {
 
     #[test]
     fn test_jwt_claims_struct() {
-        let claims = Claims {
-            sub: "admin".to_string(),
-            exp: 10000,
-        };
+        let claims = Claims::admin("admin", 10000);
         assert_eq!(claims.sub, "admin");
         assert_eq!(claims.exp, 10000);
+        assert_eq!(claims.role, "admin");
     }
 }

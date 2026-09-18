@@ -71,15 +71,19 @@ pub fn app() -> Router {
         }
     });
 
+    let admin_terminal_routes = Router::new()
+        .route("/api/terminal/ws", get(ssh::terminal_handler))
+        .route("/api/ssh", get(ssh::terminal_handler))
+        .route("/api/logs/clear", axum::routing::post(logs::clear_logs))
+        .layer(axum::middleware::from_fn(auth::require_admin));
+
     let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
         .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
         .route("/api/docker/stats/history", get(ws::get_stats_history_handler))
-        .route("/api/terminal/ws", get(ssh::terminal_handler))
-        .route("/api/ssh", get(ssh::terminal_handler))
         .route("/api/logs", get(logs::get_logs))
-        .route("/api/logs/clear", axum::routing::post(logs::clear_logs));
+        .merge(admin_terminal_routes);
 
     let protected_routes = Router::new()
         .merge(docker::router())
@@ -90,6 +94,7 @@ pub fn app() -> Router {
         .merge(pihole::router())
         .merge(cloudflare::router())
         .merge(auth::two_factor_protected_router())
+        .merge(auth::users_api::router())
         .merge(system_routes)
         .layer(axum::middleware::from_fn(auth::require_auth))
         .with_state(state);

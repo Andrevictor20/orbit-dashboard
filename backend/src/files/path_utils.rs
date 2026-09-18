@@ -85,3 +85,40 @@ pub fn get_mime_type(ext: &str) -> &'static str {
         _ => "application/octet-stream",
     }
 }
+
+pub fn validate_user_storage_access(path: &Path, role: &str) -> Result<(), StatusCode> {
+    if role == "admin" {
+        return Ok(());
+    }
+
+    let p_str = path.to_string_lossy().replace('\\', "/");
+    let display = to_display_path(path).replace('\\', "/");
+    let norm_p = if p_str.starts_with('/') { p_str.clone() } else { format!("/{}", p_str) };
+    let norm_disp = if display.starts_with('/') { display.clone() } else { format!("/{}", display) };
+
+    if let Ok(custom) = std::env::var("SATURN_ALLOWED_MEMBER_STORAGE") {
+        for prefix in custom.split(':') {
+            let p_trim = prefix.trim().trim_start_matches('/');
+            if !p_trim.is_empty() && (p_str.contains(p_trim) || display.contains(p_trim)) {
+                return Ok(());
+            }
+        }
+    }
+
+    let allowed_prefixes = [
+        "/media", "/mnt", "/DATA", "/data", "/storage", "/disks", "/volumes",
+        "/host/media", "/host/mnt", "/host/DATA", "/host/data", "/host/storage", "/host/disks", "/host/volumes"
+    ];
+
+    let is_allowed = allowed_prefixes.iter().any(|prefix| {
+        norm_p.starts_with(prefix) || norm_disp.starts_with(prefix)
+    });
+
+    if !is_allowed {
+        tracing::warn!("Acesso negado para usuário comum ao caminho restrito do sistema: {:?}", path);
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    Ok(())
+}
+

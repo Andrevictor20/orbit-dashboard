@@ -13,6 +13,8 @@ pub mod ports;
 pub mod compose;
 pub mod backups;
 
+pub mod visibility;
+
 pub use types::*;
 pub use stats::*;
 pub use containers::*;
@@ -24,6 +26,7 @@ pub use parser::*;
 pub use ports::*;
 pub use compose::*;
 pub use backups::*;
+pub use visibility::*;
 pub use crate::state::AppState;
 
 use axum::{
@@ -32,6 +35,25 @@ use axum::{
 };
 
 pub fn router() -> Router<AppState> {
+    let admin_routes = Router::new()
+        .route("/api/backups", get(backups::list_backups_handler))
+        .route("/api/backups/stats", get(backups::get_backup_stats_handler))
+        .route("/api/backups/create", post(backups::create_backup_handler))
+        .route("/api/backups/restore", post(backups::restore_backup_post_handler))
+        .route("/api/backups/restore/{id}", post(backups::restore_backup_handler))
+        .route("/api/backups/{id}", delete(backups::delete_backup_handler))
+        .route("/api/backups/download/{id}", get(backups::download_backup_handler))
+        .route("/api/backups/upload", post(backups::upload_backup_handler).layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024 * 1024)))
+        .route("/api/backups/schedule", get(backups::get_schedule_handler).post(backups::save_schedule_handler))
+        .route("/api/docker/images/{id}", delete(delete_image))
+        .route("/api/docker/images/prune", post(prune_images))
+        .route("/api/docker/builder/prune", post(prune_builder))
+        .route("/api/docker/networks/{id}", delete(delete_network))
+        .route("/api/docker/networks/prune", post(prune_networks))
+        .route("/api/docker/volumes/{name}", delete(delete_volume))
+        .route("/api/docker/volumes/prune", post(prune_volumes))
+        .layer(axum::middleware::from_fn(crate::auth::require_admin));
+
     Router::new()
         .route("/api/docker/containers", get(list_containers))
         .route("/api/docker/containers/{id}", get(inspect_container).delete(delete_container))
@@ -54,25 +76,11 @@ pub fn router() -> Router<AppState> {
         .route("/api/docker/compose/stacks", get(compose::list_stacks_handler))
         .route("/api/docker/compose/stacks/{name}", get(compose::get_stack_compose_handler))
         .route("/api/docker/compose/save", post(compose::save_custom_compose_handler))
-        .route("/api/backups", get(backups::list_backups_handler))
-        .route("/api/backups/stats", get(backups::get_backup_stats_handler))
-        .route("/api/backups/create", post(backups::create_backup_handler))
-        .route("/api/backups/restore", post(backups::restore_backup_post_handler))
-        .route("/api/backups/restore/{id}", post(backups::restore_backup_handler))
-        .route("/api/backups/{id}", delete(backups::delete_backup_handler))
-        .route("/api/backups/download/{id}", get(backups::download_backup_handler))
-        .route("/api/backups/upload", post(backups::upload_backup_handler).layer(axum::extract::DefaultBodyLimit::max(10 * 1024 * 1024 * 1024)))
-        .route("/api/backups/schedule", get(backups::get_schedule_handler).post(backups::save_schedule_handler))
         .route("/api/docker/images", get(list_images))
-        .route("/api/docker/images/{id}", delete(delete_image))
-        .route("/api/docker/images/prune", post(prune_images))
-        .route("/api/docker/builder/prune", post(prune_builder))
         .route("/api/docker/networks", get(list_networks))
-        .route("/api/docker/networks/{id}", delete(delete_network))
-        .route("/api/docker/networks/prune", post(prune_networks))
         .route("/api/docker/volumes", get(list_volumes))
-        .route("/api/docker/volumes/{name}", delete(delete_volume))
-        .route("/api/docker/volumes/prune", post(prune_volumes))
+        .merge(visibility::router())
+        .merge(admin_routes)
 }
 
 #[cfg(test)]

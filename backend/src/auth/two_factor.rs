@@ -165,10 +165,13 @@ pub async fn two_factor_login(
         .unwrap()
         .as_secs() as usize;
 
-    let claims = Claims {
-        sub: auth_data.username,
-        exp: expiration,
+    let (role, uid) = if let Some(user) = super::get_user_by_username(&auth_data.username) {
+        (user.role.as_str().to_string(), Some(user.id))
+    } else {
+        ("admin".to_string(), None)
     };
+
+    let claims = Claims::new(auth_data.username, expiration, role, uid);
 
     let token = encode(
         &Header::default(),

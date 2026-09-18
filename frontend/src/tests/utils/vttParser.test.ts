@@ -45,6 +45,7 @@ Segunda linha de legenda
     expect(formatVideoTime(65)).toBe('1:05');
     expect(formatVideoTime(3665)).toBe('1:01:05');
     expect(formatVideoTime(NaN)).toBe('0:00');
+    expect(formatVideoTime(Infinity)).toBe('0:00');
     expect(formatVideoTime(-5)).toBe('0:00');
   });
 
