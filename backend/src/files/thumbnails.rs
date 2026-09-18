@@ -26,6 +26,7 @@ fn get_thumbnail_cache_dir() -> PathBuf {
 
 fn compute_cache_key(path_str: &str, modified_sec: u64, size: u64) -> String {
     let mut hasher = DefaultHasher::new();
+    hasher.write(b"thumb_v2");
     hasher.write(path_str.as_bytes());
     hasher.write_u64(modified_sec);
     hasher.write_u64(size);
@@ -108,53 +109,7 @@ pub async fn get_file_thumbnail(
     }
 
     if is_video {
-        // Extract frame at 1s (or 0s if short)
-        let generated = tokio::process::Command::new("ffmpeg")
-            .args([
-                "-v", "error",
-                "-y",
-                "-ss", "00:00:01",
-                "-i",
-            ])
-            .arg(&path)
-            .args([
-                "-vframes", "1",
-                "-vf", "scale=256:-1",
-                "-q:v", "3",
-                "-update", "1",
-            ])
-            .arg(&cache_file)
-            .status()
-            .await
-            .map(|s| s.success() && cache_file.exists())
-            .unwrap_or(false);
-
-        let final_ok = if !generated {
-            // Retry at 0s
-            tokio::process::Command::new("ffmpeg")
-                .args([
-                    "-v", "error",
-                    "-y",
-                    "-ss", "00:00:00",
-                    "-i",
-                ])
-                .arg(&path)
-                .args([
-                    "-vframes", "1",
-                    "-vf", "scale=256:-1",
-                    "-q:v", "3",
-                    "-update", "1",
-                ])
-                .arg(&cache_file)
-                .status()
-                .await
-                .map(|s| s.success() && cache_file.exists())
-                .unwrap_or(false)
-        } else {
-            true
-        };
-
-        if final_ok {
+        if extract_video_thumbnail(&path, &cache_file).await {
             return serve_thumbnail_file(&cache_file).await;
         }
     }
@@ -237,3 +192,93 @@ async fn serve_file_directly(file_path: &Path, content_type: &'static str) -> Re
 
     Ok((StatusCode::OK, resp_headers, body).into_response())
 }
+
+async fn get_video_duration(path: &Path) -> Option<f64> {
+    let output = tokio::time::timeout(
+        std::time::Duration::from_millis(1500),
+        tokio::process::Command::new("ffprobe")
+            .args([
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+            ])
+            .arg(path)
+            .output(),
+    )
+    .await
+    .ok()?
+    .ok()?;
+
+    if output.status.success() {
+        let text = String::from_utf8_lossy(&output.stdout);
+        text.trim().parse::<f64>().ok()
+    } else {
+        None
+    }
+}
+
+async fn extract_video_thumbnail(path: &Path, cache_file: &Path) -> bool {
+    let duration = get_video_duration(path).await;
+
+    // Determine target seek positions to capture a real scene, avoiding initial title/bumper cards
+    let mut seek_points: Vec<String> = Vec::new();
+
+    if let Some(dur) = duration {
+        if dur >= 60.0 {
+            // For longer videos (anime/series/movies), sample ~12% into the video
+            // e.g. 24min episode (1440s) -> ~172s (~2m52s) - well past OP and intro cards!
+            let scene_sec = (dur * 0.12).clamp(15.0, 300.0);
+            seek_points.push(format!("{:.1}", scene_sec));
+            // Secondary fallback: 10s into the video (past initial bumper)
+            if dur > 30.0 {
+                seek_points.push("10.0".to_string());
+            }
+        } else if dur >= 10.0 {
+            seek_points.push(format!("{:.1}", dur * 0.15));
+            seek_points.push("3.0".to_string());
+        } else if dur > 2.0 {
+            seek_points.push("1.0".to_string());
+        }
+    } else {
+        // Duration unknown (ffprobe timeout or unsupported container): try 60s, then 15s, then 2s
+        seek_points.push("60.0".to_string());
+        seek_points.push("15.0".to_string());
+        seek_points.push("2.0".to_string());
+    }
+
+    // Always keep 1s and 0s as last resorts
+    seek_points.push("1.0".to_string());
+    seek_points.push("0.0".to_string());
+
+    for seek in seek_points {
+        let ok = tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            tokio::process::Command::new("ffmpeg")
+                .args([
+                    "-v", "error",
+                    "-y",
+                    "-ss", &seek,
+                    "-i",
+                ])
+                .arg(path)
+                .args([
+                    "-vframes", "1",
+                    "-vf", "scale=256:-1",
+                    "-q:v", "3",
+                    "-update", "1",
+                ])
+                .arg(cache_file)
+                .status(),
+        )
+        .await
+        .map(|res| res.map(|s| s.success() && cache_file.exists()).unwrap_or(false))
+        .unwrap_or(false);
+
+        if ok {
+            return true;
+        }
+    }
+
+    false
+}
+

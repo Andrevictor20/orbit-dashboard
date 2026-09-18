@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import {
@@ -9,12 +9,15 @@ import {
   FileContentArea,
   useFileManagerOperations,
   useFileManagerNavigation,
+  useFileManagerShortcuts,
+  useFileManagerSelection,
 } from '../components/files';
 import type { OperationType } from '../components/files/FileOperationsModal';
 import type { FileItem, MountItem, ShortcutPlace, TrashItem } from '../types/fileManager';
 export type { FileItem, MountItem, ShortcutPlace, TrashItem };
 export { IMAGE_EXTENSIONS, ARCHIVE_EXTENSIONS, CODE_EXTENSIONS } from '../types/fileManager';
 import { isPhysicalStorage } from '../utils/format';
+import { getAuthHeaders } from '../utils/auth';
 
 export function FileManager() {
   const { t } = useTranslation();
@@ -40,8 +43,8 @@ export function FileManager() {
   } = nav;
 
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'size' | 'modified'>('name');
@@ -86,8 +89,36 @@ export function FileManager() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
+  // Filter & Sort files
+  const filteredFiles = useMemo(() => {
+    return files
+      .filter((file) => {
+        if (!showHiddenFiles && file.is_hidden) return false;
+        if (!searchQuery) return true;
+        return file.name.toLowerCase().includes(searchQuery.toLowerCase());
+      })
+      .sort((a, b) => {
+        if (a.is_dir !== b.is_dir) return b.is_dir ? 1 : -1;
+        let ord = 0;
+        if (sortBy === 'size') {
+          ord = a.size - b.size;
+        } else if (sortBy === 'modified') {
+          ord = (a.modified || '').localeCompare(b.modified || '');
+        } else {
+          ord = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        }
+        return sortAsc ? ord : -ord;
+      });
+  }, [files, showHiddenFiles, searchQuery, sortBy, sortAsc]);
+
+  const { selectedItems, setSelectedItems, isSelected, toggleSelect, selectAll } =
+    useFileManagerSelection(filteredFiles);
+
   const loadStorages = () => {
-    fetch('/api/files/storages')
+    fetch('/api/files/storages', {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    })
       .then(res => res.json())
       .then(data => {
         if (data.mounts && Array.isArray(data.mounts)) {
@@ -102,8 +133,12 @@ export function FileManager() {
 
   const loadTrash = () => {
     setIsLoading(true);
+    setLoadError(null);
     setSelectedItems([]);
-    fetch('/api/files/trash')
+    fetch('/api/files/trash', {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    })
       .then(res => res.json())
       .then(data => {
         setTrashItems(data.items || []);
@@ -122,27 +157,45 @@ export function FileManager() {
       return;
     }
     setIsLoading(true);
+    setLoadError(null);
     setSelectedItems([]);
-    fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
-      .then(res => {
-        if (!res.ok) throw new Error(t('files.failed_list_files', 'Não foi possível listar arquivos'));
+    fetch(`/api/files/list?path=${encodeURIComponent(path)}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (res.status === 404) {
+          toast.error(t('files.dir_not_found', { path, defaultValue: `Diretório ${path} não encontrado.` }));
+          const parent = path === '/' ? '/' : (path.substring(0, path.lastIndexOf('/')) || '/');
+          navigateTo(parent);
+          return null;
+        }
+        if (res.status === 401) {
+          const msg = t('auth.session_expired', 'Sessão expirada. Faça login novamente.');
+          toast.error(msg);
+          setLoadError(msg);
+          setIsLoading(false);
+          return null;
+        }
+        if (!res.ok) {
+          throw new Error(t('files.failed_list_files', 'Não foi possível listar arquivos'));
+        }
         return res.json();
       })
       .then(data => {
+        if (!data) return;
         setFiles(data.items || []);
         if (data.current_path && data.current_path !== currentPath) {
           setCurrentPath(data.current_path);
         }
+        setLoadError(null);
         setIsLoading(false);
       })
-      .catch(() => {
-        if (path !== '/') {
-          toast.error(t('files.dir_not_found', { path, defaultValue: `Diretório ${path} não encontrado. Retornando para a raiz.` }));
-          navigateTo('/');
-        } else {
-          setFiles([]);
-          setIsLoading(false);
-        }
+      .catch((err) => {
+        const msg = err?.message || t('files.network_load_error', 'Erro ao carregar arquivos da pasta.');
+        toast.error(msg);
+        setLoadError(msg);
+        setIsLoading(false);
       });
   };
 
@@ -174,7 +227,10 @@ export function FileManager() {
 
   // Load shortcuts and storages once
   useEffect(() => {
-    fetch('/api/files/shortcuts')
+    fetch('/api/files/shortcuts', {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    })
       .then(res => res.json())
       .then(data => {
         if (data) {
@@ -203,29 +259,6 @@ export function FileManager() {
     }
   }, [currentPath, isTrashView]);
 
-  // Keyboard shortcut listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
-
-      if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
-        handleGoBack();
-      } else if (e.altKey && e.key === 'ArrowRight') {
-        handleGoForward();
-      } else if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-        e.preventDefault();
-        loadFiles(currentPath);
-      } else if (e.ctrlKey && e.key === 'a') {
-        e.preventDefault();
-        selectAll();
-      } else if (e.key === 'Delete' && selectedItems.length > 0) {
-        e.preventDefault();
-        ops.handleMoveToTrash(selectedItems);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [historyIndex, history, currentPath, selectedItems, files]);
 
   // Listen for upload completion events to refresh folder listing
   useEffect(() => {
@@ -238,53 +271,35 @@ export function FileManager() {
     return () => window.removeEventListener('saturn:files_changed', handleFilesChanged);
   }, [currentPath]);
 
-  // Filter & Sort files
-  const filteredFiles = useMemo(() => {
-    return files
-      .filter((file) => {
-        if (!showHiddenFiles && file.is_hidden) return false;
-        if (!searchQuery) return true;
-        return file.name.toLowerCase().includes(searchQuery.toLowerCase());
-      })
-      .sort((a, b) => {
-        if (a.is_dir !== b.is_dir) return b.is_dir ? 1 : -1;
-        let ord = 0;
-        if (sortBy === 'size') {
-          ord = a.size - b.size;
-        } else if (sortBy === 'modified') {
-          ord = (a.modified || '').localeCompare(b.modified || '');
-        } else {
-          ord = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        }
-        return sortAsc ? ord : -ord;
-      });
-  }, [files, showHiddenFiles, searchQuery, sortBy, sortAsc]);
+
+  const hasActiveModal = Boolean(
+    activeImageFile ||
+    activeAudioFile ||
+    activeVideoFile ||
+    activeTextFile ||
+    activePdfFile ||
+    isDiskAnalyzerOpen ||
+    shareFile ||
+    sambaModalOpen ||
+    opModalType
+  );
+
+  useFileManagerShortcuts({
+    currentPath,
+    selectedItems,
+    hasActiveModal,
+    handleGoBack,
+    handleGoForward,
+    loadFiles,
+    selectAll,
+    handleMoveToTrash: ops.handleMoveToTrash,
+  });
 
   // Primary Storage Capacity calculation
   const primaryStorage = useMemo(() => {
     if (storages.length === 0) return null;
-    const match = storages.find(s => s.mount_point === '/' || currentPath.startsWith(s.mount_point)) || storages[0];
-    return match;
+    return storages.find(s => s.mount_point === '/' || currentPath.startsWith(s.mount_point)) || storages[0];
   }, [storages, currentPath]);
-
-  const isSelected = (item: FileItem) => selectedItems.some(i => i.path === item.path);
-
-  const toggleSelect = (e: React.MouseEvent, item: FileItem) => {
-    e.stopPropagation();
-    if (isSelected(item)) {
-      setSelectedItems(selectedItems.filter(i => i.path !== item.path));
-    } else {
-      setSelectedItems([...selectedItems, item]);
-    }
-  };
-
-  const selectAll = () => {
-    if (selectedItems.length === filteredFiles.length) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems([...filteredFiles]);
-    }
-  };
 
   return (
     <div 
@@ -397,6 +412,8 @@ export function FileManager() {
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto relative scrollbar-thin">
             <FileContentArea
               isLoading={isLoading}
+              loadError={loadError}
+              onRetry={() => loadFiles(currentPath)}
               isTrashView={isTrashView}
               filteredFiles={filteredFiles}
               searchQuery={searchQuery}

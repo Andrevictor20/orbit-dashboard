@@ -226,6 +226,12 @@ pub struct DownloadQuery {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct TranscodeQuery {
+    pub path: String,
+    pub start: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UploadQuery {
     pub destination: Option<String>,
 }

@@ -181,6 +181,7 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
         }
 
         // Limit ffmpeg to 1 thread with timeout to avoid CPU & I/O starvation on low-power hosts
+        // Use -vn and -an to skip video and audio decoding completely for ultra-fast subtitle extraction
         let extract_future = tokio::process::Command::new("ffmpeg")
             .args([
                 "-v", "error",
@@ -190,19 +191,20 @@ pub async fn get_subtitle_vtt(Query(q): Query<DownloadQuery>) -> Result<impl Int
             .arg(&video_path)
             .args([
                 "-map", &format!("0:{}", stream_idx),
+                "-vn", "-an",
                 "-f", "webvtt",
                 "-",
             ])
             .output();
 
-        let output = tokio::time::timeout(std::time::Duration::from_secs(15), extract_future)
+        let output = tokio::time::timeout(std::time::Duration::from_secs(45), extract_future)
             .await
             .map_err(|_| StatusCode::REQUEST_TIMEOUT)?
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let raw_vtt = String::from_utf8_lossy(&output.stdout).to_string();
         let cleaned_vtt = if raw_vtt.contains("WEBVTT") {
-            raw_vtt
+            strip_ass_tags(&raw_vtt)
         } else {
             srt_or_ass_to_vtt(&raw_vtt)
         };
@@ -307,9 +309,10 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
         }
     }
 
-    // 3. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe with short timeout
+    // 3. Probing internal embedded subtitles (MKV/MP4/WebM) via ffprobe
+    // Use 10s timeout to allow waking up sleeping external hard drives
     let ffprobe_result = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
+        std::time::Duration::from_secs(10),
         tokio::process::Command::new("ffprobe")
             .args([
                 "-v", "error",
@@ -321,7 +324,7 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
             .output()
     ).await;
 
-    if let Ok(Ok(output)) = ffprobe_result {
+    if let Ok(Ok(ref output)) = ffprobe_result {
         if output.status.success() {
             if let Ok(json_val) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
                 if let Some(streams) = json_val.get("streams").and_then(|s| s.as_array()) {
@@ -400,9 +403,16 @@ pub async fn get_subtitles(Query(q): Query<DownloadQuery>) -> Result<impl IntoRe
         }
     }
 
-    // Save in cache
-    if let Ok(mut cache) = SUBTITLES_LIST_CACHE.write() {
-        cache.insert(q.path.clone(), subtitles.clone());
+    // Only cache if ffprobe succeeded or if subtitles were found
+    // Never permanently cache an empty list caused by external HDD spin-up timeouts
+    let probe_succeeded = match &ffprobe_result {
+        Ok(Ok(output)) => output.status.success(),
+        _ => false,
+    };
+    if probe_succeeded || !subtitles.is_empty() {
+        if let Ok(mut cache) = SUBTITLES_LIST_CACHE.write() {
+            cache.insert(q.path.clone(), subtitles.clone());
+        }
     }
 
     Ok((cors_headers, Json(SubtitlesResponse { subtitles })))

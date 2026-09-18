@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Folder, Search, Loader2 } from 'lucide-react';
+import { Folder, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   FileGridView,
   FileTableView,
@@ -11,6 +11,8 @@ import type { OperationType } from './FileOperationsModal';
 
 interface FileContentAreaProps {
   isLoading: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
   isTrashView: boolean;
   filteredFiles: FileItem[];
   searchQuery: string;
@@ -35,6 +37,8 @@ interface FileContentAreaProps {
 
 export function FileContentArea({
   isLoading,
+  loadError,
+  onRetry,
   isTrashView,
   filteredFiles,
   searchQuery,
@@ -73,6 +77,27 @@ export function FileContentArea({
         trashItems={trashItems}
         handleRestoreTrash={handleRestoreTrash}
       />
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 text-secondary py-20 animate-in fade-in">
+        <AlertCircle className="w-14 h-14 stroke-[1.5] text-rose-500" />
+        <p className="text-base font-semibold text-primary">{t('files.error_loading_dir', 'Erro ao carregar pasta')}</p>
+        <p className="text-xs text-secondary max-w-sm text-center">
+          {loadError}
+        </p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold transition-colors shadow-md shadow-saturn-500/20"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('common.retry', 'Tentar novamente')}
+          </button>
+        )}
+      </div>
     );
   }
 

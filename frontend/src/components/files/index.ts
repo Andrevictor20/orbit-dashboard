@@ -19,3 +19,7 @@ export * from './FileModalsContainer';
 export * from './FileContentArea';
 export * from './useFileManagerOperations';
 export * from './useFileManagerNavigation';
+export * from './useFileManagerShortcuts';
+export * from './useFileManagerSelection';
+export * from './SubtitleOverlay';
+export * from './VideoHeaderOverlay';

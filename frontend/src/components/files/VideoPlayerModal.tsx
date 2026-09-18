@@ -1,19 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
-import { 
-  Play, 
-  X, 
-  Film, 
-  Loader2, 
-  Download,
-  AlertCircle,
-  Copy,
-  Check
-} from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 import type { FileItem } from './AudioPlayerModal';
 import { VideoControls } from './VideoControls';
 import { VideoSubtitleMenu, type SubtitleItem } from './VideoSubtitleMenu';
+import { VideoErrorBanner } from './VideoErrorBanner';
+import { VideoHeaderOverlay } from './VideoHeaderOverlay';
+import { SubtitleOverlay } from './SubtitleOverlay';
+import { parseWebVtt, formatVideoTime, convertTextToVttBlob, type SubtitleCue } from '../../utils/vttParser';
 
 export type { SubtitleItem };
 
@@ -38,15 +33,43 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [showControls, setShowControls] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  const isDirectSupported = (ext: string) => {
+    const e = ext.toLowerCase();
+    return e === 'mp4' || e === 'webm';
+  };
+
+  const [isTranscodeMode, setIsTranscodeMode] = useState(() => !isDirectSupported(file.extension));
+  const [transcodeSeekTime, setTranscodeSeekTime] = useState<number | null>(null);
+  const [cues, setCues] = useState<SubtitleCue[]>([]);
+  const [currentCueText, setCurrentCueText] = useState<string>('');
+
+  const isTranscodeModeRef = useRef(isTranscodeMode);
+  useEffect(() => {
+    isTranscodeModeRef.current = isTranscodeMode;
+  }, [isTranscodeMode]);
+
+  const cuesRef = useRef<SubtitleCue[]>([]);
+  useEffect(() => {
+    cuesRef.current = cues;
+  }, [cues]);
+
+  const transcodeSeekRef = useRef(transcodeSeekTime);
+  useEffect(() => {
+    transcodeSeekRef.current = transcodeSeekTime;
+  }, [transcodeSeekTime]);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const token = typeof window !== 'undefined'
-    ? (localStorage.getItem('saturn_token') || localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
+    ? (localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
     : '';
 
-  const videoSrc = `/api/files/stream?path=${encodeURIComponent(file.path)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  const baseStreamUrl = isTranscodeMode
+    ? `/api/files/stream/transcode?path=${encodeURIComponent(file.path)}${transcodeSeekTime !== null && transcodeSeekTime > 0 ? `&start=${transcodeSeekTime}` : ''}`
+    : `/api/files/stream?path=${encodeURIComponent(file.path)}`;
+  const videoSrc = `${baseStreamUrl}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
   const handleCopyStreamLink = () => {
     const fullUrl = `${window.location.origin}${videoSrc}`;
@@ -56,7 +79,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }).catch(() => {});
   };
 
-  // Fetch companion and embedded subtitles with auth token and credentials
+  // Fetch available companion and embedded subtitle tracks
   useEffect(() => {
     const queryToken = token ? `&token=${encodeURIComponent(token)}` : '';
     fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}${queryToken}`, {
@@ -70,7 +93,9 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       .then(data => {
         if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
           setSubtitlesList(data.subtitles);
-          const preferred = data.subtitles.find((s: SubtitleItem) => s.lang === 'pt-BR' || s.label.includes('Português')) || data.subtitles[0];
+          const preferred = data.subtitles.find((s: SubtitleItem) => 
+            s.lang === 'pt-BR' || s.lang === 'por' || s.label.toLowerCase().includes('portugu') || s.label.toLowerCase().includes('brazil')
+          ) || data.subtitles[0];
           if (preferred) {
             setActiveSubtitle(preferred.path);
           }
@@ -79,22 +104,41 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       .catch(() => {});
   }, [file.path, token]);
 
+  // Fetch active subtitle VTT text and parse cues for high-fidelity overlay
+  useEffect(() => {
+    if (activeSubtitle === 'off') {
+      setCues([]);
+      setCurrentCueText('');
+      return;
+    }
+
+    const currentTrack = subtitlesList.find(s => s.path === activeSubtitle);
+    if (!currentTrack) return;
+
+    if (currentTrack.path.startsWith('blob:')) {
+      fetch(currentTrack.path)
+        .then(res => res.text())
+        .then(text => setCues(parseWebVtt(text)))
+        .catch(() => setCues([]));
+      return;
+    }
+
+    const trackUrl = `/api/files/subtitles/vtt?path=${encodeURIComponent(currentTrack.path)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    fetch(trackUrl, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      credentials: 'include'
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then(text => setCues(parseWebVtt(text)))
+      .catch(() => setCues([]));
+  }, [activeSubtitle, subtitlesList, token]);
+
   const handleSubtitleChange = (subPath: string) => {
     setActiveSubtitle(subPath);
   };
-
-  useEffect(() => {
-    if (videoRef.current && videoRef.current.textTracks) {
-      const tracks = videoRef.current.textTracks;
-      for (let i = 0; i < tracks.length; i++) {
-        if (activeSubtitle === 'off') {
-          tracks[i].mode = 'disabled';
-        } else {
-          tracks[i].mode = 'showing';
-        }
-      }
-    }
-  }, [activeSubtitle, subtitlesList]);
 
   const handleCustomSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileUploaded = e.target.files?.[0];
@@ -104,21 +148,13 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
       if (!text) return;
-      
-      const vttContent = text.includes('WEBVTT') 
-        ? text 
-        : `WEBVTT\n\n${text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')}`;
-      
-      const blob = new Blob([vttContent], { type: 'text/vtt' });
-      const blobUrl = URL.createObjectURL(blob);
-      
+      const blobUrl = URL.createObjectURL(convertTextToVttBlob(text));
       const newSub: SubtitleItem = {
         name: fileUploaded.name,
         path: blobUrl,
         label: t('files.custom_subtitle_file', { name: fileUploaded.name, defaultValue: `Arquivo (${fileUploaded.name})` }),
         lang: 'custom',
       };
-
       setSubtitlesList(prev => [newSub, ...prev]);
       setActiveSubtitle(blobUrl);
     };
@@ -136,34 +172,44 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }
   }, [isPlaying]);
 
-  // Video event handlers for smooth streaming & buffering
+  // Video event handlers for streaming, buffering & subtitle sync
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
+      const vTime = video.currentTime;
+      const offset = (isTranscodeModeRef.current && transcodeSeekRef.current !== null) ? transcodeSeekRef.current : 0;
+      const actualTime = offset + vTime;
+      setCurrentTime(actualTime);
+
       if (video.buffered.length > 0) {
         try {
           const currentBuf = video.buffered.end(video.buffered.length - 1);
-          setBufferedEnd(currentBuf);
+          setBufferedEnd(offset + currentBuf);
         } catch {}
+      }
+
+      // Sync active subtitle cue
+      const activeCues = cuesRef.current;
+      if (activeCues.length > 0) {
+        const match = activeCues.find(c => actualTime >= c.start && actualTime <= c.end);
+        setCurrentCueText(match ? match.text : '');
+      } else {
+        setCurrentCueText('');
       }
     };
     
     const handleLoadedMetadata = () => {
-      setDuration(video.duration || 0);
+      if (!isTranscodeModeRef.current || duration === 0) {
+        setDuration(video.duration || 0);
+      }
       setIsBuffering(false);
     };
 
-    const handleLoadedData = () => {
-      setIsBuffering(false);
-    };
-
+    const handleLoadedData = () => setIsBuffering(false);
     const handleWaiting = () => setIsBuffering(true);
-    const handleCanPlay = () => {
-      setIsBuffering(false);
-    };
+    const handleCanPlay = () => setIsBuffering(false);
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
@@ -172,7 +218,13 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     const handleEnded = () => setIsPlaying(false);
     const handleError = () => {
       setIsBuffering(false);
-      setHasError(true);
+      if (!isTranscodeModeRef.current) {
+        setIsTranscodeMode(true);
+        setIsBuffering(true);
+        setHasError(false);
+      } else {
+        setHasError(true);
+      }
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -195,8 +247,13 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch {}
     };
-  }, []);
+  }, [duration]);
 
   const toggleMute = () => {
     if (!videoRef.current) return;
@@ -218,10 +275,40 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }
   };
 
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    setCurrentTime(time);
+    if (isTranscodeModeRef.current) {
+      setTranscodeSeekTime(Math.floor(time));
+      setIsBuffering(true);
+    } else if (videoRef.current) {
+      videoRef.current.currentTime = time;
+    }
+  };
+
+  const handleSkip = useCallback((seconds: number) => {
+    const current = currentTime;
+    const target = seconds < 0 
+      ? Math.max(0, current + seconds)
+      : Math.min(duration, current + seconds);
+    setCurrentTime(target);
+    if (isTranscodeModeRef.current) {
+      setTranscodeSeekTime(Math.floor(target));
+      setIsBuffering(true);
+    } else if (videoRef.current) {
+      videoRef.current.currentTime = target;
+    }
+  }, [currentTime, duration]);
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
         return;
       }
       if (e.key === ' ' || e.code === 'Space') {
@@ -229,10 +316,10 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         togglePlay();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
+        handleSkip(-5);
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        if (videoRef.current) videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 5);
+        handleSkip(5);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (videoRef.current) {
@@ -256,15 +343,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, duration, isMuted, volume]);
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-    }
-  };
+  }, [togglePlay, handleSkip, isMuted, volume, onClose]);
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
     const vol = parseFloat(e.target.value);
@@ -273,14 +352,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       videoRef.current.volume = vol;
       setIsMuted(vol === 0);
     }
-  };
-
-  const handleSkip = (seconds: number) => {
-    if (!videoRef.current) return;
-    const target = seconds < 0 
-      ? Math.max(0, videoRef.current.currentTime + seconds)
-      : Math.min(duration, videoRef.current.currentTime + seconds);
-    videoRef.current.currentTime = target;
   };
 
   const handleRateChange = (rate: number) => {
@@ -298,17 +369,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
     }, 3000);
   };
 
-  const formatTime = (secs: number) => {
-    if (isNaN(secs)) return '0:00';
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = Math.floor(secs % 60);
-    if (h > 0) {
-      return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
@@ -318,40 +378,14 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         className="relative w-full max-w-5xl bg-zinc-950 border border-border rounded-2xl overflow-hidden shadow-2xl flex flex-col group aspect-video max-h-[90vh] my-auto"
       >
         {/* Header Overlay */}
-        <div className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-saturn-500/20 text-saturn-400 border border-saturn-500/30">
-              <Film className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white text-sm md:text-base truncate max-w-md" title={file.name}>
-                {file.name}
-              </h3>
-              <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono">
-                {file.extension.toUpperCase()} {file.extension.toLowerCase() === 'mkv' ? '(Matroska Stream)' : ''}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopyStreamLink}
-              title={t('files.copy_stream_link', 'Copiar link direto para VLC / player externo')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
-              <span className="hidden sm:inline">{copied ? t('common.copied', 'Copiado!') : 'VLC / Stream'}</span>
-            </button>
-
-            <button
-              data-testid="close-video-modal"
-              onClick={onClose}
-              className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
+        <VideoHeaderOverlay
+          file={file}
+          showControls={showControls}
+          isTranscodeMode={isTranscodeMode}
+          copied={copied}
+          onCopyStreamLink={handleCopyStreamLink}
+          onClose={onClose}
+        />
 
         {/* Video Element & Overlays */}
         <div className="relative flex-1 w-full h-full flex items-center justify-center bg-black cursor-pointer overflow-hidden" onClick={togglePlay}>
@@ -365,7 +399,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             crossOrigin="anonymous"
             className="w-full h-full object-contain"
           >
-            {/* Lazy Subtitle Track Injection: only mount the active track to prevent concurrent extraction processes */}
             {activeSubtitle !== 'off' && (() => {
               const currentTrack = subtitlesList.find(s => s.path === activeSubtitle);
               if (!currentTrack) return null;
@@ -392,6 +425,9 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             })()}
           </video>
 
+          {/* Dedicated Subtitle Overlay with High Contrast & Perfect Sync */}
+          <SubtitleOverlay currentCue={currentCueText} />
+
           {/* Buffering Spinner */}
           {isBuffering && !hasError && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
@@ -404,26 +440,18 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
           {/* Error Banner */}
           {hasError && (
-            <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md" onClick={(e) => e.stopPropagation()}>
-              <div className="max-w-md p-6 rounded-2xl bg-zinc-900 border border-red-500/30 text-center space-y-4 shadow-2xl">
-                <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
-                  <AlertCircle className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-white">{t('files.video_decode_failure', 'Falha na Decodificação do Vídeo')}</h4>
-                  <p className="text-xs text-zinc-400">
-                    {t('files.video_codec_incompatible', 'O codec de áudio ou vídeo deste arquivo pode não ser compatível nativamente com o navegador. Você pode baixá-lo ou abrir com reprodutor externo (VLC).')}
-                  </p>
-                </div>
-                <a
-                  href={`/api/files/download?path=${encodeURIComponent(file.path)}`}
-                  download={file.name}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-saturn-600 hover:bg-saturn-500 text-white rounded-xl text-xs font-medium transition-colors shadow-lg shadow-saturn-600/30"
-                >
-                  <Download className="w-4 h-4" /> {t('files.download_file', 'Baixar Arquivo')}
-                </a>
-              </div>
-            </div>
+            <VideoErrorBanner
+              file={file}
+              videoSrc={videoSrc}
+              isTranscodeMode={isTranscodeMode}
+              onEnableTranscode={() => {
+                setHasError(false);
+                setIsBuffering(true);
+                setIsTranscodeMode(true);
+              }}
+              onCopyStreamLink={handleCopyStreamLink}
+              copied={copied}
+            />
           )}
 
           {/* Big Center Play Icon when paused and not buffering */}
@@ -452,7 +480,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           playbackRate={playbackRate}
           onRateChange={handleRateChange}
           onToggleFullscreen={toggleFullscreen}
-          formatTime={formatTime}
+          formatTime={formatVideoTime}
           showControls={showControls}
         >
           <VideoSubtitleMenu

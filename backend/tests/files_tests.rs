@@ -548,5 +548,56 @@ async fn test_files_thumbnails() {
         .await;
     not_found_res.assert_status_not_found();
 
+    // 4. Video thumbnail generation via ffmpeg/ffprobe
+    let video_path = sandbox.join("documents/sample.mp4");
+    let gen_status = std::process::Command::new("ffmpeg")
+        .args(["-y", "-f", "lavfi", "-i", "testsrc=duration=5:size=320x240:rate=1", "-c:v", "libx264"])
+        .arg(&video_path)
+        .status();
+
+    if let Ok(status) = gen_status {
+        if status.success() {
+            let video_res = server.get(&format!("/api/files/thumbnail?path={}&token={}", video_path.to_str().unwrap(), token))
+                .await;
+            video_res.assert_status_ok();
+            assert_eq!(video_res.header("content-type"), "image/jpeg");
+        }
+    }
+
+    let _ = fs::remove_dir_all(&sandbox);
+}
+
+// 14. Real-time Video Stream Transcoding
+#[tokio::test]
+async fn test_files_stream_transcode() {
+    unsafe { std::env::set_var("JWT_SECRET", "super_secret"); }
+    let sandbox = setup_test_sandbox();
+    let sandbox_str = sandbox.to_str().unwrap();
+    let server = TestServer::new(app());
+    let token = get_test_token();
+
+    // 1. Non-existent file returns 404
+    let not_found = server.get(&format!("/api/files/stream/transcode?path={}/not_found.mkv&token={}", sandbox_str, token))
+        .await;
+    not_found.assert_status_not_found();
+
+    // 2. Generate a valid sample video to test transcoding
+    let video_path = sandbox.join("movies/sample_transcode.mkv");
+    let gen_status = std::process::Command::new("ffmpeg")
+        .args(["-y", "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=1", "-c:v", "libx264"])
+        .arg(&video_path)
+        .status();
+
+    if let Ok(status) = gen_status {
+        if status.success() {
+            let res = server.get(&format!("/api/files/stream/transcode?path={}&token={}", video_path.to_str().unwrap(), token))
+                .await;
+            res.assert_status_ok();
+            assert_eq!(res.header("content-type"), "video/mp4");
+            assert_eq!(res.header("access-control-allow-origin"), "*");
+            assert!(res.as_bytes().len() > 0);
+        }
+    }
+
     let _ = fs::remove_dir_all(&sandbox);
 }

@@ -107,8 +107,45 @@ describe('VideoPlayerModal Component', () => {
     });
 
     expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/files/stream?path=')
+      expect.stringContaining('/api/files/stream/transcode?path=')
     );
+  });
+
+  it('handles video decode error by auto-switching MP4 to transcode mode, then displaying error banner if transcode also fails', async () => {
+    const mp4File = { ...mockFile, name: 'video.mp4', extension: 'mp4' };
+    render(<VideoPlayerModal file={mp4File} onClose={vi.fn()} />);
+
+    const videoEl = screen.getByTestId('video-element');
+    expect(videoEl.getAttribute('src')).toContain('/api/files/stream?path=');
+
+    // First error on direct stream triggers auto-fallback to transcode mode
+    fireEvent.error(videoEl);
+    expect(videoEl.getAttribute('src')).toContain('/api/files/stream/transcode?path=');
+
+    // Second error in transcode mode displays error banner
+    fireEvent.error(videoEl);
+    expect(await screen.findByText(/Falha na Decodificação do Vídeo/i)).toBeTruthy();
+    expect(screen.getByText(/Abrir no VLC/i)).toBeTruthy();
+    expect(screen.getByText(/Baixar Arquivo/i)).toBeTruthy();
+  });
+
+  it('calls onClose when Escape key is pressed', async () => {
+    const onClose = vi.fn();
+    render(<VideoPlayerModal file={mockFile} onClose={onClose} />);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses and unloads video element on unmount', () => {
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const loadSpy = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+
+    const { unmount } = render(<VideoPlayerModal file={mockFile} onClose={vi.fn()} />);
+    unmount();
+
+    expect(pauseSpy).toHaveBeenCalled();
+    expect(loadSpy).toHaveBeenCalled();
   });
 });
 

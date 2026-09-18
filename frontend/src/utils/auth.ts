@@ -24,3 +24,8 @@ export function clearAuthToken(): void {
   localStorage.removeItem(SATURN_TOKEN_KEY);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
