@@ -105,6 +105,16 @@ pub fn app() -> Router {
                 }))
             ) 
         }))
+        .route("/api/health", get(|| async { 
+            (
+                StatusCode::OK, 
+                Json(serde_json::json!({
+                    "status": "ok",
+                    "version": system::get_app_version(),
+                    "arch": std::env::consts::ARCH
+                }))
+            ) 
+        }))
         .merge(auth::public_router())
         .merge(files::public_router())
         .merge(protected_routes)

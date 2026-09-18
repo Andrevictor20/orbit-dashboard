@@ -1,14 +1,16 @@
-# Saturn Dashboard v3.7.1
+# Saturn Dashboard v3.7.2
 
-### Novidades, Correções e Melhorias na Versão 3.7.1
+### Novidades, Correções e Melhorias na Versão 3.7.2
 
-### 🛠️ Correções
-- **Script de Instalação Automatizada (`install.sh`):**
-  - **Eliminação de Falha de Segmentação:** Corrigida a recursão infinita na verificação de status e restaurado o alias legado `is_orbit_installed`, garantindo execução 100% estável via pipe (`curl -fsSL ... | bash`) no Bash, Fish e Zsh.
-  - **Fallback Robusto de Diretório:** Garantida a inicialização segura de `INSTALL_DIR` sob `set -euo pipefail` com resolução em cadeia para `/DATA/saturn`, `$HOME/saturn` e `/opt/saturn`.
-  - **Limpeza de Configurações:** Ajustada a limpeza de arquivos residuais de journald (`00-orbit.conf`).
+### ⚡ Atualizações do Sistema & Reinicialização Instantânea
+- **Auto-Reconexão Instantânea:** Implementada sonda inteligente no modal de atualização que verifica o Content-Type JSON contra respostas HTML de fallback da SPA e aciona o recarregamento automático da página no instante em que o novo container responde.
+- **Endpoint Público `/api/health`:** Espelhada a rota de verificação de integridade no Axum para consulta direta por clientes web e scripts de monitoramento sem necessidade de autenticação prévia.
+- **Reinício Acelerado:** Otimizada a sequência de parada do container com `docker stop -t 4`, reduzido o delay de flush pré-restart e eliminado o `docker compose pull` redundante no script auxiliar.
 
-### 📚 Documentação & Experiência
-- **README Comercial de Alta Conversão:** Cabeçalho atualizado com o logotipo oficial do Saturn, comando de instalação único em destaque no topo (*Above the Fold*), tabela comparativa de benefícios e seções técnicas segregadas.
-- **Guia Oficial da App Store (`docs/APP_STORE.md`):** Documentação completa do catálogo de mais de 920 aplicações, badges de compatibilidade de arquitetura (`x86_64` vs `ARM64`), alertas de CPU e guia passo a passo para submissão de apps comunitários.
-- **Licenciamento Oficial:** Inclusão do arquivo `LICENSE` (MIT) na raiz do repositório.
+### 🛍️ App Store & Resiliência Visual
+- **Correção dos Ícones da Loja:** Corrigida a decodificação de 183 aplicações do repositório oficial `saturn-apps` cujos arquivos vetoriais SVG causavam rejeição de MIME (`text/plain` com `nosniff`) pelo GitHub Raw, convertendo-os para PNGs nativos 256x256.
+- **Componente Resiliente `AppIcon`:** Implementado com lazy-loading, tentativa automática de fallback no CDN Walkxcode (`dashboard-icons`), renderização elegante de iniciais em gradiente em caso de falha de rede e supressão de caixas pretas de imagem quebrada (`alt=""`).
+- **Ergonomia dos Cards:** Otimizada a ação primária para "Instalar" (`common.install`) e adotado layout flex assimétrico com largura livre, eliminando o aperto tipográfico em resoluções compactas e mantendo o botão "Explorar" acessível via teclado (WCAG AA).
+
+### 🛡️ Governança de Releases
+- **Prevenção de Bumps Fantasmas:** Adicionada salvaguarda em `scripts/bump-version.mjs` que bloqueia bumps automáticos de versão quando apenas documentação ou regras de IA forem alteradas.

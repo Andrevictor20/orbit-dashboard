@@ -222,7 +222,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         }
 
         // 4. Trigger compose / container recreation via an independent detached helper container.
-        tokio::time::sleep(Duration::from_millis(1500)).await;
+        tokio::time::sleep(Duration::from_millis(400)).await;
 
         let host_dir_val = host_compose_dir.unwrap_or_default();
         let project_flag = compose_project_name

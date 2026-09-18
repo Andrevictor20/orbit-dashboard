@@ -72,6 +72,74 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
     let pollInterval: any = null;
     let healthInterval: any = null;
 
+    const startHealthCheckLoop = () => {
+      let attempts = 0;
+      let isChecking = false;
+
+      const pingHealth = async () => {
+        if (isChecking || !isSubscribed) return;
+        isChecking = true;
+        attempts++;
+        setReconnectAttempts(attempts);
+
+        try {
+          // 1. Tenta /api/health primeiro (rota direta para status de API)
+          let res = await fetch('/api/health', { cache: 'no-store' });
+          let isHtml = res.headers.get('content-type')?.includes('text/html');
+
+          // Fallback para /health se retornar HTML (fallback de SPA) ou status de erro
+          if (!res.ok || isHtml) {
+            res = await fetch('/health', { cache: 'no-store' });
+            isHtml = res.headers.get('content-type')?.includes('text/html');
+          }
+
+          if (res.ok && !isHtml) {
+            const healthData = await res.json().catch(() => null);
+            if (healthData && (healthData.version || healthData.status === 'ok')) {
+              if (healthInterval) clearInterval(healthInterval);
+              healthInterval = null;
+              const onlineVersion = healthData.version || updateInfo?.latest_version || '';
+              setTaskState(prev => ({
+                ...prev,
+                status: 'done',
+                progress: 100,
+                current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Recarregando painel...'),
+                logs: [
+                  ...prev.logs,
+                  t('system.dashboard_reconnected', {
+                    version: onlineVersion,
+                    defaultValue: `✔ Painel reconectado na nova versão ${onlineVersion}.`
+                  })
+                ]
+              }));
+              toast.success(onlineVersion ? `Saturn v${onlineVersion} online!` : 'Saturn online!');
+              setTimeout(() => {
+                window.location.reload();
+              }, 400);
+              return;
+            }
+          }
+        } catch {
+          // Contêiner está reiniciando, continua sondando
+        } finally {
+          isChecking = false;
+        }
+
+        if (attempts >= 60) {
+          if (healthInterval) clearInterval(healthInterval);
+          healthInterval = null;
+          setTaskState(prev => ({
+            ...prev,
+            status: 'error',
+            error: t('system.timeout_reconnecting', 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.')
+          }));
+        }
+      };
+
+      healthInterval = setInterval(pingHealth, 1000);
+      pingHealth();
+    };
+
     const pollTaskStatus = async () => {
       try {
         const token = localStorage.getItem('saturn_token');
@@ -80,7 +148,12 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         });
 
         if (res.status === 404) {
-          // Task might not have started or backend restarted already
+          // Backend pode ter reiniciado antes do polling
+          if (!healthInterval) {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = null;
+            startHealthCheckLoop();
+          }
           return;
         }
 
@@ -97,66 +170,32 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             error: data.error
           }));
 
-          // When task enters 'recreating', container is restarting -> poll backend health
+          // Quando entra em 'recreating', o contêiner está reiniciando -> sonda saúde do novo contêiner
           if (data.status === 'recreating') {
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = null;
-            startHealthCheckLoop();
+            if (!healthInterval) {
+              startHealthCheckLoop();
+            }
           } else if (data.status === 'done') {
             if (pollInterval) clearInterval(pollInterval);
             toast.success('Saturn atualizado com sucesso!');
             setTimeout(() => {
               window.location.reload();
-            }, 1800);
+            }, 400);
           } else if (data.status === 'error') {
             if (pollInterval) clearInterval(pollInterval);
             toast.error(data.error || 'Falha ao atualizar o sistema.');
           }
         }
       } catch {
-        // Backend could be down while container recreates
+        // Se a chamada falhar na rede, o contêiner antigo provavelmente foi desligado para recreation
+        if (!healthInterval) {
+          if (pollInterval) clearInterval(pollInterval);
+          pollInterval = null;
+          startHealthCheckLoop();
+        }
       }
-    };
-
-    const startHealthCheckLoop = () => {
-      let attempts = 0;
-      healthInterval = setInterval(async () => {
-        attempts++;
-        if (!isSubscribed) return;
-        setReconnectAttempts(attempts);
-
-        try {
-          const res = await fetch('/api/health', { cache: 'no-store' });
-          if (res.ok) {
-            const healthData = await res.json().catch(() => null);
-            if (healthData?.version) {
-              clearInterval(healthInterval);
-              setTaskState(prev => ({
-                ...prev,
-                status: 'done',
-                progress: 100,
-                current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Recarregando painel...'),
-                logs: [...prev.logs, t('system.dashboard_reconnected', { version: healthData.version, defaultValue: `✔ Painel reconectado na nova versão ${healthData.version}.` })]
-              }));
-              toast.success(`Saturn v${healthData.version} online!`);
-              setTimeout(() => {
-                window.location.reload();
-              }, 1200);
-            }
-          }
-        } catch {
-          // Keep polling until online
-        }
-
-        if (attempts >= 45) {
-          clearInterval(healthInterval);
-          setTaskState(prev => ({
-            ...prev,
-            status: 'error',
-            error: t('system.timeout_reconnecting', 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.')
-          }));
-        }
-      }, 2000);
     };
 
     pollInterval = setInterval(pollTaskStatus, 1000);

@@ -1,4 +1,5 @@
 export * from './AppStoreCard';
+export * from './AppIcon';
 export * from './AppStoreSidebar';
 export * from './AppStoreHeroCarousel';
 export * from './useAppStoreInstall';

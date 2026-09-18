@@ -1,5 +1,6 @@
 import { AppArchitectureBadge } from './AppArchitectureBadge';
-import { Package, CheckCircle2, ExternalLink, Download, SlidersHorizontal } from 'lucide-react';
+import { AppIcon } from './AppIcon';
+import { CheckCircle2, ExternalLink, Download, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AppStoreItem } from '../../queries/useStoreAppsQuery';
 
@@ -36,11 +37,7 @@ export function AppStoreCard({
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="w-12 h-12 rounded-xl bg-accent/60 border border-border p-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-            {app.icon ? (
-              <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
-            ) : (
-              <Package className="w-6 h-6 text-secondary" />
-            )}
+            <AppIcon src={app.icon} name={app.name} id={app.id} />
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -76,11 +73,18 @@ export function AppStoreCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
-        <div className="w-full py-2 bg-accent/70 text-primary/90 hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm">
-          <span>Explorar</span>
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/40">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExplore(app.id);
+          }}
+          className="px-3 py-2 bg-accent/70 text-primary/90 hover:text-primary rounded-xl text-xs font-semibold hover:bg-accent transition-all flex items-center justify-center gap-1.5 border border-border/70 shadow-sm shrink-0 active:scale-95"
+        >
+          <span>{t('common.explore', 'Explorar')}</span>
           <ExternalLink className="w-3 h-3 opacity-60" />
-        </div>
+        </button>
 
         {isInstalled ? (
           <button
@@ -88,28 +92,28 @@ export function AppStoreCard({
               e.stopPropagation();
               onManage();
             }}
-            className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] flex items-center justify-center gap-1.5"
+            className="flex-1 min-w-0 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] flex items-center justify-center gap-1.5 px-2"
             title={t('store.app_already_installed_tip', 'Aplicativo já instalado no sistema. Clique para abrir ou gerenciar no painel.')}
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{t('common.manage', 'Gerenciar')}</span>
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{t('common.manage', 'Gerenciar')}</span>
           </button>
         ) : (
-          <div className="flex items-center gap-1.5 w-full">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onInstall(app.id, app.name);
               }}
-              disabled={installing !== null}
-              className="flex-1 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+              disabled={Boolean(installing)}
+              className="flex-1 min-w-0 py-2 bg-saturn-500 hover:bg-saturn-600 text-white rounded-xl text-xs font-semibold transition-all shadow-sm shadow-saturn-500/20 hover:shadow-saturn-500/30 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5 px-2.5 whitespace-nowrap"
             >
               {installing === app.id ? (
-                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent shrink-0" />
               ) : (
                 <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{t('store.install_app', 'Instalar')}</span>
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{t('common.install', 'Instalar')}</span>
                 </>
               )}
             </button>
@@ -119,9 +123,9 @@ export function AppStoreCard({
                 e.stopPropagation();
                 onOpenCustom(app);
               }}
-              disabled={installing !== null}
+              disabled={Boolean(installing)}
               title={t('store.customize_install_tip', 'Configurar portas, volumes e ambiente antes de instalar')}
-              className="p-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl border border-border transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+              className="p-2 bg-accent/80 hover:bg-accent text-secondary hover:text-primary rounded-xl border border-border transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center shrink-0"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
             </button>

@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { execSync } from 'child_process';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
@@ -12,12 +14,70 @@ const pkgPath = path.join(rootDir, 'frontend', 'package.json');
 const pkgLockPath = path.join(rootDir, 'frontend', 'package-lock.json');
 const releaseNotesPath = path.join(rootDir, 'LATEST_RELEASE.md');
 
+const isForce = process.argv.includes('--force');
+
+// Validação de Governança (.agents/rules/release-governance.md):
+// Proibido bump de versão para alterações puramente documentais/regras de IA
+function checkReleaseGovernance() {
+  try {
+    const diffFiles = execSync('git diff --name-only HEAD', { cwd: rootDir, encoding: 'utf8' })
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const untracked = execSync('git status --porcelain', { cwd: rootDir, encoding: 'utf8' })
+      .split('\n')
+      .map(s => s.slice(3).trim())
+      .filter(Boolean);
+
+    const changedFiles = Array.from(new Set([...diffFiles, ...untracked]))
+      .filter(f => !['package.json', 'package-lock.json', 'Cargo.toml', 'Cargo.lock', 'LATEST_RELEASE.md'].some(ignored => f.endsWith(ignored)));
+
+    if (changedFiles.length > 0) {
+      const nonCodePatterns = [
+        /^README\.md$/i,
+        /^LICENSE$/i,
+        /^\.gitignore$/i,
+        /^docs\//,
+        /^\.agents\//,
+        /\.md$/i
+      ];
+
+      const isAllNonCode = changedFiles.every(file =>
+        nonCodePatterns.some(pattern => pattern.test(file))
+      );
+
+      if (isAllNonCode && !isForce) {
+        console.error('\n🚨 [GOVERNANÇA BLOQUEADA - .agents/rules/release-governance.md]');
+        console.error('As alterações atuais envolvem exclusivamente documentação / regras de agentes:');
+        changedFiles.forEach(f => console.error(`  - ${f}`));
+        console.error('\nRegra de Ouro: Atualizações de documentação e README NÃO devem gerar nova versão do Saturn nem disparar build de imagens Docker.');
+        console.error('Se você realmente deseja forçar o bump de versão, utilize: node scripts/bump-version.mjs <tipo> --force\n');
+        process.exit(1);
+      }
+    }
+  } catch {
+    // Ignora verificação se o ambiente não possuir git
+  }
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`Uso: node scripts/bump-version.mjs [patch|minor|major|X.Y.Z] [--force]`);
+  console.log(`  patch (pequeno): incrementa o 3º número (X.Y.Z+1)`);
+  console.log(`  minor (médio): incrementa o 2º número (X.Y+1.0)`);
+  console.log(`  major (muito grande): incrementa o 1º número (X+1.0.0)`);
+  console.log(`  --force: ignora a verificação de governança de release caso apenas docs tenham sido alteradas.`);
+  process.exit(0);
+}
+
+checkReleaseGovernance();
+
 // 1. Read current version from package.json
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const currentVersion = pkg.version || '2.0.0';
 const [major, minor, patch] = currentVersion.split('.').map(Number);
 
-const arg = process.argv[2]?.toLowerCase() || 'patch';
+const nonFlagArgs = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const arg = nonFlagArgs[0]?.toLowerCase() || 'patch';
 
 let newVersion;
 

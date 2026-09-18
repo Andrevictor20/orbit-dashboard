@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Download, ArrowLeft, Settings, ChevronDown, Package } from 'lucide-react';
 import { CustomInstallModal } from '../components/docker/CustomInstallModal';
 import { AppArchitectureBadge } from '../components/appstore/AppArchitectureBadge';
+import { AppIcon } from '../components/appstore/AppIcon';
 import { useSystemVersionQuery } from '../queries/useSystemVersionQuery';
 import { PortConflictDialog, type PortConflictItem } from '../components/docker/PortConflictDialog';
 import { useInstall } from '../contexts/InstallContext';
@@ -203,11 +204,13 @@ export function AppDetail() {
 
       <div className="bg-background border shad-border rounded-xl p-8 flex flex-col md:flex-row gap-8 items-start">
         <div className="w-32 h-32 bg-accent rounded-2xl flex items-center justify-center p-4 shrink-0 shadow-lg">
-          {app.icon ? (
-            <img src={app.icon} alt={app.name} className="w-full h-full object-contain" />
-          ) : (
-            <Package className="w-16 h-16 text-gray-400" />
-          )}
+          <AppIcon
+            src={app.icon}
+            name={app.name}
+            id={app.id}
+            className="w-full h-full object-contain"
+            fallbackTextClassName="text-2xl font-bold"
+          />
         </div>
 
         <div className="flex-1 space-y-4">

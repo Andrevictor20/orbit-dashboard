@@ -1,5 +1,6 @@
-import { Package, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AppStoreItem } from '../../queries/useStoreAppsQuery';
+import { AppIcon } from './AppIcon';
 
 export const HERO_GRADIENTS = [
   'from-blue-600/35 via-indigo-900/40 to-neutral-950',
@@ -39,15 +40,13 @@ export function AppStoreHeroCarousel({
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start sm:items-center gap-4 max-w-xl">
           <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-black/60 border border-white/15 p-3 flex items-center justify-center shrink-0 shadow-2xl backdrop-blur-md">
-            {currentApp.icon ? (
-              <img
-                src={currentApp.icon}
-                alt={currentApp.name}
-                className="w-full h-full object-contain drop-shadow-md"
-              />
-            ) : (
-              <Package className="w-8 h-8 text-saturn-400" />
-            )}
+            <AppIcon
+              src={currentApp.icon}
+              name={currentApp.name}
+              id={currentApp.id}
+              className="w-full h-full object-contain drop-shadow-md"
+              fallbackTextClassName="text-sm font-semibold"
+            />
           </div>
 
           <div className="space-y-1">

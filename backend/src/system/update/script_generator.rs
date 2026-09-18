@@ -18,21 +18,18 @@ recreated=0
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
   cd "/host{host_dir}"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "{compose_file}" 2>/dev/null || true
-  docker compose {project_flag} -f "{compose_file}" pull 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" pull 2>/dev/null || true
   if docker compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null; then
     recreated=1
   fi
 elif [ -f "/host/DATA/saturn/docker-compose.yml" ]; then
   cd "/host/DATA/saturn"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
-  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
   if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
     recreated=1
   fi
 elif [ -f "/host/root/saturn/docker-compose.yml" ]; then
   cd "/host/root/saturn"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
-  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
   if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
     recreated=1
   fi
@@ -40,14 +37,14 @@ fi
 
 # 2. Fallback direto e ultra-resiliente via Docker Engine
 if [ "$recreated" -eq 0 ]; then
-  docker ps -q --filter "publish=5172" | xargs -r docker stop 2>/dev/null || true
+  docker ps -q --filter "publish=5172" | xargs -r docker stop -t 4 2>/dev/null || true
   docker ps -q --filter "publish=5172" | xargs -r docker rm -f 2>/dev/null || true
-  docker ps -q --filter "publish=5173" | xargs -r docker stop 2>/dev/null || true
+  docker ps -q --filter "publish=5173" | xargs -r docker stop -t 4 2>/dev/null || true
   docker ps -q --filter "publish=5173" | xargs -r docker rm -f 2>/dev/null || true
 
   for target in "{current_id}" "{current_name}" saturn saturn-dashboard ; do
     if [ -n "$target" ]; then
-      docker stop "$target" 2>/dev/null || true
+      docker stop -t 4 "$target" 2>/dev/null || true
       docker rm -f "$target" 2>/dev/null || true
     fi
   done

@@ -158,9 +158,71 @@ describe('UpdateModal Component', () => {
     const upToDateButton = screen.getByText('Sistema na Versão Mais Recente');
     expect(upToDateButton).toBeInTheDocument();
     expect(upToDateButton.closest('button')).toBeDisabled();
-
-    // Should NOT have "Atualizar para v2.7.0"
     expect(screen.queryByText(/Atualizar para v2\.7\.0/i)).not.toBeInTheDocument();
   });
+
+  it('automatically polls healthcheck and triggers reload when backend recovers from recreating', async () => {
+    vi.useFakeTimers();
+    const reloadMock = vi.fn();
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: { reload: reloadMock },
+    });
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/system/update') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'pulling' }),
+        });
+      }
+      if (url === '/api/system/update/status') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            status: 'recreating',
+            progress: 95,
+            current_step: 'Reiniciando serviço...',
+            logs: ['⚙️ Aplicando nova imagem...'],
+          }),
+        });
+      }
+      if (url === '/api/health') {
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ status: 'ok', version: '1.1.0' }),
+        });
+      }
+      return Promise.reject(new Error('Unknown url'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <UpdateModal
+        isOpen={true}
+        onClose={vi.fn()}
+        updateInfo={mockInfo}
+        onRefreshInfo={vi.fn()}
+      />
+    );
+
+    const updateButton = screen.getByText(/Atualizar para v1.1.0/i);
+    fireEvent.click(updateButton);
+
+    // Advance timers for status poll
+    await vi.advanceTimersByTimeAsync(1100);
+
+    // Advance timers for healthcheck ping
+    await vi.advanceTimersByTimeAsync(1100);
+
+    // Wait for the 400ms reload timeout
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/health', expect.anything());
+    expect(reloadMock).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });
+
 
