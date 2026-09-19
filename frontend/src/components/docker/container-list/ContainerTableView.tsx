@@ -336,16 +336,18 @@ export function ContainerTableView({
                       return null;
                     })()}
                     
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSetCustomLink(e, c.id);
-                      }}
-                      className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" 
-                      title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : t('docker.edit_link', 'Configurar Link')}
-                    >
-                      <Settings2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSetCustomLink(e, c.id);
+                        }}
+                        className="p-1.5 rounded glass-button hover:text-primary transition-colors text-xs flex items-center gap-1" 
+                        title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : t('docker.edit_link', 'Configurar Link')}
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     {isAdmin && onToggleVisibility && (
                       <button

@@ -79,18 +79,20 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('integrations')}
-            className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
-              activeTab === 'integrations'
-                ? 'border-saturn-500 text-saturn-500'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <Cpu className="w-4 h-4" />
-            <span>{t('profile.tab_integrations', 'Integrações')}</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('integrations')}
+              className={`pb-3 px-2 sm:px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all shrink-0 ${
+                activeTab === 'integrations'
+                  ? 'border-saturn-500 text-saturn-500'
+                  : 'border-transparent text-secondary hover:text-primary'
+              }`}
+            >
+              <Cpu className="w-4 h-4" />
+              <span>{t('profile.tab_integrations', 'Integrações')}</span>
+            </button>
+          )}
 
           {isAdmin && (
             <button
@@ -125,7 +127,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <div className="p-5 sm:p-6 overflow-y-auto flex-1">
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'users' && isAdmin && <UsersTab />}
-          {activeTab === 'integrations' && <IntegrationsTab onCloseModal={onClose} />}
+          {activeTab === 'integrations' && isAdmin && <IntegrationsTab onCloseModal={onClose} />}
           {activeTab === 'system' && isAdmin && <SystemSettingsTab />}
           {activeTab === 'customization' && <CustomizationTab />}
         </div>

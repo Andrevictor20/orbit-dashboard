@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { InstallProvider } from './contexts/InstallContext';
 import { StatsProvider } from './contexts/StatsContext';
 import { AlertsProvider } from './contexts/AlertsContext';
@@ -72,6 +72,15 @@ function PageFallback() {
   );
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" defaultColor="zinc">
@@ -106,17 +115,17 @@ function App() {
                                       <Route path="/store" element={<AppStore />} />
                                       <Route path="/store/app/:id" element={<AppDetail />} />
                                       <Route path="/compose" element={<Navigate to="/store?custom=true" replace />} />
-                                      <Route path="/images" element={<Images />} />
-                                      <Route path="/networks" element={<Networks />} />
-                                      <Route path="/volumes" element={<Volumes />} />
-                                      <Route path="/backups" element={<Backups />} />
+                                      <Route path="/images" element={<AdminRoute><Images /></AdminRoute>} />
+                                      <Route path="/networks" element={<AdminRoute><Networks /></AdminRoute>} />
+                                      <Route path="/volumes" element={<AdminRoute><Volumes /></AdminRoute>} />
+                                      <Route path="/backups" element={<AdminRoute><Backups /></AdminRoute>} />
                                       <Route path="/files" element={<FileManager />} />
                                       <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
-                                      <Route path="/terminal" element={<Terminal />} />
+                                      <Route path="/terminal" element={<AdminRoute><Terminal /></AdminRoute>} />
                                       <Route path="/logs" element={<Logs />} />
-                                      <Route path="/homeassistant" element={<HomeAssistant />} />
-                                      <Route path="/pihole" element={<PiHole />} />
-                                      <Route path="/cloudflare" element={<Cloudflare />} />
+                                      <Route path="/homeassistant" element={<AdminRoute><HomeAssistant /></AdminRoute>} />
+                                      <Route path="/pihole" element={<AdminRoute><PiHole /></AdminRoute>} />
+                                      <Route path="/cloudflare" element={<AdminRoute><Cloudflare /></AdminRoute>} />
                                       <Route path="*" element={<Navigate to="/" replace />} />
                                     </Routes>
                                   </Suspense>

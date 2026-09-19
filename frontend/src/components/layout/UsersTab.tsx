@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { UserFormModal, ResetPasswordModal, DeleteUserModal } from './users';
+import { UserFormModal, ResetPasswordModal, DeleteUserModal, MemberPermissionsModal } from './users';
 
 export type UserRole = 'admin' | 'member';
 
@@ -28,6 +28,7 @@ export function UsersTab() {
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<UserPublicProfile | null>(null);
   const [resettingUser, setResettingUser] = useState<UserPublicProfile | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserPublicProfile | null>(null);
@@ -225,19 +226,30 @@ export function UsersTab() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setFormUsername('');
-            setFormDisplayName('');
-            setFormPassword('');
-            setFormRole('member');
-            setIsCreateOpen(true);
-          }}
-          className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm shadow-saturn-500/20"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t('users.new_user', 'Novo Usuário')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsPermissionsModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-accent/40 hover:bg-accent/60 text-primary text-xs font-semibold rounded-xl border border-border/80 transition-all duration-200 shadow-sm hover:border-saturn-500/50"
+          >
+            <Shield className="w-3.5 h-3.5 text-saturn-400" />
+            <span>{t('users.permissions_guide_btn', 'Mais Detalhes')}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setFormUsername('');
+              setFormDisplayName('');
+              setFormPassword('');
+              setFormRole('member');
+              setIsCreateOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-saturn-500 hover:bg-saturn-600 text-white text-xs font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm shadow-saturn-500/20"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('users.new_user', 'Novo Usuário')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Users List */}
@@ -407,6 +419,12 @@ export function UsersTab() {
           onClose={() => setDeletingUser(null)}
         />
       )}
+
+      <MemberPermissionsModal
+        isOpen={isPermissionsModalOpen}
+        onClose={() => setIsPermissionsModalOpen(false)}
+      />
     </div>
   );
 }
+

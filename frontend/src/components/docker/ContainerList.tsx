@@ -144,6 +144,7 @@ export function ContainerList() {
   };
 
   const fetchCloudflareRoutes = async () => {
+    if (!isAdmin) return;
     try {
       const res = await fetch('/api/cloudflare/tunnels', {
         headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }

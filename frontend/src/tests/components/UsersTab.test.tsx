@@ -93,4 +93,36 @@ describe('UsersTab Component', () => {
       );
     });
   });
+
+  it('opens member permissions modal with allowed and blocked capabilities', async () => {
+    render(<UsersTab />);
+
+    const detailsBtn = await screen.findByText('Mais Detalhes');
+    fireEvent.click(detailsBtn);
+
+    expect(await screen.findByText('Permissões & Acesso de Membro')).toBeTruthy();
+    expect(screen.getByText('O que um Membro PODE acessar')).toBeTruthy();
+    expect(screen.getByText('O que um Membro NÃO PODE acessar')).toBeTruthy();
+    expect(screen.getByText(/Home Assistant, Cloudflare, Pi-hole/i)).toBeTruthy();
+    expect(screen.getByText(/Terminal Web & SSH/i)).toBeTruthy();
+
+    const understandBtn = screen.getByRole('button', { name: /Entendi/i });
+    fireEvent.click(understandBtn);
+    expect(screen.queryByText('Permissões & Acesso de Membro')).toBeNull();
+  });
+
+  it('opens member permissions modal from inside UserFormModal link', async () => {
+    render(<UsersTab />);
+
+    const newBtn = await screen.findByText('Novo Usuário');
+    fireEvent.click(newBtn);
+
+    const detailsLink = await screen.findByText('Mais detalhes do que pode acessar');
+    fireEvent.click(detailsLink);
+
+    expect(await screen.findByText('Permissões & Acesso de Membro')).toBeTruthy();
+    expect(screen.getByText('O que um Membro PODE acessar')).toBeTruthy();
+    expect(screen.getByText('O que um Membro NÃO PODE acessar')).toBeTruthy();
+  });
 });
+

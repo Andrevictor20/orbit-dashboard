@@ -194,25 +194,30 @@ export function ContainerGridCard({
                   <Globe className="w-3 h-3 text-saturn-600 dark:text-saturn-400" />
                   <span className="truncate max-w-[80px]">{t('containers.open_app')}</span>
                 </button>
-                <button
-                  onClick={(e) => onSetCustomLink(e, c.id)}
-                  className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors border border-border/50"
-                  title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
-                >
-                  <Settings2 className="w-3 h-3" />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={(e) => onSetCustomLink(e, c.id)}
+                    className="glass-button p-1 text-xs rounded-lg text-secondary hover:text-primary transition-colors border border-border/50"
+                    title={customLinks[c.id] ? `Custom Link: ${customLinks[c.id]}` : 'Configurar Link'}
+                  >
+                    <Settings2 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             );
           }
-          return (
-            <button
-              onClick={(e) => onSetCustomLink(e, c.id)}
-              className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
-              title="Configurar Link"
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-            </button>
-          );
+          if (isAdmin) {
+            return (
+              <button
+                onClick={(e) => onSetCustomLink(e, c.id)}
+                className="glass-button p-1.5 text-xs rounded-lg text-secondary hover:text-primary flex items-center justify-center border border-border/50 shrink-0"
+                title="Configurar Link"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+              </button>
+            );
+          }
+          return null;
         })()}
       </div>
 

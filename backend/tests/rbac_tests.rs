@@ -266,6 +266,44 @@ async fn test_rbac_full_lifecycle() {
         .await;
     suspend_admin.assert_status_bad_request();
 
+    // 12. Member is BLOCKED from configuring, editing or using Integrations (403 Forbidden)
+    let member_cf_config = server
+        .get("/api/cloudflare/config")
+        .add_cookie(member_cookie.clone())
+        .await;
+    member_cf_config.assert_status_forbidden();
+
+    let member_cf_tunnels = server
+        .get("/api/cloudflare/tunnels")
+        .add_cookie(member_cookie.clone())
+        .await;
+    member_cf_tunnels.assert_status_forbidden();
+
+    let member_ha_config = server
+        .get("/api/homeassistant/config")
+        .add_cookie(member_cookie.clone())
+        .await;
+    member_ha_config.assert_status_forbidden();
+
+    let member_ha_entities = server
+        .get("/api/homeassistant/entities")
+        .add_cookie(member_cookie.clone())
+        .await;
+    member_ha_entities.assert_status_forbidden();
+
+    let member_pihole_config = server
+        .get("/api/pihole/config")
+        .add_cookie(member_cookie.clone())
+        .await;
+    member_pihole_config.assert_status_forbidden();
+
+    let member_set_link = server
+        .post("/api/docker/links/test_app")
+        .add_cookie(member_cookie.clone())
+        .json(&json!({ "url": "https://test.example.com" }))
+        .await;
+    member_set_link.assert_status_forbidden();
+
     cleanup_test_env(test_id);
 }
 

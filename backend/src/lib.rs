@@ -71,28 +71,28 @@ pub fn app() -> Router {
         }
     });
 
-    let admin_terminal_routes = Router::new()
+    let admin_protected_routes = Router::new()
         .route("/api/terminal/ws", get(ssh::terminal_handler))
         .route("/api/ssh", get(ssh::terminal_handler))
         .route("/api/logs/clear", axum::routing::post(logs::clear_logs))
+        .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
+        .merge(homeassistant::router())
+        .merge(pihole::router())
+        .merge(cloudflare::router())
         .layer(axum::middleware::from_fn(auth::require_admin));
 
     let system_routes = Router::new()
         .route("/api/docker/links", get(links::get_links))
-        .route("/api/docker/links/{id}", axum::routing::post(links::set_link))
         .route("/api/docker/stats", get(ws::stats_handler))
         .route("/api/docker/stats/history", get(ws::get_stats_history_handler))
         .route("/api/logs", get(logs::get_logs))
-        .merge(admin_terminal_routes);
+        .merge(admin_protected_routes);
 
     let protected_routes = Router::new()
         .merge(docker::router())
         .merge(store::router())
         .merge(files::protected_router())
         .merge(system::router())
-        .merge(homeassistant::router())
-        .merge(pihole::router())
-        .merge(cloudflare::router())
         .merge(auth::two_factor_protected_router())
         .merge(auth::users_api::router())
         .merge(system_routes)

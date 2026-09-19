@@ -1,8 +1,9 @@
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Edit2, Loader2, User, Shield, X } from 'lucide-react';
+import { UserPlus, Edit2, Loader2, User, Shield, X, Info } from 'lucide-react';
 import type { UserRole, UserPublicProfile } from '../UsersTab';
+import { MemberPermissionsModal } from './MemberPermissionsModal';
 
 interface UserFormModalProps {
   isCreate: boolean;
@@ -36,6 +37,7 @@ export function UserFormModal({
   onClose,
 }: UserFormModalProps) {
   const { t } = useTranslation();
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
 
   const content = (
     <div 
@@ -146,8 +148,20 @@ export function UserFormModal({
                   )}
                 </div>
                 <p className="text-xs text-secondary leading-relaxed">
-                  {t('users.role_member_desc', 'Acesso a arquivos em HDs externos e streaming. Sem permissão de exclusão.')}
+                  {t('users.role_member_desc', 'Acesso a arquivos em HDs externos e streaming. Sem permissão de exclusão ou integrações.')}
                 </p>
+                <div className="pt-2 mt-2 border-t border-border/40 flex items-center justify-between">
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPermissionsModal(true);
+                    }}
+                    className="text-[11px] font-semibold text-saturn-500 hover:text-saturn-400 flex items-center gap-1.5 transition-colors underline-offset-2 hover:underline cursor-pointer"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                    <span>{t('users.view_member_details', 'Mais detalhes do que pode acessar')}</span>
+                  </span>
+                </div>
               </button>
 
               <button
@@ -197,6 +211,14 @@ export function UserFormModal({
     </div>
   );
 
-  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
+  return typeof document !== 'undefined' ? (
+    <>
+      {createPortal(content, document.body)}
+      <MemberPermissionsModal
+        isOpen={showPermissionsModal}
+        onClose={() => setShowPermissionsModal(false)}
+      />
+    </>
+  ) : null;
 }
 
