@@ -25,7 +25,7 @@ export function SystemUpdating() {
     current_step: t('system.starting_download', 'Iniciando verificação e download da nova imagem...'),
     logs: [
       '[Saturn Update Agent] Inicializando atualização transparente do contêiner...',
-      targetVersion ? `[Target] ghcr.io/andrevmp/saturn:v${targetVersion.replace(/^v/, '')}` : '[Target] ghcr.io/andrevmp/saturn:latest'
+      targetVersion ? `[Target] ghcr.io/andrevictor20/saturn:v${targetVersion.replace(/^v/, '')}` : '[Target] ghcr.io/andrevictor20/saturn:latest'
     ],
     error: null,
   });
@@ -73,7 +73,26 @@ export function SystemUpdating() {
           if (res.ok && !isHtml) {
             const healthData = await res.json().catch(() => null);
             if (healthData && (healthData.status === 'ok' || healthData.version)) {
-              const onlineVersion = healthData.version || targetVersion || '';
+              const onlineVersion = (healthData.version || '').replace(/^v/, '');
+              const expectedVersion = (targetVersion || '').replace(/^v/, '');
+
+              // CRÍTICO: Se o targetVersion foi especificado e a versão retornada ainda for anterior,
+              // o contêiner antigo ainda está em execução sendo encerrado pelo saturn-updater!
+              if (expectedVersion && onlineVersion && onlineVersion !== expectedVersion) {
+                setTaskState(prev => ({
+                  ...prev,
+                  status: 'recreating',
+                  progress: 92,
+                  current_step: t('system.waiting_container_shutdown', 'Aguardando reinicialização do contêiner pelo saturn-updater...'),
+                  logs: [
+                    ...prev.logs,
+                    `⏳ [SATURN-UPDATER] Contêiner anterior (v${onlineVersion}) detectado. Aguardando reinicialização com v${expectedVersion} (Tentativa ${attempts})...`
+                  ]
+                }));
+                return;
+              }
+
+              const finalVersion = onlineVersion || expectedVersion || '';
 
               if (healthInterval) clearInterval(healthInterval);
               healthInterval = null;
@@ -85,7 +104,7 @@ export function SystemUpdating() {
                 current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Redirecionando para login...'),
                 logs: [
                   ...prev.logs,
-                  `✅ [SUCESSO] Novo contêiner verificado e operacional (Saturn ${onlineVersion ? `v${onlineVersion}` : ''}).`,
+                  `✅ [CONFIRMADO] Novo contêiner verificado e operacional (Saturn ${finalVersion ? `v${finalVersion}` : ''}).`,
                   `🔒 [SESSÃO] Redirecionando com segurança para a tela de login...`
                 ]
               }));
@@ -96,21 +115,32 @@ export function SystemUpdating() {
               localStorage.removeItem('saturn_updating');
               localStorage.removeItem('saturn_target_version');
               localStorage.removeItem('saturn_token'); // Força login limpo com novo token
-              if (onlineVersion) {
-                localStorage.setItem('saturn_last_updated_version', onlineVersion);
+              if (finalVersion) {
+                localStorage.setItem('saturn_last_updated_version', finalVersion);
               }
 
               // Delay intencional de 1.8s para visualização da confirmação verde de 100%
               setTimeout(() => {
                 if (isSubscribed) {
-                  navigate(`/login?updated=true&version=${encodeURIComponent(onlineVersion)}`, { replace: true });
+                  navigate(`/login?updated=true&version=${encodeURIComponent(finalVersion)}`, { replace: true });
                 }
               }, 1800);
               return;
             }
           }
         } catch {
-          // Contêiner ainda desligado ou reiniciando via helper script
+          // Contêiner antigo encerrou! Porta 5172 temporariamente indisponível enquanto o saturn-updater reinicia
+          setTaskState(prev => ({
+            ...prev,
+            status: 'recreating',
+            progress: Math.min(95 + Math.floor(attempts / 10), 99),
+            current_step: t('system.restarting_container', 'Reiniciando contêiner do sistema...'),
+            logs: attempts === 1 ? [
+              ...prev.logs,
+              '🛑 [DOCKER] Contêiner anterior encerrado com sucesso. O saturn-updater está aplicando a nova imagem...',
+              `📡 [REDE] Sondando disponibilidade da porta 5172 (Tentativa ${attempts})...`
+            ] : prev.logs
+          }));
         } finally {
           isCheckingHealth = false;
         }

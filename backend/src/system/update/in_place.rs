@@ -221,7 +221,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             *guard = None;
         }
 
-        // 4. Trigger compose / container recreation via an independent detached helper container.
+        // 4. Trigger compose / container recreation via an independent detached helper container ("saturn-updater").
         tokio::time::sleep(Duration::from_millis(400)).await;
 
         let host_dir_val = host_compose_dir.unwrap_or_default();
@@ -259,23 +259,109 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             new_container_name: &new_container_name,
         });
 
-        let _ = tokio::process::Command::new("docker")
-            .args([
-                "run",
-                "--rm",
-                "-d",
-                "--privileged",
-                "-v",
-                "/var/run/docker.sock:/var/run/docker.sock",
-                "-v",
-                "/:/host:rslave",
-                &image_name,
-                "sh",
-                "-c",
-                &helper_script,
-            ])
-            .output()
+        append_task_log(
+            "🐳 [UPDATER] Criando segundo contêiner independente ('saturn-updater') para orquestrar e monitorar a reinicialização...",
+            Some(96),
+            Some("saturn-updater ativo: aplicando nova imagem..."),
+        );
+
+        // Remove previous updater container if any residual exists
+        let _ = docker
+            .remove_container(
+                "saturn-updater",
+                Some(bollard::query_parameters::RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+            )
             .await;
+
+        let host_config = bollard::models::HostConfig {
+            privileged: Some(true),
+            network_mode: Some("host".to_string()),
+            binds: Some(vec![
+                "/var/run/docker.sock:/var/run/docker.sock".to_string(),
+                "/:/host:rslave".to_string(),
+            ]),
+            auto_remove: Some(false),
+            ..Default::default()
+        };
+
+        let updater_body = bollard::models::ContainerCreateBody {
+            image: Some(image_name.clone()),
+            cmd: Some(vec![
+                "sh".to_string(),
+                "-c".to_string(),
+                helper_script.clone(),
+            ]),
+            host_config: Some(host_config),
+            ..Default::default()
+        };
+
+        let mut updater_started = false;
+        match docker
+            .create_container(
+                Some(bollard::query_parameters::CreateContainerOptions {
+                    name: Some("saturn-updater".to_string()),
+                    ..Default::default()
+                }),
+                updater_body,
+            )
+            .await
+        {
+            Ok(c) => {
+                if let Err(e) = docker
+                    .start_container(
+                        &c.id,
+                        None::<bollard::query_parameters::StartContainerOptions>,
+                    )
+                    .await
+                {
+                    append_task_log(
+                        format!("⚠️ [WARN] Falha ao iniciar saturn-updater via Docker API: {}. Tentando fallback...", e),
+                        None,
+                        None,
+                    );
+                } else {
+                    append_task_log(
+                        "⚙️ [UPDATER] Contêiner saturn-updater iniciado com sucesso! Aguarde a finalização...",
+                        Some(98),
+                        None,
+                    );
+                    updater_started = true;
+                }
+            }
+            Err(e) => {
+                append_task_log(
+                    format!("⚠️ [WARN] Falha ao criar saturn-updater via Docker API: {}. Tentando fallback...", e),
+                    None,
+                    None,
+                );
+            }
+        }
+
+        if !updater_started {
+            let _ = tokio::process::Command::new("docker")
+                .args([
+                    "run",
+                    "--rm",
+                    "-d",
+                    "--name",
+                    "saturn-updater",
+                    "--privileged",
+                    "--net=host",
+                    "-v",
+                    "/var/run/docker.sock:/var/run/docker.sock",
+                    "-v",
+                    "/:/host:rslave",
+                    &image_name,
+                    "sh",
+                    "-c",
+                    &helper_script,
+                ])
+                .output()
+                .await;
+        }
     });
 
     (

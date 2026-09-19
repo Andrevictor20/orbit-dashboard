@@ -195,4 +195,57 @@ describe('SystemUpdating Page Component', () => {
 
     expect(screen.getByText(/Tempo limite ao reconectar/i)).toBeInTheDocument();
   });
+
+  it('does not declare success when healthcheck returns old container version', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/system/update/status') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'recreating',
+            progress: 95,
+            current_step: 'Reiniciando...',
+            logs: [],
+          }),
+        });
+      }
+      if (url === '/api/health') {
+        // Return OLD version (3.7.6) while target is 3.7.7
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            status: 'ok',
+            version: '3.7.6',
+            arch: 'aarch64',
+          }),
+        });
+      }
+      return Promise.reject(new Error('Unknown url'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <MemoryRouter initialEntries={['/updating?version=3.7.7']}>
+        <SystemUpdating />
+      </MemoryRouter>
+    );
+
+    // Advance for status poll
+    await vi.advanceTimersByTimeAsync(1100);
+
+    // Advance for health check ping
+    await vi.advanceTimersByTimeAsync(1100);
+
+    // MUST NOT declare success
+    expect(screen.queryByText(/Saturn Atualizado!/i)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    // Must be in waiting state with logs mentioning previous container
+    expect(screen.getByText(/saturn-updater/i)).toBeInTheDocument();
+  });
 });

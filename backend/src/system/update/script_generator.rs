@@ -11,32 +11,46 @@ pub struct HelperScriptParams<'a> {
 
 pub fn generate_helper_script(params: HelperScriptParams) -> String {
     format!(
-        r#"sleep 1 && (
+        r#"sleep 2 && (
+echo "🚀 [SATURN-UPDATER] Iniciando orquestração de atualização do contêiner Saturn..."
+
 recreated=0
 
-# 1. Tenta recriar via Docker Compose se projeto/diretório detectado
+# 1. Garante que a imagem mais recente está presente no host
+echo "📥 [SATURN-UPDATER] Baixando imagem mais recente no host ({image_name})..."
+docker pull "{image_name}" 2>/dev/null || true
+
+# 2. Tenta recriar via Docker Compose se projeto/diretório detectado
 if [ -n "{host_dir}" ] && [ -f "/host{host_dir}/{compose_file}" ]; then
+  echo "📁 [SATURN-UPDATER] Atualizando via Compose em /host{host_dir}/{compose_file}..."
   cd "/host{host_dir}"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "{compose_file}" 2>/dev/null || true
-  if docker compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" up -d --force-recreate 2>/dev/null; then
+  docker compose {project_flag} -f "{compose_file}" pull 2>/dev/null || docker-compose {project_flag} -f "{compose_file}" pull 2>/dev/null || true
+  if docker compose {project_flag} -f "{compose_file}" up -d --force-recreate || docker-compose {project_flag} -f "{compose_file}" up -d --force-recreate; then
+    echo "✅ [SATURN-UPDATER] Compose up concluído com sucesso!"
     recreated=1
   fi
 elif [ -f "/host/DATA/saturn/docker-compose.yml" ]; then
   cd "/host/DATA/saturn"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
-  if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
+  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
+  if docker compose -f "docker-compose.yml" up -d --force-recreate || docker-compose -f "docker-compose.yml" up -d --force-recreate; then
+    echo "✅ [SATURN-UPDATER] Compose up em /DATA/saturn concluído!"
     recreated=1
   fi
 elif [ -f "/host/root/saturn/docker-compose.yml" ]; then
   cd "/host/root/saturn"
   sed -i -E 's|image:[ \t]*.*saturn:[^ \t\r\n]+|image: {image_name}|g' "docker-compose.yml" 2>/dev/null || true
-  if docker compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null || docker-compose -f "docker-compose.yml" up -d --force-recreate 2>/dev/null; then
+  docker compose -f "docker-compose.yml" pull 2>/dev/null || docker-compose -f "docker-compose.yml" pull 2>/dev/null || true
+  if docker compose -f "docker-compose.yml" up -d --force-recreate || docker-compose -f "docker-compose.yml" up -d --force-recreate; then
+    echo "✅ [SATURN-UPDATER] Compose up em /root/saturn concluído!"
     recreated=1
   fi
 fi
 
-# 2. Fallback direto e ultra-resiliente via Docker Engine
+# 3. Fallback direto e ultra-resiliente via Docker Engine
 if [ "$recreated" -eq 0 ]; then
+  echo "⚠️ [SATURN-UPDATER] Executando fallback direto via Docker Engine..."
   docker ps -q --filter "publish=5172" | xargs -r docker stop -t 4 2>/dev/null || true
   docker ps -q --filter "publish=5172" | xargs -r docker rm -f 2>/dev/null || true
   docker ps -q --filter "publish=5173" | xargs -r docker stop -t 4 2>/dev/null || true
@@ -52,9 +66,6 @@ if [ "$recreated" -eq 0 ]; then
   docker ps -a -q --filter "name=saturn" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
   docker ps -a -q --filter "name=saturn" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
   docker ps -a -q --filter "name=saturn" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
-  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=exited" | xargs -r docker rm 2>/dev/null || true
-  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=created" | xargs -r docker rm 2>/dev/null || true
-  docker ps -a -q --filter "name=saturn_old_dummy" --filter "status=dead" | xargs -r docker rm 2>/dev/null || true
 
   docker run -d --name "{new_container_name}" --restart unless-stopped \
     --privileged \
@@ -72,9 +83,22 @@ if [ "$recreated" -eq 0 ]; then
     "{image_name}"
 fi
 
-sleep 5
+# 4. Aguarda e confirma se o novo container está ativo e saudável
+echo "🔍 [SATURN-UPDATER] Verificando se o novo contêiner está ativo..."
+for i in $(seq 1 30); do
+  if docker ps --filter "name={new_container_name}" --filter "status=running" | grep -q "{new_container_name}"; then
+    echo "🎉 [SATURN-UPDATER] Contêiner {new_container_name} confirmado em execução!"
+    break
+  fi
+  sleep 1
+done
+
+sleep 3
 docker image prune -f 2>/dev/null || true
 docker images "ghcr.io/andrevictor20/saturn" "victorandre280/saturn" --filter "dangling=true" -q 2>/dev/null | xargs -r docker rmi 2>/dev/null || true
+
+# Auto-remoção do contêiner updater após conclusão
+(sleep 2 && docker rm -f saturn-updater 2>/dev/null) &
 )"#,
         host_dir = params.host_dir,
         compose_file = params.compose_file,

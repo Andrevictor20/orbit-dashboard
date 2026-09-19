@@ -168,6 +168,7 @@ services:
     image: ghcr.io/andrevictor20/saturn:latest
     container_name: saturn
     restart: unless-stopped
+    privileged: true
     ports:
       - "5172:5172"
     volumes:
