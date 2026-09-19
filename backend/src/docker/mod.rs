@@ -334,4 +334,23 @@ mod tests {
         assert_eq!(cloudflared_result[0].public_port, Some(14333));
         assert_eq!(cloudflared_result[0].private_port, 14333);
     }
+
+    #[test]
+    fn test_filter_saturn_updater_container() {
+        let test_names = vec![
+            ("saturn", false),
+            ("saturn-dashboard", false),
+            ("saturn-updater", true),
+            ("/saturn-updater", true),
+            ("saturn-updater-helper", true),
+            ("other-app", false),
+        ];
+
+        for (name, should_filter) in test_names {
+            let clean_name = name.trim().trim_start_matches('/');
+            let is_updater = clean_name.eq_ignore_ascii_case("saturn-updater")
+                || clean_name.to_ascii_lowercase().starts_with("saturn-updater-");
+            assert_eq!(is_updater, should_filter, "Failed for name: {}", name);
+        }
+    }
 }

@@ -318,7 +318,7 @@ pub async fn perform_system_update(
                 "/var/run/docker.sock:/var/run/docker.sock".to_string(),
                 "/:/host:rslave".to_string(),
             ]),
-            auto_remove: Some(false),
+            auto_remove: Some(true),
             ..Default::default()
         };
 

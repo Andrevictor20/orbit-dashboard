@@ -16,6 +16,11 @@ export function useFilteredContainers(
 
     return [...containers]
       .filter(c => {
+        const cleanName = (c.name || '').replace(/^\//, '').toLowerCase();
+        if (cleanName === 'saturn-updater' || cleanName.startsWith('saturn-updater-')) {
+          return false;
+        }
+
         if (!query) return true;
 
         const name = (c.name || '').toLowerCase();

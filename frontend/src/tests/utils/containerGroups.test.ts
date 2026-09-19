@@ -354,6 +354,29 @@ describe('containerGroups utility', () => {
         expect(grouped[0].webLink).toBe('https://saude.rasppi.cloud');
       }
     });
+
+    it('filters out internal saturn-updater containers and does not group them with saturn', () => {
+      const containers = [
+        {
+          id: 'saturn-main',
+          name: 'saturn',
+          image: 'saturn:latest',
+          state: 'running',
+          ports: [{ private_port: 5172, public_port: 5172, typ: 'tcp' }],
+        },
+        {
+          id: 'saturn-upd',
+          name: 'saturn-updater',
+          image: 'saturn:latest',
+          state: 'exited',
+        },
+      ];
+
+      const grouped = groupContainers(containers, {});
+      expect(grouped.length).toBe(1);
+      expect(grouped[0].type).toBe('single');
+      expect(grouped[0].name).toBe('saturn');
+    });
   });
 });
 

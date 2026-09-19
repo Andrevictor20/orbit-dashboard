@@ -11,7 +11,14 @@ pub async fn cleanup_old_saturn_images(docker: Arc<bollard::Docker>) -> (usize, 
     let mut deleted_count = 0usize;
     let mut space_reclaimed = 0i64;
 
-    // 0. Remove inactive orphan containers
+    // 0. Remove residual saturn-updater container if present
+    let rm_updater_opts = bollard::query_parameters::RemoveContainerOptions {
+        force: true,
+        ..Default::default()
+    };
+    let _ = docker.remove_container("saturn-updater", Some(rm_updater_opts)).await;
+
+    // 0.1 Remove inactive orphan containers
     let list_c_opts = bollard::query_parameters::ListContainersOptions {
         all: true,
         ..Default::default()

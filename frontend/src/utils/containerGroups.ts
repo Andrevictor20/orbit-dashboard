@@ -394,11 +394,17 @@ export function groupContainers<T extends ContainerLike>(
 ): GroupedContainerItem<T>[] {
   const getIcon = getIconFn || ((image: string, name: string) => `/api/docker/icons/${encodeURIComponent(name || image)}`);
 
+  // Excluir contêineres internos de sistema do Saturn (como saturn-updater efêmero)
+  const validContainers = containers.filter(c => {
+    const cleanName = (c.name || '').replace(/^\//, '').toLowerCase();
+    return cleanName !== 'saturn-updater' && !cleanName.startsWith('saturn-updater-');
+  });
+
   // Step 1: Bucket containers by their detected group key
   const groupBuckets = new Map<string, T[]>();
   const unassigned: T[] = [];
 
-  for (const c of containers) {
+  for (const c of validContainers) {
     const groupKey = getContainerGroupName(c);
     if (groupKey) {
       if (!groupBuckets.has(groupKey)) {
@@ -471,7 +477,7 @@ export function groupContainers<T extends ContainerLike>(
   }
 
   // Step 3: All remaining containers become single items
-  for (const c of containers) {
+  for (const c of validContainers) {
     if (!processedContainerIds.has(c.id)) {
       const isRunning = c.state === 'running';
       const webLink = getContainerWebLink(c, customLinks);

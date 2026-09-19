@@ -123,6 +123,13 @@ pub async fn list_containers(
                     }
                 })
                 .filter(|c| {
+                    let clean_name = c.name.trim().trim_start_matches('/');
+                    if clean_name.eq_ignore_ascii_case("saturn-updater")
+                        || clean_name.to_ascii_lowercase().starts_with("saturn-updater-")
+                    {
+                        return false;
+                    }
+
                     if let Some(Extension(ref claims)) = claims_opt {
                         if claims.role == "member" {
                             return !super::visibility::is_container_hidden(&c.id)
@@ -145,6 +152,13 @@ pub async fn inspect_container(
     claims_opt: Option<Extension<crate::auth::jwt::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    let clean_id = id.trim().trim_start_matches('/');
+    if clean_id.eq_ignore_ascii_case("saturn-updater")
+        || clean_id.to_ascii_lowercase().starts_with("saturn-updater-")
+    {
+        return (StatusCode::NOT_FOUND, "Container not found").into_response();
+    }
+
     if let Some(Extension(ref claims)) = claims_opt {
         if claims.role == "member" && super::visibility::is_container_hidden(&id) {
             return (StatusCode::NOT_FOUND, "Container not found").into_response();
@@ -157,9 +171,15 @@ pub async fn inspect_container(
         .await
     {
         Ok(info) => {
+            let name = info.name.as_deref().unwrap_or("").trim_start_matches('/');
+            if name.eq_ignore_ascii_case("saturn-updater")
+                || name.to_ascii_lowercase().starts_with("saturn-updater-")
+            {
+                return (StatusCode::NOT_FOUND, "Container not found").into_response();
+            }
+
             if let Some(Extension(ref claims)) = claims_opt {
                 if claims.role == "member" {
-                    let name = info.name.as_deref().unwrap_or("");
                     if super::visibility::is_container_hidden(name) {
                         return (StatusCode::NOT_FOUND, "Container not found").into_response();
                     }
