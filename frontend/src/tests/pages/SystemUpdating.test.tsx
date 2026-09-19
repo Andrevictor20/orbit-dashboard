@@ -248,4 +248,40 @@ describe('SystemUpdating Page Component', () => {
     // Must be in waiting state with logs mentioning previous container
     expect(screen.getByText(/saturn-updater/i)).toBeInTheDocument();
   });
+
+  it('clears localStorage and redirects to root when backend status is idle', async () => {
+    vi.useFakeTimers();
+    localStorage.setItem('saturn_updating', 'true');
+    localStorage.setItem('saturn_target_version', '3.8.0');
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/system/update/status') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'idle',
+            progress: 0,
+            current_step: '',
+            logs: [],
+          }),
+        });
+      }
+      return Promise.reject(new Error('Unknown url'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <MemoryRouter initialEntries={['/updating']}>
+        <SystemUpdating />
+      </MemoryRouter>
+    );
+
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(localStorage.getItem('saturn_updating')).toBeNull();
+    expect(localStorage.getItem('saturn_target_version')).toBeNull();
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+  });
 });
+

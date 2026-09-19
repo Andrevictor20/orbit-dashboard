@@ -200,6 +200,14 @@ export function SystemUpdating() {
           } else if (data.status === 'error') {
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = null;
+          } else if (data.status === 'idle') {
+            // Se o backend está idle, não há atualização em curso (já finalizou ou reiniciou)
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = null;
+            localStorage.removeItem('saturn_updating');
+            localStorage.removeItem('saturn_target_version');
+            navigate('/', { replace: true });
+            return;
           }
         } else {
           // Se não retornou 200 OK (ex: 401, 500 ou container reiniciando), chaveia para healthcheck
@@ -376,7 +384,11 @@ export function SystemUpdating() {
           </p>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              localStorage.removeItem('saturn_updating');
+              localStorage.removeItem('saturn_target_version');
+              navigate('/');
+            }}
             className="text-xs text-saturn-500 hover:text-saturn-400 font-medium flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl hover:bg-card/50"
           >
             ← {t('system.back_to_dashboard', 'Voltar ao Dashboard')}
