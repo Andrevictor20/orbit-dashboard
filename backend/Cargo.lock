@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "backend"
-version = "3.7.9"
+version = "3.7.10"
 dependencies = [
  "argon2",
  "axum",

@@ -12,20 +12,43 @@ describe('VideoHeaderOverlay Component', () => {
     extension: 'mkv',
   };
 
-  it('renders video filename and extension badge', () => {
+  it('renders video filename, extension badge, and remux indicator', () => {
     render(
       <VideoHeaderOverlay
         file={mockFile}
         showControls={true}
         isTranscodeMode={true}
+        isForceTranscode={false}
         copied={false}
+        onToggleForceTranscode={vi.fn()}
         onCopyStreamLink={vi.fn()}
         onClose={vi.fn()}
       />
     );
 
     expect(screen.getByText('anime_episode_01.mkv')).toBeTruthy();
-    expect(screen.getByText((content) => content.includes('MKV') && content.includes('(Transcoded MP4)'))).toBeTruthy();
+    expect(screen.getByText('MKV')).toBeTruthy();
+    expect(screen.getByText(/Remux Direto/i)).toBeTruthy();
+  });
+
+  it('toggles mode when clicking mode badge', () => {
+    const onToggle = vi.fn();
+    render(
+      <VideoHeaderOverlay
+        file={mockFile}
+        showControls={true}
+        isTranscodeMode={true}
+        isForceTranscode={false}
+        copied={false}
+        onToggleForceTranscode={onToggle}
+        onCopyStreamLink={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    const toggleBtn = screen.getByText(/Remux Direto/i);
+    fireEvent.click(toggleBtn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
   it('calls onCopyStreamLink and onClose callbacks', () => {
@@ -37,7 +60,9 @@ describe('VideoHeaderOverlay Component', () => {
         file={mockFile}
         showControls={true}
         isTranscodeMode={true}
+        isForceTranscode={false}
         copied={false}
+        onToggleForceTranscode={vi.fn()}
         onCopyStreamLink={onCopy}
         onClose={onClose}
       />

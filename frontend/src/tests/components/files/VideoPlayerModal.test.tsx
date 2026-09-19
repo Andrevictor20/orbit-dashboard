@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { VideoPlayerModal } from '../../../components/files/VideoPlayerModal';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -102,13 +102,13 @@ describe('VideoPlayerModal Component', () => {
     const copyBtn = screen.getByTitle(/VLC/i);
     expect(copyBtn).toBeTruthy();
 
-    await act(async () => {
-      fireEvent.click(copyBtn);
-    });
+    fireEvent.click(copyBtn);
 
-    expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/files/stream/transcode?path=')
-    );
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/files/stream/transcode?path=')
+      );
+    });
   });
 
   it('handles video decode error by auto-switching MP4 to transcode mode, then displaying error banner if transcode also fails', async () => {

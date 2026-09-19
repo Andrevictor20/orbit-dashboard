@@ -8,7 +8,8 @@ import { VideoSubtitleMenu, type SubtitleItem } from './VideoSubtitleMenu';
 import { VideoErrorBanner } from './VideoErrorBanner';
 import { VideoHeaderOverlay } from './VideoHeaderOverlay';
 import { SubtitleOverlay } from './SubtitleOverlay';
-import { parseWebVtt, formatVideoTime, convertTextToVttBlob, type SubtitleCue } from '../../utils/vttParser';
+import { useVideoSubtitles } from './useVideoSubtitles';
+import { formatVideoTime } from '../../utils/vttParser';
 
 export type { SubtitleItem };
 
@@ -22,13 +23,12 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isStalledFallback, setIsStalledFallback] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [subtitlesList, setSubtitlesList] = useState<SubtitleItem[]>([]);
-  const [activeSubtitle, setActiveSubtitle] = useState<string>('off');
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -36,12 +36,9 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const isDirectSupported = (ext: string) => ['mp4', 'webm'].includes(ext.toLowerCase());
 
   const [isTranscodeMode, setIsTranscodeMode] = useState(() => !isDirectSupported(file.extension));
+  const [isForceTranscode, setIsForceTranscode] = useState(false);
   const [transcodeSeekTime, setTranscodeSeekTime] = useState<number | null>(null);
-  const [cues, setCues] = useState<SubtitleCue[]>([]);
-  const [currentCueText, setCurrentCueText] = useState<string>('');
 
-  const cuesRef = useRef<SubtitleCue[]>([]);
-  cuesRef.current = cues;
   const isTranscodeModeRef = useRef(isTranscodeMode);
   isTranscodeModeRef.current = isTranscodeMode;
   const transcodeSeekRef = useRef(transcodeSeekTime);
@@ -49,13 +46,31 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const token = typeof window !== 'undefined'
     ? (localStorage.getItem('saturn_token') || localStorage.getItem('token') || '')
     : '';
 
+  const {
+    subtitlesList,
+    activeSubtitle,
+    setActiveSubtitle,
+    currentCueText,
+    syncCueAtTime,
+    handleCustomSubtitleUpload,
+  } = useVideoSubtitles({
+    filePath: file.path,
+    token,
+    onDurationLoaded: (dur) => {
+      if (dur > 0) setDuration(dur);
+    },
+  });
+
+  const modeParam = isForceTranscode ? '&mode=transcode' : '&mode=copy';
+  const seekParam = transcodeSeekTime !== null && transcodeSeekTime > 0 ? `&start=${transcodeSeekTime}` : '';
   const baseStreamUrl = isTranscodeMode
-    ? `/api/files/stream/transcode?path=${encodeURIComponent(file.path)}${transcodeSeekTime !== null && transcodeSeekTime > 0 ? `&start=${transcodeSeekTime}` : ''}`
+    ? `/api/files/stream/transcode?path=${encodeURIComponent(file.path)}${seekParam}${modeParam}`
     : `/api/files/stream?path=${encodeURIComponent(file.path)}`;
   const videoSrc = `${baseStreamUrl}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
@@ -64,91 +79,6 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
-  };
-
-  // Fetch available companion and embedded subtitle tracks + duration
-  useEffect(() => {
-    const queryToken = token ? `&token=${encodeURIComponent(token)}` : '';
-    fetch(`/api/files/subtitles?path=${encodeURIComponent(file.path)}${queryToken}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      credentials: 'include'
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (data.duration && typeof data.duration === 'number' && Number.isFinite(data.duration) && data.duration > 0) {
-          setDuration(data.duration);
-        }
-        if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
-          setSubtitlesList(data.subtitles);
-          const preferred = data.subtitles.find((s: SubtitleItem) => 
-            s.lang === 'pt-BR' || s.lang === 'por' || s.label.toLowerCase().includes('portugu') || s.label.toLowerCase().includes('brazil')
-          ) || data.subtitles[0];
-          if (preferred) {
-            setActiveSubtitle(preferred.path);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [file.path, token]);
-
-  // Fetch active subtitle VTT text and parse cues for high-fidelity overlay
-  useEffect(() => {
-    if (activeSubtitle === 'off') {
-      setCues([]);
-      setCurrentCueText('');
-      return;
-    }
-
-    const currentTrack = subtitlesList.find(s => s.path === activeSubtitle);
-    if (!currentTrack) return;
-
-    if (currentTrack.path.startsWith('blob:')) {
-      fetch(currentTrack.path)
-        .then(res => res.text())
-        .then(text => setCues(parseWebVtt(text)))
-        .catch(() => setCues([]));
-      return;
-    }
-
-    const trackUrl = `/api/files/subtitles/vtt?path=${encodeURIComponent(currentTrack.path)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
-    fetch(trackUrl, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      credentials: 'include'
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.text();
-      })
-      .then(text => setCues(parseWebVtt(text)))
-      .catch(() => setCues([]));
-  }, [activeSubtitle, subtitlesList, token]);
-
-  const handleSubtitleChange = (subPath: string) => {
-    setActiveSubtitle(subPath);
-  };
-
-  const handleCustomSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileUploaded = e.target.files?.[0];
-    if (!fileUploaded) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) return;
-      const blobUrl = URL.createObjectURL(convertTextToVttBlob(text));
-      const newSub: SubtitleItem = {
-        name: fileUploaded.name,
-        path: blobUrl,
-        label: t('files.custom_subtitle_file', { name: fileUploaded.name, defaultValue: `Arquivo (${fileUploaded.name})` }),
-        lang: 'custom',
-      };
-      setSubtitlesList(prev => [newSub, ...prev]);
-      setActiveSubtitle(blobUrl);
-    };
-    reader.readAsText(fileUploaded);
   };
 
   const togglePlay = useCallback(() => {
@@ -164,6 +94,31 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       setIsPlaying(true);
     }
   }, [isPlaying]);
+
+  // 7-second Watchdog timer for stalled streams
+  useEffect(() => {
+    if (watchdogTimerRef.current) {
+      clearTimeout(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+    }
+
+    if (isBuffering && !hasError && !isStalledFallback) {
+      watchdogTimerRef.current = setTimeout(() => {
+        const video = videoRef.current;
+        if (video && video.readyState < 2 && video.currentTime === 0) {
+          setIsBuffering(false);
+          setIsStalledFallback(true);
+        }
+      }, 7000);
+    }
+
+    return () => {
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+    };
+  }, [isBuffering, hasError, isStalledFallback]);
 
   // Video event handlers for streaming, buffering & subtitle sync
   useEffect(() => {
@@ -183,14 +138,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
         } catch {}
       }
 
-      // Sync active subtitle cue
-      const activeCues = cuesRef.current;
-      if (activeCues.length > 0) {
-        const match = activeCues.find(c => actualTime >= c.start && actualTime <= c.end);
-        setCurrentCueText(match ? match.text : '');
-      } else {
-        setCurrentCueText('');
-      }
+      syncCueAtTime(actualTime);
     };
     
     const handleLoadedMetadata = () => {
@@ -202,8 +150,15 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
 
     const handleLoadedData = () => setIsBuffering(false);
     const handleWaiting = () => setIsBuffering(true);
-    const handleCanPlay = () => setIsBuffering(false);
-    const handlePlaying = () => { setIsBuffering(false); setIsPlaying(true); };
+    const handleCanPlay = () => {
+      setIsBuffering(false);
+      setIsStalledFallback(false);
+    };
+    const handlePlaying = () => {
+      setIsBuffering(false);
+      setIsStalledFallback(false);
+      setIsPlaying(true);
+    };
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
     const handleError = () => {
@@ -237,13 +192,17 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
       try {
         video.pause();
         video.removeAttribute('src');
         video.load();
       } catch {}
     };
-  }, [duration]);
+  }, [duration, syncCueAtTime]);
 
   // Attempt auto-playback gracefully on source change
   useEffect(() => {
@@ -382,7 +341,14 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           file={file}
           showControls={showControls}
           isTranscodeMode={isTranscodeMode}
+          isForceTranscode={isForceTranscode}
           copied={copied}
+          onToggleForceTranscode={() => {
+            setIsForceTranscode(prev => !prev);
+            setIsStalledFallback(false);
+            setHasError(false);
+            setIsBuffering(true);
+          }}
           onCopyStreamLink={handleCopyStreamLink}
           onClose={onClose}
         />
@@ -429,7 +395,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           <SubtitleOverlay currentCue={currentCueText} />
 
           {/* Buffering Spinner */}
-          {isBuffering && !hasError && (
+          {isBuffering && !hasError && !isStalledFallback && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30 backdrop-blur-[2px]">
               <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/70 text-white shadow-2xl border border-white/10">
                 <Loader2 className="w-8 h-8 text-saturn-400 animate-spin" />
@@ -438,16 +404,30 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
             </div>
           )}
 
-          {/* Error Banner */}
-          {hasError && (
+          {/* Error & Stalled Fallback Banner */}
+          {(hasError || isStalledFallback) && (
             <VideoErrorBanner
               file={file}
               videoSrc={videoSrc}
               isTranscodeMode={isTranscodeMode}
+              isForceTranscode={isForceTranscode}
+              isStalled={isStalledFallback}
               onEnableTranscode={() => {
                 setHasError(false);
+                setIsStalledFallback(false);
+                setIsForceTranscode(true);
                 setIsBuffering(true);
-                setIsTranscodeMode(true);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              onRetryRemux={() => {
+                setIsStalledFallback(false);
+                setHasError(false);
+                setIsBuffering(true);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
               }}
               onCopyStreamLink={handleCopyStreamLink}
               copied={copied}
@@ -455,7 +435,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           )}
 
           {/* Big Center Play Icon when paused and not buffering */}
-          {!isPlaying && !isBuffering && !hasError && (
+          {!isPlaying && !isBuffering && !hasError && !isStalledFallback && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="p-5 rounded-full bg-saturn-500/90 text-white shadow-2xl backdrop-blur-sm transform scale-110">
                 <Play className="w-10 h-10 fill-current ml-1" />
@@ -486,7 +466,7 @@ export function VideoPlayerModal({ file, onClose }: VideoPlayerModalProps) {
           <VideoSubtitleMenu
             subtitlesList={subtitlesList}
             activeSubtitle={activeSubtitle}
-            onSubtitleChange={handleSubtitleChange}
+            onSubtitleChange={setActiveSubtitle}
             onCustomSubtitleUpload={handleCustomSubtitleUpload}
           />
         </VideoControls>

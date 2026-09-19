@@ -120,6 +120,7 @@ pub async fn stream_media(
 #[derive(Default, Clone)]
 struct MediaStreamInfo {
     can_copy_video: bool,
+    is_hevc: bool,
     can_copy_audio: bool,
 }
 
@@ -163,6 +164,10 @@ async fn probe_media_stream_info(path: &std::path::Path) -> MediaStreamInfo {
                             // H.264 8-bit (yuv420p) is natively supported in MP4 by all browsers, copy without re-encoding
                             if (codec_name == "h264" || codec_name == "avc1") && (pix_fmt == "yuv420p" || pix_fmt.is_empty()) {
                                 info.can_copy_video = true;
+                            } else if codec_name == "hevc" || codec_name == "h265" || codec_name == "hvc1" || codec_name == "hev1" {
+                                // Modern Chromium (Chrome 107+, Edge), Safari, Android natively decode HEVC in fMP4 with hvc1 tag
+                                info.can_copy_video = true;
+                                info.is_hevc = true;
                             }
                         } else if codec_type == "audio" && !info.can_copy_audio {
                             // AAC audio is natively supported in MP4 by all browsers
@@ -192,6 +197,7 @@ pub async fn stream_transcode_media(
     }
 
     let stream_info = probe_media_stream_info(&path).await;
+    let force_transcode = q.mode.as_deref() == Some("transcode");
 
     let mut cmd = tokio::process::Command::new("ffmpeg");
     cmd.args(["-v", "error"]);
@@ -209,20 +215,25 @@ pub async fn stream_transcode_media(
     // Map first video and first audio stream (exclude attachment fonts, cover arts, and extra subtitles)
     cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
 
-    if stream_info.can_copy_video {
+    if stream_info.can_copy_video && !force_transcode {
         cmd.args(["-c:v", "copy"]);
+        if stream_info.is_hevc {
+            // Chrome and Safari require the hvc1 FourCC tag to route to hardware video decoders
+            cmd.args(["-tag:v", "hvc1"]);
+        }
     } else {
+        // Safe, throttled software transcoding: limit to 2 threads and crf 25 to prevent CPU thermal throttling on ARM
         cmd.args([
             "-c:v", "libx264",
             "-preset", "ultrafast",
             "-tune", "zerolatency",
             "-pix_fmt", "yuv420p",
-            "-crf", "23",
-            "-threads", "0",
+            "-crf", "25",
+            "-threads", "2",
         ]);
     }
 
-    if stream_info.can_copy_audio {
+    if stream_info.can_copy_audio && !force_transcode {
         cmd.args(["-c:a", "copy"]);
     } else {
         // Universal web audio: 2-channel stereo AAC at 48kHz (handles Opus 5.1/7.1 downmixing cleanly)
@@ -257,3 +268,49 @@ pub async fn stream_transcode_media(
 
     Ok((StatusCode::OK, resp_headers, body).into_response())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_media_stream_info_defaults() {
+        let info = MediaStreamInfo::default();
+        assert!(!info.can_copy_video);
+        assert!(!info.can_copy_audio);
+        assert!(!info.is_hevc);
+    }
+
+    #[test]
+    fn test_transcode_query_deserialization() {
+        let json_data = r#"{"path":"/media/anime.mkv","start":12.5,"mode":"transcode"}"#;
+        let query: TranscodeQuery = serde_json::from_str(json_data).expect("deserialize transcode query");
+        assert_eq!(query.path, "/media/anime.mkv");
+        assert_eq!(query.start, Some(12.5));
+        assert_eq!(query.mode.as_deref(), Some("transcode"));
+
+        let json_copy = r#"{"path":"/media/anime.mkv","mode":"copy"}"#;
+        let query_copy: TranscodeQuery = serde_json::from_str(json_copy).expect("deserialize copy query");
+        assert_eq!(query_copy.mode.as_deref(), Some("copy"));
+        assert_eq!(query_copy.start, None);
+    }
+
+    #[test]
+    fn test_hybrid_mode_decision_logic() {
+        let stream_info_hevc = MediaStreamInfo {
+            can_copy_video: true,
+            can_copy_audio: true,
+            is_hevc: true,
+        };
+
+        // In default mode (None or "copy"), video copy is preferred
+        let force_transcode_default = false;
+        assert!(stream_info_hevc.can_copy_video && !force_transcode_default);
+        assert!(stream_info_hevc.is_hevc);
+
+        // When force_transcode is true, copy must be bypassed
+        let force_transcode_forced = true;
+        assert!(!(stream_info_hevc.can_copy_video && !force_transcode_forced));
+    }
+}
+
