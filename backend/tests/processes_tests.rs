@@ -8,6 +8,8 @@ fn get_test_cookie() -> axum_extra::extract::cookie::Cookie<'static> {
     let claims = Claims {
         sub: "admin".to_string(),
         exp: 10_000_000_000,
+        role: "admin".to_string(),
+        uid: None,
     };
 
     let token = encode(

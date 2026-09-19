@@ -16,6 +16,8 @@ fn get_test_token() -> String {
     let claims = Claims {
         sub: "admin".to_string(),
         exp: expiration,
+        role: "admin".to_string(),
+        uid: None,
     };
     
     encode(

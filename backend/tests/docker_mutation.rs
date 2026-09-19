@@ -10,6 +10,8 @@ fn valid_auth_cookie() -> String {
     let claims = backend::auth::Claims {
         sub: "admin".to_owned(),
         exp: 10_000_000_000,
+        role: "admin".to_string(),
+        uid: None,
     };
     let token = encode(
         &Header::default(),

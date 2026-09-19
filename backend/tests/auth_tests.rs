@@ -7,7 +7,7 @@ use std::fs;
 async fn test_auth_flow() {
     // 0. Clean up any existing file before test to ensure clean state
     let _ = fs::remove_file("data/saturn_auth.json");
-    let _ = fs::remove_file("data/saturn_auth.json");
+    let _ = fs::remove_file("data/saturn_users.json");
 
     unsafe {
         std::env::set_var("JWT_SECRET", "super_secret");
@@ -96,5 +96,5 @@ async fn test_auth_flow() {
 
     // Clean up
     let _ = fs::remove_file("data/saturn_auth.json");
-    let _ = fs::remove_file("data/saturn_auth.json");
+    let _ = fs::remove_file("data/saturn_users.json");
 }

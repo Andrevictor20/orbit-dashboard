@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (token: string) => {
     setAuthToken(token);
+    setIsAuthenticated(true);
     await fetchUser(token);
   };
 

@@ -72,7 +72,9 @@ fn test_recovery_codes_single_use() {
 async fn test_2fa_full_lifecycle_and_anti_bypass() {
     let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     let test_auth_path = "data/saturn_auth_2fa_test.json";
+    let test_users_path = "data/saturn_users_2fa_test.json";
     let _ = fs::remove_file(test_auth_path);
+    let _ = fs::remove_file(test_users_path);
 
     unsafe {
         std::env::set_var("SATURN_AUTH_FILE", test_auth_path);
@@ -294,13 +296,16 @@ async fn test_2fa_full_lifecycle_and_anti_bypass() {
 
     // Clean up test file
     let _ = fs::remove_file(test_auth_path);
+    let _ = fs::remove_file(&test_users_path);
 }
 
 #[tokio::test]
 async fn test_2fa_disable_with_totp_code() {
     let _guard = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
     let test_auth_path = "data/saturn_auth_2fa_totp_disable_test.json";
+    let test_users_path = test_auth_path.replace("auth", "users");
     let _ = fs::remove_file(test_auth_path);
+    let _ = fs::remove_file(&test_users_path);
 
     unsafe {
         std::env::set_var("SATURN_AUTH_FILE", test_auth_path);
@@ -388,5 +393,6 @@ async fn test_2fa_disable_with_totp_code() {
     assert_eq!(status_json["enabled"], false);
 
     let _ = fs::remove_file(test_auth_path);
+    let _ = fs::remove_file(&test_users_path);
 }
 

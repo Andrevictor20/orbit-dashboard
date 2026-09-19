@@ -11,6 +11,8 @@ fn get_valid_token() -> String {
     let claims = backend::auth::Claims {
         sub: "admin".to_owned(),
         exp: 10000000000,
+        role: "admin".to_string(),
+        uid: None,
     };
     encode(
         &Header::default(),

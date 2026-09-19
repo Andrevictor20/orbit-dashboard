@@ -30,12 +30,18 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use subtle::ConstantTimeEq;
 
 pub fn get_users_file_path() -> String {
-    std::env::var("SATURN_USERS_FILE")
-        .unwrap_or_else(|_| {
-            let data_dir = crate::system::data_migrator::get_active_data_dir();
-            let saturn_path = data_dir.join("saturn_users.json");
-            saturn_path.to_string_lossy().to_string()
-        })
+    if let Ok(path) = std::env::var("SATURN_USERS_FILE") {
+        return path;
+    }
+    if let Ok(auth_file) = std::env::var("SATURN_AUTH_FILE") {
+        if auth_file.contains("auth") {
+            return auth_file.replace("auth", "users");
+        }
+        return format!("{}.users.json", auth_file);
+    }
+    let data_dir = crate::system::data_migrator::get_active_data_dir();
+    let saturn_path = data_dir.join("saturn_users.json");
+    saturn_path.to_string_lossy().to_string()
 }
 
 pub fn get_auth_file_path() -> String {
