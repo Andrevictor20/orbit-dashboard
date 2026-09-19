@@ -3,11 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import '../../../i18n';
 import { UpdateModal, type SystemUpdateInfo } from '../../../components/system/UpdateModal';
+import { SystemUpdateProvider } from '../../../contexts/SystemUpdateContext';
 
 describe('UpdateModal Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     window.confirm = vi.fn().mockReturnValue(true);
+    localStorage.clear();
   });
 
   const mockInfo: SystemUpdateInfo = {
@@ -21,8 +23,16 @@ describe('UpdateModal Component', () => {
     published_at: '2026-08-28T12:00:00Z',
   };
 
+  const renderWithProvider = (ui: React.ReactElement) => {
+    return render(
+      <SystemUpdateProvider>
+        {ui}
+      </SystemUpdateProvider>
+    );
+  };
+
   it('renders update modal with platform, versions and localized changelog badges', () => {
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -45,7 +55,7 @@ describe('UpdateModal Component', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -58,9 +68,12 @@ describe('UpdateModal Component', () => {
     fireEvent.click(updateButton);
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/system/update', expect.objectContaining({
-        method: 'POST',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/system/update'),
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
     });
   });
 
@@ -74,7 +87,7 @@ describe('UpdateModal Component', () => {
       ci_workflow_url: 'https://github.com/Andrevictor20/saturn/actions/runs/12345',
     };
 
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -102,7 +115,7 @@ describe('UpdateModal Component', () => {
       release_notes: '### ✨ Novidades\n- **Novo Painel:** Visual remodelado com bento apps.\n### ⚡ Desempenho\n- **Muito mais rápido:** Sem travamentos.\n### 🛠️ Correções\n- **Discos:** Reconhecimento correto de HDs.',
     };
 
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -119,7 +132,7 @@ describe('UpdateModal Component', () => {
 
   it('calls onClose when close button is clicked', () => {
     const onClose = vi.fn();
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={onClose}
@@ -142,7 +155,7 @@ describe('UpdateModal Component', () => {
       has_update: true, // simulated false-positive from server
     };
 
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -161,22 +174,11 @@ describe('UpdateModal Component', () => {
     expect(screen.queryByText(/Atualizar para v2\.7\.0/i)).not.toBeInTheDocument();
   });
 
-  it('automatically polls healthcheck and triggers reload when backend recovers from recreating', async () => {
+  it('automatically polls healthcheck and shows reload button when backend finishes update', async () => {
     vi.useFakeTimers();
-    const reloadMock = vi.fn();
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { reload: reloadMock },
-    });
 
     const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/system/update') {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ status: 'pulling' }),
-        });
-      }
-      if (url === '/api/system/update/status') {
+      if (url.includes('/api/system/update/status')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({
@@ -187,18 +189,24 @@ describe('UpdateModal Component', () => {
           }),
         });
       }
-      if (url === '/api/health') {
+      if (url.includes('/api/system/update')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'pulling' }),
+        });
+      }
+      if (url === '/api/health' || url === '/health') {
         return Promise.resolve({
           ok: true,
           headers: new Headers({ 'content-type': 'application/json' }),
           json: async () => ({ status: 'ok', version: '1.1.0' }),
         });
       }
-      return Promise.reject(new Error('Unknown url'));
+      return Promise.reject(new Error(`Unknown url: ${url}`));
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(
+    renderWithProvider(
       <UpdateModal
         isOpen={true}
         onClose={vi.fn()}
@@ -210,19 +218,19 @@ describe('UpdateModal Component', () => {
     const updateButton = screen.getByText(/Atualizar para v1.1.0/i);
     fireEvent.click(updateButton);
 
-    // Advance timers for status poll
-    await vi.advanceTimersByTimeAsync(1100);
+    // Advance timers for update POST and polling
+    await vi.advanceTimersByTimeAsync(1500);
 
     // Advance timers for healthcheck ping
-    await vi.advanceTimersByTimeAsync(1100);
+    await vi.advanceTimersByTimeAsync(1500);
 
-    // Wait for the 400ms reload timeout
-    await vi.advanceTimersByTimeAsync(500);
-
+    // Verify healthcheck was called
     expect(fetchMock).toHaveBeenCalledWith('/api/health', expect.anything());
-    expect(reloadMock).toHaveBeenCalled();
+
+    // When status completes to done, reload button appears
+    await vi.advanceTimersByTimeAsync(500);
+    expect(screen.getByText(/Recarregar Painel/i)).toBeInTheDocument();
+
     vi.useRealTimers();
   });
 });
-
-

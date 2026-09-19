@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, RefreshCw, CheckCircle2, Download } from 'lucide-react';
+import { X, RefreshCw, CheckCircle2, Download, Minimize2, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { SaturnLogo } from '../ui/SaturnLogo';
 import { isNewerVersion } from '../../utils/version';
 import { parseReleaseNotes } from './releaseNotesParser';
 import { UpdateProgressView, type UpdateTaskState } from './UpdateProgressView';
 import { UpdateReleaseNotesView } from './UpdateReleaseNotesView';
+import { useSystemUpdate } from '../../contexts/SystemUpdateContext';
 
 export interface SystemUpdateInfo {
   current_version: string;
@@ -30,16 +31,30 @@ interface UpdateModalProps {
 
 export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: UpdateModalProps) {
   const { t } = useTranslation();
-  const [updating, setUpdating] = useState(false);
-  const [taskState, setTaskState] = useState<UpdateTaskState>({
-    status: 'idle',
-    progress: 0,
-    current_step: '',
-    logs: [],
-    error: null,
-  });
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const {
+    isUpdating,
+    status,
+    progress,
+    currentStep,
+    logs,
+    error,
+    reconnectAttempts,
+    startUpdate,
+    minimize,
+    dismissSuccess
+  } = useSystemUpdate();
+
   const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  const isProgressMode = isUpdating || status === 'recreating' || status === 'done' || (status === 'error' && logs.length > 0);
+
+  const taskState: UpdateTaskState = {
+    status,
+    progress,
+    current_step: currentStep,
+    logs,
+    error,
+  };
 
   const hasNewVersion = Boolean(
     updateInfo?.has_update &&
@@ -51,164 +66,19 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
   // Auto-scroll terminal on new logs
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
-  }, [taskState.logs]);
+  }, [logs]);
 
   // Auto-poll update info when image is still being built in GitHub Actions
   useEffect(() => {
-    if (!isOpen || updating || updateInfo?.ci_status !== 'building') return;
+    if (!isOpen || isProgressMode || updateInfo?.ci_status !== 'building') return;
 
     const interval = setInterval(() => {
       onRefreshInfo();
     }, 7000);
 
     return () => clearInterval(interval);
-  }, [isOpen, updating, updateInfo?.ci_status, onRefreshInfo]);
+  }, [isOpen, isProgressMode, updateInfo?.ci_status, onRefreshInfo]);
 
-  // Polling loop when updating
-  useEffect(() => {
-    if (!updating) return;
-
-    let isSubscribed = true;
-    let pollInterval: any = null;
-    let healthInterval: any = null;
-
-    const startHealthCheckLoop = () => {
-      let attempts = 0;
-      let isChecking = false;
-
-      const pingHealth = async () => {
-        if (isChecking || !isSubscribed) return;
-        isChecking = true;
-        attempts++;
-        setReconnectAttempts(attempts);
-
-        try {
-          // 1. Tenta /api/health primeiro (rota direta para status de API)
-          let res = await fetch('/api/health', { cache: 'no-store' });
-          let isHtml = res.headers.get('content-type')?.includes('text/html');
-
-          // Fallback para /health se retornar HTML (fallback de SPA) ou status de erro
-          if (!res.ok || isHtml) {
-            res = await fetch('/health', { cache: 'no-store' });
-            isHtml = res.headers.get('content-type')?.includes('text/html');
-          }
-
-          if (res.ok && !isHtml) {
-            const healthData = await res.json().catch(() => null);
-            if (healthData && (healthData.version || healthData.status === 'ok')) {
-              if (healthInterval) clearInterval(healthInterval);
-              healthInterval = null;
-              const onlineVersion = healthData.version || updateInfo?.latest_version || '';
-              setTaskState(prev => ({
-                ...prev,
-                status: 'done',
-                progress: 100,
-                current_step: t('system.update_complete_reloading', 'Atualização concluída com sucesso! Recarregando painel...'),
-                logs: [
-                  ...prev.logs,
-                  t('system.dashboard_reconnected', {
-                    version: onlineVersion,
-                    defaultValue: `✔ Painel reconectado na nova versão ${onlineVersion}.`
-                  })
-                ]
-              }));
-              toast.success(onlineVersion ? `Saturn v${onlineVersion} online!` : 'Saturn online!');
-              setTimeout(() => {
-                window.location.reload();
-              }, 400);
-              return;
-            }
-          }
-        } catch {
-          // Contêiner está reiniciando, continua sondando
-        } finally {
-          isChecking = false;
-        }
-
-        if (attempts >= 60) {
-          if (healthInterval) clearInterval(healthInterval);
-          healthInterval = null;
-          setTaskState(prev => ({
-            ...prev,
-            status: 'error',
-            error: t('system.timeout_reconnecting', 'Tempo limite ao reconectar. Verifique os logs do Docker ou recarregue a página.')
-          }));
-        }
-      };
-
-      healthInterval = setInterval(pingHealth, 1000);
-      pingHealth();
-    };
-
-    const pollTaskStatus = async () => {
-      try {
-        const token = localStorage.getItem('saturn_token');
-        const res = await fetch('/api/system/update/status', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
-
-        if (res.status === 404) {
-          // Backend pode ter reiniciado antes do polling
-          if (!healthInterval) {
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = null;
-            startHealthCheckLoop();
-          }
-          return;
-        }
-
-        if (res.ok) {
-          const data = await res.json();
-          if (!isSubscribed) return;
-
-          setTaskState(prev => ({
-            ...prev,
-            status: data.status,
-            progress: data.progress,
-            current_step: data.current_step,
-            logs: data.logs || prev.logs,
-            error: data.error
-          }));
-
-          // Quando entra em 'recreating', o contêiner está reiniciando -> sonda saúde do novo contêiner
-          if (data.status === 'recreating') {
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = null;
-            if (!healthInterval) {
-              startHealthCheckLoop();
-            }
-          } else if (data.status === 'done') {
-            if (pollInterval) clearInterval(pollInterval);
-            toast.success('Saturn atualizado com sucesso!');
-            setTimeout(() => {
-              window.location.reload();
-            }, 400);
-          } else if (data.status === 'error') {
-            if (pollInterval) clearInterval(pollInterval);
-            toast.error(data.error || 'Falha ao atualizar o sistema.');
-          }
-        }
-      } catch {
-        // Se a chamada falhar na rede, o contêiner antigo provavelmente foi desligado para recreation
-        if (!healthInterval) {
-          if (pollInterval) clearInterval(pollInterval);
-          pollInterval = null;
-          startHealthCheckLoop();
-        }
-      }
-    };
-
-    pollInterval = setInterval(pollTaskStatus, 1000);
-    pollTaskStatus();
-
-    return () => {
-      isSubscribed = false;
-      if (pollInterval) clearInterval(pollInterval);
-      if (healthInterval) clearInterval(healthInterval);
-    };
-  }, [updating, updateInfo, t]);
-
-  // Clean Markdown & Bullet Parser for Release Notes
   const parsedSections = useMemo(
     () => parseReleaseNotes(updateInfo?.release_notes || '', t),
     [updateInfo?.release_notes, t]
@@ -222,55 +92,27 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
 
     if (!window.confirm(t('system.confirm_update_version', {
       version: updateInfo?.latest_version,
-      defaultValue: `Deseja iniciar a atualização do Saturn para v${updateInfo?.latest_version}? O painel reiniciará em instantes.`
+      defaultValue: `Deseja iniciar a atualização do Saturn para v${updateInfo?.latest_version}? O download ocorrerá em segundo plano.`
     }))) {
       return;
     }
 
-    setUpdating(true);
-    localStorage.setItem('saturn_updating', 'true');
-    if (updateInfo?.latest_version) {
-      localStorage.setItem('saturn_target_version', updateInfo.latest_version);
-    }
+    await startUpdate(updateInfo?.latest_version);
+  };
 
-    setTaskState({
-      status: 'pulling',
-      progress: 5,
-      current_step: t('system.starting_download', 'Iniciando download da imagem mais recente...'),
-      logs: [t('system.update_agent_init', '[Saturn Update Agent] Inicializando atualização...'), `[Target] ghcr.io:latest (v${updateInfo?.latest_version})`],
-      error: null,
-    });
-
-    try {
-      const token = localStorage.getItem('saturn_token');
-      const res = await fetch('/api/system/update', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+  const handleClose = () => {
+    if (isUpdating && status !== 'done' && status !== 'error') {
+      minimize();
+      onClose();
+      toast(t('system.update_minimized_toast', 'Atualização continuando em segundo plano...'), {
+        icon: '🔄',
+        duration: 4000
       });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || t('system.failed_start_update', 'Falha ao acionar processo de atualização'));
+    } else {
+      if (status === 'done' || status === 'error') {
+        dismissSuccess();
       }
-
-      const data = await res.json();
-      setTaskState(prev => ({
-        ...prev,
-        logs: [...prev.logs, `[Task ID: ${data.task_id}] Processo iniciado com sucesso.`]
-      }));
-
-      // No navegador, transiciona fluidamente para a página dedicada de atualização
-      if (typeof window !== 'undefined' && typeof window.location?.assign === 'function') {
-        const targetUrl = `/updating${updateInfo?.latest_version ? `?version=${encodeURIComponent(updateInfo.latest_version)}` : ''}`;
-        window.location.assign(targetUrl);
-      }
-    } catch (e: any) {
-      setTaskState(prev => ({
-        ...prev,
-        status: 'error',
-        error: e.message
-      }));
-      toast.error(e.message || t('system.failed_start_update', 'Erro ao iniciar atualização.'));
+      onClose();
     }
   };
 
@@ -294,42 +136,66 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-primary leading-tight">
-                  {updating ? t('system.updating_saturn', 'Atualizando Saturn') : t('system.update_title', 'Atualização do Sistema')}
+                  {isProgressMode ? t('system.updating_saturn', 'Atualizando Saturn') : t('system.update_title', 'Atualização do Sistema')}
                 </h2>
-                {!updating && updateInfo?.ci_status === 'building' && (
+                {!isProgressMode && updateInfo?.ci_status === 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                     <RefreshCw className="w-2.5 h-2.5 animate-spin" />
                     <span>{t('system.building_image', 'Compilando Imagem')}</span>
                   </span>
                 )}
-                {!updating && hasNewVersion && updateInfo?.ci_status !== 'building' && (
+                {!isProgressMode && hasNewVersion && updateInfo?.ci_status !== 'building' && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     {t('system.new_version_available', 'Nova Versão Disponível')}
                   </span>
                 )}
+                {isProgressMode && status !== 'done' && status !== 'error' && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-saturn-500/20 text-saturn-400 border border-saturn-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-saturn-400 animate-ping" />
+                    <span>Segundo Plano</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-secondary mt-0.5">
-                {updating 
-                  ? (taskState.current_step || t('system.downloading_and_restarting', 'Processando download e reinicialização segura...'))
+                {isProgressMode 
+                  ? (taskState.current_step || t('system.downloading_and_restarting', 'Processando download em segundo plano...'))
                   : t('system.version_management_desc', 'Gerenciamento de versão e resumo das melhorias')
                 }
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            disabled={updating && taskState.status !== 'error'}
-            className="p-1.5 text-slate-700 dark:text-secondary hover:text-primary rounded-xl hover:bg-accent transition-colors disabled:opacity-30"
-            aria-label={t('common.close', 'Fechar')}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {isProgressMode && status !== 'done' && status !== 'error' && (
+              <button
+                onClick={() => {
+                  minimize();
+                  onClose();
+                  toast(t('system.update_minimized_toast', 'Atualização continuando em segundo plano...'), {
+                    icon: '🔄',
+                    duration: 4000
+                  });
+                }}
+                className="p-1.5 text-secondary hover:text-primary rounded-xl hover:bg-accent transition-colors"
+                title="Minimizar para segundo plano"
+                aria-label="Minimizar"
+              >
+                <Minimize2 className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={handleClose}
+              className="p-1.5 text-slate-700 dark:text-secondary hover:text-primary rounded-xl hover:bg-accent transition-colors"
+              aria-label={t('common.close', 'Fechar')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
         <div className="flex-1 overflow-hidden flex flex-col bg-background/40">
-          {!updating ? (
+          {!isProgressMode ? (
             <UpdateReleaseNotesView
               updateInfo={updateInfo}
               hasNewVersion={hasNewVersion}
@@ -342,6 +208,14 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
               taskState={taskState}
               reconnectAttempts={reconnectAttempts}
               terminalEndRef={terminalEndRef}
+              onMinimize={() => {
+                minimize();
+                onClose();
+                toast(t('system.update_minimized_toast', 'Atualização continuando em segundo plano...'), {
+                  icon: '🔄',
+                  duration: 4000
+                });
+              }}
             />
           )}
         </div>
@@ -349,14 +223,13 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
         {/* Modal Footer */}
         <div className="p-4 px-5 border-t border-border/80 bg-card flex items-center justify-between gap-3">
           <button
-            onClick={onClose}
-            disabled={updating && taskState.status !== 'error'}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors disabled:opacity-30"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-secondary hover:text-primary hover:bg-accent transition-colors"
           >
-            {t('common.close', 'Fechar')}
+            {isProgressMode && status !== 'done' && status !== 'error' ? t('system.minimize', 'Minimizar') : t('common.close', 'Fechar')}
           </button>
 
-          {!updating && (
+          {!isProgressMode ? (
             updateInfo?.ci_status === 'building' ? (
               <button
                 disabled
@@ -383,7 +256,17 @@ export function UpdateModal({ isOpen, onClose, updateInfo, onRefreshInfo }: Upda
                 <span>{t('system.update_to_version', { version: updateInfo?.latest_version, defaultValue: `Atualizar para v${updateInfo?.latest_version}` })}</span>
               </button>
             )
-          )}
+          ) : status === 'done' ? (
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-emerald-500/25 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>{t('system.reload_to_apply', 'Recarregar Painel')}</span>
+            </button>
+          ) : null}
         </div>
 
       </div>

@@ -7,6 +7,7 @@ import { StatsProvider } from './contexts/StatsContext';
 import { AlertsProvider } from './contexts/AlertsContext';
 import { BatchUpdateProvider } from './contexts/BatchUpdateContext';
 import { UploadManagerProvider } from './contexts/UploadManagerContext';
+import { SystemUpdateProvider } from './contexts/SystemUpdateContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -94,31 +95,33 @@ function App() {
                         <AlertsProvider>
                           <BatchUpdateProvider>
                             <UploadManagerProvider>
-                              <DashboardLayout>
-                                <Suspense fallback={<PageFallback />}>
-                                  <Routes>
-                                    <Route path="/" element={<Overview />} />
-                                    <Route path="/metrics" element={<Metrics />} />
-                                    <Route path="/containers" element={<Containers />} />
-                                    <Route path="/containers/:id" element={<ContainerDetail />} />
-                                    <Route path="/store" element={<AppStore />} />
-                                    <Route path="/store/app/:id" element={<AppDetail />} />
-                                    <Route path="/compose" element={<Navigate to="/store?custom=true" replace />} />
-                                    <Route path="/images" element={<Images />} />
-                                    <Route path="/networks" element={<Networks />} />
-                                    <Route path="/volumes" element={<Volumes />} />
-                                    <Route path="/backups" element={<Backups />} />
-                                    <Route path="/files" element={<FileManager />} />
-                                    <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
-                                    <Route path="/terminal" element={<Terminal />} />
-                                    <Route path="/logs" element={<Logs />} />
-                                    <Route path="/homeassistant" element={<HomeAssistant />} />
-                                    <Route path="/pihole" element={<PiHole />} />
-                                    <Route path="/cloudflare" element={<Cloudflare />} />
-                                    <Route path="*" element={<Navigate to="/" replace />} />
-                                  </Routes>
-                                </Suspense>
-                              </DashboardLayout>
+                              <SystemUpdateProvider>
+                                <DashboardLayout>
+                                  <Suspense fallback={<PageFallback />}>
+                                    <Routes>
+                                      <Route path="/" element={<Overview />} />
+                                      <Route path="/metrics" element={<Metrics />} />
+                                      <Route path="/containers" element={<Containers />} />
+                                      <Route path="/containers/:id" element={<ContainerDetail />} />
+                                      <Route path="/store" element={<AppStore />} />
+                                      <Route path="/store/app/:id" element={<AppDetail />} />
+                                      <Route path="/compose" element={<Navigate to="/store?custom=true" replace />} />
+                                      <Route path="/images" element={<Images />} />
+                                      <Route path="/networks" element={<Networks />} />
+                                      <Route path="/volumes" element={<Volumes />} />
+                                      <Route path="/backups" element={<Backups />} />
+                                      <Route path="/files" element={<FileManager />} />
+                                      <Route path="/disk-analyzer" element={<DiskAnalyzer />} />
+                                      <Route path="/terminal" element={<Terminal />} />
+                                      <Route path="/logs" element={<Logs />} />
+                                      <Route path="/homeassistant" element={<HomeAssistant />} />
+                                      <Route path="/pihole" element={<PiHole />} />
+                                      <Route path="/cloudflare" element={<Cloudflare />} />
+                                      <Route path="*" element={<Navigate to="/" replace />} />
+                                    </Routes>
+                                  </Suspense>
+                                </DashboardLayout>
+                              </SystemUpdateProvider>
                             </UploadManagerProvider>
                           </BatchUpdateProvider>
                         </AlertsProvider>

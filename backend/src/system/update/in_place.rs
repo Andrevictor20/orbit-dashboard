@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -14,7 +14,15 @@ use super::{append_task_log, SystemUpdateTask, SYSTEM_UPDATE_TASK, UPDATE_CACHE}
 use super::detector::{discover_compose_context, find_active_saturn_container};
 use super::script_generator::{generate_helper_script, HelperScriptParams};
 
-pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoResponse {
+#[derive(serde::Deserialize, Default, Debug)]
+pub struct UpdateQuery {
+    pub version: Option<String>,
+}
+
+pub async fn perform_system_update(
+    State(state): State<AppState>,
+    Query(query): Query<UpdateQuery>,
+) -> impl IntoResponse {
     // Check if task is already running
     {
         let task = match SYSTEM_UPDATE_TASK.read() {
@@ -63,15 +71,24 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
     }
 
     let docker = state.docker.clone();
+    let target_version_param = query.version.clone();
 
     // Spawn background worker
     tokio::spawn(async move {
         let platform = get_host_platform();
         let detected_container = find_active_saturn_container(&docker).await;
-        let image_name = detected_container.image_name;
+        let mut image_name = detected_container.image_name;
         let current_container_id = detected_container.id;
         let current_container_name = detected_container.name;
         let inspect_result = detected_container.inspect;
+
+        if let Some(ver) = target_version_param.as_deref() {
+            let clean_ver = ver.trim().trim_start_matches('v');
+            if !clean_ver.is_empty() && image_name.ends_with(":latest") {
+                let base = image_name.trim_end_matches(":latest");
+                image_name = format!("{}:v{}", base, clean_ver);
+            }
+        }
 
         append_task_log(
             format!("ℹ️ [INFO] Plataforma de destino confirmada: {}", platform),
@@ -96,10 +113,13 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
         let mut pull_progress = 15u8;
         let mut last_status = String::new();
         let mut had_error = false;
+        let mut consecutive_timeouts = 0;
 
-        while let Some(res) = pull_stream.next().await {
-            match res {
-                Ok(info) => {
+        loop {
+            let next_chunk = tokio::time::timeout(Duration::from_secs(45), pull_stream.next()).await;
+            match next_chunk {
+                Ok(Some(Ok(info))) => {
+                    consecutive_timeouts = 0;
                     let status = info.status.unwrap_or_default();
                     let id = info.id.unwrap_or_default();
                     let progress_detail = if let Some(ref p) = info.progress_detail {
@@ -141,13 +161,28 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
                         last_status = status;
                     }
                 }
-                Err(e) => {
+                Ok(Some(Err(e))) => {
                     had_error = true;
                     append_task_log(
                         format!("⚠️ [WARN] Aviso no pull da imagem: {}", e),
                         None,
                         None,
                     );
+                }
+                Ok(None) => {
+                    break;
+                }
+                Err(_) => {
+                    consecutive_timeouts += 1;
+                    if consecutive_timeouts >= 4 {
+                        had_error = true;
+                        append_task_log(
+                            "⚠️ [WARN] Timeout de 180s ao aguardar stream do Container Registry. Prosseguindo com fallback...".to_string(),
+                            None,
+                            None,
+                        );
+                        break;
+                    }
                 }
             }
         }
@@ -159,7 +194,7 @@ pub async fn perform_system_update(State(state): State<AppState>) -> impl IntoRe
             };
             task.status = "error".to_string();
             task.error = Some(
-                "Não foi possível baixar a imagem do GitHub Container Registry.".to_string(),
+                "Não foi possível baixar a imagem do Container Registry. Verifique a conexão com o registro.".to_string(),
             );
             task.logs
                 .push("❌ [ERROR] Falha durante o download da nova imagem.".to_string());

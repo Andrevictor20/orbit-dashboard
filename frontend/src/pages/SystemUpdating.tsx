@@ -201,6 +201,14 @@ export function SystemUpdating() {
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = null;
           }
+        } else {
+          // Se não retornou 200 OK (ex: 401, 500 ou container reiniciando), chaveia para healthcheck
+          attempts++;
+          if (attempts >= 2) {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = null;
+            startHealthCheckLoop();
+          }
         }
       } catch {
         // Queda esperada de conexão quando o contêiner antigo é desligado
@@ -362,9 +370,18 @@ export function SystemUpdating() {
         </div>
 
         {/* Subtle Footer Note */}
-        <p className="text-[11px] text-center text-secondary/70">
-          {t('system.update_wait_notice', 'Por favor, não reinicie o host nem feche a aba durante a atualização do Docker.')}
-        </p>
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-[11px] text-center text-secondary/70">
+            {t('system.update_wait_notice', 'A atualização ocorre em segundo plano no contêiner.')}
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-xs text-saturn-500 hover:text-saturn-400 font-medium flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-xl hover:bg-card/50"
+          >
+            ← {t('system.back_to_dashboard', 'Voltar ao Dashboard')}
+          </button>
+        </div>
       </div>
     </div>
   );

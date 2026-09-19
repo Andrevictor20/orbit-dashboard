@@ -1,11 +1,12 @@
-# Saturn Dashboard v3.7.10
+# Saturn Dashboard v3.8.0
 
-### Novidades, Correções e Melhorias na Versão 3.7.10
+### Novidades, Correções e Melhorias na Versão 3.8.0
 
-### 🎬 Arquitetura Híbrida de Streaming & Remux Direto Ultra-Rápido
-- **Remux Direto por Padrão (`-c:v copy` com FourCC `hvc1`):** Arquivos MKV com vídeo H.264/H.265 (HEVC) e áudio AAC/Opus agora são transmitidos por remux direto instantâneo, eliminando a re-codificação de vídeo por software no servidor. O uso de CPU no Raspberry Pi despenca de 400% (4 núcleos em 100%) para **menos de 1%**, com velocidade de processamento saltando de 0.2x para mais de 2000x e início de reprodução em menos de 200ms.
-- **Etiqueta FourCC `hvc1` para Compatibilidade Web:** O backend do Saturn agora injeta automaticamente a flag `-tag:v hvc1` nos fluxos HEVC/H.265 para contêiner MP4 fragmentado, permitindo que navegadores modernos (Chrome, Edge, Safari) ativem diretamente a decodificação nativa por GPU do cliente.
-- **Fallback Automático Inteligente (Watchdog de 7 Segundos):** Se o navegador do cliente não possuir decodificador de hardware para o perfil específico e o vídeo permanecer travado em buffering por mais de 7 segundos, o Saturn exibe automaticamente uma interface de recuperação em tons de alerta com opções claras: abrir diretamente no VLC com 1 clique (`vlc://...`), tentar novamente ou forçar transcodificação por software.
-- **Alternador de Modo no Cabeçalho (Remux vs Transcode):** Adicionado badge interativo no cabeçalho do player exibindo o status em tempo real (`⚡ Remux Direto (0% CPU)` vs `🔄 Transcode (CPU)`), permitindo alternar manualmente o modo de reprodução a qualquer momento.
-- **Throttling Seguro na Transcodificação Forçada:** Quando a transcodificação por software é explicitamente solicitada (`mode=transcode`), o FFmpeg é configurado com limites seguros (`-threads 2 -crf 25`) para impedir aquecimento excessivo e thermal throttling da CPU no Raspberry Pi.
-- **Refatoração Modular do Player:** Extraído o hook `useVideoSubtitles` para isolamento de lógica de legendas VTT/SRT e sincronização de cues, mantendo todos os componentes rigorosamente abaixo do limite de 500 linhas (*No God Files*).
+### 🚀 Atualizações Imperceptíveis em Segundo Plano (Zero-Downtime Seamless Updates)
+- **Fim do Bloqueio de Tela e Travamento em 10%:** Eliminado o redirecionamento forçado para a página `/updating`. O processo de atualização do contêiner agora é executado 100% em segundo plano, permitindo que o usuário continue navegando livremente pelo painel (acessar Arquivos, Contêineres, Loja de Aplicativos, Métricas, etc.) sem interrupções.
+- **Gerenciamento Global de Atualização (`SystemUpdateContext`):** Novo contexto React centralizado com polling assíncrono não-obstrutivo, persistência suave de estado e monitoramento contínuo em tempo real.
+- **Pílula Flutuante & Indicador Dinâmico no Cabeçalho:** Adicionado o componente `SystemUpdateFloatingBar` no canto inferior da tela e um ícone animado com tooltip de porcentagem no cabeçalho do painel, permitindo acompanhar o progresso ou reabrir o terminal de logs com 1 clique a qualquer momento.
+- **Timeouts Resilientes no Backend Rust:** Adicionada proteção de timeout assíncrono de 45 segundos no stream de download de camadas Docker via biblioteca `bollard` (`tokio::time::timeout`), prevenindo travamento indefinido caso o registry ou a rede sofram oscilações.
+- **Pre-Pull Seguro & Troca Atômica:** O contêiner em execução permanece ativo respondendo a todas as requisições até o exato instante em que a imagem está 100% descompactada no disco. A recriação do contêiner leva menos de 2 segundos.
+- **Reconexão Suave e Toast de Conclusão:** O sistema realiza detecção de saúde em background via `/api/health` e exibe uma notificação amigável convidando o usuário a recarregar o painel para usufruir dos novos recursos, sem perda de sessão.
+- **Página `/updating` com Botão de Retorno:** Adicionado botão de retorno ao dashboard e recuperação automática caso a rota dedicada seja acessada diretamente.

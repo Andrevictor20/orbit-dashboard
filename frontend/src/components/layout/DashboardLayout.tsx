@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Sun, Moon, LogOut, Palette, Menu, X, Maximize, Minimize, Sparkles, Globe, ChevronDown
+  Sun, Moon, LogOut, Palette, Menu, X, Maximize, Minimize, Sparkles, Globe, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useSystemUpdate } from '../../contexts/SystemUpdateContext';
 import { supportedLanguages } from '../../i18n';
 import { InstallProgressModal } from '../docker/InstallProgressModal';
 import { isNewerVersion } from '../../utils/version';
 import { BatchUpdateFloatingBar } from '../docker/BatchUpdateFloatingBar';
+import { SystemUpdateFloatingBar } from '../system/SystemUpdateFloatingBar';
 import { ProfileModal } from './ProfileModal';
 import { UpdateModal, type SystemUpdateInfo } from '../system/UpdateModal';
 import { UploadProgressDrawer } from '../files/UploadProgressDrawer';
@@ -62,6 +64,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<SystemUpdateInfo | null>(null);
+
+  const {
+    isModalOpen: isSystemUpdateModalOpen,
+    openModal: openSystemUpdateModal,
+    closeModal: closeSystemUpdateModal,
+    isUpdating: isSystemUpdating,
+    progress: systemUpdateProgress,
+  } = useSystemUpdate();
 
   const hasUpdate = Boolean(
     updateInfo?.has_update && updateInfo?.latest_version && updateInfo?.current_version &&
@@ -168,17 +178,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 text-sm font-medium">
             <button
-              onClick={() => setIsUpdateModalOpen(true)}
+              onClick={() => {
+                if (isSystemUpdateModalOpen || isUpdateModalOpen) {
+                  setIsUpdateModalOpen(false);
+                  closeSystemUpdateModal();
+                } else {
+                  setIsUpdateModalOpen(true);
+                  openSystemUpdateModal();
+                }
+              }}
               className={`relative w-9 h-9 rounded-xl border transition-all duration-200 active:scale-[0.95] focus-visible:ring-2 focus-visible:ring-saturn-500 focus-visible:outline-none shadow-sm ${
-                hasUpdate
+                isSystemUpdating
+                  ? 'flex items-center justify-center text-saturn-400 bg-saturn-500/20 border-saturn-500/40'
+                  : hasUpdate
                   ? 'flex items-center justify-center text-amber-400 bg-amber-500/15 border-amber-500/35 hover:bg-amber-500/25'
                   : 'hidden sm:flex items-center justify-center text-secondary hover:text-primary border-border/70 bg-card/50 hover:bg-card/85 hover:border-saturn-500/40 backdrop-blur-2xl'
               }`}
-              title={hasUpdate ? t('system.update_available', 'Nova versão disponível!') : t('system.check_updates', 'Verificar atualizações')}
+              title={isSystemUpdating ? `Atualizando Saturn (${systemUpdateProgress}%)...` : hasUpdate ? t('system.update_available', 'Nova versão disponível!') : t('system.check_updates', 'Verificar atualizações')}
               aria-label={t('system.saturn_updates', 'Atualizações do Saturn')}
             >
-              <Sparkles className="w-4 h-4" />
-              {hasUpdate && (
+              {isSystemUpdating ? <RefreshCw className="w-4 h-4 animate-spin text-saturn-400" /> : <Sparkles className="w-4 h-4" />}
+              {hasUpdate && !isSystemUpdating && (
                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
@@ -227,9 +247,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <InstallProgressModal />
       <BatchUpdateFloatingBar />
+      <SystemUpdateFloatingBar />
       <UploadProgressDrawer />
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-      <UpdateModal isOpen={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} updateInfo={updateInfo} onRefreshInfo={() => checkUpdates(true)} />
+      <UpdateModal
+        isOpen={isSystemUpdateModalOpen || isUpdateModalOpen}
+        onClose={() => {
+          setIsUpdateModalOpen(false);
+          closeSystemUpdateModal();
+        }}
+        updateInfo={updateInfo}
+        onRefreshInfo={() => checkUpdates(true)}
+      />
     </div>
   );
 }
