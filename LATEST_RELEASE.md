@@ -1,13 +1,9 @@
-# Saturn Dashboard v3.7.8
+# Saturn Dashboard v3.7.9
 
-### Novidades, Correções e Melhorias na Versão 3.7.8
+### Novidades, Correções e Melhorias na Versão 3.7.9
 
-### 🐳 Segundo Contêiner Dedicado (`saturn-updater`) & Reinicialização Monitorada
-- **Orquestrador Dedicado em Segundo Contêiner:** A atualização in-place agora cria e inicia automaticamente um contêiner independente (`saturn-updater`) diretamente via Docker Engine API (Bollard), eliminando falhas de permissão ao executar a CLI dentro do contêiner.
-- **Pulls Explícitos no Host:** O script do `saturn-updater` realiza `docker pull` e `docker compose pull` explicitamente no host antes de recriar os serviços, garantindo que a nova imagem seja aplicada mesmo em tags `:latest`.
-- **Verificação Ativa do Contêiner:** O `saturn-updater` monitora ativamente a transição e verifica via Docker API se o novo contêiner Saturn atingiu o estado `running` antes de encerrar.
-
-### 🔄 Monitoramento Preciso de Versão no Frontend (`/updating`)
-- **Fim dos Falsos Positivos de Sucesso:** A página de atualização `/updating` não considera mais requisições bem-sucedidas com a versão antiga como término da atualização; ela valida estritamente que a versão online retornada pelo healthcheck é idêntica à versão de destino (`v3.7.8`).
-- **Feedback Visual da Transição:** Exibição em tempo real do encerramento do contêiner antigo, sondagem ativa da reconexão e confirmação inequívoca do novo contêiner operacional.
-- **Hardening de Permissões:** Adicionado `privileged: true` ao template do `docker-compose.yml` no `install.sh`, assegurando permissões completas de gerenciamento do Docker socket.
+### 👥 Ergonomia & Design dos Modais Multiusuário (React Portal & Viewport Escape)
+- **Eliminação do Confinamento CSS em Submodais:** As modais de criação de usuário (`UserFormModal`), redefinição de senha (`ResetPasswordModal`) e confirmação de exclusão (`DeleteUserModal`) agora utilizam `createPortal` nativo para `document.body`. Isso elimina o confinamento forçado dentro do card pai de configurações causado por filtros `backdrop-filter`, centralizando as janelas perfeitamente na tela do navegador com z-index `100`.
+- **Layout Espaçoso & Fim da Sensação de Aperto:** A modal de novo usuário foi ampliada para `max-w-xl` (576px) com padding generoso (`p-6 sm:p-7`), cabeçalho refinado com botão de fechar (`X`), inputs amplos e confortáveis (`px-4 py-2.5 text-sm`) e cantos arredondados modernos (`rounded-3xl`).
+- **Cards de Seleção de Papel Amplos:** Os botões de seleção de papel (**Membro** e **Admin**) foram transformados em cards espaçosos com ícones dedicados, indicador visual de seleção ativa e descrições detalhadas e legíveis sobre os privilégios de cada nível de acesso.
+- **Expansão do Modal de Configurações & Perfil:** O `ProfileModal` principal agora se adapta confortavelmente em telas maiores (`max-w-3xl lg:max-w-4xl`), proporcionando muito mais respiro para a listagem de contas de usuários, integrações e configurações de sistema.

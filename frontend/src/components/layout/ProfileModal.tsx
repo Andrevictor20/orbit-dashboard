@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, KeyRound, Palette, Server, Cpu, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,13 +23,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="bg-card/95 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-250"
+        className="bg-card/95 backdrop-blur-3xl saturate-[190%] border border-border/80 rounded-2xl w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-250"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -131,4 +132,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
 }
+
